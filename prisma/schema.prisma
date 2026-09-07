@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  city      String   @default("Riyadh")
+  isDefault Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model SiteSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+}
