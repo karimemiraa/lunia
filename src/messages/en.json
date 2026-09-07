@@ -161,6 +161,107 @@
       "headline": "Book a diagnostic consultation to begin"
     }
   },
+  "brandsIndex": {
+    "meta": {
+      "title": "Brands We Trust | Lunia Skin Quality Center",
+      "description": "The clinical-grade brands behind every Lunia protocol — chosen for results, not trends, and used across our skin, hair & scalp, and recovery treatments."
+    },
+    "hero": {
+      "eyebrow": "Trusted Partners",
+      "heading": "The brands behind every protocol",
+      "intro": "We only bring in names we'd recommend to our own families. Each brand below earned its place through results, not marketing — explore what each one is, and why we chose it."
+    },
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Book a diagnostic consultation to begin"
+    }
+  },
+  "brandDetail": {
+    "whyChosenLabel": "Why Lunia chose it",
+    "treatmentsNote": "This brand is woven into our diagnostic-led protocols wherever it's the right fit for your skin or scalp — your specialist will tell you exactly where it shows up in your plan.",
+    "visitWebsite": "Visit official website",
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Book a diagnostic consultation to begin"
+    }
+  },
+  "resultsIndex": {
+    "meta": {
+      "title": "Results | Lunia Skin Quality Center",
+      "description": "A look at the quality Lunia clients build over time, across skin, hair & scalp, and post-surgery recovery — shared with consent, session by session."
+    },
+    "hero": {
+      "eyebrow": "Real Progress",
+      "heading": "Quality you can see, built session by session",
+      "intro": "Every result here reflects a real diagnostic plan, sustained over time — not a single dramatic transformation. Photography is shared only with client consent."
+    },
+    "categories": ["Skin Quality", "Hair & Scalp", "Post-Surgery Recovery"],
+    "allLabel": "All results",
+    "beforeAfterLabel": "Before & after",
+    "consentNote": "Real client photography is added with explicit consent as it becomes available. Every placeholder above reflects a treatment category, not a specific client.",
+    "emptyLabel": "Results are being gathered with client consent — check back soon.",
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Start building your own results"
+    }
+  },
+  "journalIndex": {
+    "meta": {
+      "title": "Journal | Lunia Skin Quality Center",
+      "description": "Notes on skin quality, diagnostic care, and the philosophy behind every Lunia treatment — from our specialists in Riyadh."
+    },
+    "hero": {
+      "eyebrow": "The Lunia Journal",
+      "heading": "Notes on skin quality, from us to you",
+      "intro": "Stories, guides, and the thinking behind our diagnostic-first approach — written by the specialists who deliver it."
+    },
+    "readMoreLabel": "Read the story",
+    "emptyLabel": "New stories are on their way — check back soon.",
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Book a diagnostic consultation to begin"
+    }
+  },
+  "journalPost": {
+    "byLabel": "By",
+    "backLabel": "Back to the Journal",
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Book a diagnostic consultation to begin"
+    }
+  },
+  "contact": {
+    "meta": {
+      "title": "Contact | Lunia Skin Quality Center, Riyadh",
+      "description": "Reach Lunia in Riyadh by phone, WhatsApp, or Instagram, or send a diagnostic consultation inquiry — we'll get back to you shortly."
+    },
+    "hero": {
+      "eyebrow": "Get in Touch",
+      "heading": "Let's talk about your skin",
+      "intro": "Send us a message and a specialist will get back to you shortly, or reach us directly by phone, WhatsApp, or Instagram."
+    },
+    "napHeading": "Visit or Reach Us",
+    "addressLabel": "Address",
+    "phoneLabel": "Phone",
+    "whatsappLabel": "WhatsApp",
+    "instagramLabel": "Instagram",
+    "mapPlaceholderLabel": "Find us in Riyadh — an interactive map is coming soon",
+    "mapLinkLabel": "Open in Google Maps",
+    "napFallback": "Contact details are being updated — check back soon, or message us using the form.",
+    "form": {
+      "heading": "Send an inquiry",
+      "intro": "Tell us a little about what you're looking for, and a specialist will follow up with you directly.",
+      "nameLabel": "Full name",
+      "phoneLabel": "Phone number",
+      "emailLabel": "Email (optional)",
+      "messageLabel": "How can we help?",
+      "submitLabel": "Send inquiry",
+      "submittingLabel": "Sending…",
+      "successMessage": "Thank you — we've received your message and will reach out shortly.",
+      "errorMessage": "Something went wrong — please check your details and try again.",
+      "requiredNote": "* Required"
+    }
+  },
   "serviceDepartment": {
     "servicesHeading": "Treatments in this department",
     "servicesIntro": "Every treatment below is delivered after a diagnostic read of your skin or scalp, so what you receive is calibrated to you, not a fixed package.",
