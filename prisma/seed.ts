@@ -1,6 +1,13 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { ALL_PERMISSION_KEYS, ROLE_PERMISSIONS } from "../src/modules/iam/permissions";
+import type {
+  BusinessSettings,
+  HoursSettings,
+  SocialSettings,
+  SeoSettings,
+  HeroSettings,
+} from "../src/modules/cms/settings";
 import bcrypt from "bcryptjs";
 
 // Prisma 7 removed the `url` field from the schema's datasource block and
@@ -88,6 +95,52 @@ async function main() {
     update: {},
     create: { userId: user.id, roleId: ownerRole.id },
   });
+  const openHours = { open: "10:00", close: "22:00", closed: false };
+  const closedHours = { open: "10:00", close: "22:00", closed: true };
+  const defaultSettings: Record<string, unknown> = {
+    business: {
+      nameEn: "Lunia",
+      nameAr: "لونيا",
+      addressEn: "King Fahd Road, Riyadh, Saudi Arabia",
+      addressAr: "طريق الملك فهد، الرياض، المملكة العربية السعودية",
+      phone: "+9665XXXXXXXX",
+      whatsapp: "+9665XXXXXXXX",
+      email: "hello@lunia.example",
+    } satisfies BusinessSettings,
+    hours: {
+      sun: openHours,
+      mon: openHours,
+      tue: openHours,
+      wed: openHours,
+      thu: openHours,
+      fri: closedHours,
+      sat: openHours,
+    } satisfies HoursSettings,
+    social: {
+      instagram: "@lunia",
+    } satisfies SocialSettings,
+    seo: {
+      defaultTitleEn: "Lunia — Skin Quality Center",
+      defaultTitleAr: "لونيا — مركز جودة البشرة",
+      defaultDescEn: "Lunia is a premium skin quality center in Riyadh offering advanced, personalized skincare treatments.",
+      defaultDescAr: "لونيا مركز متميز لجودة البشرة في الرياض يقدم علاجات عناية بالبشرة متقدمة ومخصصة.",
+    } satisfies SeoSettings,
+    hero: {
+      mediaId: null,
+      headlineEn: "Where natural beauty begins",
+      headlineAr: "حيث يبدأ الجمال الطبيعي",
+      ctaEn: "Book Now",
+      ctaAr: "احجزي الآن",
+    } satisfies HeroSettings,
+  };
+  for (const [key, value] of Object.entries(defaultSettings)) {
+    await prisma.siteSetting.upsert({
+      where: { key },
+      update: {},
+      create: { key, value: value as object },
+    });
+  }
+
   console.log("Seed complete. Owner:", ownerEmail);
 }
 

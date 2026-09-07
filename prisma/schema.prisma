@@ -110,3 +110,32 @@ model ClientMembership {
   tier      MembershipTier @relation(fields: [tierId], references: [id])
   startedAt DateTime       @default(now())
 }
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+model MediaAsset {
+  id           String    @id @default(cuid())
+  kind         MediaKind
+  storageKey   String    @unique
+  filename     String
+  mimeType     String
+  sizeBytes    Int
+  width        Int?
+  height       Int?
+  altEn        String?
+  altAr        String?
+  focalX       Float     @default(0.5)
+  focalY       Float     @default(0.5)
+  createdAt    DateTime  @default(now())
+  uploadedById String?
+}
+
+model PageContent {
+  id        String   @id @default(cuid())
+  pageKey   String   @unique
+  data      Json
+  updatedAt DateTime @default(now()) @updatedAt
+}
