@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
 // Server Component we invoke directly below — can still be rendered here.
 vi.mock("next-intl/server", () => ({
   getTranslations: async ({ namespace }: { locale: string; namespace: string }) => {
-    const catalog = enMessages as Record<string, Record<string, string>>;
+    const catalog = enMessages as unknown as Record<string, Record<string, string>>;
     const dict = catalog[namespace] ?? {};
     return (key: string) => dict[key] ?? key;
   },

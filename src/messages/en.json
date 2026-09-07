@@ -27,5 +27,79 @@
     "instagramLabel": "Instagram",
     "rights": "All rights reserved."
   },
-  "home": { "heroStatement": "Where natural beauty begins" }
+  "home": {
+    "heroStatement": "Where natural beauty begins",
+    "hero": { "eyebrow": "Skin Quality Center · Riyadh" },
+    "meta": {
+      "title": "Lunia | Riyadh's Skin Quality Center",
+      "description": "Diagnostic-led skin, hair & scalp, and post-surgery recovery care in Riyadh, built on a Korean-inspired philosophy. Not facials — skin quality, sustained."
+    },
+    "positioning": {
+      "eyebrow": "The Lunia Philosophy",
+      "heading": "Not a spa. A Skin Quality Center.",
+      "body": "A facial fades by the weekend. Skin quality is something you build — layer by layer, session by session — until it holds its own glow. At Lunia, every visit begins with a real diagnostic read of your skin, not a menu of treatments, so what we do next is calibrated to what your skin actually needs, and sustained long enough to show."
+    },
+    "services": {
+      "eyebrow": "What We Do",
+      "heading": "Three departments, one philosophy",
+      "intro": "Skin, hair & scalp, and post-surgery recovery — each built on the same diagnostic-first approach to lasting quality."
+    },
+    "journey": {
+      "eyebrow": "The Client Journey",
+      "heading": "Six moments, one rhythm",
+      "steps": [
+        {
+          "title": "Analyze",
+          "body": "We start by reading your skin, or scalp, closely — diagnostic imaging and a real conversation, not guesswork."
+        },
+        {
+          "title": "Personalize",
+          "body": "A plan is built around what we find, not a fixed treatment menu."
+        },
+        {
+          "title": "Treat",
+          "body": "Clinical-grade protocols, delivered in a calm, luminous space."
+        },
+        {
+          "title": "Relax",
+          "body": "Recovery matters as much as treatment — time to let the work settle."
+        },
+        {
+          "title": "Maintain",
+          "body": "A steady rhythm of visits keeps progress compounding instead of fading."
+        },
+        {
+          "title": "Return",
+          "body": "Skin quality is sustained, not a one-time result — we track it with you, visit after visit."
+        }
+      ]
+    },
+    "brands": {
+      "eyebrow": "Trusted Partners",
+      "heading": "Clinical-grade brands we stand behind",
+      "intro": "We only bring in names we'd recommend to our own families — chosen for results, not trends."
+    },
+    "testimonials": {
+      "eyebrow": "In Their Words",
+      "heading": "What our clients say",
+      "items": [
+        {
+          "quote": "For the first time, someone actually explained what my skin needed instead of just selling me a facial.",
+          "author": "N., Riyadh"
+        },
+        {
+          "quote": "Six months in and my skin genuinely looks different — not just after a treatment, but every day.",
+          "author": "L., Riyadh"
+        },
+        {
+          "quote": "The recovery lounge after surgery was the calmest, most careful care I could have asked for.",
+          "author": "H., Riyadh"
+        }
+      ]
+    },
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Start your journey to real skin quality"
+    }
+  }
 }
