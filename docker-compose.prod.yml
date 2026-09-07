@@ -19,6 +19,27 @@ services:
   # CMD (e.g. `node worker.js`), the same env_file, and depends_on postgres
   # + redis, rather than standing up a second build.
 
+  # One-shot migration/seed runner, built from the `migrator` target (reuses
+  # the `build` stage's full `node_modules` — prisma + tsx included). This is
+  # the one documented, stable place to run `prisma migrate deploy` /
+  # `db:seed` (see docs/RUNBOOK.md and task-11-report.md "Fix round 1") —
+  # never run those against the `app` service, even though its image
+  # currently happens to carry the same tooling too (see Dockerfile's `run`
+  # stage comment). It is not part of `docker compose up` (no `restart:`,
+  # not depended on by anything) — invoke it explicitly, e.g.:
+  #   docker compose -f docker-compose.prod.yml run --rm migrate prisma migrate deploy
+  #   docker compose -f docker-compose.prod.yml run --rm migrate tsx prisma/seed.ts
+  migrate:
+    build:
+      context: .
+      target: migrator
+    image: lunia:migrate
+    env_file: .env.prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["tools"]
+
   postgres:
     image: postgres:16
     env_file: .env.prod

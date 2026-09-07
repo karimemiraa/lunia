@@ -19,7 +19,10 @@ git pull --ff-only
 
 docker compose -f docker-compose.prod.yml build app
 
-docker compose -f docker-compose.prod.yml run --rm app pnpm prisma migrate deploy
+# Migrations run against the dedicated `migrate` service (the `migrator`
+# build target, which reuses the `build` stage's full node_modules), never
+# against `app` — see docs/RUNBOOK.md.
+docker compose -f docker-compose.prod.yml --profile tools run --rm migrate prisma migrate deploy
 
 docker compose -f docker-compose.prod.yml up -d
 

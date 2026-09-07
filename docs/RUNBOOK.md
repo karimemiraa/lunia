@@ -60,10 +60,16 @@ Run everything from the repo root on the VPS.
    ```bash
    docker compose -f docker-compose.prod.yml build
    docker compose -f docker-compose.prod.yml up -d postgres redis
-   docker compose -f docker-compose.prod.yml run --rm app pnpm prisma migrate deploy
-   docker compose -f docker-compose.prod.yml run --rm app pnpm db:seed
+   docker compose -f docker-compose.prod.yml --profile tools run --rm migrate prisma migrate deploy
+   docker compose -f docker-compose.prod.yml --profile tools run --rm migrate tsx prisma/seed.ts
    docker compose -f docker-compose.prod.yml up -d
    ```
+   Migrations and seeding always run against the `migrate` service, which
+   builds from the `migrator` target (reuses the `build` stage's full
+   `node_modules`, prisma + tsx included) — never against the `app` service,
+   which is meant for serving the app, not for one-off tooling commands.
+   `migrate` is gated behind the `tools` Compose profile so it never starts
+   as part of routine `docker compose up`.
 5. Confirm the app is reachable over plain HTTP through Nginx:
    `curl http://<vps-ip>/api/health` should return `{"status":"ok",...}`.
 6. Point the domain's DNS A/AAAA record at the VPS if not already done, and
@@ -101,7 +107,8 @@ Run everything from the repo root on the VPS.
 ```
 
 This does `git pull --ff-only`, rebuilds the `app` image, runs
-`prisma migrate deploy` against the running Postgres, then
+`prisma migrate deploy` against the running Postgres via the `migrate`
+service (the `migrator` build target — see section 2), then
 `docker compose up -d` to restart the stack with the new image. It refuses
 to run without a `.env.prod` present. Take a `backup.sh` snapshot first if
 the migration is non-trivial.

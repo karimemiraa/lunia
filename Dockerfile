@@ -17,15 +17,36 @@
 #   just DATABASE_URL. Real values are supplied at container runtime via
 #   `.env.prod` (see docker-compose.prod.yml) and are NOT baked into the
 #   image.
-# - Next's standalone output tracing (`.next/standalone`) does not pick up
-#   `@prisma/adapter-pg` (nor its own dependency chain: driver-adapter-utils,
-#   debug) because nothing in the traced bundle statically resolves those
-#   files the way the tracer expects under pnpm's symlinked store. The extra
-#   COPY lines in the `run` stage below patch that gap by copying the exact
-#   pnpm-store packages and the top-level `@prisma/adapter-pg` symlink from
-#   the `build` stage's full install. `pg` and `postgres-array` themselves
-#   ARE picked up correctly by the tracer and need no extra handling.
-#   If `pnpm-lock.yaml` bumps these packages, re-verify with:
+# - Next's standalone-output tracer (`@vercel/nft`) does not reliably pick up
+#   `@prisma/adapter-pg`'s own dependency chain (`@prisma/driver-adapter-utils`
+#   -> `@prisma/debug`, `postgres-array`, `pg`) under pnpm's nested-symlink
+#   store layout — `db.ts`'s `import { PrismaPg } from "@prisma/adapter-pg"`
+#   is the only thing in the whole app that reaches that chain, and the
+#   tracer can't statically prove the path through pnpm's `.pnpm/<pkg>@<ver>`
+#   indirection.
+#   We tried Next's `outputFileTracingIncludes` config (a version-wildcard
+#   glob, so nothing pinned) to patch the gap instead of manually COPYing
+#   pnpm-store folders. It sometimes produced a working image and sometimes
+#   didn't — rebuilding with the exact same inputs surfaced a *different*
+#   missing transitive module each time (first `@prisma/driver-adapter-utils`
+#   entirely missing a top-level symlink, then, after adding that symlink
+#   back, a `MODULE_NOT_FOUND` for `@prisma/debug` one level deeper — nft
+#   dereferences nested pnpm symlinks inconsistently when copying via
+#   include-globs, discarding a different sibling package each time). That
+#   nondeterminism makes it unsafe to ship, so we dropped
+#   `outputFileTracingIncludes` from next.config.ts entirely.
+# - Fix actually used: the `run` stage below copies the **full** `node_modules`
+#   from the `build` stage on top of the standalone output, instead of
+#   cherry-picking files. A whole-directory `COPY` preserves pnpm's real
+#   symlinks (only a symlink given directly as a COPY *source* gets
+#   dereferenced — copying the directory that contains it does not), so the
+#   entire adapter-pg -> driver-adapter-utils -> debug / pg / postgres-array
+#   chain resolves exactly as it does in the `build` stage, with zero pinned
+#   package or version names anywhere in this file. The tradeoff is a larger
+#   image (full node_modules, including devDependencies) instead of the
+#   trimmed standalone-only tree — an explicitly acceptable fallback when
+#   trace-based inclusion isn't reliable enough to ship.
+#   Re-verify after any Prisma/pnpm bump with:
 #     docker run --rm lunia:test node -e \
 #       "require('@prisma/client'); require('@prisma/adapter-pg'); console.log('ok')"
 
@@ -49,31 +70,41 @@ ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db" \
     NODE_ENV="production"
 RUN pnpm db:generate && pnpm build
 
+# --- Migrator/seed image: reuses the `build` stage's full node_modules ---
+# This exists as its own named target (rather than relying on `run` also
+# happening to have Prisma + tsx available — see that stage's comment below)
+# so operational commands have one clearly-documented, stable entry point:
+# `prisma migrate deploy` / `db:seed` always run via this image/target
+# (see docker-compose.prod.yml's `migrate` service and
+# deploy/scripts/deploy.sh), never via the `app` service's image, even
+# though the latter happens to have the tooling too right now. If `run`'s
+# node_modules is ever pruned back down to production-only deps (see that
+# stage's comment), this is the one place that must keep working.
+#
+# IMPORTANT: this stage must stay *before* `run` in this file. `docker build`
+# with no `--target` builds the LAST stage by default — `run` (the
+# production image) must be that last stage, or a plain
+# `docker build -t lunia:test .` silently builds the migrator image instead.
+FROM build AS migrator
+ENTRYPOINT ["corepack", "pnpm"]
+CMD ["prisma", "migrate", "deploy"]
+
 FROM base AS run
 ENV NODE_ENV=production
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 COPY --from=build /app/prisma ./prisma
-
-# --- Prisma driver-adapter files missing from the standalone trace ---
-# See the block comment at the top of this file for why these are needed.
-# NOTE: we copy the real pnpm-store package directories, then RECREATE the
-# top-level `@prisma/adapter-pg` symlink with `ln -s` instead of copying it
-# directly. `COPY --from=` across build stages dereferences a symlink into a
-# plain directory copy of just the target's own files — which for a pnpm
-# package throws away the private `node_modules` (pg, postgres-array,
-# @prisma/driver-adapter-utils) that lives as a *sibling* of that target
-# inside the pnpm-store folder, breaking its own internal requires.
-# Recreating the symlink instead keeps pnpm's real structure intact.
-COPY --from=build /app/node_modules/.pnpm/@prisma+adapter-pg@7.10.0 ./node_modules/.pnpm/@prisma+adapter-pg@7.10.0
-COPY --from=build /app/node_modules/.pnpm/@prisma+driver-adapter-utils@7.10.0 ./node_modules/.pnpm/@prisma+driver-adapter-utils@7.10.0
-COPY --from=build /app/node_modules/.pnpm/@prisma+debug@7.10.0 ./node_modules/.pnpm/@prisma+debug@7.10.0
-# The standalone tracer half-copies postgres-array@3.0.4 (package.json only,
-# no index.js) because it only reaches the 2.0.0 copy (a `pg` dependency)
-# through a traced path; adapter-pg needs the untraced 3.0.4 copy in full.
-COPY --from=build /app/node_modules/.pnpm/postgres-array@3.0.4 ./node_modules/.pnpm/postgres-array@3.0.4
-RUN ln -s ../.pnpm/@prisma+adapter-pg@7.10.0/node_modules/@prisma/adapter-pg ./node_modules/@prisma/adapter-pg
+# See the block comment at the top of this file: the standalone trace's own
+# node_modules is unreliable for the Prisma adapter-pg chain, so the full
+# `build`-stage node_modules (devDependencies included — prisma, tsx, etc.)
+# replaces it wholesale here (preserves pnpm's real symlinks — no pinned
+# package/version names). This means `app`'s image technically has Prisma's
+# CLI and `tsx` available too, as a side effect, not by design — always run
+# `migrate deploy` / `db:seed` via the dedicated `migrator` target /
+# `migrate` compose service (see that stage's comment above and
+# docs/RUNBOOK.md), not via `docker compose run app ...`.
+COPY --from=build /app/node_modules ./node_modules
 
 EXPOSE 3000
 CMD ["node", "server.js"]
