@@ -41,4 +41,37 @@ describe("SiteHeader", () => {
     expect(bookLinks.length).toBeGreaterThan(0);
     expect(bookLinks[0]).toHaveAttribute("href", "/en/contact");
   });
+
+  it("localizes the nav landmarks' accessible names instead of hardcoding English", async () => {
+    const header = await SiteHeader({ locale: "en" });
+    const { container } = render(
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        {header}
+      </NextIntlClientProvider>,
+    );
+
+    const navs = screen.getAllByRole("navigation");
+    expect(navs.length).toBeGreaterThan(0);
+    expect(navs.map((nav) => nav.getAttribute("aria-label"))).toEqual([
+      enMessages.nav.primaryLabel,
+      enMessages.nav.mobileLabel,
+    ]);
+
+    // No literal "Primary" (the old hardcoded English value) should remain.
+    expect(container.querySelector('nav[aria-label="Primary"]')).toBeNull();
+  });
+
+  it("positions the mobile menu panel with a valid Tailwind logical utility", async () => {
+    const header = await SiteHeader({ locale: "en" });
+    const { container } = render(
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        {header}
+      </NextIntlClientProvider>,
+    );
+
+    const panel = container.querySelector("details > div.absolute");
+    expect(panel).not.toBeNull();
+    expect(panel).toHaveClass("end-0");
+    expect(panel?.className).not.toMatch(/inset-inline/);
+  });
 });

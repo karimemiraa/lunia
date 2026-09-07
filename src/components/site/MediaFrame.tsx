@@ -68,7 +68,13 @@ export function MediaFrame({
         />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded assets, no static domain to configure for next/image
-        <img src={src} alt={alt} className="h-full w-full object-cover" style={{ objectPosition }} />
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          className="h-full w-full object-cover"
+          style={{ objectPosition }}
+        />
       )}
     </div>
   );

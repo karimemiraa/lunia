@@ -7,7 +7,9 @@
     "results": "النتائج",
     "journal": "المجلة",
     "contact": "تواصلي معنا",
-    "book": "احجزي الآن"
+    "book": "احجزي الآن",
+    "primaryLabel": "التنقل الرئيسي",
+    "mobileLabel": "قائمة التنقل للجوال"
   },
   "common": {
     "bookNow": "احجزي الآن",
@@ -19,6 +21,7 @@
   "footer": {
     "tagline": "مو فيشل عادي... هذي جودة بشرة.",
     "navHeading": "استكشفي",
+    "navLabel": "روابط التذييل",
     "contactHeading": "تواصلي معنا",
     "whatsappLabel": "واتساب",
     "instagramLabel": "انستقرام",

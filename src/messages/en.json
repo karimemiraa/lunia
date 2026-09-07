@@ -7,7 +7,9 @@
     "results": "Results",
     "journal": "Journal",
     "contact": "Contact",
-    "book": "Book Now"
+    "book": "Book Now",
+    "primaryLabel": "Primary navigation",
+    "mobileLabel": "Mobile navigation"
   },
   "common": {
     "bookNow": "Book Now",
@@ -19,6 +21,7 @@
   "footer": {
     "tagline": "Not facials — skin quality.",
     "navHeading": "Explore",
+    "navLabel": "Footer navigation",
     "contactHeading": "Get in Touch",
     "whatsappLabel": "WhatsApp",
     "instagramLabel": "Instagram",

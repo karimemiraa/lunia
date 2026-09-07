@@ -55,7 +55,7 @@ export function LocaleSwitcher({ locale, className }: LocaleSwitcherProps) {
       aria-label={t("switchLanguage")}
       className={
         className ??
-        "text-sm font-medium tracking-wide text-[var(--color-ink)]/70 underline-offset-4 transition-colors hover:text-[var(--color-ink)] hover:underline"
+        "rounded-sm text-sm font-medium tracking-wide text-[var(--color-ink)]/70 underline-offset-4 transition-colors hover:text-[var(--color-ink)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fbfaf7]"
       }
     >
       {label}

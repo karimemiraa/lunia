@@ -16,7 +16,10 @@ const NAV_ITEMS = [
   { key: "contact", path: "contact" },
 ] as const;
 
-const footerLinkClass = "text-sm text-[var(--color-ink)]/70 transition-colors hover:text-[var(--color-ink)]";
+const focusRingClass =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fbfaf7]";
+
+const footerLinkClass = `rounded-sm text-sm text-[var(--color-ink)]/70 transition-colors hover:text-[var(--color-ink)] ${focusRingClass}`;
 const headingClass = "text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-ink)]/50";
 
 function digitsOnly(value: string): string {
@@ -56,7 +59,7 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
 
         <div className="flex flex-col gap-4">
           <h2 className={headingClass}>{tFooter("navHeading")}</h2>
-          <nav aria-label="Footer" className="flex flex-col gap-3">
+          <nav aria-label={tFooter("navLabel")} className="flex flex-col gap-3">
             {NAV_ITEMS.map((item) => (
               <Link key={item.key} href={`/${locale}/${item.path}`} className={footerLinkClass}>
                 {tNav(item.key)}
