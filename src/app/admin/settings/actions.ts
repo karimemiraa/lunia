@@ -1,0 +1,86 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { requireAdmin } from "../_components/requireAdmin";
+import { PERMISSIONS } from "@/modules/iam/permissions";
+import {
+  setSetting,
+  SETTINGS_DAYS,
+  type BusinessSettings,
+  type HoursSettings,
+  type SocialSettings,
+  type SeoSettings,
+} from "@/modules/cms/settings";
+
+export interface SaveSettingsState {
+  error?: string;
+  success?: boolean;
+}
+
+function str(formData: FormData, name: string): string {
+  return String(formData.get(name) ?? "");
+}
+
+// Empty optional social handles must be omitted (undefined), not stored as
+// "" — the schema marks them optional, so undefined is the value that means
+// "not set" once persisted as JSON.
+function optionalStr(formData: FormData, name: string): string | undefined {
+  const value = str(formData, name).trim();
+  return value.length > 0 ? value : undefined;
+}
+
+// Reads and validates every settings section from the combined settings form,
+// then saves each one independently via setSetting (each call validates
+// against that key's Zod schema before writing).
+export async function saveSettings(_prev: SaveSettingsState | null, formData: FormData): Promise<SaveSettingsState> {
+  await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+
+  const business: BusinessSettings = {
+    nameEn: str(formData, "name.en"),
+    nameAr: str(formData, "name.ar"),
+    addressEn: str(formData, "address.en"),
+    addressAr: str(formData, "address.ar"),
+    phone: str(formData, "phone"),
+    whatsapp: str(formData, "whatsapp"),
+    email: str(formData, "email"),
+  };
+
+  const hours = Object.fromEntries(
+    SETTINGS_DAYS.map((day) => [
+      day,
+      {
+        open: str(formData, `hours.${day}.open`),
+        close: str(formData, `hours.${day}.close`),
+        closed: formData.get(`hours.${day}.closed`) === "on",
+      },
+    ]),
+  ) as HoursSettings;
+
+  const social: SocialSettings = {
+    instagram: str(formData, "instagram"),
+    tiktok: optionalStr(formData, "tiktok"),
+    snapchat: optionalStr(formData, "snapchat"),
+    x: optionalStr(formData, "x"),
+  };
+
+  const seo: SeoSettings = {
+    defaultTitleEn: str(formData, "defaultTitle.en"),
+    defaultTitleAr: str(formData, "defaultTitle.ar"),
+    defaultDescEn: str(formData, "defaultDesc.en"),
+    defaultDescAr: str(formData, "defaultDesc.ar"),
+  };
+
+  try {
+    await setSetting("business", business);
+    await setSetting("hours", hours);
+    await setSetting("social", social);
+    await setSetting("seo", seo);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save settings." };
+  }
+
+  revalidatePath("/admin/settings");
+  revalidatePath("/", "layout");
+
+  return { success: true };
+}
