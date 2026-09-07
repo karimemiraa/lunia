@@ -20,5 +20,7 @@ export async function getCurrentUser(token: string | undefined) {
   if (!token) return null;
   const session = await getSession(token);
   if (!session) return null;
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  if (!user || user.isActive === false) return null;
   return { id: session.userId, permissions: await getUserPermissions(session.userId) };
 }
