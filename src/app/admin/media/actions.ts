@@ -17,12 +17,17 @@ const EXTENSION_BY_MIME: Record<string, string> = {
   "image/jpg": "jpg",
   "image/gif": "gif",
   "image/webp": "webp",
-  "image/svg+xml": "svg",
   "video/mp4": "mp4",
   "video/webm": "webm",
   "video/quicktime": "mov",
   "video/ogg": "ogv",
 };
+
+// SVGs are XML documents that can embed <script> and event-handler
+// attributes, so they execute as active content if ever served/opened
+// directly — unlike raster formats. Reject them explicitly even though
+// their mime type otherwise matches the general "image/*" allowlist below.
+const DISALLOWED_IMAGE_MIME_TYPES = new Set(["image/svg+xml", "image/svg"]);
 
 // Derives a safe file extension from the (validated) mime type — never from
 // client-supplied input — for use in the server-generated storage key.
@@ -43,7 +48,7 @@ export interface UploadState {
 // from the client's filename, so a crafted filename can't be used to
 // traverse or collide with paths in the uploads root.
 export async function uploadMedia(_prev: UploadState | null, formData: FormData): Promise<UploadState> {
-  await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
@@ -51,11 +56,12 @@ export async function uploadMedia(_prev: UploadState | null, formData: FormData)
   }
 
   const mimeType = file.type || "application/octet-stream";
-  const kind: MediaKind | null = mimeType.startsWith("image/")
-    ? "IMAGE"
-    : mimeType.startsWith("video/")
-      ? "VIDEO"
-      : null;
+  const kind: MediaKind | null =
+    mimeType.startsWith("image/") && !DISALLOWED_IMAGE_MIME_TYPES.has(mimeType)
+      ? "IMAGE"
+      : mimeType.startsWith("video/")
+        ? "VIDEO"
+        : null;
 
   if (!kind) {
     return { error: "Only image or video files are allowed." };
@@ -81,6 +87,7 @@ export async function uploadMedia(_prev: UploadState | null, formData: FormData)
       sizeBytes: file.size,
       width: dimensions?.width,
       height: dimensions?.height,
+      uploadedById: user.id,
     });
   } catch (err) {
     // Don't leave an orphaned blob behind if the DB insert fails.

@@ -4,11 +4,16 @@ import { getMedia } from "./media";
 
 export type PublicLocale = "ar" | "en";
 
+export interface HomeHeroMedia {
+  key: string;
+  kind: "IMAGE" | "VIDEO";
+}
+
 export interface HomeHero {
   headline: string;
   cta: string;
   intro: string;
-  heroMediaKey: string | null;
+  heroMedia: HomeHeroMedia | null;
 }
 
 // Last-resort constants so the home page never renders blank copy, even on
@@ -29,9 +34,10 @@ function pick(value: string | undefined | null): string | null {
 //   2. SiteSetting("hero") -> <field><Locale> (e.g. headlineEn/headlineAr)
 //   3. Hardcoded fallback constant (never throws, never renders blank)
 //
-// heroMediaKey resolves the hero's media storage key (for `/api/media/<key>`)
-// from PageContent's heroMediaId, falling back to the hero setting's
-// mediaId. Returns null if neither is set or the referenced media is gone.
+// heroMedia resolves the hero's media storage key + kind (for
+// `/api/media/<key>` and choosing between <img>/<video>) from PageContent's
+// heroMediaId, falling back to the hero setting's mediaId. Returns null if
+// neither is set or the referenced media is gone.
 export async function getHomeHero(locale: PublicLocale): Promise<HomeHero> {
   const [content, heroSetting] = await Promise.all([
     getPageContent("home").catch(() => null),
@@ -54,11 +60,11 @@ export async function getHomeHero(locale: PublicLocale): Promise<HomeHero> {
   const intro = pick(fields?.intro?.[locale]) ?? FALLBACK_HERO[locale].intro;
 
   const heroMediaId = heroSection?.heroMediaId ?? heroSetting?.mediaId ?? null;
-  let heroMediaKey: string | null = null;
+  let heroMedia: HomeHeroMedia | null = null;
   if (heroMediaId) {
     const media = await getMedia(heroMediaId).catch(() => null);
-    heroMediaKey = media?.storageKey ?? null;
+    heroMedia = media ? { key: media.storageKey, kind: media.kind } : null;
   }
 
-  return { headline, cta, intro, heroMediaKey };
+  return { headline, cta, intro, heroMedia };
 }

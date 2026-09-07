@@ -19,12 +19,22 @@ export default async function Home({ params }: HomePageProps) {
   return (
     <main>
       <Container>
-        {hero.heroMediaKey && (
+        {hero.heroMedia && hero.heroMedia.kind === "IMAGE" && (
           // eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded assets, no static domain to configure for next/image
           <img
-            src={`/api/media/${hero.heroMediaKey}`}
+            src={`/api/media/${hero.heroMedia.key}`}
             alt={hero.headline}
             className="mt-8 h-64 w-full rounded object-cover"
+          />
+        )}
+        {hero.heroMedia && hero.heroMedia.kind === "VIDEO" && (
+          <video
+            src={`/api/media/${hero.heroMedia.key}`}
+            className="mt-8 h-64 w-full rounded object-cover"
+            muted
+            loop
+            autoPlay
+            playsInline
           />
         )}
         <h1 className="font-[var(--font-display)] text-5xl mt-24">{hero.headline}</h1>

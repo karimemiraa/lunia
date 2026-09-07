@@ -28,6 +28,13 @@ export async function GET(
     headers: {
       "Content-Type": result.contentType,
       "Cache-Control": "public, max-age=31536000, immutable",
+      // Defense in depth against stored-XSS via uploaded media (e.g. an SVG
+      // that slipped through upload validation, or any other risky type):
+      // nosniff stops browsers from MIME-sniffing content into an
+      // executable type, and the sandboxed "default-src 'none'" CSP blocks
+      // scripts/plugins/frames even if a browser did render it as HTML/SVG.
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "default-src 'none'; sandbox",
     },
   });
 }
