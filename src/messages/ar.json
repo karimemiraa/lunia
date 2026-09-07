@@ -1,1 +1,28 @@
-{ "nav": { "home": "الرئيسية", "about": "من نحن", "services": "الخدمات", "brands": "العلامات", "journal": "المجلة", "contact": "تواصلي معنا", "book": "احجزي الآن" }, "home": { "heroStatement": "حيث يبدأ الجمال الطبيعي" } }
+{
+  "nav": {
+    "home": "الرئيسية",
+    "about": "من نحن",
+    "services": "الخدمات",
+    "brands": "العلامات",
+    "results": "النتائج",
+    "journal": "المجلة",
+    "contact": "تواصلي معنا",
+    "book": "احجزي الآن"
+  },
+  "common": {
+    "bookNow": "احجزي الآن",
+    "menu": "القائمة",
+    "switchLanguage": "تغيير اللغة",
+    "toArabic": "العربية",
+    "toEnglish": "English"
+  },
+  "footer": {
+    "tagline": "مو فيشل عادي... هذي جودة بشرة.",
+    "navHeading": "استكشفي",
+    "contactHeading": "تواصلي معنا",
+    "whatsappLabel": "واتساب",
+    "instagramLabel": "انستقرام",
+    "rights": "جميع الحقوق محفوظة."
+  },
+  "home": { "heroStatement": "حيث يبدأ الجمال الطبيعي" }
+}

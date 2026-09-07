@@ -37,7 +37,7 @@ export default async function Home({ params }: HomePageProps) {
             playsInline
           />
         )}
-        <h1 className="font-[var(--font-display)] text-5xl mt-24">{hero.headline}</h1>
+        <h1 className="font-[family-name:var(--font-display)] text-5xl mt-24">{hero.headline}</h1>
         {hero.intro && <p className="mt-4 max-w-xl text-[var(--color-ink)]/80">{hero.intro}</p>}
         <div className="mt-8">
           <Button>{hero.cta}</Button>

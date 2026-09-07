@@ -1,1 +1,28 @@
-{ "nav": { "home": "Home", "about": "About", "services": "Services", "brands": "Brands", "journal": "Journal", "contact": "Contact", "book": "Book Now" }, "home": { "heroStatement": "Where natural beauty begins" } }
+{
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "services": "Services",
+    "brands": "Brands",
+    "results": "Results",
+    "journal": "Journal",
+    "contact": "Contact",
+    "book": "Book Now"
+  },
+  "common": {
+    "bookNow": "Book Now",
+    "menu": "Menu",
+    "switchLanguage": "Switch language",
+    "toArabic": "العربية",
+    "toEnglish": "English"
+  },
+  "footer": {
+    "tagline": "Not facials — skin quality.",
+    "navHeading": "Explore",
+    "contactHeading": "Get in Touch",
+    "whatsappLabel": "WhatsApp",
+    "instagramLabel": "Instagram",
+    "rights": "All rights reserved."
+  },
+  "home": { "heroStatement": "Where natural beauty begins" }
+}
