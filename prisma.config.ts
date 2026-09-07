@@ -14,4 +14,10 @@ export default defineConfig({
   datasource: {
     url: env("DATABASE_URL"),
   },
+  migrations: {
+    // Prisma 7 no longer reads package.json's `prisma.seed` field — the seed
+    // command is configured here instead, and `prisma db seed` / `prisma
+    // migrate dev` invoke it directly.
+    seed: "tsx prisma/seed.ts",
+  },
 });

@@ -19,3 +19,94 @@ model SiteSetting {
   key   String @unique
   value Json
 }
+
+enum UserType {
+  STAFF
+  CLIENT
+}
+
+model User {
+  id            String         @id @default(cuid())
+  type          UserType
+  email         String?        @unique
+  phone         String?        @unique
+  passwordHash  String?
+  locale        String         @default("en")
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  roles         UserRole[]
+  staffProfile  StaffProfile?
+  clientProfile ClientProfile?
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  name        String
+  isSystem    Boolean          @default(false)
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id    String           @id @default(cuid())
+  key   String           @unique
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model StaffProfile {
+  id       String  @id @default(cuid())
+  userId   String  @unique
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName String
+  title    String?
+  bio      String?
+}
+
+model MembershipTier {
+  id          String             @id @default(cuid())
+  key         String             @unique
+  name        String
+  priority    Int                @default(0)
+  discountPct Int                @default(0)
+  isSystem    Boolean            @default(false)
+  memberships ClientMembership[]
+}
+
+model ClientProfile {
+  id            String            @id @default(cuid())
+  userId        String            @unique
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName      String
+  sourceChannel String?
+  ltvCacheMinor Int               @default(0)
+  createdAt     DateTime          @default(now())
+  membership    ClientMembership?
+}
+
+model ClientMembership {
+  id        String         @id @default(cuid())
+  clientId  String         @unique
+  tierId    String
+  client    ClientProfile  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tier      MembershipTier @relation(fields: [tierId], references: [id])
+  startedAt DateTime       @default(now())
+}
