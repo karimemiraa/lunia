@@ -31,8 +31,21 @@ describe("media service", () => {
 
       const all = await listMedia();
       expect(all.some((m) => m.id === media.id)).toBe(true);
-      // newest first
-      expect(all[0].id).toBe(media.id);
+
+      // listMedia orders by createdAt desc, id desc (a deterministic
+      // tiebreak for rows created in the same millisecond, e.g. under
+      // concurrent test runs). Rather than assert our row lands at a
+      // specific index — which would be flaky if other tests insert media
+      // concurrently — verify the whole list actually respects that order.
+      for (let i = 1; i < all.length; i++) {
+        const prev = all[i - 1];
+        const curr = all[i];
+        if (prev.createdAt.getTime() !== curr.createdAt.getTime()) {
+          expect(prev.createdAt.getTime()).toBeGreaterThan(curr.createdAt.getTime());
+        } else {
+          expect(prev.id >= curr.id).toBe(true);
+        }
+      }
 
       const updated = await updateMediaAlt(media.id, { altEn: "after", altAr: "بعد" });
       expect(updated.altEn).toBe("after");

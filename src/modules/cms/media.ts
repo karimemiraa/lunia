@@ -27,7 +27,10 @@ export async function createMedia(input: CreateMediaInput): Promise<MediaAsset> 
 }
 
 export async function listMedia(): Promise<MediaAsset[]> {
-  return prisma.mediaAsset.findMany({ orderBy: { createdAt: "desc" } });
+  // Order by createdAt desc, tie-broken by id desc, so callers get a
+  // deterministic order even when multiple rows share the same createdAt
+  // timestamp (e.g. seeded/test data created in the same millisecond).
+  return prisma.mediaAsset.findMany({ orderBy: [{ createdAt: "desc" }, { id: "desc" }] });
 }
 
 export async function getMedia(id: string): Promise<MediaAsset | null> {
