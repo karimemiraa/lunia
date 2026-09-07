@@ -30,6 +30,10 @@ out/
 /uploads/
 /backups/
 
+# Certbot runtime state (certs, ACME webroot) — created by deploy scripts
+/deploy/certbot/conf/
+/deploy/certbot/www/
+
 # Large brand source PDFs (kept locally, not in git)
 *.pdf
 

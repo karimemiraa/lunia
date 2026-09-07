@@ -1,0 +1,55 @@
+services:
+  app:
+    build: .
+    image: lunia:latest
+    env_file: .env.prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: always
+    expose:
+      - "3000"
+
+  # NOTE: no dedicated `worker` service yet. BullMQ isn't wired into the app
+  # at this stage (see docs/RUNBOOK.md "Follow-ups") — its first queues and
+  # jobs arrive with the Booking stage reminders work. When that lands, add
+  # a `worker` service here that reuses this same image with an alternate
+  # CMD (e.g. `node worker.js`), the same env_file, and depends_on postgres
+  # + redis, rather than standing up a second build.
+
+  postgres:
+    image: postgres:16
+    env_file: .env.prod
+    volumes:
+      - pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lunia}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: always
+
+  redis:
+    image: redis:7
+    volumes:
+      - redis:/data
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/lunia.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/certbot/conf:/etc/letsencrypt
+      - ./deploy/certbot/www:/var/www/certbot
+    depends_on:
+      - app
+    restart: always
+
+volumes:
+  pg: {}
+  redis: {}
