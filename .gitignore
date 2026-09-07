@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+.next/
+dist/
+build/
+out/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Logs / OS
+*.log
+.DS_Store
+
+# Local media uploads / backups
+/uploads/
+/backups/
+
+# Large brand source PDFs (kept locally, not in git)
+*.pdf
