@@ -1,1 +1,314 @@
-{ "nav": { "home": "Home", "about": "About", "services": "Services", "brands": "Brands", "journal": "Journal", "contact": "Contact", "book": "Book Now" }, "home": { "heroStatement": "Where natural beauty begins" } }
+{
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "services": "Services",
+    "brands": "Brands",
+    "results": "Results",
+    "journal": "Journal",
+    "contact": "Contact",
+    "book": "Book Now",
+    "primaryLabel": "Primary navigation",
+    "mobileLabel": "Mobile navigation"
+  },
+  "common": {
+    "bookNow": "Book Now",
+    "menu": "Menu",
+    "switchLanguage": "Switch language",
+    "toArabic": "العربية",
+    "toEnglish": "English",
+    "brandName": "Lunia"
+  },
+  "footer": {
+    "tagline": "Not facials — skin quality.",
+    "navHeading": "Explore",
+    "navLabel": "Footer navigation",
+    "contactHeading": "Get in Touch",
+    "whatsappLabel": "WhatsApp",
+    "instagramLabel": "Instagram",
+    "rights": "All rights reserved."
+  },
+  "home": {
+    "heroStatement": "Where natural beauty begins",
+    "hero": { "eyebrow": "Skin Quality Center · Riyadh" },
+    "meta": {
+      "title": "Lunia | Riyadh's Skin Quality Center",
+      "description": "Diagnostic-led skin, hair & scalp, and post-surgery recovery care in Riyadh, built on a Korean-inspired philosophy. Not facials — skin quality, sustained."
+    },
+    "positioning": {
+      "eyebrow": "The Lunia Philosophy",
+      "heading": "Not a spa. A Skin Quality Center.",
+      "body": "A facial fades by the weekend. Skin quality is something you build — layer by layer, session by session — until it holds its own glow. At Lunia, every visit begins with a real diagnostic read of your skin, not a menu of treatments, so what we do next is calibrated to what your skin actually needs, and sustained long enough to show."
+    },
+    "services": {
+      "eyebrow": "What We Do",
+      "heading": "Three departments, one philosophy",
+      "intro": "Skin, hair & scalp, and post-surgery recovery — each built on the same diagnostic-first approach to lasting quality."
+    },
+    "journey": {
+      "eyebrow": "The Client Journey",
+      "heading": "Six moments, one rhythm",
+      "steps": [
+        {
+          "title": "Analyze",
+          "body": "We start by reading your skin, or scalp, closely — diagnostic imaging and a real conversation, not guesswork."
+        },
+        {
+          "title": "Personalize",
+          "body": "A plan is built around what we find, not a fixed treatment menu."
+        },
+        {
+          "title": "Treat",
+          "body": "Clinical-grade protocols, delivered in a calm, luminous space."
+        },
+        {
+          "title": "Relax",
+          "body": "Recovery matters as much as treatment — time to let the work settle."
+        },
+        {
+          "title": "Maintain",
+          "body": "A steady rhythm of visits keeps progress compounding instead of fading."
+        },
+        {
+          "title": "Return",
+          "body": "Skin quality is sustained, not a one-time result — we track it with you, visit after visit."
+        }
+      ]
+    },
+    "brands": {
+      "eyebrow": "Trusted Partners",
+      "heading": "Clinical-grade brands we stand behind",
+      "intro": "We only bring in names we'd recommend to our own families — chosen for results, not trends."
+    },
+    "testimonials": {
+      "eyebrow": "In Their Words",
+      "heading": "What our clients say",
+      "items": [
+        {
+          "quote": "For the first time, someone actually explained what my skin needed instead of just selling me a facial.",
+          "author": "N., Riyadh"
+        },
+        {
+          "quote": "Six months in and my skin genuinely looks different — not just after a treatment, but every day.",
+          "author": "L., Riyadh"
+        },
+        {
+          "quote": "The recovery lounge after surgery was the calmest, most careful care I could have asked for.",
+          "author": "H., Riyadh"
+        }
+      ]
+    },
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Start your journey to real skin quality"
+    },
+    "faq": {
+      "eyebrow": "Common Questions",
+      "heading": "Frequently asked questions",
+      "items": [
+        {
+          "q": "What's the difference between a facial and skin quality treatment?",
+          "a": "A facial is a one-off treatment that fades within days. Skin quality care at Lunia starts with a real diagnostic read of your skin, then builds a sustained plan session by session — so results compound instead of fading. That's our positioning: not facials, skin quality."
+        },
+        {
+          "q": "Are your treatments injectable?",
+          "a": "No — every protocol at Lunia is non-injectable. We use diagnostic-led, clinical-grade topical and device-based treatments (LED therapy, microdermabrasion, lymphatic drainage, and more) to build lasting skin, hair & scalp, and post-surgery recovery quality without needles."
+        },
+        {
+          "q": "What does \"Korean-inspired\" mean for your approach?",
+          "a": "Our philosophy borrows from the Korean skincare tradition of diagnostic-first, layered, long-term skin quality — rather than chasing a quick fix. Every visit begins with analysis, not a treatment menu."
+        },
+        {
+          "q": "Where is Lunia located?",
+          "a": "Lunia is a Skin Quality Center in Riyadh, Saudi Arabia, serving clients across the city with diagnostic-led skin, hair & scalp, and post-surgery recovery care."
+        }
+      ]
+    }
+  },
+  "about": {
+    "meta": {
+      "title": "About Lunia | Riyadh's Skin Quality Center",
+      "description": "Lunia is a Skin Quality Center in Riyadh built on a Korean-inspired, diagnostic-first philosophy — not a facial menu. Our story, our approach, and the journey behind every visit."
+    },
+    "hero": {
+      "eyebrow": "About Lunia",
+      "heading": "Skin quality is our whole philosophy",
+      "intro": "We didn't set out to build another spa. Lunia exists because Riyadh needed a place that treats skin, hair, and recovery with the seriousness of a real diagnosis — not a menu of quick fixes."
+    },
+    "story": {
+      "eyebrow": "Our Story",
+      "heading": "Why we started Lunia",
+      "paragraphs": [
+        "Lunia began with a simple frustration: too many facials, too few real results. Clients would leave glowing for a weekend and be back where they started within a week, because nothing about the treatment was calibrated to what their skin actually needed.",
+        "We looked instead to the Korean approach to skin care, where diagnosis comes before treatment and consistency matters more than any single session. That became our founding idea: read the skin first, personalize everything after, and measure quality over months, not days.",
+        "Today Lunia is three departments working from the same philosophy — Skin Quality, Hair & Scalp, and Post-Surgery Recovery — each diagnostic-led, each built to sustain a result rather than chase a moment."
+      ]
+    },
+    "positioning": {
+      "eyebrow": "Not Facials — Skin Quality",
+      "heading": "A facial is a moment. Skin quality is a practice.",
+      "body": "A facial can make skin glow for a weekend. Skin quality is what holds after that — built through an accurate diagnosis, a personalized plan, and a rhythm of visits that compounds instead of resetting. That distinction shapes every protocol at Lunia, across skin, hair and scalp, and post-surgery recovery."
+    },
+    "team": {
+      "eyebrow": "Our Specialists",
+      "heading": "The hands behind every diagnosis",
+      "intro": "Every treatment at Lunia is delivered by a dedicated specialist trained in our diagnostic-first approach, from the first skin read to the last maintenance visit.",
+      "roles": [
+        "Skin Diagnostic Specialist",
+        "Hair & Scalp Specialist",
+        "Post-Surgery Recovery Therapist",
+        "Client Care Lead"
+      ],
+      "note": "Full specialist profiles are coming soon — check back shortly, or ask about your care team when you book."
+    },
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Come see the difference a real diagnosis makes"
+    }
+  },
+  "servicesIndex": {
+    "meta": {
+      "title": "Services | Lunia Skin Quality Center",
+      "description": "Explore Lunia's three departments — Skin Quality, Hair & Scalp, and Post-Surgery Recovery — each built on a diagnostic-first approach to lasting results."
+    },
+    "hero": {
+      "eyebrow": "What We Do",
+      "heading": "Three departments, one diagnostic philosophy",
+      "intro": "Every service at Lunia starts with a real read of your skin or scalp, not a fixed menu. Explore each department to see how care is personalized around what you actually need."
+    },
+    "servicesLabel": "Featured treatments",
+    "exploreLabel": "Explore department",
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Book a diagnostic consultation to begin"
+    }
+  },
+  "brandsIndex": {
+    "meta": {
+      "title": "Brands We Trust | Lunia Skin Quality Center",
+      "description": "The clinical-grade brands behind every Lunia protocol — chosen for results, not trends, and used across our skin, hair & scalp, and recovery treatments."
+    },
+    "hero": {
+      "eyebrow": "Trusted Partners",
+      "heading": "The brands behind every protocol",
+      "intro": "We only bring in names we'd recommend to our own families. Each brand below earned its place through results, not marketing — explore what each one is, and why we chose it."
+    },
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Book a diagnostic consultation to begin"
+    }
+  },
+  "brandDetail": {
+    "whyChosenLabel": "Why Lunia chose it",
+    "treatmentsNote": "This brand is woven into our diagnostic-led protocols wherever it's the right fit for your skin or scalp — your specialist will tell you exactly where it shows up in your plan.",
+    "visitWebsite": "Visit official website",
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Book a diagnostic consultation to begin"
+    }
+  },
+  "resultsIndex": {
+    "meta": {
+      "title": "Results | Lunia Skin Quality Center",
+      "description": "A look at the quality Lunia clients build over time, across skin, hair & scalp, and post-surgery recovery — shared with consent, session by session."
+    },
+    "hero": {
+      "eyebrow": "Real Progress",
+      "heading": "Quality you can see, built session by session",
+      "intro": "Every result here reflects a real diagnostic plan, sustained over time — not a single dramatic transformation. Photography is shared only with client consent."
+    },
+    "categories": ["Skin Quality", "Hair & Scalp", "Post-Surgery Recovery"],
+    "allLabel": "All results",
+    "beforeAfterLabel": "Before & after",
+    "consentNote": "Real client photography is added with explicit consent as it becomes available. Every placeholder above reflects a treatment category, not a specific client.",
+    "emptyLabel": "Results are being gathered with client consent — check back soon.",
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Start building your own results"
+    }
+  },
+  "journalIndex": {
+    "meta": {
+      "title": "Journal | Lunia Skin Quality Center",
+      "description": "Notes on skin quality, diagnostic care, and the philosophy behind every Lunia treatment — from our specialists in Riyadh."
+    },
+    "hero": {
+      "eyebrow": "The Lunia Journal",
+      "heading": "Notes on skin quality, from us to you",
+      "intro": "Stories, guides, and the thinking behind our diagnostic-first approach — written by the specialists who deliver it."
+    },
+    "readMoreLabel": "Read the story",
+    "emptyLabel": "New stories are on their way — check back soon.",
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Book a diagnostic consultation to begin"
+    }
+  },
+  "journalPost": {
+    "byLabel": "By",
+    "backLabel": "Back to the Journal",
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Book a diagnostic consultation to begin"
+    }
+  },
+  "contact": {
+    "meta": {
+      "title": "Contact | Lunia Skin Quality Center, Riyadh",
+      "description": "Reach Lunia in Riyadh by phone, WhatsApp, or Instagram, or send a diagnostic consultation inquiry — we'll get back to you shortly."
+    },
+    "hero": {
+      "eyebrow": "Get in Touch",
+      "heading": "Let's talk about your skin",
+      "intro": "Send us a message and a specialist will get back to you shortly, or reach us directly by phone, WhatsApp, or Instagram."
+    },
+    "napHeading": "Visit or Reach Us",
+    "addressLabel": "Address",
+    "phoneLabel": "Phone",
+    "whatsappLabel": "WhatsApp",
+    "instagramLabel": "Instagram",
+    "mapPlaceholderLabel": "Find us in Riyadh — an interactive map is coming soon",
+    "mapLinkLabel": "Open in Google Maps",
+    "napFallback": "Contact details are being updated — check back soon, or message us using the form.",
+    "form": {
+      "heading": "Send an inquiry",
+      "intro": "Tell us a little about what you're looking for, and a specialist will follow up with you directly.",
+      "nameLabel": "Full name",
+      "phoneLabel": "Phone number",
+      "emailLabel": "Email (optional)",
+      "messageLabel": "How can we help?",
+      "submitLabel": "Send inquiry",
+      "submittingLabel": "Sending…",
+      "successMessage": "Thank you — we've received your message and will reach out shortly.",
+      "errorMessage": "Something went wrong — please check your details and try again.",
+      "requiredNote": "* Required"
+    }
+  },
+  "serviceDepartment": {
+    "servicesHeading": "Treatments in this department",
+    "servicesIntro": "Every treatment below is delivered after a diagnostic read of your skin or scalp, so what you receive is calibrated to you, not a fixed package.",
+    "benefitsLabel": "What you can expect",
+    "emptyServices": "Services for this department are being updated — check back soon.",
+    "cta": {
+      "eyebrow": "Ready When You Are",
+      "headline": "Book your diagnostic consultation"
+    },
+    "faq": {
+      "heading": "Frequently asked questions",
+      "items": [
+        {
+          "q": "Do I need to know which treatment I need before booking?",
+          "a": "No — every visit starts with a diagnostic read of your skin or scalp. We recommend the right treatment from that, not the other way around."
+        },
+        {
+          "q": "How many sessions will I need?",
+          "a": "It depends on what the diagnostic finds. Skin quality is built over a rhythm of visits, and your specialist maps that plan with you after your first consultation."
+        },
+        {
+          "q": "Is this only for concerns, or is it preventative too?",
+          "a": "Both. Many clients come in for maintenance once their skin or scalp quality is where they want it — consistency is what keeps results from fading."
+        }
+      ]
+    }
+  }
+}

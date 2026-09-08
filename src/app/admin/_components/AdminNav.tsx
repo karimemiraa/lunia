@@ -16,7 +16,12 @@ export function AdminNav({ permissions }: AdminNavProps) {
   const links: NavLink[] = [{ href: "/admin", label: "Dashboard" }];
 
   if (permissions.has(PERMISSIONS.CMS_MANAGE)) {
-    links.push({ href: "/admin/media", label: "Media" }, { href: "/admin/content", label: "Content" });
+    links.push(
+      { href: "/admin/media", label: "Media" },
+      { href: "/admin/content", label: "Content" },
+      { href: "/admin/catalog", label: "Catalog" },
+      { href: "/admin/inquiries", label: "Inquiries" },
+    );
   }
   if (permissions.has(PERMISSIONS.SETTINGS_MANAGE)) {
     links.push({ href: "/admin/settings", label: "Settings" }, { href: "/admin/tiers", label: "Tiers" });

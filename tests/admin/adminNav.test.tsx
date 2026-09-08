@@ -5,12 +5,14 @@ import { AdminNav } from "@/app/admin/_components/AdminNav";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 
 describe("AdminNav", () => {
-  it("shows Dashboard always, and Media/Content for a user with CMS_MANAGE only", () => {
+  it("shows Dashboard always, and Media/Content/Catalog/Inquiries for a user with CMS_MANAGE only", () => {
     render(<AdminNav permissions={new Set([PERMISSIONS.CMS_MANAGE])} />);
 
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Media" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Content" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Catalog" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Inquiries" })).toBeInTheDocument();
 
     expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Tiers" })).not.toBeInTheDocument();
@@ -36,6 +38,8 @@ describe("AdminNav", () => {
 
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Media" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Catalog" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Inquiries" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Roles" })).not.toBeInTheDocument();
   });

@@ -139,3 +139,84 @@ model PageContent {
   data      Json
   updatedAt DateTime @default(now()) @updatedAt
 }
+
+model Department {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  nameEn      String
+  nameAr      String
+  taglineEn   String
+  taglineAr   String
+  descEn      String
+  descAr      String
+  heroMediaId String?
+  order       Int       @default(0)
+  isPublished Boolean   @default(true)
+  services    Service[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+}
+
+model Service {
+  id           String     @id @default(cuid())
+  slug         String     @unique
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  nameEn       String
+  nameAr       String
+  summaryEn    String
+  summaryAr    String
+  benefitsEn   Json
+  benefitsAr   Json
+  heroMediaId  String?
+  order        Int        @default(0)
+  isPublished  Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
+}
+
+model Brand {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  descEn       String
+  descAr       String
+  whyChosenEn  String
+  whyChosenAr  String
+  logoMediaId  String?
+  url          String?
+  order        Int      @default(0)
+  isPublished  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+}
+
+model BlogPost {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  titleEn     String
+  titleAr     String
+  excerptEn   String
+  excerptAr   String
+  bodyEn      String    @db.Text
+  bodyAr      String    @db.Text
+  heroMediaId String?
+  authorName  String?
+  publishedAt DateTime?
+  isPublished Boolean   @default(false)
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+}
+
+model ContactInquiry {
+  id         String   @id @default(cuid())
+  name       String
+  phone      String
+  email      String?
+  message    String   @db.Text
+  locale     String
+  sourcePage String?
+  handled    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}

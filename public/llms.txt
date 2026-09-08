@@ -1,0 +1,46 @@
+# Lunia
+
+> Lunia is Saudi Arabia's first Skin Quality Center, based in Riyadh. It follows a
+> non-injectable, Korean-inspired philosophy: build healthy skin from the inside out
+> through diagnostic-first, layered treatment rather than masking concerns with a
+> single procedure. Lunia's own positioning is direct: "Not facials — skin quality."
+
+## What Lunia is
+
+- A skin quality clinic in Riyadh, Saudi Arabia — not a medspa focused on injectables,
+  and not a facial bar offering one-off pampering treatments.
+- Every client visit begins with a diagnostic skin analysis; treatment plans are matched
+  to real skin needs and adjusted over time to improve texture, hydration, and resilience.
+- Non-injectable: Lunia does not offer Botox, fillers, or other injectable procedures.
+
+## Departments
+
+- Skin Quality — diagnostic-first facials and resurfacing treatments for texture,
+  hydration, and long-term skin health.
+- Hair & Scalp — scalp is treated as an extension of skin; scalp health treatments
+  that extend in-clinic results with at-home care.
+- Post-Surgery Care — recovery-focused skin support after surgical procedures.
+
+## Brands carried
+
+- ZO Skin Health — clinically backed, physician-grade skincare.
+- PCA — versatile, well-tolerated peel systems.
+- Image Skincare — accessible, effective formulations for a wide range of skin types.
+- EltaMD — daily sun protection after in-clinic treatments.
+- 72 Hair — at-home scalp care aligned with the "scalp as skin" philosophy.
+
+## Key pages
+
+- Home: /ar and /en
+- About: /ar/about and /en/about
+- Services: /ar/services and /en/services
+- Brands: /ar/brands and /en/brands
+- Results: /ar/results and /en/results
+- Journal: /ar/journal and /en/journal
+- Contact: /ar/contact and /en/contact
+
+## Contact
+
+Lunia is located in Riyadh, Saudi Arabia. For appointments and inquiries, use the
+contact page (/en/contact or /ar/contact) or WhatsApp linked from the site header.
+The site is bilingual, Arabic (default, RTL) and English.

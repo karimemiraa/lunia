@@ -9,6 +9,7 @@
   --color-cream: #ebe5d3;
   --color-dragonfruit: #d9cca3;
   --color-ink: #1c2b2a;
+  --color-page: #fbfaf7;
   --font-display: "Cormorant Garamond", "The Seasons", serif;
   --font-body: "Inter", system-ui, sans-serif;
   --font-display-ar: "Noto Kufi Arabic", "F37 Wicklow", serif;
@@ -19,12 +20,17 @@
   color-scheme: light;
 }
 
+/* Under RTL, resolve the same --font-display/--font-body tokens that every
+   component already reads to their Arabic counterparts, so nothing needs
+   locale-conditional font logic — direction alone decides the typeface. */
 html[dir="rtl"] {
+  --font-display: var(--font-display-ar);
+  --font-body: var(--font-body-ar);
   font-family: var(--font-body-ar);
 }
 
 body {
-  background: #fbfaf7;
+  background: var(--color-page);
   color: var(--color-ink);
   font-family: var(--font-body);
 }
