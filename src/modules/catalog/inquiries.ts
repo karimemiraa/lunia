@@ -23,3 +23,13 @@ export async function createInquiry(input: InquiryInput): Promise<ContactInquiry
 export async function listInquiries(): Promise<ContactInquiry[]> {
   return prisma.contactInquiry.findMany({ orderBy: { createdAt: "desc" } });
 }
+
+// Toggles the `handled` flag on an inquiry. Throws if the inquiry doesn't
+// exist.
+export async function setInquiryHandled(id: string, handled: boolean): Promise<ContactInquiry> {
+  const existing = await prisma.contactInquiry.findUnique({ where: { id } });
+  if (!existing) {
+    throw new Error(`Inquiry "${id}" not found`);
+  }
+  return prisma.contactInquiry.update({ where: { id }, data: { handled } });
+}
