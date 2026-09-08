@@ -352,3 +352,22 @@ model ScheduledMessage {
 
   @@index([status, sendAt])
 }
+
+// Audit trail of every outbound communication attempt (sent or failed),
+// written by processDueMessages alongside the ScheduledMessage status flip.
+// channel/kind/status are plain strings (not enums) since Stage 6 may add
+// provider-specific channels/kinds without a schema migration.
+model CommunicationLog {
+  id          String   @id @default(cuid())
+  channel     String
+  kind        String
+  toPhone     String
+  bookingId   String?
+  status      String
+  body        String   @db.Text
+  providerRef String?
+  createdAt   DateTime @default(now())
+
+  @@index([toPhone])
+  @@index([bookingId])
+}
