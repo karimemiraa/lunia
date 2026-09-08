@@ -30,7 +30,11 @@ export function AdminNav({ permissions }: AdminNavProps) {
     links.push({ href: "/admin/settings", label: "Settings" }, { href: "/admin/tiers", label: "Tiers" });
   }
   if (permissions.has(PERMISSIONS.STAFF_MANAGE)) {
-    links.push({ href: "/admin/roles", label: "Roles" });
+    links.push(
+      { href: "/admin/roles", label: "Roles" },
+      { href: "/admin/booking/rooms", label: "Rooms" },
+      { href: "/admin/booking/schedules", label: "Schedules" },
+    );
   }
 
   return (

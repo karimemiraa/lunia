@@ -3,6 +3,7 @@
 // summary, etc.) is handled by src/modules/catalog/services.ts; this module
 // is scoped to what the booking flow needs to read.
 
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { Department, Service } from "@prisma/client";
 
@@ -52,4 +53,38 @@ export async function getServiceBookingConfig(serviceId: string): Promise<Servic
     onlineBookable: service.onlineBookable,
     inCenterOnly: service.inCenterOnly,
   };
+}
+
+const updateServiceBookingSettingsSchema = z.object({
+  durationMin: z.number().int().min(1),
+  priceMinor: z.number().int().min(0),
+  onlineBookable: z.boolean(),
+  inCenterOnly: z.boolean(),
+});
+export type UpdateServiceBookingSettingsInput = z.infer<typeof updateServiceBookingSettingsSchema>;
+
+// Write-side counterpart to getServiceBookingConfig, used by the admin
+// catalog service editor (src/app/admin/catalog/services/[id]/*). Catalog
+// content fields (name, summary, media, etc.) are handled separately by
+// src/modules/catalog/services.ts's updateService.
+export async function updateServiceBookingSettings(
+  serviceId: string,
+  input: UpdateServiceBookingSettingsInput,
+): Promise<void> {
+  const data = updateServiceBookingSettingsSchema.parse(input);
+
+  const existing = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!existing) {
+    throw new Error(`Service "${serviceId}" not found`);
+  }
+
+  await prisma.service.update({
+    where: { id: serviceId },
+    data: {
+      durationMin: data.durationMin,
+      priceMinor: data.priceMinor,
+      onlineBookable: data.onlineBookable,
+      inCenterOnly: data.inCenterOnly,
+    },
+  });
 }

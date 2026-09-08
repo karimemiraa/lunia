@@ -60,3 +60,32 @@ export async function clientMeetsTier(clientProfileId: string, minPriority: numb
   const clientPriority = membership?.tier.priority ?? 0;
   return clientPriority >= minPriority;
 }
+
+// Sets (or clears) the minimum-tier gate for a service, used by the admin
+// catalog service editor. Passing minTierId null removes the gate entirely
+// (open to all clients); a non-null value upserts the ServiceAccessRule row.
+// Throws if minTierId is given but no such MembershipTier exists, to catch a
+// stale/typo'd tier id early rather than silently storing an unresolvable
+// soft reference (see the ServiceAccessRule model comment in schema.prisma).
+export async function setServiceAccessRule(serviceId: string, minTierId: string | null): Promise<void> {
+  const service = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!service) {
+    throw new Error(`Service "${serviceId}" not found`);
+  }
+
+  if (minTierId === null) {
+    await prisma.serviceAccessRule.deleteMany({ where: { serviceId } });
+    return;
+  }
+
+  const tier = await prisma.membershipTier.findUnique({ where: { id: minTierId } });
+  if (!tier) {
+    throw new Error(`Membership tier "${minTierId}" not found`);
+  }
+
+  await prisma.serviceAccessRule.upsert({
+    where: { serviceId },
+    update: { minTierId },
+    create: { serviceId, minTierId },
+  });
+}
