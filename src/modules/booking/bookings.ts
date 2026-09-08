@@ -18,6 +18,7 @@ import {
 import { getSetting } from "@/modules/cms/settings";
 import { getMinTierForService, clientMeetsTier } from "./accessRules";
 import { scheduleMessage } from "./outbox";
+import { refreshClientLtv } from "@/modules/crm/ltv";
 
 export type Slot = ComputedSlot;
 
@@ -590,7 +591,19 @@ export async function checkIn(bookingId: string): Promise<Booking> {
 export async function complete(bookingId: string): Promise<Booking> {
   const booking = await getBookingOrThrow(bookingId);
   assertTransition(booking.status, ["CHECKED_IN", "CONFIRMED"], "complete");
-  return prisma.booking.update({ where: { id: bookingId }, data: { status: "COMPLETED" } });
+  const updated = await prisma.booking.update({ where: { id: bookingId }, data: { status: "COMPLETED" } });
+
+  // Best-effort: refresh the client's cached LTV now that a new COMPLETED
+  // booking may have changed it. This must never fail (or block) the
+  // completion itself -- a stale LTV cache is recoverable, but failing to
+  // record a booking as completed is not.
+  try {
+    await refreshClientLtv(updated.clientProfileId);
+  } catch (err) {
+    console.error(`Failed to refresh LTV for client "${updated.clientProfileId}" after completing booking "${bookingId}"`, err);
+  }
+
+  return updated;
 }
 
 export async function cancel(bookingId: string): Promise<Booking> {
