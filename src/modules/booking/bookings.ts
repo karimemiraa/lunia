@@ -342,6 +342,111 @@ export async function getBooking(id: string): Promise<BookingWithAppointments | 
   return prisma.booking.findUnique({ where: { id }, include: { appointments: true } });
 }
 
+// --- Calendar/front-desk read helpers -------------------------------------
+// Denormalized rows for the staff calendar day view (Task 8): one row per
+// appointment, joined against the service/staff/room/client tables the UI
+// needs to render without a client-side waterfall. Kept here (rather than a
+// separate module) since it's just a read-side projection over data this
+// module already owns (Booking/Appointment) plus a few IDs to resolve.
+
+export interface DayAppointmentRow {
+  bookingId: string;
+  appointmentId: string;
+  status: BookingStatus;
+  channel: Booking["channel"];
+  startAt: Date;
+  endAt: Date;
+  serviceId: string;
+  serviceName: string;
+  staffUserId: string;
+  staffName: string;
+  roomId: string;
+  roomName: string;
+  clientProfileId: string;
+  clientName: string;
+  clientPhone: string | null;
+}
+
+/**
+ * Lists every appointment landing on `dateISO` (center-local), optionally
+ * narrowed to one staff member, sorted by start time. Cancelled/no-show
+ * bookings are included (front desk still needs to see them on the day),
+ * unlike the availability engine's ACTIVE_APPOINTMENT_FILTER.
+ */
+export async function listDayAppointments(dateISO: string, staffUserId?: string): Promise<DayAppointmentRow[]> {
+  const bookings = await listBookings({ date: dateISO, staffUserId });
+
+  const dayStart = centerLocalToUtc(dateISO, 0);
+  const dayEnd = centerLocalToUtc(dateISO, 1440);
+  const entries = bookings.flatMap((booking) =>
+    booking.appointments
+      .filter((appointment) => {
+        if (appointment.startAt < dayStart || appointment.startAt >= dayEnd) return false;
+        if (staffUserId && appointment.staffUserId !== staffUserId) return false;
+        return true;
+      })
+      .map((appointment) => ({ booking, appointment })),
+  );
+  if (entries.length === 0) return [];
+
+  const serviceIds = [...new Set(entries.map((e) => e.appointment.serviceId))];
+  const staffUserIds = [...new Set(entries.map((e) => e.appointment.staffUserId))];
+  const roomIds = [...new Set(entries.map((e) => e.appointment.roomId))];
+  const clientProfileIds = [...new Set(entries.map((e) => e.booking.clientProfileId))];
+
+  const [services, staff, rooms, clients] = await Promise.all([
+    prisma.service.findMany({ where: { id: { in: serviceIds } } }),
+    prisma.user.findMany({ where: { id: { in: staffUserIds } }, include: { staffProfile: true } }),
+    prisma.room.findMany({ where: { id: { in: roomIds } } }),
+    prisma.clientProfile.findMany({ where: { id: { in: clientProfileIds } }, include: { user: true } }),
+  ]);
+  const serviceById = new Map(services.map((s) => [s.id, s]));
+  const staffById = new Map(staff.map((s) => [s.id, s]));
+  const roomById = new Map(rooms.map((r) => [r.id, r]));
+  const clientById = new Map(clients.map((c) => [c.id, c]));
+
+  const rows: DayAppointmentRow[] = entries.map(({ booking, appointment }) => {
+    const client = clientById.get(booking.clientProfileId);
+    const staffUser = staffById.get(appointment.staffUserId);
+    return {
+      bookingId: booking.id,
+      appointmentId: appointment.id,
+      status: booking.status,
+      channel: booking.channel,
+      startAt: appointment.startAt,
+      endAt: appointment.endAt,
+      serviceId: appointment.serviceId,
+      serviceName: serviceById.get(appointment.serviceId)?.nameEn ?? "Unknown service",
+      staffUserId: appointment.staffUserId,
+      staffName: staffUser?.staffProfile?.fullName ?? "Unknown staff",
+      roomId: appointment.roomId,
+      roomName: roomById.get(appointment.roomId)?.name ?? "Unknown room",
+      clientProfileId: booking.clientProfileId,
+      clientName: client?.fullName ?? "Unknown client",
+      clientPhone: client?.user.phone ?? null,
+    };
+  });
+
+  rows.sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
+  return rows;
+}
+
+export interface StaffOption {
+  id: string;
+  name: string;
+}
+
+/** Active staff members (STAFF users with a StaffProfile), for calendar/front-desk staff pickers. */
+export async function listStaffOptions(): Promise<StaffOption[]> {
+  const staff = await prisma.user.findMany({
+    where: { type: "STAFF", isActive: true, staffProfile: { isNot: null } },
+    include: { staffProfile: true },
+  });
+  return staff
+    .map((s) => ({ id: s.id, name: s.staffProfile!.fullName }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 async function getBookingOrThrow(bookingId: string): Promise<BookingWithAppointments> {
   const booking = await prisma.booking.findUnique({ where: { id: bookingId }, include: { appointments: true } });
   if (!booking) {

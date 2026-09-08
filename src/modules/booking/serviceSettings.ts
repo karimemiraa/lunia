@@ -18,6 +18,20 @@ export async function getBookableServices(): Promise<(Service & { department: De
   });
 }
 
+// All published services, regardless of onlineBookable/inCenterOnly, for the
+// front-desk/walk-in booking form: staff can book any published service
+// in-center, including ones that are intentionally hidden from the public
+// online flow (onlineBookable: false) or restricted to in-center-only
+// delivery. createBooking only enforces the onlineBookable/inCenterOnly gate
+// for channel === "ONLINE", so FRONT_DESK bookings are unaffected by it.
+export async function getFrontDeskServices(): Promise<(Service & { department: Department })[]> {
+  return prisma.service.findMany({
+    where: { isPublished: true },
+    include: { department: true },
+    orderBy: [{ department: { order: "asc" } }, { order: "asc" }],
+  });
+}
+
 export interface ServiceBookingConfig {
   durationMin: number;
   priceMinor: number;

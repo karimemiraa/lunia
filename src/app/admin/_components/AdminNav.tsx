@@ -15,6 +15,9 @@ const linkClass =
 export function AdminNav({ permissions }: AdminNavProps) {
   const links: NavLink[] = [{ href: "/admin", label: "Dashboard" }];
 
+  if (permissions.has(PERMISSIONS.BOOKING_VIEW)) {
+    links.push({ href: "/admin/calendar", label: "Calendar" });
+  }
   if (permissions.has(PERMISSIONS.CMS_MANAGE)) {
     links.push(
       { href: "/admin/media", label: "Media" },

@@ -33,10 +33,17 @@ describe("AdminNav", () => {
     expect(screen.getByRole("link", { name: "Roles" })).toBeInTheDocument();
   });
 
+  it("shows Calendar for a user with BOOKING_VIEW", () => {
+    render(<AdminNav permissions={new Set([PERMISSIONS.BOOKING_VIEW])} />);
+
+    expect(screen.getByRole("link", { name: "Calendar" })).toBeInTheDocument();
+  });
+
   it("shows only Dashboard for a user with no elevated permissions", () => {
     render(<AdminNav permissions={new Set()} />);
 
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Calendar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Media" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Catalog" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Inquiries" })).not.toBeInTheDocument();
