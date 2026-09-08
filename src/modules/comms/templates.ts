@@ -8,6 +8,11 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { MessageTemplate } from "@prisma/client";
+// NOTE: booking/outbox.ts imports renderTemplate from this file, so this is
+// a circular import. Safe: both bindings are only referenced inside function
+// bodies (never at module-eval time), a standard safe cycle under Node/Vite
+// ESM. Keep it that way — a future top-level use of either import here or in
+// outbox.ts would break at load time.
 import { renderMessageBody } from "@/modules/booking/outbox";
 
 // Exported so admin UI (Stage 6's comms/templates page) and the log filters

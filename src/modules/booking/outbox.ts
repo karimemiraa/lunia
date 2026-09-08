@@ -11,6 +11,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { Prisma, ScheduledMessage } from "@prisma/client";
 import { getCommsConfig } from "@/modules/comms/config";
+// NOTE: comms/templates.ts imports renderMessageBody from this file, so this
+// is a circular import. Safe: both bindings are only referenced inside
+// function bodies (never at module-eval time), a standard safe cycle under
+// Node/Vite ESM. Keep it that way — a future top-level use of either import
+// here or in templates.ts would break at load time.
 import { renderTemplate } from "@/modules/comms/templates";
 
 const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT"]);
