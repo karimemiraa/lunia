@@ -10,9 +10,12 @@ import { prisma } from "@/lib/db";
 import type { MessageTemplate } from "@prisma/client";
 import { renderMessageBody } from "@/modules/booking/outbox";
 
-const KIND_VALUES = ["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "OTP"] as const;
-const LOCALE_VALUES = ["ar", "en"] as const;
-const CHANNEL_VALUES = ["whatsapp", "sms"] as const;
+// Exported so admin UI (Stage 6's comms/templates page) and the log filters
+// can build <select> option lists from the same source of truth used to
+// validate upsertTemplate() below, rather than re-declaring these lists.
+export const KIND_VALUES = ["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "OTP"] as const;
+export const LOCALE_VALUES = ["ar", "en"] as const;
+export const CHANNEL_VALUES = ["whatsapp", "sms"] as const;
 
 const kindSchema = z.enum(KIND_VALUES);
 const localeSchema = z.enum(LOCALE_VALUES);

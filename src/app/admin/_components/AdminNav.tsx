@@ -37,7 +37,11 @@ export function AdminNav({ permissions }: AdminNavProps) {
     );
   }
   if (permissions.has(PERMISSIONS.SETTINGS_MANAGE)) {
-    links.push({ href: "/admin/settings", label: "Settings" }, { href: "/admin/tiers", label: "Tiers" });
+    links.push(
+      { href: "/admin/settings", label: "Settings" },
+      { href: "/admin/tiers", label: "Tiers" },
+      { href: "/admin/comms", label: "Communications" },
+    );
   }
   if (permissions.has(PERMISSIONS.STAFF_MANAGE)) {
     links.push(
