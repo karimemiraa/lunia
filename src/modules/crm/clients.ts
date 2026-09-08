@@ -1,12 +1,13 @@
 // Client roster and detail views for the CRM admin: search/filter listing,
-// a single-client detail page (profile + tier + LTV + booking history), and
-// tier assignment. All read paths here batch their lookups (client ids ->
-// one bookings query, one membership/tier join) rather than querying per
-// row, following the same pattern as booking/bookings.ts's
-// listDayAppointments and booking/stats.ts.
+// a single-client detail page (profile + tier + LTV + booking history +
+// visit notes), and tier assignment. All read paths here batch their
+// lookups (client ids -> one bookings query, one membership/tier join)
+// rather than querying per row, following the same pattern as
+// booking/bookings.ts's listDayAppointments and booking/stats.ts.
 
 import { prisma } from "@/lib/db";
 import type { Prisma, ClientProfile, MembershipTier, BookingStatus } from "@prisma/client";
+import { listVisitNotes, type VisitNoteWithAuthor } from "@/modules/crm/visitNotes";
 
 export interface ListClientsFilter {
   search?: string;
@@ -98,9 +99,10 @@ export interface ClientDetail {
   source?: string;
   ltvMinor: number;
   bookings: ClientDetailBooking[];
+  visitNotes: VisitNoteWithAuthor[];
 }
 
-/** Profile + current tier + booking history (newest first) for one client, or null if it doesn't exist. */
+/** Profile + current tier + booking history (newest first) + visit notes (newest first) for one client, or null if it doesn't exist. */
 export async function getClientDetail(clientProfileId: string): Promise<ClientDetail | null> {
   const profile = await prisma.clientProfile.findUnique({
     where: { id: clientProfileId },
@@ -108,11 +110,14 @@ export async function getClientDetail(clientProfileId: string): Promise<ClientDe
   });
   if (!profile) return null;
 
-  const bookings = await prisma.booking.findMany({
-    where: { clientProfileId },
-    include: { appointments: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [bookings, visitNotes] = await Promise.all([
+    prisma.booking.findMany({
+      where: { clientProfileId },
+      include: { appointments: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    listVisitNotes(clientProfileId),
+  ]);
 
   const serviceIds = [...new Set(bookings.flatMap((b) => b.appointments.map((a) => a.serviceId)))];
   const services = serviceIds.length > 0 ? await prisma.service.findMany({ where: { id: { in: serviceIds } } }) : [];
@@ -134,6 +139,7 @@ export async function getClientDetail(clientProfileId: string): Promise<ClientDe
     source: profile.sourceChannel ?? undefined,
     ltvMinor: profile.ltvCacheMinor,
     bookings: bookingRows,
+    visitNotes,
   };
 }
 

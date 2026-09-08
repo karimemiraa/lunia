@@ -236,12 +236,13 @@ describe("clients", () => {
     }
   });
 
-  it("getClientDetail returns profile, tier, ltv, and bookings with service/date/status", async () => {
+  it("getClientDetail returns profile, tier, ltv, bookings with service/date/status, and visit notes", async () => {
     const { clientProfileId } = await createTestClient("Detail Client");
     const vipTier = await prisma.membershipTier.findUniqueOrThrow({ where: { key: "vip" } });
     await updateClientTier(clientProfileId, vipTier.id);
     await createRawBooking(clientProfileId, "COMPLETED", 12_000, new Date("2026-01-09T10:00:00.000Z"));
     await refreshClientLtv(clientProfileId);
+    const note = await addVisitNote({ clientProfileId, authorUserId: owner.id, body: "Detail client note" });
 
     const detail = await getClientDetail(clientProfileId);
     expect(detail).not.toBeNull();
@@ -252,6 +253,11 @@ describe("clients", () => {
     expect(detail!.bookings[0]!.status).toBe("COMPLETED");
     expect(detail!.bookings[0]!.serviceName).toBe(service.nameEn);
     expect(detail!.bookings[0]!.startAt).toBeInstanceOf(Date);
+    expect(detail!.visitNotes.length).toBe(1);
+    expect(detail!.visitNotes[0]!.id).toBe(note.id);
+    expect(detail!.visitNotes[0]!.authorName).toBeTruthy();
+
+    await deleteVisitNote(note.id, owner.id);
   });
 
   it("getClientDetail returns null for an unknown client", async () => {
