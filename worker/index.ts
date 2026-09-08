@@ -1,8 +1,10 @@
 // Reminder outbox worker: a small, long-running Node process that polls
 // processDueMessages() on an interval so scheduled booking messages
-// (confirmations, 24h reminders, post-visit follow-ups) actually get
-// "sent" (via the stub comms sender for now — Stage 6 swaps in a real
-// WhatsApp/SMS provider behind the same CommsSender interface).
+// (confirmations, 24h reminders, post-visit follow-ups) actually get sent.
+// getConfiguredSender() picks the real WhatsApp/SMS provider adapter when
+// running in production with a fully configured provider, and falls back to
+// the logging-only stub sender everywhere else (local dev, CI, an
+// unconfigured provider) — see src/modules/comms/sender.ts.
 //
 // Deliberately dependency-light: no BullMQ/queue library, just a
 // setTimeout-based poll loop with a clean SIGINT/SIGTERM shutdown. Run it
@@ -27,6 +29,7 @@ const POLL_INTERVAL_MS = 30_000;
 
 async function main() {
   const { processDueMessages } = await import("@/modules/booking/outbox");
+  const { getConfiguredSender } = await import("@/modules/comms/sender");
   const { prisma } = await import("@/lib/db");
 
   let stopping = false;
@@ -34,7 +37,7 @@ async function main() {
 
   async function tick() {
     try {
-      const result = await processDueMessages(new Date());
+      const result = await processDueMessages(new Date(), getConfiguredSender());
       console.log(
         `[worker] heartbeat ${new Date().toISOString()} processed=${result.processed} sent=${result.sent} failed=${result.failed}`,
       );

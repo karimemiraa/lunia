@@ -19,6 +19,7 @@ import { getSetting } from "@/modules/cms/settings";
 import { getMinTierForService, clientMeetsTier } from "./accessRules";
 import { scheduleMessage } from "./outbox";
 import { refreshClientLtv } from "@/modules/crm/ltv";
+import { localized } from "@/modules/catalog/localize";
 
 export type Slot = ComputedSlot;
 
@@ -120,6 +121,27 @@ const createBookingSchema = z.object({
   locale: z.string().min(1).default("ar"),
 });
 export type CreateBookingInput = z.input<typeof createBookingSchema>;
+
+/** Asia/Riyadh is fixed at UTC+3 year-round (no DST) — see availability.ts. */
+const CENTER_TZ = "Asia/Riyadh";
+
+// Normalizes an arbitrary locale string (createBookingSchema.locale accepts
+// any non-empty string) down to "en"/"ar" for localized()/Intl locale
+// selection -- same "starts with ar" rule renderMessageBody (outbox.ts)
+// uses, so a locale like "ar-SA" resolves the same way everywhere.
+function toLocale(locale: string): "en" | "ar" {
+  return locale.toLowerCase().startsWith("ar") ? "ar" : "en";
+}
+
+// Formats a UTC instant as a readable center-local (Asia/Riyadh) date+time
+// string, in the booking's locale -- used for the {{dateTime}} placeholder
+// in outbound CONFIRMATION/REMINDER_24H/POST_VISIT message templates.
+function formatCenterLocalDateTime(date: Date, locale: string): string {
+  const intlLocale = toLocale(locale) === "ar" ? "ar-SA" : "en-US";
+  return new Intl.DateTimeFormat(intlLocale, { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" }).format(
+    date,
+  );
+}
 
 function coerceDate(value: Date | string, label: string): Date {
   const date = typeof value === "string" ? new Date(value) : value;
@@ -373,6 +395,12 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
 
   const now = new Date();
   const reminderSendAt = new Date(startAt.getTime() - 24 * 60 * 60 * 1000);
+  const messagePayload = {
+    bookingId: booking.id,
+    serviceId: service.id,
+    serviceName: localized(toLocale(data.locale), service.nameEn, service.nameAr),
+    dateTime: formatCenterLocalDateTime(startAt, data.locale),
+  };
   const messagesToSchedule = [
     scheduleMessage({
       bookingId: booking.id,
@@ -380,7 +408,7 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
       toPhone: data.client.phone,
       locale: data.locale,
       sendAt: now,
-      payload: { bookingId: booking.id, serviceId: service.id },
+      payload: messagePayload,
     }),
     scheduleMessage({
       bookingId: booking.id,
@@ -388,7 +416,7 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
       toPhone: data.client.phone,
       locale: data.locale,
       sendAt: new Date(endAt.getTime() + 2 * 60 * 60 * 1000),
-      payload: { bookingId: booking.id, serviceId: service.id },
+      payload: messagePayload,
     }),
   ];
   // Only schedule the 24h-ahead reminder when it would actually land in the
@@ -404,7 +432,7 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
         toPhone: data.client.phone,
         locale: data.locale,
         sendAt: reminderSendAt,
-        payload: { bookingId: booking.id, serviceId: service.id },
+        payload: messagePayload,
       }),
     );
   }
