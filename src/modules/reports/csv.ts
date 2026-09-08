@@ -8,6 +8,17 @@
 // joined with CRLF ("\r\n"), the conventional CSV line ending (and what
 // Excel expects), and the header row is built from each column's `label`
 // (not its `key`).
+//
+// Formula-injection guard: a field whose serialized value starts with `=`,
+// `+`, `-`, `@`, a tab, or a CR is prefixed with a single quote (`'`) before
+// RFC 4180 quoting is considered. Excel/Sheets/LibreOffice all treat those
+// leading characters as "this cell is a formula" when a CSV is opened, so
+// without the prefix a value copied verbatim from client input (e.g. a
+// client name of "=1+2" or a phone number typed as "+9665...") could execute
+// as a formula in the opening spreadsheet. The leading `'` is not itself a
+// CSV special character, so it never forces quoting on its own -- a field
+// still only gets wrapped in double quotes if IT (with the prefix applied)
+// contains a comma, a double quote, or a line break.
 
 export interface CsvColumn {
   key: string;
@@ -15,11 +26,13 @@ export interface CsvColumn {
 }
 
 const NEEDS_QUOTING = /[",\r\n]/;
+const NEEDS_FORMULA_GUARD = /^[=+\-@\t\r]/;
 
 function escapeCsvField(value: unknown): string {
   const raw = value === null || value === undefined ? "" : String(value);
-  if (!NEEDS_QUOTING.test(raw)) return raw;
-  return `"${raw.replace(/"/g, '""')}"`;
+  const guarded = NEEDS_FORMULA_GUARD.test(raw) ? `'${raw}` : raw;
+  if (!NEEDS_QUOTING.test(guarded)) return guarded;
+  return `"${guarded.replace(/"/g, '""')}"`;
 }
 
 /**

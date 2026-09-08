@@ -2,8 +2,9 @@ import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { ReportTable } from "./ReportTable";
 import { PERMISSIONS } from "@/modules/iam/permissions";
-import { centerLocalToUtc, utcToCenterLocal } from "@/modules/booking/availability";
+import { centerLocalToUtc } from "@/modules/booking/availability";
 import { runReport, REPORT_TYPES, type ReportType } from "@/modules/reports/reports";
+import { resolveReportDateRange } from "@/modules/reports/dateRange";
 import type { BookingStatus } from "@prisma/client";
 
 interface ReportsPageProps {
@@ -19,24 +20,12 @@ const REPORT_LABELS: Record<ReportType, string> = {
 
 const BOOKING_STATUSES: BookingStatus[] = ["REQUESTED", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED", "NO_SHOW"];
 
-const DEFAULT_RANGE_DAYS = 30;
-
 function isReportType(value: string | undefined): value is ReportType {
   return !!value && (REPORT_TYPES as readonly string[]).includes(value);
 }
 
 function isBookingStatus(value: string): value is BookingStatus {
   return (BOOKING_STATUSES as readonly string[]).includes(value);
-}
-
-/** Adds `days` (may be negative) to a "YYYY-MM-DD" string via pure calendar
- * math -- consistent with the other Stage-5 dashboards' date helpers, none
- * of which depend on the host machine's local timezone. */
-function addDaysISO(dateISO: string, days: number): string {
-  const [year, month, day] = dateISO.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
 }
 
 const inputClass =
@@ -46,10 +35,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const user = await requireAdmin(PERMISSIONS.ANALYTICS_VIEW);
   const params = await searchParams;
 
-  const { dateISO: todayISO } = utcToCenterLocal(new Date());
   const type: ReportType = isReportType(params.type) ? params.type : "bookings";
-  const fromISO = params.from?.trim() || addDaysISO(todayISO, -(DEFAULT_RANGE_DAYS - 1));
-  const toISO = params.to?.trim() || todayISO;
+  // `from`/`to` are user-suppliable query params (a bookmarked or crafted
+  // link) and are NOT validated before this point -- resolveReportDateRange
+  // is what keeps a malformed value like `?from=not-a-date` from reaching
+  // centerLocalToUtc (which throws on anything but "YYYY-MM-DD") and 500ing
+  // the page; it falls back to the current month-to-date range instead.
+  const { fromISO, toISO } = resolveReportDateRange(params.from, params.to);
   const statusParam = params.status?.trim() ?? "";
   const status = type === "bookings" && isBookingStatus(statusParam) ? statusParam : undefined;
 

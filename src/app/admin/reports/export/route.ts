@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
-import { centerLocalToUtc, utcToCenterLocal } from "@/modules/booking/availability";
+import { centerLocalToUtc } from "@/modules/booking/availability";
 import { runReport, REPORT_TYPES, type ReportType } from "@/modules/reports/reports";
+import { resolveReportDateRange } from "@/modules/reports/dateRange";
 import { toCsv } from "@/modules/reports/csv";
 import type { BookingStatus } from "@prisma/client";
 
@@ -34,9 +35,13 @@ export async function GET(request: Request) {
   const typeParam = url.searchParams.get("type");
   const type: ReportType = isReportType(typeParam) ? typeParam : "bookings";
 
-  const { dateISO: todayISO } = utcToCenterLocal(new Date());
-  const fromISO = url.searchParams.get("from")?.trim() || todayISO;
-  const toISO = url.searchParams.get("to")?.trim() || todayISO;
+  // `from`/`to` are user-suppliable (a bookmarked or crafted link) and are
+  // NOT validated by isReportType-style parsing before this point --
+  // resolveReportDateRange is what keeps a malformed value like
+  // `?from=not-a-date` from reaching centerLocalToUtc (which throws on
+  // anything but "YYYY-MM-DD") and 500ing the route; it falls back to the
+  // current month-to-date range instead.
+  const { fromISO, toISO } = resolveReportDateRange(url.searchParams.get("from"), url.searchParams.get("to"));
   const statusParam = url.searchParams.get("status")?.trim() ?? "";
   const status = type === "bookings" && isBookingStatus(statusParam) ? statusParam : undefined;
 

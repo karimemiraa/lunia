@@ -111,6 +111,32 @@ test("report center: owner runs a bookings report and exports a matching CSV", a
   expect(dataLines.some((line) => line.includes(name))).toBe(true);
 });
 
+test("report export route: a malformed from/to falls back to the default range instead of 500ing", async ({ page }) => {
+  await signInAsOwner(page);
+
+  // `from`/`to` are user-suppliable (bookmarked/crafted links): before the
+  // fix these were passed straight to centerLocalToUtc -> parseDateISO,
+  // which throws on anything that isn't strict "YYYY-MM-DD" and turned a
+  // link like this into an unhandled 500. The route should now fall back to
+  // the current month-to-date range and still return a CSV.
+  const response = await page.request.get("/admin/reports/export?type=bookings&from=not-a-date&to=also-not-a-date");
+
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("text/csv");
+  expect(response.headers()["content-disposition"]).toContain("attachment");
+
+  const body = await response.text();
+  expect(body.split("\r\n")[0]).toBe("Date,Client,Service,Staff,Status,Price (SAR)");
+});
+
+test("report center page: a malformed from/to falls back to the default range instead of 500ing", async ({ page }) => {
+  await signInAsOwner(page);
+
+  const response = await page.goto("/admin/reports?type=bookings&from=not-a-date&to=also-not-a-date");
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "Report Center", exact: true, level: 1 })).toBeVisible();
+});
+
 test("report export route is permission-guarded: an unauthenticated request never gets CSV data", async ({ request }) => {
   // The `request` fixture is a fresh APIRequestContext with no cookies (it
   // shares nothing with the `page` fixture used by the test above), so this
