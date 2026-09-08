@@ -160,11 +160,15 @@ export async function processDueMessages(
   const channel = channelForProvider(getCommsConfig().provider);
 
   for (const message of due) {
-    const payload = (message.payload ?? {}) as Record<string, unknown>;
-    const params = payloadToParams(payload);
-    const { body } = await renderTemplate(message.kind, message.locale, channel, params);
-
+    // Rendering does Prisma reads (template lookup), so keep it INSIDE the
+    // per-message try: a transient DB error while rendering one message must
+    // mark that message FAILED, not abort the whole batch.
+    let body = "";
     try {
+      const payload = (message.payload ?? {}) as Record<string, unknown>;
+      const params = payloadToParams(payload);
+      ({ body } = await renderTemplate(message.kind, message.locale, channel, params));
+
       const result = await sender.send({
         channel,
         toPhone: message.toPhone,

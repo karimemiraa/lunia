@@ -230,12 +230,37 @@ describe("makeUnifonicSender", () => {
     expect(result.providerRef).toBe("uf-1");
   });
 
-  it("returns a synthetic providerRef when the response has no MessageID", async () => {
+  it("returns {ok:false} when a 200 response carries no MessageID (never synthesizes a ref)", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(200, { success: true }));
     const sender = makeUnifonicSender(cfg);
     const result = await sender.send(sampleMsg);
-    expect(result.ok).toBe(true);
-    expect(result.providerRef).toBeTruthy();
+    expect(result).toEqual({ ok: false });
+  });
+
+  // Unifonic returns HTTP 200 even for logical failures (invalid recipient,
+  // insufficient balance) with success:"false" -- these must NOT be recorded
+  // as SENT. Covers both the string form Unifonic actually sends and a boolean.
+  it('returns {ok:false} for a HTTP 200 with success:"false" (logical failure)', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, { success: "false", errorCode: "EC:0007", message: "Invalid recipient" }),
+    );
+    const sender = makeUnifonicSender(cfg);
+    const result = await sender.send(sampleMsg);
+    expect(result).toEqual({ ok: false });
+  });
+
+  it("returns {ok:false} for a HTTP 200 with success:false and a MessageID present", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { success: false, data: { MessageID: "uf-x" } }));
+    const sender = makeUnifonicSender(cfg);
+    const result = await sender.send(sampleMsg);
+    expect(result).toEqual({ ok: false });
+  });
+
+  it('accepts the string form success:"true" with a MessageID', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { success: "true", data: { MessageID: "uf-2" } }));
+    const sender = makeUnifonicSender(cfg);
+    const result = await sender.send(sampleMsg);
+    expect(result).toEqual({ ok: true, providerRef: "uf-2" });
   });
 
   it("returns {ok:false} for an error response", async () => {
