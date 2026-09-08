@@ -158,6 +158,43 @@ export async function reclaimStaleClaims(now: Date, olderThanMs: number = STALE_
   return count;
 }
 
+// Terminal write scoped to the winning claim: only the worker that still owns
+// the row (its claimId still matches) flips the status and writes the
+// CommunicationLog. If the row was reclaimed by reclaimStaleClaims and
+// re-sent by another replica in the interim, the updateMany matches zero rows
+// and this is a no-op (no duplicate log, no status clobber). Returns true iff
+// this worker owned and finalized the row. Both writes share one transaction.
+async function finalizeMessage(
+  message: ScheduledMessage,
+  status: "SENT" | "FAILED",
+  opts: { channel: string; body: string; providerRef?: string; now: Date },
+): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const res = await tx.scheduledMessage.updateMany({
+      where: { id: message.id, claimId: message.claimId },
+      data: {
+        status,
+        sentAt: status === "SENT" ? opts.now : undefined,
+        claimId: null,
+        claimedAt: null,
+      },
+    });
+    if (res.count !== 1) return false;
+    await tx.communicationLog.create({
+      data: {
+        channel: opts.channel,
+        kind: message.kind,
+        toPhone: message.toPhone,
+        bookingId: message.bookingId ?? null,
+        status,
+        body: opts.body,
+        providerRef: opts.providerRef ?? null,
+      },
+    });
+    return true;
+  });
+}
+
 // Fetches due (status=PENDING, sendAt<=now) ScheduledMessage rows in a
 // bounded batch, ATOMICALLY claims them (PENDING -> SENDING with a unique
 // claimId) so concurrent worker replicas never process the same row, attempts
@@ -216,65 +253,24 @@ export async function processDueMessages(
         bookingId: message.bookingId ?? undefined,
       });
 
-      if (result.ok) {
-        await prisma.$transaction([
-          prisma.scheduledMessage.update({
-            where: { id: message.id },
-            data: { status: "SENT", sentAt: now, claimId: null, claimedAt: null },
-          }),
-          prisma.communicationLog.create({
-            data: {
-              channel,
-              kind: message.kind,
-              toPhone: message.toPhone,
-              bookingId: message.bookingId ?? null,
-              status: "SENT",
-              body,
-              providerRef: result.providerRef ?? null,
-            },
-          }),
-        ]);
-        sent += 1;
-      } else {
-        await prisma.$transaction([
-          prisma.scheduledMessage.update({
-            where: { id: message.id },
-            data: { status: "FAILED", claimId: null, claimedAt: null },
-          }),
-          prisma.communicationLog.create({
-            data: {
-              channel,
-              kind: message.kind,
-              toPhone: message.toPhone,
-              bookingId: message.bookingId ?? null,
-              status: "FAILED",
-              body,
-              providerRef: result.providerRef ?? null,
-            },
-          }),
-        ]);
-        failed += 1;
+      const finalized = await finalizeMessage(message, result.ok ? "SENT" : "FAILED", {
+        channel,
+        body,
+        providerRef: result.providerRef,
+        now,
+      });
+      // Only count the outcome if THIS worker still owned the claim. If it was
+      // reclaimed and re-sent by another replica, finalizeMessage no-ops and
+      // that replica counts + logs it instead (no duplicate log / status
+      // clobber).
+      if (finalized) {
+        if (result.ok) sent += 1;
+        else failed += 1;
       }
     } catch (err) {
-      failed += 1;
       try {
-        await prisma.$transaction([
-          prisma.scheduledMessage.update({
-            where: { id: message.id },
-            data: { status: "FAILED", claimId: null, claimedAt: null },
-          }),
-          prisma.communicationLog.create({
-            data: {
-              channel,
-              kind: message.kind,
-              toPhone: message.toPhone,
-              bookingId: message.bookingId ?? null,
-              status: "FAILED",
-              body,
-              providerRef: null,
-            },
-          }),
-        ]);
+        const finalized = await finalizeMessage(message, "FAILED", { channel, body, providerRef: undefined, now });
+        if (finalized) failed += 1;
       } catch (persistErr) {
         // Persisting the failure itself failed (e.g. transient DB issue) —
         // log and move on rather than aborting the batch.

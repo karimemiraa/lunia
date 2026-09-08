@@ -13,7 +13,19 @@ const LOCKED = "Too many attempts. Please try again later.";
 
 async function clientIp(): Promise<string> {
   const h = await headers();
-  return (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "unknown").trim();
+  // Prefer X-Real-IP (nginx sets it to $remote_addr -- not client-appendable).
+  // Fall back to the LAST X-Forwarded-For token: nginx appends the real peer
+  // via $proxy_add_x_forwarded_for, so the rightmost entry is trustworthy
+  // while a client-supplied leftmost entry is spoofable and must not be used
+  // for lockout keying.
+  const realIp = h.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+  const xff = h.get("x-forwarded-for");
+  if (xff) {
+    const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1]!;
+  }
+  return "unknown";
 }
 
 export async function login(_prev: unknown, formData: FormData) {
