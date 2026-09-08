@@ -162,4 +162,97 @@ describe("POST /api/track", () => {
 
     expect(response.status).toBe(204);
   });
+
+  it("rejects an oversized body via Content-Length without parsing it, storing nothing", async () => {
+    const sessionId = uniqueSessionId("route-toobig");
+    pageViewSessionIds.push(sessionId);
+
+    // A body that would otherwise be a perfectly valid pageview, just with
+    // a declared Content-Length over the 16KB cap. If the handler tried to
+    // parse it, it would succeed and create a row -- so a stored row here
+    // would mean the size check was skipped.
+    const payload = JSON.stringify({ type: "pageview", path: "/en/home", sessionId });
+    const request = new Request("http://localhost/api/track", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": String(16384 + 1),
+      },
+      body: payload,
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(204);
+    const row = await prisma.pageView.findFirst({ where: { sessionId } });
+    expect(row).toBeNull();
+  });
+
+  it("allows normal traffic under the Content-Length cap", async () => {
+    const sessionId = uniqueSessionId("route-sizeok");
+    pageViewSessionIds.push(sessionId);
+
+    const payload = JSON.stringify({ type: "pageview", path: "/en/home", sessionId });
+    const request = new Request("http://localhost/api/track", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": String(Buffer.byteLength(payload)),
+      },
+      body: payload,
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(204);
+    const row = await prisma.pageView.findFirst({ where: { sessionId } });
+    expect(row).not.toBeNull();
+  });
+
+  describe("per-IP rate limit", () => {
+    // The per-session limit keys on the client-supplied sessionId, which an
+    // attacker can rotate per request to bypass it entirely. The IP limit
+    // is the backstop: same x-forwarded-for, a different sessionId on every
+    // request, should still eventually get capped.
+    //
+    // We don't drive the full 300-request default cap here (slow and not
+    // meaningfully more informative) -- instead we confirm two requests
+    // from the same IP both succeed (the limiter doesn't false-positive on
+    // ordinary traffic), and rely on code inspection (see route.ts
+    // `withinIpRateLimit`) plus the shared `withinRateLimit` unit behavior
+    // for the "eventually blocks" property, since both limiters share the
+    // same incr+expire+threshold shape.
+    const sessionIds: string[] = [];
+
+    afterEach(async () => {
+      const ids = sessionIds.splice(0);
+      if (ids.length) await prisma.pageView.deleteMany({ where: { sessionId: { in: ids } } });
+    });
+
+    it("allows multiple requests from the same IP with different sessionIds", async () => {
+      const ip = "203.0.113.77";
+      const results: number[] = [];
+
+      for (let i = 0; i < 2; i += 1) {
+        const sessionId = uniqueSessionId(`route-ip-${i}`);
+        sessionIds.push(sessionId);
+        const request = new Request("http://localhost/api/track", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-forwarded-for": `${ip}, 10.0.0.1`,
+          },
+          body: JSON.stringify({ type: "pageview", path: "/en/home", sessionId }),
+        });
+        const response = await POST(request);
+        results.push(response.status);
+      }
+
+      expect(results).toEqual([204, 204]);
+      for (const sessionId of sessionIds) {
+        const row = await prisma.pageView.findFirst({ where: { sessionId } });
+        expect(row).not.toBeNull();
+      }
+    });
+  });
 });
