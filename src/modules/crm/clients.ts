@@ -95,6 +95,7 @@ export interface ClientDetailBooking {
 
 export interface ClientDetail {
   profile: ClientProfile;
+  phone: string | null;
   tier?: MembershipTier;
   source?: string;
   ltvMinor: number;
@@ -102,11 +103,11 @@ export interface ClientDetail {
   visitNotes: VisitNoteWithAuthor[];
 }
 
-/** Profile + current tier + booking history (newest first) + visit notes (newest first) for one client, or null if it doesn't exist. */
+/** Profile + phone + current tier + booking history (newest first) + visit notes (newest first) for one client, or null if it doesn't exist. */
 export async function getClientDetail(clientProfileId: string): Promise<ClientDetail | null> {
   const profile = await prisma.clientProfile.findUnique({
     where: { id: clientProfileId },
-    include: { membership: { include: { tier: true } } },
+    include: { user: true, membership: { include: { tier: true } } },
   });
   if (!profile) return null;
 
@@ -135,6 +136,7 @@ export async function getClientDetail(clientProfileId: string): Promise<ClientDe
 
   return {
     profile,
+    phone: profile.user.phone,
     tier: profile.membership?.tier,
     source: profile.sourceChannel ?? undefined,
     ltvMinor: profile.ltvCacheMinor,
