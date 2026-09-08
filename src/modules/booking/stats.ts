@@ -183,3 +183,18 @@ function buildBySource(bookings: BookingForStats[]): SourceStat[] {
     .map(([source, count]) => ({ source, bookings: count }))
     .sort((a, b) => b.bookings - a.bookings);
 }
+
+/**
+ * Counts appointments still ahead of `now` whose booking is still "live"
+ * (CONFIRMED or CHECKED_IN -- i.e. not yet completed, and not cancelled or a
+ * no-show). Used by the business dashboard's "upcoming" stat; independent of
+ * any [from,to) window since it's a look-ahead, not a period aggregate.
+ */
+export async function upcomingAppointmentsCount(now: Date = new Date()): Promise<number> {
+  return prisma.appointment.count({
+    where: {
+      startAt: { gte: now },
+      booking: { status: { in: ["CONFIRMED", "CHECKED_IN"] } },
+    },
+  });
+}

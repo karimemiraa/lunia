@@ -43,6 +43,20 @@ describe("AdminNav", () => {
     expect(screen.getByRole("link", { name: "Calendar" })).toBeInTheDocument();
   });
 
+  it("shows Business/Marketing/Reports for a user with ANALYTICS_VIEW", () => {
+    render(<AdminNav permissions={new Set([PERMISSIONS.ANALYTICS_VIEW])} />);
+
+    expect(screen.getByRole("link", { name: "Business" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Marketing" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Reports" })).toHaveAttribute("href", "/admin/reports");
+  });
+
+  it("hides Reports for a user without ANALYTICS_VIEW", () => {
+    render(<AdminNav permissions={new Set([PERMISSIONS.CLIENT_VIEW])} />);
+
+    expect(screen.queryByRole("link", { name: "Reports" })).not.toBeInTheDocument();
+  });
+
   it("shows only Dashboard for a user with no elevated permissions", () => {
     render(<AdminNav permissions={new Set()} />);
 

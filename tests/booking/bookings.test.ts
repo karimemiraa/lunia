@@ -1,6 +1,6 @@
-import { describe, it, expect, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { prisma } from "@/lib/db";
-import { centerLocalToUtc, utcToCenterLocal } from "@/modules/booking/availability";
+import { centerLocalToUtc, utcToCenterLocal, weekdayForDateISO } from "@/modules/booking/availability";
 import { requestOtp, verifyOtp } from "@/modules/iam/clientAuth";
 import {
   getServiceSlots,
@@ -15,22 +15,83 @@ import {
   reschedule,
 } from "@/modules/booking/bookings";
 
-// All test bookings use a Sunday (weekday 0 -> seeded staff schedules and
-// business hours are both open Sun-Thu) far from any date used by other
-// test files, so this suite never collides with concurrently-run files.
-const DATE = "2026-09-27";
+// This suite books fixed, hardcoded slots (a specific date + minutes-from-
+// midnight) so tests can assert exact occupancy/exclusion behavior. Two
+// different runs of this suite must never fight over the same slot:
+// - Across *sequential* runs, a crashed prior run can leave Booking/
+//   Appointment rows behind that permanently occupy a hardcoded slot for
+//   every future run (see the PHONE_PREFIX sweep below for the User-level
+//   half of this, and RUN_BASE_DAYS_OUT below for the date half).
+// - This suite also isn't the only thing that can touch these tables (other
+//   test files, e2e specs), so "far in the future" alone isn't enough --
+//   the exact date must vary per run.
+// RUN_BASE_DAYS_OUT is randomized once per process (module load), 120-400
+// days out, and each fixed date below is derived from it at a distinct
+// offset so no two of this file's own dates can collide with each other.
+const RUN_BASE_DAYS_OUT = 120 + Math.floor(Math.random() * 280);
+
+// Returns the ISO date `daysOut` days from now, snapped forward to the next
+// center-open weekday (Sun-Thu = weekday 0-4; see availability.ts and the
+// Sun-Thu 10:00-20:00 seed). Guarantees every date used below is both in the
+// future (satisfies the past-time guard) and actually bookable.
+function openDateAt(daysOut: number): string {
+  let t = Date.now() + daysOut * 86_400_000;
+  for (;;) {
+    const dateISO = utcToCenterLocal(new Date(t)).dateISO;
+    if (weekdayForDateISO(dateISO) <= 4) return dateISO;
+    t += 86_400_000;
+  }
+}
+
+// Primary fixed date used by tests that book a fixed slot but don't assert
+// exact occupancy/exclusion (e.g. they only check the resulting booking's
+// own fields, not whether some *other* slot is free/taken). Tests that DO
+// assert occupancy get their own dedicated date below instead of sharing
+// this one: with a 45-minute service duration but only 15-30 minutes
+// between this file's various fixed offsets on DATE, an earlier test's
+// auto-assigned (staff, room) pair can overlap in time with a later test's
+// *explicit* staff+room pin -- a same-run collision, not just a cross-run
+// one -- so exact-occupancy tests need real isolation, not just a shared
+// far-future date.
+const DATE = openDateAt(RUN_BASE_DAYS_OUT);
+
+// Dedicated date for "rejects double-booking the same staff + room + time":
+// it pins an explicit (staff, room) and asserts the second booking at the
+// same slot is rejected, so it must not share DATE with any other test
+// whose auto-assigned booking could already occupy that same (staff, room)
+// at an overlapping time.
+const DOUBLE_BOOKING_DATE = openDateAt(RUN_BASE_DAYS_OUT + 10);
+
+// Dedicated date for the getServiceSlots "excludes a time once both staff
+// members are fully booked at it" test: it asserts a precise before/after
+// occupancy transition for both staff members, so it needs a date no other
+// test's bookings can touch.
+const EXCLUSION_DATE = openDateAt(RUN_BASE_DAYS_OUT + 20);
+
+// Dedicated date for "reschedule frees the old slot and takes the new one":
+// it asserts the old slot becomes bookable again and the new slot becomes
+// taken, both against an explicit (staff, room) -- isolated for the same
+// reason as DOUBLE_BOOKING_DATE above.
+const RESCHEDULE_DATE = openDateAt(RUN_BASE_DAYS_OUT + 30);
 
 // Every phone created by this suite carries this prefix so cleanup can find
 // (and remove) everything it created, regardless of which test created it or
-// whether an assertion failed partway through.
-const PHONE_PREFIX = `+9665TEST${Date.now()}`;
+// whether an assertion failed partway through. Deliberately NOT randomized
+// per run (unlike RUN_BASE_DAYS_OUT above): keeping it stable lets the
+// beforeAll sweep below find and remove rows left behind by a *previous*
+// crashed run, not just this run's own rows.
+const PHONE_PREFIX = `+9665TESTBOOKING`;
 let phoneCounter = 0;
 function freshPhone(): string {
   phoneCounter += 1;
   return `${PHONE_PREFIX}${phoneCounter}`;
 }
 
-afterAll(async () => {
+// Deletes every User (and, via cascade, ClientProfile -> Booking ->
+// Appointment/CheckIn, plus their ScheduledMessage rows) created under
+// PHONE_PREFIX. Shared by beforeAll (clears leftovers from a crashed prior
+// run before this run starts) and afterAll (cleans up after this run).
+async function sweepPhonePrefixedUsers() {
   const users = await prisma.user.findMany({
     where: { phone: { startsWith: PHONE_PREFIX } },
     include: { clientProfile: true },
@@ -45,6 +106,14 @@ afterAll(async () => {
   }
   // Deleting the User cascades ClientProfile -> Booking -> Appointment/CheckIn.
   await prisma.user.deleteMany({ where: { phone: { startsWith: PHONE_PREFIX } } });
+}
+
+beforeAll(async () => {
+  await sweepPhonePrefixedUsers();
+});
+
+afterAll(async () => {
+  await sweepPhonePrefixedUsers();
 });
 
 async function getUnGatedService() {
@@ -166,7 +235,7 @@ describe("createBooking", () => {
     const owner = await getOwner();
     const rooms = await getRooms();
     const room = rooms[0]!;
-    const startAt = centerLocalToUtc(DATE, 660);
+    const startAt = centerLocalToUtc(DOUBLE_BOOKING_DATE, 660);
 
     await createBooking({
       serviceId: service.id,
@@ -256,9 +325,9 @@ describe("getServiceSlots", () => {
     const owner = await getOwner();
     const specialist = await getSpecialist();
     const rooms = await getRooms();
-    const blockedStart = centerLocalToUtc(DATE, 900); // 15:00 center-local
+    const blockedStart = centerLocalToUtc(EXCLUSION_DATE, 900); // 15:00 center-local
 
-    const before = await getServiceSlots(service.id, DATE);
+    const before = await getServiceSlots(service.id, EXCLUSION_DATE);
     expect(before.length).toBeGreaterThan(0);
     expect(before.some((s) => s.startAt.getTime() === blockedStart.getTime())).toBe(true);
 
@@ -281,7 +350,7 @@ describe("getServiceSlots", () => {
       channel: "FRONT_DESK",
     });
 
-    const after = await getServiceSlots(service.id, DATE);
+    const after = await getServiceSlots(service.id, EXCLUSION_DATE);
     expect(after.some((s) => s.startAt.getTime() === blockedStart.getTime())).toBe(false);
     // Other times on the same day remain bookable.
     expect(after.length).toBeGreaterThan(0);
@@ -353,8 +422,8 @@ describe("lifecycle", () => {
     const rooms = await getRooms();
     // Gap between old and new start must be >= the service duration (45 min)
     // so the moved appointment's window no longer overlaps the freed slot.
-    const oldStart = centerLocalToUtc(DATE, 1080);
-    const newStart = centerLocalToUtc(DATE, 1140);
+    const oldStart = centerLocalToUtc(RESCHEDULE_DATE, 1080);
+    const newStart = centerLocalToUtc(RESCHEDULE_DATE, 1140);
 
     const booking = await createBooking({
       serviceId: service.id,
@@ -394,11 +463,12 @@ describe("lifecycle", () => {
     ).rejects.toThrow();
   });
 
-  // A dedicated Sunday, decoupled from every other booking made in this
-  // file (and from LIST_DATE below), so the self-conflict check below can't
-  // be affected by another test's appointment occupying an overlapping
-  // window for the same staff member.
-  const SELF_CONFLICT_DATE = "2026-10-04";
+  // A dedicated open-weekday date, decoupled from every other date used in
+  // this file (offset far enough from RUN_BASE_DAYS_OUT that weekday
+  // snapping can never make it collide with DATE), so the self-conflict
+  // check below can't be affected by another test's appointment occupying
+  // an overlapping window for the same staff member.
+  const SELF_CONFLICT_DATE = openDateAt(RUN_BASE_DAYS_OUT + 40);
 
   it("reschedule to a time overlapping the booking's own current slot succeeds (no self-conflict)", async () => {
     const service = await getUnGatedService();
@@ -443,14 +513,10 @@ describe("lifecycle", () => {
 });
 
 describe("createBooking concurrency (C1)", () => {
-  // A dedicated Sunday+time, untouched by every other describe block in
-  // this file. Deliberately kept close to "today" (rather than far in the
-  // future, like most of this file's other fixed dates) -- e2e/
-  // admin-calendar.spec.ts books a walk-in appointment on a genuinely
-  // far-future date (today + 60 days or more, see FAR_FUTURE_DAYS_OUT
-  // there), and a fixed date picked too far out here could eventually land
-  // on the exact same day as that floating target and collide with it.
-  const CONCURRENCY_DATE = "2026-09-13";
+  // A dedicated open-weekday date+time, untouched by every other describe
+  // block in this file, at its own offset from RUN_BASE_DAYS_OUT so it can
+  // never collide with this file's other computed dates.
+  const CONCURRENCY_DATE = openDateAt(RUN_BASE_DAYS_OUT + 50);
 
   it("under two concurrent createBooking calls for the same staff+room+time, exactly one succeeds and exactly one Appointment is created", async () => {
     const service = await getUnGatedService();
@@ -586,10 +652,10 @@ describe("REMINDER_24H scheduling (I3)", () => {
 });
 
 describe("listBookings / getBooking", () => {
-  // A separate Sunday, entirely decoupled from the other describe blocks'
-  // bookings, so this test's date-scoped list assertion can't be affected
-  // by (or accidentally affect) their appointments.
-  const LIST_DATE = "2026-09-20";
+  // A separate open-weekday date, entirely decoupled from the other describe
+  // blocks' bookings, so this test's date-scoped list assertion can't be
+  // affected by (or accidentally affect) their appointments.
+  const LIST_DATE = openDateAt(RUN_BASE_DAYS_OUT + 60);
 
   it("lists bookings filtered by date and finds one by id", async () => {
     const service = await getUnGatedService();

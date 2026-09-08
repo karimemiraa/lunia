@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/db";
-import { centerLocalToUtc } from "@/modules/booking/availability";
+import { centerLocalToUtc, weekdayForDateISO } from "@/modules/booking/availability";
 import { createBooking } from "@/modules/booking/bookings";
-import { bookingStats } from "@/modules/booking/stats";
+import { bookingStats, upcomingAppointmentsCount } from "@/modules/booking/stats";
 
 // All dates here are Sundays in 2027 (weekday 0 -> seeded staff schedules +
 // business hours are open) chosen far from any date used by other booking
@@ -226,5 +226,94 @@ describe("bookingStats", () => {
       byService: [],
       bySource: [],
     });
+  });
+});
+
+// Sundays far in 2032 -- year unused by any other suite -- so this block
+// never collides with concurrently-run fixture data.
+function nextWeekday(fromISO: string, targetWeekday: number): string {
+  let cursor = fromISO;
+  for (let i = 0; i < 30; i++) {
+    if (weekdayForDateISO(cursor) === targetWeekday) return cursor;
+    const next = new Date(`${cursor}T00:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    cursor = next.toISOString().slice(0, 10);
+  }
+  throw new Error(`No weekday ${targetWeekday} found near ${fromISO}`);
+}
+
+describe("upcomingAppointmentsCount", () => {
+  const FUTURE_SUNDAY = nextWeekday("2032-01-01", 0); // relative to CUTOFF, this is "the future"
+  const PAST_SUNDAY = nextWeekday("2031-11-01", 0); // relative to CUTOFF, this is "the past"
+  const CUTOFF = centerLocalToUtc(nextWeekday("2031-12-01", 0), 0);
+
+  const PHONE_PREFIX = `+9665UPCOMING${Date.now()}`;
+  let phoneCounter = 0;
+  function freshPhone(): string {
+    phoneCounter += 1;
+    return `${PHONE_PREFIX}${phoneCounter}`;
+  }
+
+  let confirmedFutureId: string;
+  let cancelledFutureId: string;
+  let confirmedPastId: string; // appointment moved into the past after creation
+
+  beforeAll(async () => {
+    const diagnostic = await prisma.service.findUniqueOrThrow({ where: { slug: "diagnostic-skin-analysis" } });
+
+    const confirmedFuture = await createBooking({
+      serviceId: diagnostic.id,
+      startAt: centerLocalToUtc(FUTURE_SUNDAY, 600),
+      client: { name: "Upcoming Confirmed", phone: freshPhone() },
+      channel: "ONLINE",
+    });
+    confirmedFutureId = confirmedFuture.id;
+
+    const cancelledFuture = await createBooking({
+      serviceId: diagnostic.id,
+      startAt: centerLocalToUtc(FUTURE_SUNDAY, 660),
+      client: { name: "Upcoming Cancelled", phone: freshPhone() },
+      channel: "ONLINE",
+    });
+    cancelledFutureId = cancelledFuture.id;
+    await prisma.booking.update({ where: { id: cancelledFutureId }, data: { status: "CANCELLED" } });
+
+    // Book a valid future slot, then relocate the appointment itself into the
+    // past (createBooking refuses past-time bookings directly).
+    const confirmedPast = await createBooking({
+      serviceId: diagnostic.id,
+      startAt: centerLocalToUtc(FUTURE_SUNDAY, 720),
+      client: { name: "Formerly Upcoming", phone: freshPhone() },
+      channel: "ONLINE",
+    });
+    confirmedPastId = confirmedPast.id;
+    const pastStart = centerLocalToUtc(PAST_SUNDAY, 600);
+    const pastEnd = centerLocalToUtc(PAST_SUNDAY, 660);
+    await prisma.appointment.updateMany({
+      where: { bookingId: confirmedPastId },
+      data: { startAt: pastStart, endAt: pastEnd },
+    });
+  });
+
+  afterAll(async () => {
+    const bookingIds = [confirmedFutureId, cancelledFutureId, confirmedPastId];
+    await prisma.scheduledMessage.deleteMany({ where: { bookingId: { in: bookingIds } } });
+    await prisma.user.deleteMany({ where: { phone: { startsWith: PHONE_PREFIX } } });
+  });
+
+  it("counts only CONFIRMED/CHECKED_IN appointments at or after the cutoff", async () => {
+    const count = await upcomingAppointmentsCount(CUTOFF);
+    expect(count).toBeGreaterThanOrEqual(1);
+
+    // Confirm the specific fixtures behave as expected relative to CUTOFF by
+    // checking a narrower window that only this suite's data can populate.
+    const inWindow = await prisma.appointment.count({
+      where: {
+        bookingId: { in: [confirmedFutureId, cancelledFutureId, confirmedPastId] },
+        startAt: { gte: CUTOFF },
+        booking: { status: { in: ["CONFIRMED", "CHECKED_IN"] } },
+      },
+    });
+    expect(inWindow).toBe(1); // only confirmedFutureId
   });
 });

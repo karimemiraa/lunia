@@ -703,6 +703,27 @@ async function main() {
     create: { serviceId: gatedService.id, minTierId: vipTier.id },
   });
 
+  // --- CampaignSpend: seed a couple of channels so CAC has data ------------
+  function periodMonthOf(date: Date): string {
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  }
+  const now = new Date();
+  const currentPeriod = periodMonthOf(now);
+  const priorPeriod = periodMonthOf(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)));
+
+  const campaignSpendSeeds = [
+    { channel: "instagram", periodMonth: currentPeriod, amountMinor: 300000 },
+    { channel: "google", periodMonth: currentPeriod, amountMinor: 150000 },
+    { channel: "instagram", periodMonth: priorPeriod, amountMinor: 250000 },
+  ];
+  for (const spend of campaignSpendSeeds) {
+    await prisma.campaignSpend.upsert({
+      where: { channel_periodMonth: { channel: spend.channel, periodMonth: spend.periodMonth } },
+      update: { amountMinor: spend.amountMinor },
+      create: spend,
+    });
+  }
+
   console.log("Seed complete. Owner:", ownerEmail);
 }
 

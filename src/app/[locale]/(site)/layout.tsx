@@ -4,6 +4,7 @@ import { localeDirection } from "@/i18n/routing";
 import { fontVariables } from "@/app/fonts";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
+import { Tracker } from "@/components/analytics/Tracker";
 import "@/app/globals.css";
 
 export default async function SiteLayout({
@@ -23,6 +24,7 @@ export default async function SiteLayout({
           <div className="flex-1">{children}</div>
           <SiteFooter locale={locale} />
         </NextIntlClientProvider>
+        <Tracker />
       </body>
     </html>
   );
