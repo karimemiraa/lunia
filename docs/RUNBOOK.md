@@ -119,16 +119,25 @@ the migration is non-trivial.
 ./deploy/scripts/backup.sh
 ```
 
-Writes a gzip'd `pg_dump` to `backups/db-<timestamp>.sql.gz` (the `backups/`
-directory is git-ignored — copy dumps off the VPS to real backup storage,
-this is not itself an offsite backup solution). Run this on a cron schedule
-in addition to before every deploy, e.g. nightly:
+Writes two files under `backups/` (git-ignored): a gzip'd `pg_dump`
+(`db-<timestamp>.sql.gz`) AND a tar of the uploaded-media volume
+(`media-<timestamp>.tgz`). Local copies older than `RETAIN_DAYS` (default 14)
+are pruned. This is **not** an offsite solution — copy `backups/` off the VPS
+to real backup storage. Run nightly via cron, and also before every deploy:
 
 ```
 0 2 * * * cd /path/to/lunia && ./deploy/scripts/backup.sh >> /var/log/lunia-backup.log 2>&1
+# then ship the new files offsite, e.g.:
+15 2 * * * rsync -az /path/to/lunia/backups/ user@offsite:/lunia-backups/ >> /var/log/lunia-offsite.log 2>&1
 ```
 
+Media is stored on the `uploads` Docker volume (mounted at `/app/uploads`),
+which persists across container rebuilds — do not rely on the container
+filesystem for it.
+
 ## 5. Restore
+
+Database:
 
 ```bash
 ./deploy/scripts/restore.sh backups/db-20260907-120000.sql.gz
@@ -136,7 +145,37 @@ in addition to before every deploy, e.g. nightly:
 
 This is destructive — it overwrites the target database — and asks for a
 typed `yes` confirmation before running. Take a fresh `backup.sh` snapshot
-of the current state first if it has any value.
+of the current state first if it has any value. If the dump predates recent
+schema migrations, run `prisma migrate deploy` via the `migrate` service
+(section 3) afterwards.
+
+Media (restore a `media-*.tgz` into the uploads volume):
+
+```bash
+docker compose -f docker-compose.prod.yml run --rm --no-deps \
+  -v "$(pwd)/backups:/backup" --entrypoint sh app \
+  -c "tar xzf /backup/media-20260907-120000.tgz -C /app/uploads"
+```
+
+### 5.1 Restore drill (run quarterly)
+
+Prove the backups actually restore, on a NON-production host or a scratch
+database:
+
+1. Copy a recent `db-*.sql.gz` + `media-*.tgz` pair to a scratch checkout.
+2. Bring up a throwaway stack (`docker compose -f docker-compose.prod.yml up -d postgres redis`).
+3. Run `restore.sh` against the scratch DB, then the media restore command above.
+4. Start `app`, sign in, and confirm recent bookings/clients and at least one
+   uploaded image render correctly.
+5. Record the drill date and outcome. Tear the scratch stack down.
+
+## 5.2 Health checks
+
+The `app` service has a Docker `healthcheck` that polls `/api/health`; `nginx`
+now waits for `app` to be **healthy** (`condition: service_healthy`) before
+starting, so traffic is never proxied to an app that has not finished booting.
+Check status with `docker compose -f docker-compose.prod.yml ps` (look for
+`healthy` on `app`).
 
 ## 6. Rotating secrets
 

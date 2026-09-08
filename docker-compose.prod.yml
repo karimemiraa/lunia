@@ -11,6 +11,22 @@ services:
     restart: always
     expose:
       - "3000"
+    # Uploaded media (src/lib/storage.ts writes to <cwd>/uploads; WORKDIR is
+    # /app) must survive container rebuilds — persist it on a named volume.
+    volumes:
+      - uploads:/app/uploads
+    # Node-based check (the node:22-alpine runtime has neither curl nor wget,
+    # but always has node with global fetch). nginx waits for this to pass.
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   # Reminder outbox worker (Booking stage): polls processDueMessages() every
   # ~30s to "send" (currently via a logging stub — Stage 6 wires a real
@@ -88,9 +104,11 @@ services:
       - ./deploy/certbot/conf:/etc/letsencrypt
       - ./deploy/certbot/www:/var/www/certbot
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     restart: always
 
 volumes:
   pg: {}
   redis: {}
+  uploads: {}
