@@ -213,6 +213,34 @@ describe("channelPerformance", () => {
     expect(staleRow?.acquisitions ?? 0).toBe(0);
   });
 
+  it("excludes CampaignSpend from the month AFTER `to` when `to` sits exactly on a month boundary", async () => {
+    // [RANGE_FROM, RANGE_TO) = [2032-08-01T00:00Z, 2032-09-01T00:00Z) -- `to`
+    // sits exactly on the boundary between August and September. Spend is
+    // seeded for BOTH the in-range month (August, PERIOD_MONTH) and the
+    // following month (September) for the same channel. Only August's spend
+    // must be reflected in spendMinor/cacMinor -- September's must NOT be
+    // pulled in just because `to` (exclusive) falls on its first instant.
+    const CHANNEL_BOUNDARY = `crm-mkt-test-boundary-${RUN_ID}`;
+    await upsertCampaignSpend({ channel: CHANNEL_BOUNDARY, periodMonth: PERIOD_MONTH, amountMinor: 40_000 });
+    await upsertCampaignSpend({ channel: CHANNEL_BOUNDARY, periodMonth: "2032-09", amountMinor: 999_000 });
+    for (let i = 0; i < 4; i += 1) {
+      await createAcquiredClient({
+        name: `Boundary Client ${i}`,
+        sourceChannel: CHANNEL_BOUNDARY,
+        firstBookingAt: new Date(RANGE_FROM.getTime() + (40 + i) * 60_000),
+        status: "CONFIRMED",
+        priceMinor: 0,
+      });
+    }
+
+    const perf = await channelPerformance({ from: RANGE_FROM, to: RANGE_TO });
+    const row = perf.find((p) => p.channel === CHANNEL_BOUNDARY);
+    expect(row).toBeDefined();
+    expect(row!.acquisitions).toBe(4);
+    expect(row!.spendMinor).toBe(40_000); // must NOT include September's 999_000
+    expect(row!.cacMinor).toBe(10_000); // 40_000 / 4, not (40_000 + 999_000) / 4
+  });
+
   it("null sourceChannel is grouped under \"direct\"", async () => {
     await createAcquiredClient({
       name: "Direct Client",

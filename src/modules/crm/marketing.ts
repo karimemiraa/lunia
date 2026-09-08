@@ -20,9 +20,13 @@
 // channel name "direct" (matches buildBySource in booking/stats.ts).
 //
 // "spendMinor": CampaignSpend.amountMinor for that channel, summed over the
-// calendar months spanned by [from, to] via campaigns.ts's spendByChannel
-// (periodMonth is a "YYYY-MM" string; the month containing `to` is included,
-// same inclusive-of-both-endpoints behavior spendByChannel already documents).
+// calendar months spanned by [from, to) via campaigns.ts's spendByChannel.
+// Acquisitions are counted over a half-open range that EXCLUDES `to` itself,
+// so spend must match: channelPerformance calls spendByChannel with an end
+// boundary of `to` minus 1ms (the last instant actually in range), not `to`
+// itself, so that a `to` sitting exactly on a month boundary does not pull in
+// spend from the following month. spendByChannel/toPeriodMonth themselves
+// remain inclusive of both endpoints' months for their other callers.
 //
 // "cacMinor": spendMinor / acquisitions, ROUNDED to the nearest whole minor
 // unit. Guarded: acquisitions === 0 -> null (never divide by zero; a null
@@ -136,7 +140,11 @@ export async function channelPerformance({ from, to }: MarketingRangeFilter): Pr
     acquiredClientIdsByChannel.set(channel, clientIds);
   }
 
-  const spend = await spendByChannel({ from, to });
+  // `to` is exclusive for acquisitions; spendByChannel's month range is
+  // inclusive of both endpoints, so pass `to - 1ms` (the last instant
+  // actually in range) to avoid pulling in the following month's spend when
+  // `to` sits exactly on a month boundary.
+  const spend = await spendByChannel({ from, to: new Date(to.getTime() - 1) });
   const spendByChannelMap = new Map(spend.map((s) => [s.channel, s.amountMinor]));
 
   const allAcquiredClientIds = [...acquiredClientIdsByChannel.values()].flat();
@@ -180,7 +188,8 @@ export interface BestChannels {
  * channels that actually acquired someone (a channel with 0 acquisitions has
  * cacMinor = null and is excluded -- "cheapest" must mean cheapest among
  * channels that worked, not "no data"), and the channel with the highest
- * average LTV. Both null when no channel acquired anyone in the period. */
+ * average LTV. Both null when no channel acquired anyone in the period. Ties
+ * are broken alphabetically by channel name for deterministic results. */
 export async function bestChannels({ from, to }: MarketingRangeFilter): Promise<BestChannels> {
   const performance = await channelPerformance({ from, to });
   const withAcquisitions = performance.filter((p) => p.acquisitions > 0);
@@ -188,10 +197,19 @@ export async function bestChannels({ from, to }: MarketingRangeFilter): Promise<
   let lowestCac: BestChannels["lowestCac"] = null;
   let highestAvgLtv: BestChannels["highestAvgLtv"] = null;
   for (const row of withAcquisitions) {
-    if (row.cacMinor !== null && (lowestCac === null || row.cacMinor < lowestCac.cacMinor)) {
+    if (
+      row.cacMinor !== null &&
+      (lowestCac === null ||
+        row.cacMinor < lowestCac.cacMinor ||
+        (row.cacMinor === lowestCac.cacMinor && row.channel < lowestCac.channel))
+    ) {
       lowestCac = { channel: row.channel, cacMinor: row.cacMinor };
     }
-    if (highestAvgLtv === null || row.avgLtvMinor > highestAvgLtv.avgLtvMinor) {
+    if (
+      highestAvgLtv === null ||
+      row.avgLtvMinor > highestAvgLtv.avgLtvMinor ||
+      (row.avgLtvMinor === highestAvgLtv.avgLtvMinor && row.channel < highestAvgLtv.channel)
+    ) {
       highestAvgLtv = { channel: row.channel, avgLtvMinor: row.avgLtvMinor };
     }
   }
