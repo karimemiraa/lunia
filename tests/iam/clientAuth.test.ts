@@ -9,6 +9,7 @@ import {
 import { createSession, destroySession } from "@/modules/iam/session";
 import { getRedis } from "@/lib/redis";
 import { prisma } from "@/lib/db";
+import type { CommsSender } from "@/modules/booking/outbox";
 
 let phoneCounter = 0;
 function uniquePhone(): string {
@@ -28,6 +29,7 @@ afterEach(async () => {
   const phones = usedPhones.splice(0);
   for (const phone of phones) {
     await getRedis().del(`otp:${phone}`, `otpreq:${phone}`, `otpver:${phone}`);
+    await prisma.communicationLog.deleteMany({ where: { toPhone: phone } });
   }
 });
 
@@ -187,5 +189,72 @@ describe("clientAuth", () => {
     } finally {
       await destroySession(staffToken);
     }
+  });
+
+  it("requestOtp writes a SENT CommunicationLog row for the OTP via the (stub) SMS sender in test env, and still returns devCode", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+
+    const { devCode } = await requestOtp(phone);
+    expect(devCode).toMatch(/^\d{6}$/);
+
+    const logs = await prisma.communicationLog.findMany({ where: { toPhone: phone, kind: "OTP" } });
+    expect(logs).toHaveLength(1);
+    expect(logs[0].channel).toBe("sms");
+    expect(logs[0].status).toBe("SENT");
+    expect(logs[0].body).toContain(devCode);
+  });
+
+  it("requestOtp sends the code via an injected SMS sender (production-simulated) using the requested locale's template, and logs it SENT", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+
+    const sent: { channel: string; toPhone: string; body: string; kind: string }[] = [];
+    const fakeSender: CommsSender = {
+      async send(msg) {
+        sent.push(msg);
+        return { ok: true, providerRef: "fake-ref-1" };
+      },
+    };
+
+    const { devCode } = await requestOtp(phone, { sender: fakeSender, locale: "en" });
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0].channel).toBe("sms");
+    expect(sent[0].kind).toBe("OTP");
+    expect(sent[0].toPhone).toBe(phone);
+    expect(sent[0].body).toContain(devCode as string);
+
+    const logs = await prisma.communicationLog.findMany({ where: { toPhone: phone, kind: "OTP" } });
+    expect(logs).toHaveLength(1);
+    expect(logs[0].status).toBe("SENT");
+    expect(logs[0].providerRef).toBe("fake-ref-1");
+  });
+
+  it("a throwing SMS sender does not make requestOtp throw — the code is still stored, retrievable, and a FAILED log is written", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+
+    const throwingSender: CommsSender = {
+      async send() {
+        throw new Error("provider unreachable");
+      },
+    };
+
+    const { devCode } = await requestOtp(phone, { sender: throwingSender });
+    expect(devCode).toMatch(/^\d{6}$/);
+
+    const raw = await getRedis().get(`otp:${phone}`);
+    expect(raw).toBeTruthy();
+    const record = JSON.parse(raw as string) as { code: string };
+    expect(record.code).toBe(devCode);
+
+    const result = await verifyOtp(phone, devCode as string);
+    expect(result).not.toBeNull();
+    createdUserIds.push((result as { userId: string }).userId);
+
+    const logs = await prisma.communicationLog.findMany({ where: { toPhone: phone, kind: "OTP" } });
+    expect(logs).toHaveLength(1);
+    expect(logs[0].status).toBe("FAILED");
   });
 });

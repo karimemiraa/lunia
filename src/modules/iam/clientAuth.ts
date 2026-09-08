@@ -3,6 +3,9 @@ import { getRedis } from "@/lib/redis";
 import { prisma } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { createSession, getSession, destroySession } from "./session";
+import type { CommsSender } from "@/modules/booking/outbox";
+import { getSmsSender } from "@/modules/comms/sender";
+import { renderTemplate } from "@/modules/comms/templates";
 
 /** Cookie name for client (customer) sessions — distinct from the staff `lunia_session` cookie. */
 export const CLIENT_SESSION_COOKIE = "lunia_client_session";
@@ -47,7 +50,19 @@ function generateCode(): string {
   return randomInt(0, 1_000_000).toString().padStart(6, "0");
 }
 
-export async function requestOtp(phone: string): Promise<{ devCode?: string }> {
+export interface RequestOtpOptions {
+  /** UI locale used to render the OTP SMS template. Defaults to "ar". */
+  locale?: string;
+  /**
+   * Test-only injection point for the SMS sender. Production callers should
+   * never pass this — it defaults to getSmsSender(), which itself only
+   * returns a real provider adapter in production with a fully configured
+   * comms provider, and the logging-only stub everywhere else (dev/test/CI).
+   */
+  sender?: CommsSender;
+}
+
+export async function requestOtp(phone: string, options: RequestOtpOptions = {}): Promise<{ devCode?: string }> {
   const normalized = normalizePhone(phone);
   const redis = getRedis();
 
@@ -69,11 +84,63 @@ export async function requestOtp(phone: string): Promise<{ devCode?: string }> {
   const record: OtpRecord = { code };
   await redis.set(otpKey(normalized), JSON.stringify(record), "EX", OTP_TTL_SECONDS);
 
+  // Best-effort SMS delivery: outside production (or without a configured
+  // SMS provider) getSmsSender() returns the logging-only stub, so this is
+  // always safe to attempt. A send/log failure here must NEVER prevent
+  // requestOtp from succeeding -- the code is already stored, so the user
+  // can still verify it (and in non-production, devCode is returned below
+  // regardless of whether the "send" succeeded).
+  await sendOtpSms(normalized, code, options.locale ?? "ar", options.sender);
+
   if (getEnv().NODE_ENV !== "production") {
     return { devCode: code };
   }
-  // Real SMS delivery lands in Stage 6. Never log the code in production.
+  // Never log/return the code itself outside the SMS body sent to the user.
   return {};
+}
+
+// Renders the OTP template, hands it to the SMS sender, and records a
+// CommunicationLog row for the attempt. Deliberately swallows every error
+// (template render, sender.send rejecting/throwing, or the log write
+// itself) so a provider outage can never break the OTP request flow --
+// worst case, no SMS goes out and/or no audit row is written, but the code
+// the user needs is already safely in Redis.
+async function sendOtpSms(phone: string, code: string, locale: string, injectedSender?: CommsSender): Promise<void> {
+  let body: string;
+  try {
+    body = (await renderTemplate("OTP", locale, "sms", { code })).body;
+  } catch (err) {
+    console.error("[requestOtp] failed to render OTP template", err);
+    return;
+  }
+
+  const sender = injectedSender ?? getSmsSender();
+  let result: { ok: boolean; providerRef?: string };
+  try {
+    result = await sender.send({ channel: "sms", toPhone: phone, body, kind: "OTP" });
+  } catch (err) {
+    console.error("[requestOtp] SMS sender threw", err);
+    result = { ok: false };
+  }
+
+  try {
+    // NOTE: body (and therefore this log row) contains the OTP code itself,
+    // same as processDueMessages' CommunicationLog rows contain the full
+    // rendered message body -- this is an audit trail of what was actually
+    // sent to the user's phone, not a separate secret store.
+    await prisma.communicationLog.create({
+      data: {
+        channel: "sms",
+        kind: "OTP",
+        toPhone: phone,
+        status: result.ok ? "SENT" : "FAILED",
+        body,
+        providerRef: result.providerRef ?? null,
+      },
+    });
+  } catch (err) {
+    console.error("[requestOtp] failed to write OTP CommunicationLog row", err);
+  }
 }
 
 export interface VerifyOtpOptions {
