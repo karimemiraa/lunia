@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { recordAudit } from "@/modules/iam/audit";
 import {
   setSetting,
   SETTINGS_DAYS,
@@ -33,7 +34,7 @@ function optionalStr(formData: FormData, name: string): string | undefined {
 // then saves each one independently via setSetting (each call validates
 // against that key's Zod schema before writing).
 export async function saveSettings(_prev: SaveSettingsState | null, formData: FormData): Promise<SaveSettingsState> {
-  await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
 
   const business: BusinessSettings = {
     nameEn: str(formData, "name.en"),
@@ -79,6 +80,12 @@ export async function saveSettings(_prev: SaveSettingsState | null, formData: Fo
     return { error: err instanceof Error ? err.message : "Failed to save settings." };
   }
 
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "SETTINGS_UPDATE",
+    entityType: "SiteSetting",
+    summary: "Updated business, hours, social, and SEO settings",
+  });
   revalidatePath("/admin/settings");
   revalidatePath("/", "layout");
 
