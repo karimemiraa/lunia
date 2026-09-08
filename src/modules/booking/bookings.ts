@@ -46,7 +46,11 @@ async function getBusinessHoursForDate(dateISO: string): Promise<DayHoursInput> 
 
 // Loads live schedules/rooms/appointments for `dateISO` and computes
 // bookable slots for `serviceId` via the pure availability engine.
-export async function getServiceSlots(serviceId: string, dateISO: string): Promise<Slot[]> {
+export async function getServiceSlots(
+  serviceId: string,
+  dateISO: string,
+  excludeAppointmentId?: string,
+): Promise<Slot[]> {
   const service = await prisma.service.findUnique({ where: { id: serviceId } });
   if (!service) {
     throw new Error(`Service "${serviceId}" not found`);
@@ -61,11 +65,15 @@ export async function getServiceSlots(serviceId: string, dateISO: string): Promi
 
   // Appointments that overlap the center-local day at all (not merely ones
   // that start within it), so an appointment straddling local midnight is
-  // still accounted for.
+  // still accounted for. When recomputing slots for a reschedule,
+  // excludeAppointmentId leaves the appointment being moved out of its own
+  // conflict check, so moving it to a time that overlaps its current slot
+  // isn't wrongly treated as unavailable.
   const dayStart = centerLocalToUtc(dateISO, 0);
   const dayEnd = centerLocalToUtc(dateISO, 1440);
+  const excludeClause = excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {};
   const existingAppointments = await prisma.appointment.findMany({
-    where: { startAt: { lt: dayEnd }, endAt: { gt: dayStart }, ...ACTIVE_APPOINTMENT_FILTER },
+    where: { startAt: { lt: dayEnd }, endAt: { gt: dayStart }, ...excludeClause, ...ACTIVE_APPOINTMENT_FILTER },
     select: { staffUserId: true, roomId: true, startAt: true, endAt: true },
   });
 
@@ -152,11 +160,12 @@ async function resolveStaffAndRoom(
   startAt: Date,
   staffUserId: string | undefined,
   roomId: string | undefined,
+  excludeAppointmentId?: string,
 ): Promise<{ staffUserId: string; roomId: string }> {
   if (staffUserId && roomId) return { staffUserId, roomId };
 
   const dateISO = utcToCenterLocal(startAt).dateISO;
-  const slots = await getServiceSlots(serviceId, dateISO);
+  const slots = await getServiceSlots(serviceId, dateISO, excludeAppointmentId);
   const match = slots.find(
     (s) =>
       s.startAt.getTime() === startAt.getTime() &&
@@ -406,7 +415,7 @@ export async function reschedule(
 
   const service = await prisma.service.findUniqueOrThrow({ where: { id: appointment.serviceId } });
   const endAt = new Date(startAt.getTime() + service.durationMin * 60_000);
-  const resolved = await resolveStaffAndRoom(service.id, startAt, staffUserId, roomId);
+  const resolved = await resolveStaffAndRoom(service.id, startAt, staffUserId, roomId, appointment.id);
 
   await prisma.$transaction(async (tx) => {
     await assertSlotStillFree(tx, { ...resolved, startAt, endAt, excludeAppointmentId: appointment.id });

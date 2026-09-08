@@ -323,6 +323,53 @@ describe("lifecycle", () => {
       }),
     ).rejects.toThrow();
   });
+
+  // A dedicated Sunday, decoupled from every other booking made in this
+  // file (and from LIST_DATE below), so the self-conflict check below can't
+  // be affected by another test's appointment occupying an overlapping
+  // window for the same staff member.
+  const SELF_CONFLICT_DATE = "2026-10-04";
+
+  it("reschedule to a time overlapping the booking's own current slot succeeds (no self-conflict)", async () => {
+    const service = await getUnGatedService();
+    const owner = await getOwner();
+    const specialist = await getSpecialist();
+    const rooms = await getRooms();
+    // Shift by less than the service duration (45 min) so the new window
+    // overlaps the appointment's own current window. Without an explicit
+    // staffUserId/roomId, reschedule must recompute availability itself --
+    // and must not treat the booking's own (not-yet-moved) appointment as a
+    // conflict against itself.
+    const oldStart = centerLocalToUtc(SELF_CONFLICT_DATE, 750);
+    const newStart = centerLocalToUtc(SELF_CONFLICT_DATE, 765); // 15 min later, overlaps [750, 795)
+
+    const booking = await createBooking({
+      serviceId: service.id,
+      startAt: oldStart,
+      staffUserId: owner.id,
+      roomId: rooms[0]!.id,
+      client: { name: "Self Overlap Client", phone: freshPhone() },
+      channel: "FRONT_DESK",
+    });
+
+    // Occupy the *other* staff member over the new window too, so owner is
+    // the only staff member who could possibly serve the new time -- ruling
+    // out reschedule silently succeeding by picking a different staff/room
+    // combo instead of exercising the actual self-conflict path.
+    await createBooking({
+      serviceId: service.id,
+      startAt: centerLocalToUtc(SELF_CONFLICT_DATE, 765),
+      staffUserId: specialist.id,
+      roomId: rooms[1]!.id,
+      client: { name: "Occupies Specialist", phone: freshPhone() },
+      channel: "FRONT_DESK",
+    });
+
+    const rescheduled = await reschedule(booking.id, newStart);
+    const appt = rescheduled.appointments[0]!;
+    expect(appt.startAt.getTime()).toBe(newStart.getTime());
+    expect(appt.endAt.getTime()).toBe(newStart.getTime() + service.durationMin * 60_000);
+  });
 });
 
 describe("listBookings / getBooking", () => {
