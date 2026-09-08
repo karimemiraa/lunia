@@ -39,7 +39,7 @@ describe("SiteHeader", () => {
 
     const bookLinks = screen.getAllByRole("link", { name: "Book Now" });
     expect(bookLinks.length).toBeGreaterThan(0);
-    expect(bookLinks[0]).toHaveAttribute("href", "/en/contact");
+    expect(bookLinks[0]).toHaveAttribute("href", "/en/book");
   });
 
   it("localizes the nav landmarks' accessible names instead of hardcoding English", async () => {

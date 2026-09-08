@@ -93,7 +93,7 @@ export default async function JournalPostPage({ params }: JournalPostPageProps) 
     getTranslations({ locale, namespace: "journalPost" }),
   ]);
 
-  const contactHref = `/${locale}/contact`;
+  const bookHref = `/${locale}/book`;
   const appUrl = resolveAppUrl();
   const postUrl = `${appUrl}/${locale}/journal/${post.slug}`;
 
@@ -164,7 +164,7 @@ export default async function JournalPostPage({ params }: JournalPostPageProps) 
           eyebrow={tPost("cta.eyebrow")}
           headline={tPost("cta.headline")}
           ctaLabel={tCommon("bookNow")}
-          ctaHref={contactHref}
+          ctaHref={bookHref}
         />
       </Section>
     </main>

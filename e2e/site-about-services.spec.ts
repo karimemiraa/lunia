@@ -14,8 +14,8 @@ test.describe("about page", () => {
     const journeySteps = page.locator("ol li");
     await expect(journeySteps).toHaveCount(6);
 
-    // A Book CTA to /contact exists.
-    const bookLinks = page.locator('a[href="/en/contact"]');
+    // A Book CTA to /book exists.
+    const bookLinks = page.locator('a[href="/en/book"]');
     expect(await bookLinks.count()).toBeGreaterThanOrEqual(1);
   });
 
@@ -61,7 +61,7 @@ test.describe("department page", () => {
     const serviceHeadings = page.getByRole("heading", { level: 3 });
     expect(await serviceHeadings.count()).toBeGreaterThanOrEqual(1);
 
-    const bookLinks = page.locator('a[href="/en/contact"]');
+    const bookLinks = page.locator('a[href="/en/book"]');
     expect(await bookLinks.count()).toBeGreaterThanOrEqual(1);
   });
 

@@ -22,6 +22,32 @@ export async function getMinTierForService(serviceId: string): Promise<MinTierRe
   return { minTierId: tier.id, minPriority: tier.priority, tierName: tier.name };
 }
 
+// Batch lookup for the public service picker: returns a map of
+// serviceId -> tier display name for every service in `serviceIds` that
+// carries a ServiceAccessRule with a minTierId set. Services with no rule
+// (or a rule with minTierId null) are simply absent from the result — the
+// picker uses this to render an informational "Members-only" note, but the
+// actual gate is still enforced server-side by createBooking.
+export async function getTierGateNotesForServices(serviceIds: string[]): Promise<Record<string, string>> {
+  if (serviceIds.length === 0) return {};
+
+  const rules = await prisma.serviceAccessRule.findMany({
+    where: { serviceId: { in: serviceIds }, minTierId: { not: null } },
+  });
+  if (rules.length === 0) return {};
+
+  const tierIds = [...new Set(rules.map((rule) => rule.minTierId).filter((id): id is string => !!id))];
+  const tiers = await prisma.membershipTier.findMany({ where: { id: { in: tierIds } } });
+  const tierNameById = new Map(tiers.map((tier) => [tier.id, tier.name]));
+
+  const notes: Record<string, string> = {};
+  for (const rule of rules) {
+    const tierName = rule.minTierId ? tierNameById.get(rule.minTierId) : undefined;
+    if (tierName) notes[rule.serviceId] = tierName;
+  }
+  return notes;
+}
+
 // Compares the client's current membership tier priority against
 // `minPriority`. A client with no ClientMembership row is treated as the
 // base "guest" tier (priority 0) -- this covers both online guests who have

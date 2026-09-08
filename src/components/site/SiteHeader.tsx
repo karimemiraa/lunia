@@ -35,7 +35,7 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
   ]);
 
   const home = `/${locale}`;
-  const contactHref = `/${locale}/contact`;
+  const bookHref = `/${locale}/book`;
   const linkHref = (path: string) => (path ? `/${locale}/${path}` : home);
 
   const navLinks = NAV_ITEMS.map((item) => (
@@ -61,7 +61,7 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
 
         <div className="hidden items-center gap-6 md:flex">
           <LocaleSwitcher locale={locale} />
-          <Link href={contactHref} className={ctaClass}>
+          <Link href={bookHref} className={ctaClass}>
             {tNav("book")}
           </Link>
         </div>
@@ -82,7 +82,7 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
             </nav>
             <div className="mt-6 flex items-center justify-between border-t border-[var(--color-ink)]/10 pt-6">
               <LocaleSwitcher locale={locale} />
-              <Link href={contactHref} className={ctaClass}>
+              <Link href={bookHref} className={ctaClass}>
                 {tNav("book")}
               </Link>
             </div>

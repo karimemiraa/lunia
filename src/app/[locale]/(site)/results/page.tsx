@@ -59,7 +59,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
     getTranslations({ locale, namespace: "resultsIndex.cta" }),
   ]);
 
-  const contactHref = `/${locale}/contact`;
+  const bookHref = `/${locale}/book`;
   const appUrl = resolveAppUrl();
 
   const categories = tResults.raw("categories") as string[];
@@ -87,7 +87,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         headline={tHero("heading")}
         subhead={tHero("intro")}
         ctaLabel={tCommon("bookNow")}
-        ctaHref={contactHref}
+        ctaHref={bookHref}
       />
 
       <Section tone="plain">
@@ -101,7 +101,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
       </Section>
 
       <Section tone="tinted">
-        <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={contactHref} />
+        <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={bookHref} />
       </Section>
     </main>
   );

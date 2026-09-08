@@ -83,7 +83,7 @@ export default async function BrandPage({ params }: BrandPageProps) {
     getTranslations({ locale, namespace: "brandDetail" }),
   ]);
 
-  const contactHref = `/${locale}/contact`;
+  const bookHref = `/${locale}/book`;
   const appUrl = resolveAppUrl();
   const brandUrl = `${appUrl}/${locale}/brands/${brand.slug}`;
 
@@ -149,7 +149,7 @@ export default async function BrandPage({ params }: BrandPageProps) {
           eyebrow={tBrand("cta.eyebrow")}
           headline={tBrand("cta.headline")}
           ctaLabel={tCommon("bookNow")}
-          ctaHref={contactHref}
+          ctaHref={bookHref}
         />
       </Section>
     </main>
