@@ -59,6 +59,12 @@ export async function requestOtp(phone: string): Promise<{ devCode?: string }> {
     throw new Error("Too many OTP requests for this phone number. Please try again later.");
   }
 
+  // A freshly-issued code gets a fresh verify-attempt budget: without this, a
+  // user who mistyped their way through OTP_MAX_VERIFY_ATTEMPTS on the old
+  // code would still be locked out after requesting (and correctly entering)
+  // a brand new one, since otpver:<phone> would still be sitting at the cap.
+  await redis.del(verifyAttemptsKey(normalized));
+
   const code = generateCode();
   const record: OtpRecord = { code };
   await redis.set(otpKey(normalized), JSON.stringify(record), "EX", OTP_TTL_SECONDS);
@@ -70,7 +76,23 @@ export async function requestOtp(phone: string): Promise<{ devCode?: string }> {
   return {};
 }
 
-export async function verifyOtp(phone: string, code: string): Promise<{ userId: string } | null> {
+export interface VerifyOtpOptions {
+  /**
+   * Attribution source for a brand-new client. This is the ONLY chance to
+   * record it: the public booking flow (book/actions.ts verifyAndBook) calls
+   * verifyOtp before createBooking, so for a first-time phone number this
+   * function -- not createBooking's own find-or-create -- is what actually
+   * inserts the ClientProfile row. Ignored for a phone that already has a
+   * profile (sourceChannel is never overwritten after first creation).
+   */
+  sourceChannel?: string | null;
+}
+
+export async function verifyOtp(
+  phone: string,
+  code: string,
+  options: VerifyOtpOptions = {},
+): Promise<{ userId: string } | null> {
   const normalized = normalizePhone(phone);
   const redis = getRedis();
 
@@ -101,16 +123,16 @@ export async function verifyOtp(phone: string, code: string): Promise<{ userId: 
 
   await redis.del(otpKey(normalized), verKey);
 
-  const user = await findOrCreateClientUser(normalized);
+  const user = await findOrCreateClientUser(normalized, options.sourceChannel ?? null);
   return { userId: user.id };
 }
 
-async function findOrCreateClientUser(phone: string): Promise<{ id: string }> {
+async function findOrCreateClientUser(phone: string, sourceChannel: string | null): Promise<{ id: string }> {
   const existing = await prisma.user.findUnique({ where: { phone } });
   if (existing) {
     const profile = await prisma.clientProfile.findUnique({ where: { userId: existing.id } });
     if (!profile) {
-      await prisma.clientProfile.create({ data: { userId: existing.id, fullName: "", sourceChannel: null } });
+      await prisma.clientProfile.create({ data: { userId: existing.id, fullName: "", sourceChannel } });
     }
     return { id: existing.id };
   }
@@ -119,7 +141,7 @@ async function findOrCreateClientUser(phone: string): Promise<{ id: string }> {
     data: {
       type: "CLIENT",
       phone,
-      clientProfile: { create: { fullName: "", sourceChannel: null } },
+      clientProfile: { create: { fullName: "", sourceChannel } },
     },
   });
   return { id: created.id };

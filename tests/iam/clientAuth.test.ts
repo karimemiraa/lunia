@@ -125,6 +125,43 @@ describe("clientAuth", () => {
     expect(raw).toBeNull();
   });
 
+  it("requesting a fresh OTP resets the verify-attempt budget, so a mistake-prone user isn't locked out of the new code", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+
+    const first = await requestOtp(phone);
+    const wrongCode = first.devCode === "111111" ? "222222" : "111111";
+    for (let i = 0; i < 5; i++) {
+      expect(await verifyOtp(phone, wrongCode)).toBeNull();
+    }
+    // The old code's attempt budget is now exhausted -- even its own correct
+    // code would be rejected (already covered by the "invalidates the code
+    // atomically" test above).
+
+    // Requesting a brand-new code must reset the attempt counter...
+    const second = await requestOtp(phone);
+    expect(second.devCode).toMatch(/^\d{6}$/);
+
+    // ...so verifying with the NEW correct code succeeds.
+    const result = await verifyOtp(phone, second.devCode as string);
+    expect(result).not.toBeNull();
+    createdUserIds.push((result as { userId: string }).userId);
+  });
+
+  it("verifyOtp records the given sourceChannel on a brand-new client's ClientProfile", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+
+    const { devCode } = await requestOtp(phone);
+    const result = await verifyOtp(phone, devCode as string, { sourceChannel: "instagram" });
+    expect(result).not.toBeNull();
+    const userId = (result as { userId: string }).userId;
+    createdUserIds.push(userId);
+
+    const profile = await prisma.clientProfile.findUniqueOrThrow({ where: { userId } });
+    expect(profile.sourceChannel).toBe("instagram");
+  });
+
   it("getClientSessionUser returns the user for a CLIENT session token, and null for a STAFF user's token", async () => {
     const phone = uniquePhone();
     usedPhones.push(phone);

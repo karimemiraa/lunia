@@ -1,6 +1,7 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { prisma } from "@/lib/db";
 import { centerLocalToUtc } from "@/modules/booking/availability";
+import { requestOtp, verifyOtp } from "@/modules/iam/clientAuth";
 import {
   getServiceSlots,
   createBooking,
@@ -177,6 +178,52 @@ describe("createBooking", () => {
         channel: "ONLINE",
       }),
     ).rejects.toThrow(/vip/i);
+  });
+});
+
+describe("attribution end-to-end (public flow order: verifyOtp then createBooking)", () => {
+  // The real /book wizard (book/actions.ts verifyAndBook) calls verifyOtp
+  // BEFORE createBooking -- so for a brand-new phone number, verifyOtp's own
+  // find-or-create is what actually inserts the ClientProfile row, and
+  // createBooking's find-or-create just finds it already there. This test
+  // reproduces that exact order (unlike the "createBooking" suite above,
+  // which calls createBooking directly against a fresh phone and so never
+  // exercises verifyOtp's find-or-create at all) to guard against the
+  // ClientProfile ending up with a null sourceChannel despite an attribution
+  // value being available at verification time.
+  it("stores sourceChannel on both the booking and, for a brand-new client, the ClientProfile", async () => {
+    const service = await getUnGatedService();
+    // normalizePhone (clientAuth.ts) requires digits-only (+ optional leading
+    // "+"), unlike the other tests in this file which never round-trip
+    // through clientAuth -- so this can't reuse freshPhone()'s "TEST" suffix.
+    const phone = `+9665${Date.now()}${phoneCounter}`;
+    // 16:00 center-local -- clear of every other slot this file's preceding
+    // "createBooking" tests already booked on DATE (600/630/660/690/720).
+    const startAt = centerLocalToUtc(DATE, 960);
+
+    const { devCode } = await requestOtp(phone);
+    const verified = await verifyOtp(phone, devCode as string, { sourceChannel: "instagram" });
+    expect(verified).not.toBeNull();
+
+    const booking = await createBooking({
+      serviceId: service.id,
+      startAt,
+      client: { name: "Instagram Client", phone },
+      channel: "ONLINE",
+      sourceChannel: "instagram",
+    });
+
+    expect(booking.sourceChannel).toBe("instagram");
+
+    const profile = await prisma.clientProfile.findUniqueOrThrow({
+      where: { userId: (verified as { userId: string }).userId },
+    });
+    expect(profile.sourceChannel).toBe("instagram");
+
+    // Cleanup: this phone is digits-only (clientAuth's normalizePhone
+    // requirement) so it doesn't share PHONE_PREFIX with the rest of this
+    // file's fixtures and isn't swept by the top-level afterAll.
+    await prisma.user.delete({ where: { id: (verified as { userId: string }).userId } });
   });
 });
 

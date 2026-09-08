@@ -113,29 +113,46 @@ function mapBookingError(err: unknown, t: Awaited<ReturnType<typeof getTranslati
   return t("generic");
 }
 
+// Best-effort locale extraction from raw (possibly malformed) input, used
+// only to pick the right error-message translator when schema.parse itself
+// fails below -- at that point `data.locale` doesn't exist yet.
+function extractRawLocale(input: unknown): string {
+  if (input && typeof input === "object" && "locale" in input) {
+    const locale = (input as { locale?: unknown }).locale;
+    if (typeof locale === "string") return locale;
+  }
+  return "en";
+}
+
 // Verifies the OTP code, establishes a client session (so the client is
 // signed in for /account going forward), and creates the booking. Runs as
 // one action so the client component only needs a single "Confirm booking"
 // step once the code is entered.
+//
+// The whole body -- including schema.parse -- runs inside the try/catch so a
+// malformed or tampered direct call (bad shape, wrong types) returns a
+// friendly `{ok:false,error}` instead of throwing an uncaught ZodError,
+// mirroring getSlots/startOtp above.
 export async function verifyAndBook(input: VerifyAndBookInput): Promise<VerifyAndBookResult> {
-  const data = verifyAndBookSchema.parse(input);
-  const t = await errorTranslator(data.locale);
-
-  const verified = await verifyOtp(data.phone, data.code);
-  if (!verified) {
-    return { ok: false, error: t("invalidCode") };
-  }
-
-  const token = await createClientSession(verified.userId);
-  (await cookies()).set(CLIENT_SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  const t = await errorTranslator(extractRawLocale(input));
 
   try {
+    const data = verifyAndBookSchema.parse(input);
+
+    const verified = await verifyOtp(data.phone, data.code, { sourceChannel: data.sourceChannel });
+    if (!verified) {
+      return { ok: false, error: t("invalidCode") };
+    }
+
+    const token = await createClientSession(verified.userId);
+    (await cookies()).set(CLIENT_SESSION_COOKIE, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
     const booking = await createBooking({
       serviceId: data.serviceId,
       startAt: data.startAt,
