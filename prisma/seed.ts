@@ -724,6 +724,76 @@ async function main() {
     });
   }
 
+  // --- MessageTemplate: default bilingual comms templates ------------------
+  // Mirrors src/modules/booking/outbox.ts's renderMessageBody() copy,
+  // enriched with {{serviceName}}/{{dateTime}}/{{code}} placeholders.
+  // src/modules/comms/templates.ts's renderTemplate() falls back to that
+  // same static copy when no active row exists, so these seeded rows are the
+  // *editable* defaults, not the only source of truth.
+  type MessageTemplateSeed = {
+    kind: string;
+    locale: string;
+    channel: string;
+    bodyTemplate: string;
+  };
+  const messageTemplateSeeds: MessageTemplateSeed[] = [
+    {
+      kind: "CONFIRMATION",
+      locale: "en",
+      channel: "whatsapp",
+      bodyTemplate: "Your Lunia booking for {{serviceName}} on {{dateTime}} is confirmed. We look forward to seeing you.",
+    },
+    {
+      kind: "CONFIRMATION",
+      locale: "ar",
+      channel: "whatsapp",
+      bodyTemplate: "تم تأكيد حجزك في لونيا لخدمة {{serviceName}} بتاريخ {{dateTime}}. نتطلع لرؤيتك قريباً.",
+    },
+    {
+      kind: "REMINDER_24H",
+      locale: "en",
+      channel: "whatsapp",
+      bodyTemplate: "Reminder: your Lunia appointment for {{serviceName}} is tomorrow at {{dateTime}}. See you soon!",
+    },
+    {
+      kind: "REMINDER_24H",
+      locale: "ar",
+      channel: "whatsapp",
+      bodyTemplate: "تذكير: موعدك في لونيا لخدمة {{serviceName}} غداً الساعة {{dateTime}}. نراك قريباً!",
+    },
+    {
+      kind: "POST_VISIT",
+      locale: "en",
+      channel: "whatsapp",
+      bodyTemplate: "Thank you for visiting Lunia for {{serviceName}}. We hope you had a great experience.",
+    },
+    {
+      kind: "POST_VISIT",
+      locale: "ar",
+      channel: "whatsapp",
+      bodyTemplate: "شكراً لزيارتك لونيا لخدمة {{serviceName}}. نتمنى أن تكون تجربتك ممتازة.",
+    },
+    {
+      kind: "OTP",
+      locale: "en",
+      channel: "sms",
+      bodyTemplate: "Your Lunia verification code is {{code}}.",
+    },
+    {
+      kind: "OTP",
+      locale: "ar",
+      channel: "sms",
+      bodyTemplate: "رمز التحقق الخاص بك في لونيا هو {{code}}.",
+    },
+  ];
+  for (const tpl of messageTemplateSeeds) {
+    await prisma.messageTemplate.upsert({
+      where: { kind_locale_channel: { kind: tpl.kind, locale: tpl.locale, channel: tpl.channel } },
+      update: { bodyTemplate: tpl.bodyTemplate },
+      create: tpl,
+    });
+  }
+
   console.log("Seed complete. Owner:", ownerEmail);
 }
 

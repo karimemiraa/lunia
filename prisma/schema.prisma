@@ -406,6 +406,24 @@ model CampaignSpend {
   @@unique([channel, periodMonth])
 }
 
+// Registry of bilingual message templates per (kind, locale, channel),
+// managed by staff via the admin CMS and consumed by
+// src/modules/comms/templates.ts's renderTemplate(). kind/locale/channel are
+// plain strings (not enums), matching CommunicationLog's convention, since
+// Stage 6 may add new kinds/channels without a schema migration.
+model MessageTemplate {
+  id                   String   @id @default(cuid())
+  kind                 String
+  locale               String
+  channel              String
+  bodyTemplate         String   @db.Text
+  providerTemplateName String?
+  isActive             Boolean  @default(true)
+  updatedAt            DateTime @default(now()) @updatedAt
+
+  @@unique([kind, locale, channel])
+}
+
 // One row per page load, written by client-side analytics beaconing.
 model PageView {
   id           String   @id @default(cuid())
