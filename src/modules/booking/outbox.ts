@@ -105,14 +105,15 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
   }
 }
 
-// Maps the configured comms provider to the channel processDueMessages
-// renders/sends on. meta_whatsapp and twilio are WhatsApp-first providers;
-// unifonic is SMS-only. "none" (no provider configured, e.g. local dev/CI)
-// defaults to "whatsapp" -- harmless, since stubSender doesn't care and
-// renderTemplate/renderMessageBody render fine for either channel. A
-// twilio-configured-for-SMS nuance is out of scope here.
-function channelForProvider(provider: ReturnType<typeof getCommsConfig>["provider"]): string {
-  switch (provider) {
+// Resolves the channel processDueMessages renders/sends booking messages on.
+// An explicit config.bookingChannel wins (e.g. a Twilio account provisioned
+// for SMS rather than WhatsApp sets COMMS_BOOKING_CHANNEL=sms). Otherwise it
+// derives from the provider: unifonic is SMS-only; meta_whatsapp/twilio are
+// WhatsApp-first; "none" (local dev/CI) defaults to "whatsapp" -- harmless,
+// since stubSender doesn't care and templates render fine for either channel.
+export function resolveBookingChannel(config: ReturnType<typeof getCommsConfig>): string {
+  if (config.bookingChannel) return config.bookingChannel;
+  switch (config.provider) {
     case "unifonic":
       return "sms";
     case "meta_whatsapp":
@@ -195,7 +196,7 @@ export async function processDueMessages(
 
   let sent = 0;
   let failed = 0;
-  const channel = channelForProvider(getCommsConfig().provider);
+  const channel = resolveBookingChannel(getCommsConfig());
 
   for (const message of due) {
     // Rendering does Prisma reads (template lookup), so keep it INSIDE the
