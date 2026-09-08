@@ -14,7 +14,7 @@ interface BrandCardProps {
 }
 
 const focusRingClass =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fbfaf7]";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-page)]";
 
 // A quiet, logo-led teaser for a partner brand — deliberately lower-key than
 // ServiceCard (no image-forward layout) since brands are a credential, not

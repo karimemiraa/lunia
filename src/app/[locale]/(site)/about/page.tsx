@@ -131,7 +131,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
             {teamRoles.map((role) => (
               <li
                 key={role}
-                className="flex flex-col gap-4 rounded-2xl border border-[var(--color-ink)]/10 bg-[#fbfaf7] px-6 py-8 text-start"
+                className="flex flex-col gap-4 rounded-2xl border border-[var(--color-ink)]/10 bg-[var(--color-page)] px-6 py-8 text-start"
               >
                 <span
                   aria-hidden="true"

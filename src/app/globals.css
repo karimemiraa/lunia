@@ -9,6 +9,7 @@
   --color-cream: #ebe5d3;
   --color-dragonfruit: #d9cca3;
   --color-ink: #1c2b2a;
+  --color-page: #fbfaf7;
   --font-display: "Cormorant Garamond", "The Seasons", serif;
   --font-body: "Inter", system-ui, sans-serif;
   --font-display-ar: "Noto Kufi Arabic", "F37 Wicklow", serif;
@@ -29,7 +30,7 @@ html[dir="rtl"] {
 }
 
 body {
-  background: #fbfaf7;
+  background: var(--color-page);
   color: var(--color-ink);
   font-family: var(--font-body);
 }

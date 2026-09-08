@@ -101,6 +101,28 @@
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Start your journey to real skin quality"
+    },
+    "faq": {
+      "eyebrow": "Common Questions",
+      "heading": "Frequently asked questions",
+      "items": [
+        {
+          "q": "What's the difference between a facial and skin quality treatment?",
+          "a": "A facial is a one-off treatment that fades within days. Skin quality care at Lunia starts with a real diagnostic read of your skin, then builds a sustained plan session by session — so results compound instead of fading. That's our positioning: not facials, skin quality."
+        },
+        {
+          "q": "Are your treatments injectable?",
+          "a": "No — every protocol at Lunia is non-injectable. We use diagnostic-led, clinical-grade topical and device-based treatments (LED therapy, microdermabrasion, lymphatic drainage, and more) to build lasting skin, hair & scalp, and post-surgery recovery quality without needles."
+        },
+        {
+          "q": "What does \"Korean-inspired\" mean for your approach?",
+          "a": "Our philosophy borrows from the Korean skincare tradition of diagnostic-first, layered, long-term skin quality — rather than chasing a quick fix. Every visit begins with analysis, not a treatment menu."
+        },
+        {
+          "q": "Where is Lunia located?",
+          "a": "Lunia is a Skin Quality Center in Riyadh, Saudi Arabia, serving clients across the city with diagnostic-led skin, hair & scalp, and post-surgery recovery care."
+        }
+      ]
     }
   },
   "about": {

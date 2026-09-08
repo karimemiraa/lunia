@@ -36,11 +36,23 @@ function entriesForPath(path: string, lastModified?: Date): SitemapEntry[] {
   }));
 }
 
+// Reads the catalog DB for dynamic slugs. If the DB is unreachable at build
+// time (e.g. building the production Docker image without a live DB), this
+// resolves to an empty array instead of throwing, so the sitemap still ships
+// with all the static routes rather than failing the whole build.
+async function safeCatalogRead<T>(read: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await read();
+  } catch {
+    return [];
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [services, brands, posts] = await Promise.all([
-    listServices(undefined, { publishedOnly: true }),
-    listBrands({ publishedOnly: true }),
-    listPublishedPosts(),
+    safeCatalogRead(() => listServices(undefined, { publishedOnly: true })),
+    safeCatalogRead(() => listBrands({ publishedOnly: true })),
+    safeCatalogRead(() => listPublishedPosts()),
   ]);
 
   const entries: SitemapEntry[] = STATIC_PATHS.flatMap((path) => entriesForPath(path));

@@ -10,6 +10,7 @@ import { ServiceCard } from "@/components/site/ServiceCard";
 import { BrandCard } from "@/components/site/BrandCard";
 import { Testimonials } from "@/components/site/Testimonials";
 import { CtaBand } from "@/components/site/CtaBand";
+import { Faq } from "@/components/site/Faq";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 import { getHomeHero, type PublicLocale } from "@/modules/cms/publicContent";
@@ -20,7 +21,7 @@ import { listDepartments } from "@/modules/catalog/departments";
 import { listBrands } from "@/modules/catalog/brands";
 import { localized } from "@/modules/catalog/localize";
 import { buildMetadata } from "@/modules/seo/metadata";
-import { localBusinessJsonLd } from "@/modules/seo/jsonld";
+import { localBusinessJsonLd, faqPageJsonLd } from "@/modules/seo/jsonld";
 
 interface HomePageProps {
   params: Promise<{ locale: string }>;
@@ -34,6 +35,11 @@ interface StepMessage {
 interface TestimonialMessage {
   quote: string;
   author?: string;
+}
+
+interface FaqMessage {
+  q: string;
+  a: string;
 }
 
 function isPublicLocale(locale: string): locale is PublicLocale {
@@ -76,13 +82,14 @@ export default async function Home({ params }: HomePageProps) {
   const { locale: rawLocale } = await params;
   const locale: PublicLocale = isPublicLocale(rawLocale) ? rawLocale : "ar";
 
-  const [hero, departments, brands, business, social, tCommon, tHero, tPositioning, tServices, tJourney, tBrands, tTestimonials, tCta] =
+  const [hero, departments, brands, business, social, seo, tCommon, tHero, tPositioning, tServices, tJourney, tBrands, tTestimonials, tCta, tFaq, tMeta] =
     await Promise.all([
       getHomeHero(locale),
       listDepartments({ publishedOnly: true }),
       listBrands({ publishedOnly: true }),
       getSetting("business").catch(() => null),
       getSetting("social").catch(() => null),
+      getSetting("seo").catch(() => null),
       getTranslations({ locale, namespace: "common" }),
       getTranslations({ locale, namespace: "home.hero" }),
       getTranslations({ locale, namespace: "home.positioning" }),
@@ -91,6 +98,8 @@ export default async function Home({ params }: HomePageProps) {
       getTranslations({ locale, namespace: "home.brands" }),
       getTranslations({ locale, namespace: "home.testimonials" }),
       getTranslations({ locale, namespace: "home.cta" }),
+      getTranslations({ locale, namespace: "home.faq" }),
+      getTranslations({ locale, namespace: "home.meta" }),
     ]);
 
   const contactHref = `/${locale}/contact`;
@@ -110,6 +119,8 @@ export default async function Home({ params }: HomePageProps) {
     author: item.author,
   }));
 
+  const faqItems = tFaq.raw("items") as FaqMessage[];
+
   let appUrl = "http://localhost:3000";
   try {
     appUrl = getEnv().APP_URL;
@@ -118,18 +129,28 @@ export default async function Home({ params }: HomePageProps) {
   }
   const homeUrl = `${appUrl}/${locale}`;
 
+  // Sourced from the SEO/meta description (SiteSetting("seo") defaults, or
+  // the localized home.meta copy as a fallback) rather than the hero intro,
+  // so the LocalBusiness description isn't empty when no hero copy is set.
+  const seoDescription =
+    (locale === "ar" ? seo?.defaultDescAr : seo?.defaultDescEn) ?? tMeta("description");
+
   const localBusiness =
     business && social
       ? localBusinessJsonLd(business, social, {
           locale,
           url: homeUrl,
-          description: hero.intro || undefined,
+          description: seoDescription,
         })
       : null;
 
+  const faqEntity = faqItems.length > 0 ? faqPageJsonLd(faqItems.map(({ q, a }) => ({ q, a }))) : null;
+
   return (
     <main className="flex flex-col">
-      {localBusiness && <JsonLd data={localBusiness} />}
+      {(localBusiness || faqEntity) && (
+        <JsonLd data={[...(localBusiness ? [localBusiness] : []), ...(faqEntity ? [faqEntity] : [])]} />
+      )}
 
       <Hero
         eyebrow={tHero("eyebrow")}
@@ -195,6 +216,15 @@ export default async function Home({ params }: HomePageProps) {
           items={testimonialItems}
         />
       </Section>
+
+      {faqItems.length > 0 && (
+        <Section tone="tinted">
+          <div className="flex flex-col gap-10">
+            <SectionHeading eyebrow={tFaq("eyebrow")} heading={tFaq("heading")} align="center" className="mx-auto" />
+            <Faq items={faqItems} />
+          </div>
+        </Section>
+      )}
 
       <Section tone="plain">
         <CtaBand

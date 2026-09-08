@@ -8,9 +8,9 @@ import { submitInquiry, type ContactFormState } from "./actions";
 const initialContactFormState: ContactFormState = { status: "idle" };
 
 const focusRingClass =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fbfaf7]";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-page)]";
 
-const inputClass = `w-full rounded-xl border border-[var(--color-ink)]/15 bg-[#fbfaf7] px-4 py-3 text-base text-[var(--color-ink)] placeholder:text-[var(--color-ink)]/40 transition-colors focus:border-[var(--color-teal)] ${focusRingClass}`;
+const inputClass = `w-full rounded-xl border border-[var(--color-ink)]/15 bg-[var(--color-page)] px-4 py-3 text-base text-[var(--color-ink)] placeholder:text-[var(--color-ink)]/40 transition-colors focus:border-[var(--color-teal)] ${focusRingClass}`;
 
 const labelClass = "text-sm font-medium text-[var(--color-ink)]";
 
@@ -33,7 +33,7 @@ export function ContactForm() {
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-6 rounded-2xl border border-[var(--color-ink)]/10 bg-[#fbfaf7] p-6 sm:p-8"
+      className="flex flex-col gap-6 rounded-2xl border border-[var(--color-ink)]/10 bg-[var(--color-page)] p-6 sm:p-8"
       noValidate
     >
       <div className="flex flex-col gap-1">

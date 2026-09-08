@@ -17,7 +17,7 @@ const NAV_ITEMS = [
 ] as const;
 
 const focusRingClass =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fbfaf7]";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-page)]";
 
 const footerLinkClass = `rounded-sm text-sm text-[var(--color-ink)]/70 transition-colors hover:text-[var(--color-ink)] ${focusRingClass}`;
 const headingClass = "text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-ink)]/50";
