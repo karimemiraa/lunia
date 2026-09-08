@@ -28,7 +28,7 @@ try {
 const POLL_INTERVAL_MS = 30_000;
 
 async function main() {
-  const { processDueMessages } = await import("@/modules/booking/outbox");
+  const { processDueMessages, reclaimStaleClaims } = await import("@/modules/booking/outbox");
   const { getConfiguredSender } = await import("@/modules/comms/sender");
   const { prisma } = await import("@/lib/db");
 
@@ -37,6 +37,10 @@ async function main() {
 
   async function tick() {
     try {
+      // Return any abandoned SENDING rows (from a crashed worker) to PENDING
+      // before claiming this tick's batch.
+      const reclaimed = await reclaimStaleClaims(new Date());
+      if (reclaimed > 0) console.log(`[worker] reclaimed ${reclaimed} stale claim(s)`);
       const result = await processDueMessages(new Date(), getConfiguredSender());
       console.log(
         `[worker] heartbeat ${new Date().toISOString()} processed=${result.processed} sent=${result.sent} failed=${result.failed}`,

@@ -41,6 +41,7 @@ export function AdminNav({ permissions }: AdminNavProps) {
       { href: "/admin/settings", label: "Settings" },
       { href: "/admin/tiers", label: "Tiers" },
       { href: "/admin/comms", label: "Communications" },
+      { href: "/admin/audit", label: "Audit Log" },
     );
   }
   if (permissions.has(PERMISSIONS.STAFF_MANAGE)) {

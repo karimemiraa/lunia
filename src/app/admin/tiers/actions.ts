@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { createTier, updateTier, deleteTier } from "@/modules/iam/tiers";
+import { recordAudit } from "@/modules/iam/audit";
 
 export interface TierActionState {
   error?: string;
@@ -18,7 +19,7 @@ function numberOrUndefined(formData: FormData, name: string): number | undefined
 }
 
 export async function createTierAction(_prev: TierActionState | null, formData: FormData): Promise<TierActionState> {
-  await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
 
   const key = String(formData.get("key") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -37,12 +38,18 @@ export async function createTierAction(_prev: TierActionState | null, formData: 
     return { error: err instanceof Error ? err.message : "Failed to create tier." };
   }
 
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "TIER_CREATE",
+    entityType: "MembershipTier",
+    summary: `Created tier ${key} (${name})`,
+  });
   revalidatePath("/admin/tiers");
   return { success: true };
 }
 
 export async function updateTierAction(_prev: TierActionState | null, formData: FormData): Promise<TierActionState> {
-  await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
@@ -61,6 +68,13 @@ export async function updateTierAction(_prev: TierActionState | null, formData: 
     return { error: err instanceof Error ? err.message : "Failed to update tier." };
   }
 
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "TIER_UPDATE",
+    entityType: "MembershipTier",
+    entityId: id,
+    summary: `Updated tier ${id}`,
+  });
   revalidatePath("/admin/tiers");
   return { success: true };
 }
@@ -69,7 +83,7 @@ export async function updateTierAction(_prev: TierActionState | null, formData: 
 // hides the delete button for system tiers too, but we still surface the
 // service's error here in case it's ever reached directly.
 export async function deleteTierAction(_prev: TierActionState | null, formData: FormData): Promise<TierActionState> {
-  await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
@@ -82,6 +96,13 @@ export async function deleteTierAction(_prev: TierActionState | null, formData: 
     return { error: err instanceof Error ? err.message : "Failed to delete tier." };
   }
 
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "TIER_DELETE",
+    entityType: "MembershipTier",
+    entityId: id,
+    summary: `Deleted tier ${id}`,
+  });
   revalidatePath("/admin/tiers");
   return { success: true };
 }

@@ -6,6 +6,7 @@
 // then maps to the logging-only stubSender.
 
 export type CommsProvider = "none" | "meta_whatsapp" | "twilio" | "unifonic";
+export type BookingChannel = "whatsapp" | "sms";
 
 export interface CommsConfig {
   provider: CommsProvider;
@@ -14,6 +15,11 @@ export interface CommsConfig {
   twilio?: { accountSid: string; authToken: string; from: string };
   unifonic?: { appSid: string; senderId: string };
   configured: boolean;
+  // Explicit override for the channel booking messages are sent on. When
+  // unset, the channel is derived from the provider (see resolveBookingChannel
+  // in outbox.ts) — e.g. a Twilio account provisioned for SMS rather than
+  // WhatsApp sets COMMS_BOOKING_CHANNEL=sms.
+  bookingChannel?: BookingChannel;
 }
 
 // A minimal, injectable stand-in for process.env: any object mapping env
@@ -63,5 +69,9 @@ export function getCommsConfig(env: EnvSource = process.env): CommsConfig {
     (provider === "twilio" && twilio !== undefined) ||
     (provider === "unifonic" && unifonic !== undefined);
 
-  return { provider, from, meta, twilio, unifonic, configured };
+  const rawChannel = nonEmpty(env.COMMS_BOOKING_CHANNEL)?.toLowerCase();
+  const bookingChannel: BookingChannel | undefined =
+    rawChannel === "whatsapp" || rawChannel === "sms" ? rawChannel : undefined;
+
+  return { provider, from, meta, twilio, unifonic, configured, bookingChannel };
 }

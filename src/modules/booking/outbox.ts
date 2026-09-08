@@ -7,6 +7,7 @@
 // row). The CommsSender used here (stubSender) is a stand-in that only logs
 // — Stage 6 wires a real WhatsApp/SMS provider behind the same interface.
 
+import { randomUUID } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { Prisma, ScheduledMessage } from "@prisma/client";
@@ -104,14 +105,15 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
   }
 }
 
-// Maps the configured comms provider to the channel processDueMessages
-// renders/sends on. meta_whatsapp and twilio are WhatsApp-first providers;
-// unifonic is SMS-only. "none" (no provider configured, e.g. local dev/CI)
-// defaults to "whatsapp" -- harmless, since stubSender doesn't care and
-// renderTemplate/renderMessageBody render fine for either channel. A
-// twilio-configured-for-SMS nuance is out of scope here.
-function channelForProvider(provider: ReturnType<typeof getCommsConfig>["provider"]): string {
-  switch (provider) {
+// Resolves the channel processDueMessages renders/sends booking messages on.
+// An explicit config.bookingChannel wins (e.g. a Twilio account provisioned
+// for SMS rather than WhatsApp sets COMMS_BOOKING_CHANNEL=sms). Otherwise it
+// derives from the provider: unifonic is SMS-only; meta_whatsapp/twilio are
+// WhatsApp-first; "none" (local dev/CI) defaults to "whatsapp" -- harmless,
+// since stubSender doesn't care and templates render fine for either channel.
+export function resolveBookingChannel(config: ReturnType<typeof getCommsConfig>): string {
+  if (config.bookingChannel) return config.bookingChannel;
+  switch (config.provider) {
     case "unifonic":
       return "sms";
     case "meta_whatsapp":
@@ -138,26 +140,100 @@ function payloadToParams(payload: Record<string, unknown>): Record<string, strin
 
 const DEFAULT_BATCH_SIZE = 100;
 
+// A SENDING row whose claim is older than this is considered abandoned (the
+// worker that claimed it crashed mid-send) and is returned to PENDING by
+// reclaimStaleClaims so it gets another delivery attempt.
+const STALE_CLAIM_MS = 5 * 60_000;
+
+// Returns abandoned SENDING rows (claimedAt older than `olderThanMs`) to
+// PENDING so a crashed worker's in-flight batch is retried rather than stuck.
+// Returns the number of rows reclaimed. Call it at the top of each worker
+// tick, before processDueMessages.
+export async function reclaimStaleClaims(now: Date, olderThanMs: number = STALE_CLAIM_MS): Promise<number> {
+  const cutoff = new Date(now.getTime() - olderThanMs);
+  const { count } = await prisma.scheduledMessage.updateMany({
+    where: { status: "SENDING", claimedAt: { lt: cutoff } },
+    data: { status: "PENDING", claimId: null, claimedAt: null },
+  });
+  return count;
+}
+
+// Terminal write scoped to the winning claim: only the worker that still owns
+// the row (its claimId still matches) flips the status and writes the
+// CommunicationLog. If the row was reclaimed by reclaimStaleClaims and
+// re-sent by another replica in the interim, the updateMany matches zero rows
+// and this is a no-op (no duplicate log, no status clobber). Returns true iff
+// this worker owned and finalized the row. Both writes share one transaction.
+async function finalizeMessage(
+  message: ScheduledMessage,
+  status: "SENT" | "FAILED",
+  opts: { channel: string; body: string; providerRef?: string; now: Date },
+): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const res = await tx.scheduledMessage.updateMany({
+      where: { id: message.id, claimId: message.claimId },
+      data: {
+        status,
+        sentAt: status === "SENT" ? opts.now : undefined,
+        claimId: null,
+        claimedAt: null,
+      },
+    });
+    if (res.count !== 1) return false;
+    await tx.communicationLog.create({
+      data: {
+        channel: opts.channel,
+        kind: message.kind,
+        toPhone: message.toPhone,
+        bookingId: message.bookingId ?? null,
+        status,
+        body: opts.body,
+        providerRef: opts.providerRef ?? null,
+      },
+    });
+    return true;
+  });
+}
+
 // Fetches due (status=PENDING, sendAt<=now) ScheduledMessage rows in a
-// bounded batch, attempts delivery through `sender` for each, and records
-// the outcome. Only PENDING rows are selected and each is flipped away from
-// PENDING before the next run could see it, so re-running this against the
-// same `now` (or a later one) never resends an already-SENT/FAILED message.
-// A single message's send failing (rejected promise or {ok:false}) is
-// caught per-message and never aborts the rest of the batch.
+// bounded batch, ATOMICALLY claims them (PENDING -> SENDING with a unique
+// claimId) so concurrent worker replicas never process the same row, attempts
+// delivery through `sender` for each claimed row, and records the outcome.
+// Because the claim is a conditional updateMany on status=PENDING, only one
+// caller wins each row; re-running against the same `now` (or a later one)
+// never resends an already-SENT/FAILED message. A single message's send
+// failing (rejected promise or {ok:false}) is caught per-message and never
+// aborts the rest of the batch.
 export async function processDueMessages(
   now: Date,
   sender: CommsSender = stubSender,
 ): Promise<{ processed: number; sent: number; failed: number }> {
-  const due = await prisma.scheduledMessage.findMany({
+  // Step 1: pick candidate ids. Step 2: claim them conditionally on still
+  // being PENDING (the race-safe step). Step 3: read back exactly the rows
+  // this call won by its unique claimId.
+  const candidates = await prisma.scheduledMessage.findMany({
     where: { status: "PENDING", sendAt: { lte: now } },
     orderBy: { sendAt: "asc" },
     take: DEFAULT_BATCH_SIZE,
+    select: { id: true },
   });
+
+  let due: ScheduledMessage[] = [];
+  if (candidates.length > 0) {
+    const claimId = randomUUID();
+    await prisma.scheduledMessage.updateMany({
+      where: { id: { in: candidates.map((c) => c.id) }, status: "PENDING" },
+      data: { status: "SENDING", claimId, claimedAt: now },
+    });
+    due = await prisma.scheduledMessage.findMany({
+      where: { claimId },
+      orderBy: { sendAt: "asc" },
+    });
+  }
 
   let sent = 0;
   let failed = 0;
-  const channel = channelForProvider(getCommsConfig().provider);
+  const channel = resolveBookingChannel(getCommsConfig());
 
   for (const message of due) {
     // Rendering does Prisma reads (template lookup), so keep it INSIDE the
@@ -177,65 +253,24 @@ export async function processDueMessages(
         bookingId: message.bookingId ?? undefined,
       });
 
-      if (result.ok) {
-        await prisma.$transaction([
-          prisma.scheduledMessage.update({
-            where: { id: message.id },
-            data: { status: "SENT", sentAt: now },
-          }),
-          prisma.communicationLog.create({
-            data: {
-              channel,
-              kind: message.kind,
-              toPhone: message.toPhone,
-              bookingId: message.bookingId ?? null,
-              status: "SENT",
-              body,
-              providerRef: result.providerRef ?? null,
-            },
-          }),
-        ]);
-        sent += 1;
-      } else {
-        await prisma.$transaction([
-          prisma.scheduledMessage.update({
-            where: { id: message.id },
-            data: { status: "FAILED" },
-          }),
-          prisma.communicationLog.create({
-            data: {
-              channel,
-              kind: message.kind,
-              toPhone: message.toPhone,
-              bookingId: message.bookingId ?? null,
-              status: "FAILED",
-              body,
-              providerRef: result.providerRef ?? null,
-            },
-          }),
-        ]);
-        failed += 1;
+      const finalized = await finalizeMessage(message, result.ok ? "SENT" : "FAILED", {
+        channel,
+        body,
+        providerRef: result.providerRef,
+        now,
+      });
+      // Only count the outcome if THIS worker still owned the claim. If it was
+      // reclaimed and re-sent by another replica, finalizeMessage no-ops and
+      // that replica counts + logs it instead (no duplicate log / status
+      // clobber).
+      if (finalized) {
+        if (result.ok) sent += 1;
+        else failed += 1;
       }
     } catch (err) {
-      failed += 1;
       try {
-        await prisma.$transaction([
-          prisma.scheduledMessage.update({
-            where: { id: message.id },
-            data: { status: "FAILED" },
-          }),
-          prisma.communicationLog.create({
-            data: {
-              channel,
-              kind: message.kind,
-              toPhone: message.toPhone,
-              bookingId: message.bookingId ?? null,
-              status: "FAILED",
-              body,
-              providerRef: null,
-            },
-          }),
-        ]);
+        const finalized = await finalizeMessage(message, "FAILED", { channel, body, providerRef: undefined, now });
+        if (finalized) failed += 1;
       } catch (persistErr) {
         // Persisting the failure itself failed (e.g. transient DB issue) —
         // log and move on rather than aborting the batch.

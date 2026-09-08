@@ -6,6 +6,7 @@ import { createSession, getSession, destroySession } from "./session";
 import type { CommsSender } from "@/modules/booking/outbox";
 import { getSmsSender } from "@/modules/comms/sender";
 import { renderTemplate } from "@/modules/comms/templates";
+import { redactOtpBody } from "@/modules/comms/redact";
 
 /** Cookie name for client (customer) sessions — distinct from the staff `lunia_session` cookie. */
 export const CLIENT_SESSION_COOKIE = "lunia_client_session";
@@ -124,17 +125,16 @@ async function sendOtpSms(phone: string, code: string, locale: string, injectedS
   }
 
   try {
-    // NOTE: body (and therefore this log row) contains the OTP code itself,
-    // same as processDueMessages' CommunicationLog rows contain the full
-    // rendered message body -- this is an audit trail of what was actually
-    // sent to the user's phone, not a separate secret store.
+    // The audit row records that an OTP was sent, but MUST NOT store the code
+    // itself (PDPL/security): redact it out of the persisted body. The real
+    // code was already sent to the user's phone via sender.send above.
     await prisma.communicationLog.create({
       data: {
         channel: "sms",
         kind: "OTP",
         toPhone: phone,
         status: result.ok ? "SENT" : "FAILED",
-        body,
+        body: redactOtpBody(body, code),
         providerRef: result.providerRef ?? null,
       },
     });

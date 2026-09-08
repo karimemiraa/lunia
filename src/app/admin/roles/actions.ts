@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS, ALL_PERMISSION_KEYS, type PermissionKey } from "@/modules/iam/permissions";
 import { createRole, setRolePermissions, deleteRole } from "@/modules/iam/roles";
+import { recordAudit } from "@/modules/iam/audit";
 
 export interface RoleActionState {
   error?: string;
@@ -15,7 +16,7 @@ export interface RoleActionState {
 // actually known permission keys (defense in depth — setRolePermissions
 // validates too), and replaces the role's grants with that set.
 export async function saveRolePermissions(_prev: RoleActionState | null, formData: FormData): Promise<RoleActionState> {
-  await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
 
   const roleId = String(formData.get("roleId") ?? "").trim();
   if (!roleId) {
@@ -31,12 +32,19 @@ export async function saveRolePermissions(_prev: RoleActionState | null, formDat
     return { error: err instanceof Error ? err.message : "Failed to save permissions." };
   }
 
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "ROLE_PERMISSIONS_UPDATE",
+    entityType: "Role",
+    entityId: roleId,
+    summary: `Set ${keys.length} permission(s) on role ${roleId}`,
+  });
   revalidatePath("/admin/roles");
   return { success: true };
 }
 
 export async function createRoleAction(_prev: RoleActionState | null, formData: FormData): Promise<RoleActionState> {
-  await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
 
   const key = String(formData.get("key") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -50,6 +58,12 @@ export async function createRoleAction(_prev: RoleActionState | null, formData: 
     return { error: err instanceof Error ? err.message : "Failed to create role." };
   }
 
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "ROLE_CREATE",
+    entityType: "Role",
+    summary: `Created role ${key} (${name})`,
+  });
   revalidatePath("/admin/roles");
   return { success: true };
 }
@@ -58,7 +72,7 @@ export async function createRoleAction(_prev: RoleActionState | null, formData: 
 // hides the delete button for system roles too, but we still surface the
 // service's error here in case it's ever reached directly.
 export async function deleteRoleAction(_prev: RoleActionState | null, formData: FormData): Promise<RoleActionState> {
-  await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
 
   const roleId = String(formData.get("roleId") ?? "").trim();
   if (!roleId) {
@@ -71,6 +85,13 @@ export async function deleteRoleAction(_prev: RoleActionState | null, formData: 
     return { error: err instanceof Error ? err.message : "Failed to delete role." };
   }
 
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "ROLE_DELETE",
+    entityType: "Role",
+    entityId: roleId,
+    summary: `Deleted role ${roleId}`,
+  });
   revalidatePath("/admin/roles");
   return { success: true };
 }
