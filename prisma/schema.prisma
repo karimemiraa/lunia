@@ -26,17 +26,19 @@ enum UserType {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  type          UserType
-  email         String?        @unique
-  phone         String?        @unique
-  passwordHash  String?
-  locale        String         @default("en")
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  roles         UserRole[]
-  staffProfile  StaffProfile?
-  clientProfile ClientProfile?
+  id                 String          @id @default(cuid())
+  type               UserType
+  email              String?         @unique
+  phone              String?         @unique
+  passwordHash       String?
+  locale             String          @default("en")
+  isActive           Boolean         @default(true)
+  createdAt          DateTime        @default(now())
+  roles              UserRole[]
+  staffProfile       StaffProfile?
+  clientProfile      ClientProfile?
+  staffSchedules     StaffSchedule[]
+  staffAppointments  Appointment[]   @relation("StaffAppointments")
 }
 
 model Role {
@@ -100,6 +102,7 @@ model ClientProfile {
   ltvCacheMinor Int               @default(0)
   createdAt     DateTime          @default(now())
   membership    ClientMembership?
+  bookings      Booking[]
 }
 
 model ClientMembership {
@@ -158,21 +161,27 @@ model Department {
 }
 
 model Service {
-  id           String     @id @default(cuid())
-  slug         String     @unique
-  departmentId String
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  nameEn       String
-  nameAr       String
-  summaryEn    String
-  summaryAr    String
-  benefitsEn   Json
-  benefitsAr   Json
-  heroMediaId  String?
-  order        Int        @default(0)
-  isPublished  Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @default(now()) @updatedAt
+  id             String             @id @default(cuid())
+  slug           String             @unique
+  departmentId   String
+  department     Department         @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  nameEn         String
+  nameAr         String
+  summaryEn      String
+  summaryAr      String
+  benefitsEn     Json
+  benefitsAr     Json
+  heroMediaId    String?
+  order          Int                @default(0)
+  isPublished    Boolean            @default(true)
+  durationMin    Int                @default(60)
+  priceMinor     Int                @default(0)
+  onlineBookable Boolean            @default(true)
+  inCenterOnly   Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @default(now()) @updatedAt
+  accessRule     ServiceAccessRule?
+  appointments   Appointment[]
 }
 
 model Brand {
@@ -219,4 +228,127 @@ model ContactInquiry {
   sourcePage String?
   handled    Boolean  @default(false)
   createdAt  DateTime @default(now())
+}
+
+enum BookingStatus {
+  REQUESTED
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingChannel {
+  ONLINE
+  FRONT_DESK
+  WALK_IN
+}
+
+enum PayStatus {
+  NONE
+  PENDING
+  PAID
+}
+
+enum MsgKind {
+  CONFIRMATION
+  REMINDER_24H
+  POST_VISIT
+}
+
+enum MsgStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Room {
+  id           String        @id @default(cuid())
+  name         String
+  capacity     Int           @default(1)
+  isActive     Boolean       @default(true)
+  order        Int           @default(0)
+  appointments Appointment[]
+}
+
+// weekday: 0 = Sunday .. 6 = Saturday. startMin/endMin are minutes from
+// midnight, center-local time (e.g. 600 = 10:00, 1200 = 20:00).
+model StaffSchedule {
+  id          String  @id @default(cuid())
+  staffUserId String
+  staff       User    @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  weekday     Int
+  startMin    Int
+  endMin      Int
+  isActive    Boolean @default(true)
+
+  @@index([staffUserId, weekday])
+}
+
+// Gates a Service behind a minimum MembershipTier. minTierId is a soft
+// reference (no hard FK) to MembershipTier.id so tiers can be managed
+// independently; null means the service is open to all clients.
+model ServiceAccessRule {
+  id        String  @id @default(cuid())
+  serviceId String  @unique
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  minTierId String?
+}
+
+model Booking {
+  id              String         @id @default(cuid())
+  clientProfileId String
+  client          ClientProfile  @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  status          BookingStatus  @default(CONFIRMED)
+  channel         BookingChannel @default(ONLINE)
+  sourceChannel   String?
+  notes           String?
+  depositStatus   PayStatus      @default(NONE)
+  createdById     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt
+  appointments    Appointment[]
+  checkIn         CheckIn?
+}
+
+model Appointment {
+  id                 String   @id @default(cuid())
+  bookingId          String
+  booking            Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  serviceId          String
+  service            Service  @relation(fields: [serviceId], references: [id])
+  staffUserId        String
+  staff              User     @relation("StaffAppointments", fields: [staffUserId], references: [id])
+  roomId             String
+  room               Room     @relation(fields: [roomId], references: [id])
+  startAt            DateTime
+  endAt              DateTime
+  priceMinorSnapshot Int      @default(0)
+
+  @@index([staffUserId, startAt])
+  @@index([roomId, startAt])
+}
+
+model CheckIn {
+  id        String    @id @default(cuid())
+  bookingId String    @unique
+  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  arrivedAt DateTime  @default(now())
+  seatedAt  DateTime?
+}
+
+model ScheduledMessage {
+  id        String    @id @default(cuid())
+  bookingId String?
+  kind      MsgKind
+  toPhone   String
+  locale    String
+  sendAt    DateTime
+  sentAt    DateTime?
+  status    MsgStatus @default(PENDING)
+  payload   Json
+  createdAt DateTime  @default(now())
+
+  @@index([status, sendAt])
 }

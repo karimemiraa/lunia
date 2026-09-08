@@ -610,6 +610,99 @@ async function main() {
     });
   }
 
+  // --- Booking: durations/prices, rooms, staff schedules, access rules ----
+  // priceMinor is stored in halalas (SAR minor units): SAR * 100.
+  const serviceBookingDetails: Record<
+    string,
+    { durationMin: number; priceMinorSar: number; inCenterOnly?: boolean }
+  > = {
+    "diagnostic-skin-analysis": { durationMin: 45, priceMinorSar: 250 },
+    "signature-facials-hydrafacial": { durationMin: 60, priceMinorSar: 650 },
+    "led-light-therapy": { durationMin: 30, priceMinorSar: 350 },
+    "microdermabrasion-peels": { durationMin: 45, priceMinorSar: 500 },
+    "scalp-diagnostic-analysis": { durationMin: 45, priceMinorSar: 250 },
+    "led-lllt-cap-therapy": { durationMin: 30, priceMinorSar: 400 },
+    "scalp-detox": { durationMin: 45, priceMinorSar: 350 },
+    "scalp-massage-oxygen": { durationMin: 60, priceMinorSar: 450 },
+    "manual-lymphatic-drainage": { durationMin: 60, priceMinorSar: 500, inCenterOnly: true },
+    pressotherapy: { durationMin: 45, priceMinorSar: 400, inCenterOnly: true },
+    "compression-garment-guidance": { durationMin: 30, priceMinorSar: 250, inCenterOnly: true },
+    "recovery-lounge": { durationMin: 90, priceMinorSar: 1200, inCenterOnly: true },
+  };
+  for (const [slug, details] of Object.entries(serviceBookingDetails)) {
+    await prisma.service.update({
+      where: { slug },
+      data: {
+        durationMin: details.durationMin,
+        priceMinor: details.priceMinorSar * 100,
+        inCenterOnly: details.inCenterOnly ?? false,
+      },
+    });
+  }
+
+  const roomSeeds = [
+    { name: "Treatment Room 1", capacity: 1, order: 0 },
+    { name: "Treatment Room 2", capacity: 1, order: 1 },
+    { name: "Recovery Lounge", capacity: 3, order: 2 },
+  ];
+  for (const room of roomSeeds) {
+    const existing = await prisma.room.findFirst({ where: { name: room.name } });
+    if (!existing) {
+      await prisma.room.create({ data: room });
+    }
+  }
+
+  const specialistEmail = process.env.SEED_SPECIALIST_EMAIL ?? "specialist@lunia.local";
+  const specialistPass = process.env.SEED_SPECIALIST_PASSWORD ?? "ChangeMe123!";
+  const specialistRole = await prisma.role.findUniqueOrThrow({ where: { key: "specialist" } });
+  const specialist = await prisma.user.upsert({
+    where: { email: specialistEmail },
+    update: {},
+    create: {
+      type: "STAFF",
+      email: specialistEmail,
+      passwordHash: await bcrypt.hash(specialistPass, 12),
+      locale: "en",
+      staffProfile: { create: { fullName: "Lunia Specialist", title: "Skin & Scalp Specialist" } },
+    },
+  });
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: specialist.id, roleId: specialistRole.id } },
+    update: {},
+    create: { userId: specialist.id, roleId: specialistRole.id },
+  });
+
+  // Sun (0) - Thu (4), 10:00 (600 min) - 20:00 (1200 min), for both the
+  // owner and the specialist.
+  const scheduleWeekdays = [0, 1, 2, 3, 4];
+  for (const staffUserId of [user.id, specialist.id]) {
+    for (const weekday of scheduleWeekdays) {
+      const existing = await prisma.staffSchedule.findFirst({ where: { staffUserId, weekday } });
+      if (!existing) {
+        await prisma.staffSchedule.create({
+          data: { staffUserId, weekday, startMin: 600, endMin: 1200 },
+        });
+      } else {
+        await prisma.staffSchedule.update({
+          where: { id: existing.id },
+          data: { startMin: 600, endMin: 1200, isActive: true },
+        });
+      }
+    }
+  }
+
+  // Gate the premium HydraFacial service behind the VIP tier; everything
+  // else remains open to all clients (no ServiceAccessRule row).
+  const vipTier = await prisma.membershipTier.findUniqueOrThrow({ where: { key: "vip" } });
+  const gatedService = await prisma.service.findUniqueOrThrow({
+    where: { slug: "signature-facials-hydrafacial" },
+  });
+  await prisma.serviceAccessRule.upsert({
+    where: { serviceId: gatedService.id },
+    update: { minTierId: vipTier.id },
+    create: { serviceId: gatedService.id, minTierId: vipTier.id },
+  });
+
   console.log("Seed complete. Owner:", ownerEmail);
 }
 
