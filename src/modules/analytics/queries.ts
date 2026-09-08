@@ -24,11 +24,11 @@
 //   sessionId values with a "booking_started" AnalyticsEvent in range --
 //   one visitor can start the booking flow more than once in a session, and
 //   we only want to count them once as "having started". `completed` is
-//   the raw *event* count (not distinct sessions) of "booking_completed"
-//   AnalyticsEvent rows in range -- a completed booking is a discrete
-//   business outcome (e.g. one per confirmed appointment), and a single
-//   session legitimately completing two separate bookings should count as
-//   two conversions, not one. `rate` is completed / startedSessions,
+//   the count of *distinct* sessionId values with a "booking_completed"
+//   AnalyticsEvent in range -- mirroring startedSessions' distinct-session
+//   counting so `rate` (completed / startedSessions) can never exceed 1: a
+//   session firing "booking_completed" more than once still only counts
+//   once as "having completed". `rate` is completed / startedSessions,
 //   guarded to 0 when startedSessions is 0 (avoids NaN/Infinity).
 //
 // - sessionsCount: count of distinct sessionId values in PageView in range
@@ -115,7 +115,7 @@ export async function topPages({
  * startedSessions / completed / rate definitions.
  */
 export async function bookingConversion({ from, to }: DateRange): Promise<BookingConversion> {
-  const [startedSessionRows, completed] = await Promise.all([
+  const [startedSessionRows, completedSessionRows] = await Promise.all([
     // distinct: ["sessionId"] issues a single SELECT DISTINCT ON query --
     // no per-row N+1 -- we only need the row count, so select as little as
     // possible.
@@ -124,12 +124,15 @@ export async function bookingConversion({ from, to }: DateRange): Promise<Bookin
       select: { sessionId: true },
       distinct: ["sessionId"],
     }),
-    prisma.analyticsEvent.count({
+    prisma.analyticsEvent.findMany({
       where: { name: "booking_completed", createdAt: { gte: from, lt: to } },
+      select: { sessionId: true },
+      distinct: ["sessionId"],
     }),
   ]);
 
   const startedSessions = startedSessionRows.length;
+  const completed = completedSessionRows.length;
   const rate = startedSessions > 0 ? completed / startedSessions : 0;
 
   return { startedSessions, completed, rate };

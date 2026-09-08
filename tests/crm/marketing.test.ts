@@ -3,14 +3,24 @@ import { prisma } from "@/lib/db";
 import type { Room, Service, User } from "@prisma/client";
 import { upsertCampaignSpend } from "@/modules/crm/campaigns";
 import { channelPerformance, newVsReturning, bestChannels } from "@/modules/crm/marketing";
+import { centerLocalToUtc } from "@/modules/booking/availability";
 
 // All rows in this suite are created with booking createdAt inside a single
 // narrow, far-future window that nothing else in the codebase writes to, so
 // channelPerformance's table-wide range scan only ever sees rows this suite
 // created. See tests/analytics/queries.test.ts for the same pattern.
-const RANGE_FROM = new Date("2032-08-01T00:00:00.000Z");
-const RANGE_TO = new Date("2032-09-01T00:00:00.000Z"); // exclusive upper bound
+//
+// RANGE_FROM/RANGE_TO are built the way real call sites build them (e.g.
+// admin/marketing/page.tsx): centerLocalToUtc(monthStartISO, 0) for a
+// center-local (Asia/Riyadh, UTC+3) calendar-month boundary. This means the
+// underlying UTC instants sit a few hours BEFORE their nominal center-local
+// midnight (e.g. "2032-08-01" center-local midnight is
+// 2032-07-31T21:00:00.000Z in UTC) -- exactly the shape that exposed the
+// center-local/UTC month-bucketing bug in toPeriodMonth.
 const PERIOD_MONTH = "2032-08";
+const PERIOD_MONTH_BEFORE = "2032-07"; // the calendar month immediately before PERIOD_MONTH
+const RANGE_FROM = centerLocalToUtc("2032-08-01", 0);
+const RANGE_TO = centerLocalToUtc("2032-09-01", 0); // exclusive upper bound
 const BEFORE_RANGE = new Date("2032-07-15T00:00:00.000Z"); // strictly before RANGE_FROM
 
 const RUN_ID = Date.now();
@@ -239,6 +249,40 @@ describe("channelPerformance", () => {
     expect(row!.acquisitions).toBe(4);
     expect(row!.spendMinor).toBe(40_000); // must NOT include September's 999_000
     expect(row!.cacMinor).toBe(10_000); // 40_000 / 4, not (40_000 + 999_000) / 4
+  });
+
+  it("excludes CampaignSpend from the month BEFORE `from` (center-local month bucketing, not UTC)", async () => {
+    // RANGE_FROM = centerLocalToUtc("2032-08-01", 0) = 2032-07-31T21:00:00Z --
+    // a UTC instant that falls in *July* by naive UTC-month extraction, even
+    // though it represents center-local August 1st midnight. A toPeriodMonth
+    // that buckets by UTC (the bug) would derive fromMonth = "2032-07" here,
+    // pulling July's spend into what should be an August-only window. Spend
+    // is seeded for BOTH the in-range month (August, PERIOD_MONTH) and the
+    // month before it (July, PERIOD_MONTH_BEFORE) for the same channel; only
+    // August's spend must be reflected in spendMinor/cacMinor.
+    const CHANNEL_LOWER_BOUNDARY = `crm-mkt-test-lowerboundary-${RUN_ID}`;
+    await upsertCampaignSpend({ channel: CHANNEL_LOWER_BOUNDARY, periodMonth: PERIOD_MONTH, amountMinor: 60_000 });
+    await upsertCampaignSpend({
+      channel: CHANNEL_LOWER_BOUNDARY,
+      periodMonth: PERIOD_MONTH_BEFORE,
+      amountMinor: 999_000,
+    });
+    for (let i = 0; i < 3; i += 1) {
+      await createAcquiredClient({
+        name: `Lower Boundary Client ${i}`,
+        sourceChannel: CHANNEL_LOWER_BOUNDARY,
+        firstBookingAt: new Date(RANGE_FROM.getTime() + (60 + i) * 60_000),
+        status: "CONFIRMED",
+        priceMinor: 0,
+      });
+    }
+
+    const perf = await channelPerformance({ from: RANGE_FROM, to: RANGE_TO });
+    const row = perf.find((p) => p.channel === CHANNEL_LOWER_BOUNDARY);
+    expect(row).toBeDefined();
+    expect(row!.acquisitions).toBe(3);
+    expect(row!.spendMinor).toBe(60_000); // must NOT include July's 999_000
+    expect(row!.cacMinor).toBe(20_000); // 60_000 / 3, not (60_000 + 999_000) / 3
   });
 
   it("null sourceChannel is grouped under \"direct\"", async () => {

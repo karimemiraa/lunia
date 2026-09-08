@@ -7,11 +7,20 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { CampaignSpend } from "@prisma/client";
+import { utcToCenterLocal } from "../booking/availability";
 
 const PERIOD_MONTH_PATTERN = /^\d{4}-\d{2}$/;
 
+// Buckets a UTC instant into the CENTER-LOCAL (Asia/Riyadh) "YYYY-MM" month
+// it falls in, not the UTC month. Callers build their from/to range from
+// center-local month boundaries (via centerLocalToUtc), so a center-local
+// month start (e.g. 2026-09-01T00:00 local) is a UTC instant still in the
+// PREVIOUS UTC month (2026-08-31T21:00:00Z) -- bucketing by UTC would
+// therefore pull the prior month's spend into the current month's total.
+// Bucketing by center-local keeps this aligned with the period the caller
+// actually means.
 function toPeriodMonth(date: Date): string {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  return utcToCenterLocal(date).dateISO.slice(0, 7);
 }
 
 export interface CampaignSpendRangeFilter {

@@ -55,7 +55,8 @@ describe("analytics queries", () => {
     // 3 distinct sessions with a booking_started event: S1, S2, S3.
     // booking_completed: S1 fires it twice, S2 fires it once, S3 never.
     // startedSessions = 3 (distinct sessions with booking_started).
-    // completed = 3 (raw event count -- see queries.ts doc comment for why).
+    // completed = 2 (distinct sessions with booking_completed -- S1 firing
+    // it twice still counts once; see queries.ts doc comment for why).
     const s1 = uid("qa-s1");
     const s2 = uid("qa-s2");
     const s3 = uid("qa-s3");
@@ -115,12 +116,14 @@ describe("analytics queries", () => {
   });
 
   describe("bookingConversion", () => {
-    it("computes startedSessions (distinct), completed (raw event count), and rate", async () => {
+    it("computes startedSessions (distinct), completed (distinct sessions), and rate", async () => {
       const result = await bookingConversion({ from: RANGE_FROM, to: RANGE_TO });
 
       expect(result.startedSessions).toBe(3);
-      expect(result.completed).toBe(3);
-      expect(result.rate).toBeCloseTo(1, 5);
+      // S1 fires booking_completed twice but counts as 1 distinct completed
+      // session; S2 fires it once; S3 never does -- so completed = 2, not 3.
+      expect(result.completed).toBe(2);
+      expect(result.rate).toBeCloseTo(2 / 3, 5);
     });
 
     it("guards against division by zero when there are no started sessions", async () => {

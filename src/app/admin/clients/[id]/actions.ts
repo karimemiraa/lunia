@@ -57,7 +57,7 @@ export async function addNoteAction(_prev: ClientActionState | null, formData: F
 // CLIENT_MANAGE path deletes directly, per the "admin PAGE layer" carve-out
 // documented on visitNotes.ts's deleteVisitNote.
 export async function deleteNoteAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_VIEW);
 
   const noteId = String(formData.get("noteId") ?? "").trim();
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
