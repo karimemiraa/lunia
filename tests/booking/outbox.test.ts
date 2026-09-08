@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, beforeAll } from "vitest";
 import { prisma } from "@/lib/db";
-import { scheduleMessage, processDueMessages, renderMessageBody, stubSender } from "@/modules/booking/outbox";
+import { scheduleMessage, processDueMessages, reclaimStaleClaims, renderMessageBody, stubSender } from "@/modules/booking/outbox";
 import type { CommsSender } from "@/modules/booking/outbox";
 
 // Every phone created by this suite carries this prefix so cleanup can find
@@ -212,6 +212,54 @@ describe("processDueMessages", () => {
 
     const logs = await prisma.communicationLog.findMany({ where: { toPhone: phone } });
     expect(logs.length).toBe(1);
+  });
+
+  it("does not double-send when two processDueMessages run concurrently against the same due row", async () => {
+    const now = new Date();
+    const phone = freshPhone();
+    await scheduleMessage({ kind: "CONFIRMATION", toPhone: phone, locale: "en", sendAt: new Date(now.getTime() - 1000), payload: {} });
+    let sends = 0;
+    const counting: CommsSender = {
+      send: async () => {
+        sends += 1;
+        return { ok: true, providerRef: "r" };
+      },
+    };
+    const [a, b] = await Promise.all([processDueMessages(now, counting), processDueMessages(now, counting)]);
+    expect(sends).toBe(1);
+    expect(a.sent + b.sent).toBe(1);
+    const logs = await prisma.communicationLog.findMany({ where: { toPhone: phone } });
+    expect(logs.length).toBe(1);
+  });
+
+  it("reclaimStaleClaims returns an abandoned SENDING row to PENDING", async () => {
+    const now = new Date();
+    const phone = freshPhone();
+    const m = await scheduleMessage({ kind: "CONFIRMATION", toPhone: phone, locale: "en", sendAt: new Date(now.getTime() - 1000), payload: {} });
+    await prisma.scheduledMessage.update({
+      where: { id: m.id },
+      data: { status: "SENDING", claimId: "abandoned-claim", claimedAt: new Date(now.getTime() - 10 * 60_000) },
+    });
+    const reclaimed = await reclaimStaleClaims(now, 5 * 60_000);
+    expect(reclaimed).toBeGreaterThanOrEqual(1);
+    const after = await prisma.scheduledMessage.findUniqueOrThrow({ where: { id: m.id } });
+    expect(after.status).toBe("PENDING");
+    expect(after.claimId).toBeNull();
+  });
+
+  it("does not reclaim a fresh SENDING row (within the timeout)", async () => {
+    const now = new Date();
+    const phone = freshPhone();
+    const m = await scheduleMessage({ kind: "CONFIRMATION", toPhone: phone, locale: "en", sendAt: new Date(now.getTime() - 1000), payload: {} });
+    await prisma.scheduledMessage.update({
+      where: { id: m.id },
+      data: { status: "SENDING", claimId: "fresh-claim", claimedAt: new Date(now.getTime() - 30_000) },
+    });
+    await reclaimStaleClaims(now, 5 * 60_000);
+    const after = await prisma.scheduledMessage.findUniqueOrThrow({ where: { id: m.id } });
+    expect(after.status).toBe("SENDING");
+    // cleanup: drain it so afterEach can delete by phone prefix
+    await prisma.scheduledMessage.update({ where: { id: m.id }, data: { status: "PENDING", claimId: null, claimedAt: null } });
   });
 
   it("defaults to stubSender when no sender is provided, and does not throw", async () => {

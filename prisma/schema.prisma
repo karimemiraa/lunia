@@ -260,6 +260,7 @@ enum MsgKind {
 
 enum MsgStatus {
   PENDING
+  SENDING
   SENT
   FAILED
 }
@@ -352,8 +353,15 @@ model ScheduledMessage {
   status    MsgStatus @default(PENDING)
   payload   Json
   createdAt DateTime  @default(now())
+  // Set atomically when a worker claims a batch (PENDING -> SENDING); lets
+  // multiple worker replicas run without double-sending, and lets an
+  // abandoned SENDING row (crashed worker) be reclaimed after a timeout.
+  claimId   String?
+  claimedAt DateTime?
 
   @@index([status, sendAt])
+  @@index([claimId])
+  @@index([status, claimedAt])
 }
 
 // Audit trail of every outbound communication attempt (sent or failed),
