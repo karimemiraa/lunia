@@ -1,8 +1,9 @@
 "use client";
 
-import { useId, useMemo, useState, useTransition } from "react";
+import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { trackEvent } from "@/components/analytics/Tracker";
 import { getSlots, startOtp, verifyAndBook, type SlotDTO, type BookingSummaryDTO } from "./actions";
 
 export interface BookableServiceDTO {
@@ -111,6 +112,12 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
   const codeId = useId();
   const dateId = useId();
 
+  // Funnel analytics: privacy-preserving, anonymous, and best-effort -- see
+  // src/components/analytics/Tracker.tsx. Never blocks or throws.
+  useEffect(() => {
+    trackEvent("booking_started");
+  }, []);
+
   const selectedService = useMemo(
     () => services.find((service) => service.id === selectedServiceId) ?? null,
     [services, selectedServiceId],
@@ -202,6 +209,7 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
       if (result.ok) {
         setSummary(result.booking);
         setStep(4);
+        trackEvent("booking_completed", { serviceId: selectedServiceId });
       } else {
         setContactError(result.error);
       }
