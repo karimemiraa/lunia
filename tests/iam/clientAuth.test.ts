@@ -104,6 +104,27 @@ describe("clientAuth", () => {
     expect(second).toBeNull();
   });
 
+  it("verifyOtp invalidates the code atomically once the wrong-attempt cap is hit, even for a subsequent correct guess", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+
+    const { devCode } = await requestOtp(phone);
+    const wrongCode = devCode === "111111" ? "222222" : "111111";
+
+    for (let i = 0; i < 5; i++) {
+      const result = await verifyOtp(phone, wrongCode);
+      expect(result).toBeNull();
+    }
+
+    // The 6th attempt, even with the correct code, must fail: the cap already
+    // invalidated the OTP via the atomic otpver:<phone> counter.
+    const result = await verifyOtp(phone, devCode as string);
+    expect(result).toBeNull();
+
+    const raw = await getRedis().get(`otp:${phone}`);
+    expect(raw).toBeNull();
+  });
+
   it("getClientSessionUser returns the user for a CLIENT session token, and null for a STAFF user's token", async () => {
     const phone = uniquePhone();
     usedPhones.push(phone);

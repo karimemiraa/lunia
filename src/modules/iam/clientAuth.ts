@@ -1,4 +1,4 @@
-import { randomInt } from "crypto";
+import { randomInt, timingSafeEqual } from "crypto";
 import { getRedis } from "@/lib/redis";
 import { prisma } from "@/lib/db";
 import { getEnv } from "@/lib/env";
@@ -15,11 +15,21 @@ const REQUEST_LIMIT = 5;
 
 interface OtpRecord {
   code: string;
-  attempts: number;
 }
 
 const otpKey = (phone: string) => `otp:${phone}`;
 const requestCountKey = (phone: string) => `otpreq:${phone}`;
+const verifyAttemptsKey = (phone: string) => `otpver:${phone}`;
+
+/** Constant-time comparison of two OTP codes. Guards on length first (timingSafeEqual
+ * throws on mismatched buffer lengths) — a length mismatch is just treated as "not equal"
+ * without leaking timing info about the code content itself. */
+function codesMatch(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
 
 /** Basic phone validation/normalization: trims whitespace, requires an optional
  * leading `+` followed by 6-20 digits. Not a full E.164 validator — good enough
@@ -50,7 +60,7 @@ export async function requestOtp(phone: string): Promise<{ devCode?: string }> {
   }
 
   const code = generateCode();
-  const record: OtpRecord = { code, attempts: 0 };
+  const record: OtpRecord = { code };
   await redis.set(otpKey(normalized), JSON.stringify(record), "EX", OTP_TTL_SECONDS);
 
   if (getEnv().NODE_ENV !== "production") {
@@ -64,23 +74,32 @@ export async function verifyOtp(phone: string, code: string): Promise<{ userId: 
   const normalized = normalizePhone(phone);
   const redis = getRedis();
 
+  // Atomic brute-force cap: INCR is a single atomic Redis operation, so concurrent
+  // wrong guesses can't race past OTP_MAX_VERIFY_ATTEMPTS the way a read-modify-write
+  // on the OTP record itself could. The counter shares the OTP's TTL window.
+  const verKey = verifyAttemptsKey(normalized);
+  const attempts = await redis.incr(verKey);
+  if (attempts === 1) {
+    await redis.expire(verKey, OTP_TTL_SECONDS);
+  }
+  if (attempts > OTP_MAX_VERIFY_ATTEMPTS) {
+    // Too many wrong attempts — invalidate the code so it can't be brute-forced further,
+    // even by a subsequent correct-code submission.
+    await redis.del(otpKey(normalized));
+    return null;
+  }
+
   const raw = await redis.get(otpKey(normalized));
   if (!raw) return null;
 
   const record = JSON.parse(raw) as OtpRecord;
 
-  if (record.code !== code) {
-    const attempts = record.attempts + 1;
-    if (attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
-      // Too many wrong attempts — invalidate the code so it can't be brute-forced further.
-      await redis.del(otpKey(normalized));
-    } else {
-      await redis.set(otpKey(normalized), JSON.stringify({ code: record.code, attempts }), "KEEPTTL");
-    }
+  if (!codesMatch(record.code, code)) {
+    // Wrong guess — already counted by the INCR above, nothing else to update.
     return null;
   }
 
-  await redis.del(otpKey(normalized));
+  await redis.del(otpKey(normalized), verKey);
 
   const user = await findOrCreateClientUser(normalized);
   return { userId: user.id };
