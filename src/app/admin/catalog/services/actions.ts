@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { createService, updateService, deleteService } from "@/modules/catalog/services";
+import { updateServiceBookingSettings } from "@/modules/booking/serviceSettings";
+import { setServiceAccessRule } from "@/modules/booking/accessRules";
 
 export interface ServiceActionState {
   error?: string;
@@ -96,6 +98,17 @@ export async function updateServiceAction(
   const name = readLocalized(formData, "name");
   const summary = readLocalized(formData, "summary");
 
+  const durationMin = numberOrUndefined(formData, "durationMin");
+  const priceSar = numberOrUndefined(formData, "priceSar");
+  const minTierId = String(formData.get("minTierId") ?? "").trim();
+
+  if (durationMin === undefined || durationMin <= 0) {
+    return { error: "Duration must be a positive number of minutes." };
+  }
+  if (priceSar === undefined || priceSar < 0) {
+    return { error: "Price must be zero or greater." };
+  }
+
   try {
     await updateService(id, {
       departmentId: departmentId || undefined,
@@ -109,6 +122,13 @@ export async function updateServiceAction(
       order: numberOrUndefined(formData, "order"),
       isPublished: formData.get("isPublished") === "on",
     });
+    await updateServiceBookingSettings(id, {
+      durationMin,
+      priceMinor: Math.round(priceSar * 100),
+      onlineBookable: formData.get("onlineBookable") === "on",
+      inCenterOnly: formData.get("inCenterOnly") === "on",
+    });
+    await setServiceAccessRule(id, minTierId || null);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update service." };
   }

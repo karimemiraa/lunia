@@ -6,7 +6,7 @@ vi.mock("@/modules/catalog/departments", () => ({ listDepartments: vi.fn() }));
 vi.mock("@/modules/catalog/brands", () => ({ listBrands: vi.fn() }));
 vi.mock("@/modules/catalog/journal", () => ({ listPublishedPosts: vi.fn() }));
 
-const STATIC_PATH_COUNT = 7; // home/about/services/brands/results/journal/contact
+const STATIC_PATH_COUNT = 8; // home/about/services/brands/results/journal/contact/book
 const LOCALE_COUNT = 2; // ar + en
 
 describe("sitemap resilience", () => {

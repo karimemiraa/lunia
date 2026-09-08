@@ -7,12 +7,14 @@ interface FieldProps {
   defaultValue?: string;
   placeholder?: string;
   required?: boolean;
+  /** Only applies to type="number"; e.g. "0.01" to allow decimals. */
+  step?: string;
 }
 
 const inputClass =
   "w-full rounded border border-[var(--color-ink)]/20 px-3 py-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-teal)] focus:outline-none";
 
-export function Field({ label, name, type = "text", defaultValue, placeholder, required }: FieldProps) {
+export function Field({ label, name, type = "text", defaultValue, placeholder, required, step }: FieldProps) {
   return (
     <label className="flex flex-col gap-1 text-sm">
       <span className="font-medium text-[var(--color-ink)]">{label}</span>
@@ -32,6 +34,7 @@ export function Field({ label, name, type = "text", defaultValue, placeholder, r
           defaultValue={defaultValue}
           placeholder={placeholder}
           required={required}
+          step={type === "number" ? step : undefined}
           className={inputClass}
         />
       )}

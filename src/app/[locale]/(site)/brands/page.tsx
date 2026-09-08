@@ -69,7 +69,7 @@ export default async function BrandsPage({ params }: BrandsPageProps) {
     getTranslations({ locale, namespace: "brandsIndex.cta" }),
   ]);
 
-  const contactHref = `/${locale}/contact`;
+  const bookHref = `/${locale}/book`;
   const appUrl = resolveAppUrl();
 
   const brandMedia = await Promise.all(brands.map((brand: Brand) => resolveMedia(brand.logoMediaId)));
@@ -88,7 +88,7 @@ export default async function BrandsPage({ params }: BrandsPageProps) {
         headline={tHero("heading")}
         subhead={tHero("intro")}
         ctaLabel={tCommon("bookNow")}
-        ctaHref={contactHref}
+        ctaHref={bookHref}
       />
 
       <Section tone="plain">
@@ -106,7 +106,7 @@ export default async function BrandsPage({ params }: BrandsPageProps) {
       </Section>
 
       <Section tone="tinted">
-        <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={contactHref} />
+        <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={bookHref} />
       </Section>
     </main>
   );

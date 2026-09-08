@@ -94,7 +94,7 @@ export default async function DepartmentPage({ params }: DepartmentPageProps) {
     getTranslations({ locale, namespace: "serviceDepartment.faq" }),
   ]);
 
-  const contactHref = `/${locale}/contact`;
+  const bookHref = `/${locale}/book`;
   const appUrl = resolveAppUrl();
   const departmentUrl = `${appUrl}/${locale}/services/${department.slug}`;
 
@@ -205,7 +205,7 @@ export default async function DepartmentPage({ params }: DepartmentPageProps) {
           eyebrow={tDept("cta.eyebrow")}
           headline={tDept("cta.headline")}
           ctaLabel={tCommon("bookNow")}
-          ctaHref={contactHref}
+          ctaHref={bookHref}
         />
       </Section>
     </main>

@@ -72,7 +72,7 @@ export default async function ServicesPage({ params }: ServicesPageProps) {
     getTranslations({ locale, namespace: "servicesIndex.cta" }),
   ]);
 
-  const contactHref = `/${locale}/contact`;
+  const bookHref = `/${locale}/book`;
   const appUrl = resolveAppUrl();
 
   const [departmentMedia, departmentServices] = await Promise.all([
@@ -96,7 +96,7 @@ export default async function ServicesPage({ params }: ServicesPageProps) {
         headline={tHero("heading")}
         subhead={tHero("intro")}
         ctaLabel={tCommon("bookNow")}
-        ctaHref={contactHref}
+        ctaHref={bookHref}
       />
 
       <Section tone="plain">
@@ -154,7 +154,7 @@ export default async function ServicesPage({ params }: ServicesPageProps) {
       </Section>
 
       <Section tone="tinted">
-        <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={contactHref} />
+        <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={bookHref} />
       </Section>
     </main>
   );

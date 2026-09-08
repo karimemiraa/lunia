@@ -102,7 +102,7 @@ export default async function Home({ params }: HomePageProps) {
       getTranslations({ locale, namespace: "home.meta" }),
     ]);
 
-  const contactHref = `/${locale}/contact`;
+  const bookHref = `/${locale}/book`;
 
   const departmentMedia = await Promise.all(
     departments.map((department: Department) => resolveMedia(department.heroMediaId)),
@@ -157,7 +157,7 @@ export default async function Home({ params }: HomePageProps) {
         headline={hero.headline}
         subhead={hero.intro || undefined}
         ctaLabel={hero.cta}
-        ctaHref={contactHref}
+        ctaHref={bookHref}
         media={hero.heroMedia}
       />
 
@@ -231,7 +231,7 @@ export default async function Home({ params }: HomePageProps) {
           eyebrow={tCta("eyebrow")}
           headline={tCta("headline")}
           ctaLabel={tCommon("bookNow")}
-          ctaHref={contactHref}
+          ctaHref={bookHref}
         />
       </Section>
     </main>

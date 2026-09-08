@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import type { Department, Service } from "@prisma/client";
+import type { Department, MembershipTier, Service } from "@prisma/client";
 import { Field } from "../../../_components/Field";
 import { LocalizedField, type LocalizedValue } from "../../../_components/LocalizedField";
 import { MediaPicker, type MediaOption } from "../../../_components/MediaPicker";
@@ -24,9 +24,17 @@ interface EditServiceFormProps {
   service: Service;
   departments: Department[];
   media: MediaOption[];
+  tiers: MembershipTier[];
+  currentMinTierId: string | null;
 }
 
-export function EditServiceForm({ service, departments, media }: EditServiceFormProps) {
+// priceMinor is stored in halalas (1/100 SAR); the form shows/edits SAR with
+// up to 2 decimal places and the action converts back to minor units.
+function minorToSar(priceMinor: number): string {
+  return (priceMinor / 100).toString();
+}
+
+export function EditServiceForm({ service, departments, media, tiers, currentMinTierId }: EditServiceFormProps) {
   const [state, action, pending] = useActionState(updateServiceAction, initialState);
 
   return (
@@ -84,6 +92,45 @@ export function EditServiceForm({ service, departments, media }: EditServiceForm
         <input type="checkbox" name="isPublished" defaultChecked={service.isPublished} className="h-4 w-4" />
         Published
       </label>
+
+      <fieldset className="flex flex-col gap-4 rounded border border-[var(--color-ink)]/10 p-4">
+        <legend className="px-1 text-sm font-medium text-[var(--color-ink)]">Booking settings</legend>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Duration (min)" name="durationMin" type="number" defaultValue={String(service.durationMin)} required />
+          <Field
+            label="Price (SAR)"
+            name="priceSar"
+            type="number"
+            step="0.01"
+            defaultValue={minorToSar(service.priceMinor)}
+            required
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-6">
+          <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+            <input type="checkbox" name="onlineBookable" defaultChecked={service.onlineBookable} className="h-4 w-4" />
+            Online bookable
+          </label>
+          <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+            <input type="checkbox" name="inCenterOnly" defaultChecked={service.inCenterOnly} className="h-4 w-4" />
+            In-center only
+          </label>
+        </div>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-[var(--color-ink)]">Minimum tier</span>
+          <select name="minTierId" defaultValue={currentMinTierId ?? ""} className={selectClass}>
+            <option value="">Open to all clients</option>
+            {tiers.map((tier) => (
+              <option key={tier.id} value={tier.id}>
+                {tier.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </fieldset>
 
       <div className="flex items-center gap-3">
         <button

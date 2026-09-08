@@ -8,6 +8,7 @@
     "journal": "Journal",
     "contact": "Contact",
     "book": "Book Now",
+    "account": "My Account",
     "primaryLabel": "Primary navigation",
     "mobileLabel": "Mobile navigation"
   },
@@ -309,6 +310,132 @@
           "a": "Both. Many clients come in for maintenance once their skin or scalp quality is where they want it — consistency is what keeps results from fading."
         }
       ]
+    }
+  },
+  "book": {
+    "meta": {
+      "title": "Book a Visit | Lunia Skin Quality Center, Riyadh",
+      "description": "Book your diagnostic-led treatment at Lunia in a few steps: choose a service, pick a time, and confirm by phone."
+    },
+    "hero": {
+      "eyebrow": "Book a Visit",
+      "heading": "Reserve your time at Lunia",
+      "intro": "Choose a service, pick a time that works for you, and confirm with a quick phone verification — no account needed to get started."
+    },
+    "steps": {
+      "service": "Service",
+      "datetime": "Date & Time",
+      "contact": "Your Details",
+      "confirm": "Confirmed"
+    },
+    "progressLabel": "Step {step} of {total}",
+    "backLabel": "Back",
+    "service": {
+      "heading": "Choose a service",
+      "chooseLabel": "Available services",
+      "durationValue": "{minutes} min",
+      "tierNote": "Available to {tier} members and above",
+      "continueLabel": "Continue",
+      "emptyState": "No bookable services are available online right now — please contact us to book."
+    },
+    "date": {
+      "heading": "Choose a date and time",
+      "dateLabel": "Date",
+      "loadingSlots": "Loading available times…",
+      "noSlots": "No times are available on this date — try another day.",
+      "timeHeading": "Available times",
+      "continueLabel": "Continue",
+      "selectServicePrompt": "Select a service to see available times."
+    },
+    "contact": {
+      "heading": "Your details",
+      "intro": "We'll text a 6-digit code to confirm this number.",
+      "nameLabel": "Full name",
+      "phoneLabel": "Phone number",
+      "sendCodeLabel": "Send verification code",
+      "sendingLabel": "Sending…",
+      "codeIntro": "Enter the 6-digit code sent to {phone}.",
+      "codeLabel": "Verification code",
+      "verifyLabel": "Confirm booking",
+      "verifyingLabel": "Confirming…",
+      "changeNumberLabel": "Use a different number",
+      "devCodeHint": "Dev/test code: {code}"
+    },
+    "success": {
+      "heading": "You're booked",
+      "intro": "A confirmation has been sent to your phone. We look forward to seeing you.",
+      "serviceLabel": "Service",
+      "dateLabel": "Date",
+      "timeLabel": "Time",
+      "priceLabel": "Price",
+      "accountLabel": "View my bookings",
+      "bookAnotherLabel": "Book another visit"
+    },
+    "errors": {
+      "generic": "Something went wrong — please try again.",
+      "missingContact": "Please enter your name and phone number.",
+      "invalidPhone": "Please enter a valid phone number.",
+      "rateLimited": "Too many attempts — please try again in a little while.",
+      "invalidCode": "That code is incorrect or has expired — please try again.",
+      "serviceUnavailable": "This service isn't available for online booking right now.",
+      "tierGated": "This service is available to {tier} members and above.",
+      "slotTaken": "That time was just taken — please choose another.",
+      "noService": "Please choose a service first.",
+      "noSlot": "Please choose a time first."
+    }
+  },
+  "account": {
+    "meta": {
+      "title": "My Account | Lunia Skin Quality Center, Riyadh",
+      "description": "View your upcoming and past appointments at Lunia, manage bookings, and rebook your next visit."
+    },
+    "login": {
+      "meta": {
+        "title": "Sign In | Lunia Skin Quality Center, Riyadh",
+        "description": "Sign in with your phone number to view and manage your Lunia bookings."
+      },
+      "heading": "Sign in to your account",
+      "intro": "Enter your phone number and we'll text you a 6-digit code to sign in.",
+      "phoneLabel": "Phone number",
+      "sendCodeLabel": "Send verification code",
+      "sendingLabel": "Sending…",
+      "codeIntro": "Enter the 6-digit code sent to {phone}.",
+      "codeLabel": "Verification code",
+      "verifyLabel": "Sign in",
+      "verifyingLabel": "Signing in…",
+      "changeNumberLabel": "Use a different number",
+      "devCodeHint": "Dev/test code: {code}",
+      "errors": {
+        "missingPhone": "Please enter your phone number.",
+        "invalidPhone": "Please enter a valid phone number.",
+        "rateLimited": "Too many attempts — please try again in a little while.",
+        "invalidCode": "That code is incorrect or has expired — please try again.",
+        "generic": "Something went wrong — please try again."
+      }
+    },
+    "heading": "My account",
+    "signedInAs": "Signed in as {name}",
+    "logoutLabel": "Sign out",
+    "upcomingHeading": "Upcoming bookings",
+    "pastHeading": "Past bookings",
+    "emptyUpcoming": "You don't have any upcoming bookings.",
+    "emptyPast": "You don't have any past bookings yet.",
+    "rebookLabel": "Book another visit",
+    "cancelLabel": "Cancel booking",
+    "cancellingLabel": "Cancelling…",
+    "status": {
+      "REQUESTED": "Requested",
+      "CONFIRMED": "Confirmed",
+      "CHECKED_IN": "Checked in",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "NO_SHOW": "No-show"
+    },
+    "errors": {
+      "notAuthenticated": "Please sign in to manage your bookings.",
+      "notFound": "We couldn't find that booking.",
+      "tooLateToCancel": "This booking can no longer be cancelled online — please contact us.",
+      "generic": "Something went wrong — please try again."
     }
   }
 }

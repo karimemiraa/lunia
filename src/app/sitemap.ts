@@ -5,7 +5,7 @@ import { listDepartments } from "@/modules/catalog/departments";
 import { listBrands } from "@/modules/catalog/brands";
 import { listPublishedPosts } from "@/modules/catalog/journal";
 
-const STATIC_PATHS = ["/", "/about", "/services", "/brands", "/results", "/journal", "/contact"];
+const STATIC_PATHS = ["/", "/about", "/services", "/brands", "/results", "/journal", "/contact", "/book"];
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 

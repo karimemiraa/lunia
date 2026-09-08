@@ -12,12 +12,32 @@ services:
     expose:
       - "3000"
 
-  # NOTE: no dedicated `worker` service yet. BullMQ isn't wired into the app
-  # at this stage (see docs/RUNBOOK.md "Follow-ups") — its first queues and
-  # jobs arrive with the Booking stage reminders work. When that lands, add
-  # a `worker` service here that reuses this same image with an alternate
-  # CMD (e.g. `node worker.js`), the same env_file, and depends_on postgres
-  # + redis, rather than standing up a second build.
+  # Reminder outbox worker (Booking stage): polls processDueMessages() every
+  # ~30s to "send" (currently via a logging stub — Stage 6 wires a real
+  # WhatsApp/SMS provider) due ScheduledMessage rows. No BullMQ/queue
+  # library is used (see worker/index.ts) — it's a plain poll loop, so this
+  # service needs no separate broker beyond the shared Postgres.
+  #
+  # Built from the `migrator` target rather than the production `run` image:
+  # `run`'s standalone Next.js output has no `tsx` (or a `worker/` dir) in
+  # its slimmed node_modules, while `migrator` already reuses the `build`
+  # stage's full node_modules (tsx included) for exactly this kind of
+  # one-off/long-running Node script — see that target's comment in the
+  # Dockerfile. `pnpm run worker` (via the image's `corepack pnpm`
+  # entrypoint) runs the same `worker/index.ts` as `pnpm worker` locally.
+  worker:
+    build:
+      context: .
+      target: migrator
+    image: lunia:migrate
+    command: ["run", "worker"]
+    env_file: .env.prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: always
 
   # One-shot migration/seed runner, built from the `migrator` target (reuses
   # the `build` stage's full `node_modules` — prisma + tsx included). This is

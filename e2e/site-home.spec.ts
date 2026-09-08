@@ -23,8 +23,8 @@ for (const locale of LOCALES) {
     const brandLinks = page.locator('a[href*="/brands/"]');
     expect(await brandLinks.count()).toBeGreaterThanOrEqual(1);
 
-    // A Book CTA linking to /contact exists (hero and/or cta band).
-    const bookLinks = page.locator(`a[href="/${locale}/contact"]`);
+    // A Book CTA linking to /book exists (hero and/or cta band).
+    const bookLinks = page.locator(`a[href="/${locale}/book"]`);
     expect(await bookLinks.count()).toBeGreaterThanOrEqual(1);
 
     // The 6-step journey renders all 6 steps as an ordered list.

@@ -14,6 +14,7 @@ const ROUTES = [
   "/results",
   "/journal",
   "/contact",
+  "/book",
 ];
 
 for (const locale of LOCALES) {

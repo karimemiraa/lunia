@@ -1,4 +1,10 @@
 services:
+  # Dev only runs the databases here — the Next.js app and the reminder
+  # outbox worker both run on the host via pnpm (not containerized) so they
+  # pick up hot-reload/tsx directly: `pnpm dev` and, in a second terminal,
+  # `pnpm worker` (polls processDueMessages() every ~30s; see
+  # worker/index.ts). See docker-compose.prod.yml for the containerized
+  # `worker` service used in production.
   postgres:
     image: postgres:16
     environment:

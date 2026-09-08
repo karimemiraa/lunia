@@ -32,7 +32,7 @@ test.describe("brand page", () => {
 
     await expect(page).toHaveTitle(/.+/);
 
-    const bookLinks = page.locator('a[href="/en/contact"]');
+    const bookLinks = page.locator('a[href="/en/book"]');
     expect(await bookLinks.count()).toBeGreaterThanOrEqual(1);
   });
 

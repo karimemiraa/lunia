@@ -80,7 +80,7 @@ export default async function JournalPage({ params }: JournalPageProps) {
     getTranslations({ locale, namespace: "journalIndex.cta" }),
   ]);
 
-  const contactHref = `/${locale}/contact`;
+  const bookHref = `/${locale}/book`;
   const appUrl = resolveAppUrl();
 
   const postMedia = await Promise.all(posts.map((post: BlogPost) => resolveMedia(post.heroMediaId)));
@@ -99,7 +99,7 @@ export default async function JournalPage({ params }: JournalPageProps) {
         headline={tHero("heading")}
         subhead={tHero("intro")}
         ctaLabel={tCommon("bookNow")}
-        ctaHref={contactHref}
+        ctaHref={bookHref}
       />
 
       <Section tone="plain">
@@ -149,7 +149,7 @@ export default async function JournalPage({ params }: JournalPageProps) {
       </Section>
 
       <Section tone="tinted">
-        <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={contactHref} />
+        <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={bookHref} />
       </Section>
     </main>
   );

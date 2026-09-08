@@ -17,6 +17,8 @@ describe("AdminNav", () => {
     expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Tiers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Roles" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Rooms" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Schedules" })).not.toBeInTheDocument();
   });
 
   it("shows Settings/Tiers for a user with SETTINGS_MANAGE", () => {
@@ -27,20 +29,31 @@ describe("AdminNav", () => {
     expect(screen.queryByRole("link", { name: "Media" })).not.toBeInTheDocument();
   });
 
-  it("shows Roles for a user with STAFF_MANAGE", () => {
+  it("shows Roles/Rooms/Schedules for a user with STAFF_MANAGE", () => {
     render(<AdminNav permissions={new Set([PERMISSIONS.STAFF_MANAGE])} />);
 
     expect(screen.getByRole("link", { name: "Roles" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Rooms" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Schedules" })).toBeInTheDocument();
+  });
+
+  it("shows Calendar for a user with BOOKING_VIEW", () => {
+    render(<AdminNav permissions={new Set([PERMISSIONS.BOOKING_VIEW])} />);
+
+    expect(screen.getByRole("link", { name: "Calendar" })).toBeInTheDocument();
   });
 
   it("shows only Dashboard for a user with no elevated permissions", () => {
     render(<AdminNav permissions={new Set()} />);
 
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Calendar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Media" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Catalog" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Inquiries" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Roles" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Rooms" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Schedules" })).not.toBeInTheDocument();
   });
 });

@@ -15,6 +15,9 @@ const linkClass =
 export function AdminNav({ permissions }: AdminNavProps) {
   const links: NavLink[] = [{ href: "/admin", label: "Dashboard" }];
 
+  if (permissions.has(PERMISSIONS.BOOKING_VIEW)) {
+    links.push({ href: "/admin/calendar", label: "Calendar" });
+  }
   if (permissions.has(PERMISSIONS.CMS_MANAGE)) {
     links.push(
       { href: "/admin/media", label: "Media" },
@@ -27,7 +30,11 @@ export function AdminNav({ permissions }: AdminNavProps) {
     links.push({ href: "/admin/settings", label: "Settings" }, { href: "/admin/tiers", label: "Tiers" });
   }
   if (permissions.has(PERMISSIONS.STAFF_MANAGE)) {
-    links.push({ href: "/admin/roles", label: "Roles" });
+    links.push(
+      { href: "/admin/roles", label: "Roles" },
+      { href: "/admin/booking/rooms", label: "Rooms" },
+      { href: "/admin/booking/schedules", label: "Schedules" },
+    );
   }
 
   return (

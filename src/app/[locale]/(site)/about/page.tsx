@@ -72,7 +72,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
     getTranslations({ locale, namespace: "about.cta" }),
   ]);
 
-  const contactHref = `/${locale}/contact`;
+  const bookHref = `/${locale}/book`;
   const appUrl = resolveAppUrl();
 
   const storyParagraphs = tStory.raw("paragraphs") as string[];
@@ -96,7 +96,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
         headline={tHero("heading")}
         subhead={tHero("intro")}
         ctaLabel={tCommon("bookNow")}
-        ctaHref={contactHref}
+        ctaHref={bookHref}
       />
 
       <Section tone="plain">
@@ -150,7 +150,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
           eyebrow={tCta("eyebrow")}
           headline={tCta("headline")}
           ctaLabel={tCommon("bookNow")}
-          ctaHref={contactHref}
+          ctaHref={bookHref}
         />
       </Section>
     </main>
