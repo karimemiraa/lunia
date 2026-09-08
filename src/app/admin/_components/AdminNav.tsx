@@ -19,7 +19,7 @@ export function AdminNav({ permissions }: AdminNavProps) {
     links.push({ href: "/admin/calendar", label: "Calendar" });
   }
   if (permissions.has(PERMISSIONS.ANALYTICS_VIEW)) {
-    links.push({ href: "/admin/dashboard", label: "Business" });
+    links.push({ href: "/admin/dashboard", label: "Business" }, { href: "/admin/marketing", label: "Marketing" });
   }
   if (permissions.has(PERMISSIONS.CMS_MANAGE)) {
     links.push(
