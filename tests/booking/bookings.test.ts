@@ -1,0 +1,351 @@
+import { describe, it, expect, afterAll } from "vitest";
+import { prisma } from "@/lib/db";
+import { centerLocalToUtc } from "@/modules/booking/availability";
+import {
+  getServiceSlots,
+  createBooking,
+  listBookings,
+  getBooking,
+  confirmBooking,
+  checkIn,
+  complete,
+  cancel,
+  markNoShow,
+  reschedule,
+} from "@/modules/booking/bookings";
+
+// All test bookings use a Sunday (weekday 0 -> seeded staff schedules and
+// business hours are both open Sun-Thu) far from any date used by other
+// test files, so this suite never collides with concurrently-run files.
+const DATE = "2026-09-27";
+
+// Every phone created by this suite carries this prefix so cleanup can find
+// (and remove) everything it created, regardless of which test created it or
+// whether an assertion failed partway through.
+const PHONE_PREFIX = `+9665TEST${Date.now()}`;
+let phoneCounter = 0;
+function freshPhone(): string {
+  phoneCounter += 1;
+  return `${PHONE_PREFIX}${phoneCounter}`;
+}
+
+afterAll(async () => {
+  const users = await prisma.user.findMany({
+    where: { phone: { startsWith: PHONE_PREFIX } },
+    include: { clientProfile: true },
+  });
+  const clientProfileIds = users.map((u) => u.clientProfile?.id).filter((id): id is string => !!id);
+  if (clientProfileIds.length > 0) {
+    const bookings = await prisma.booking.findMany({ where: { clientProfileId: { in: clientProfileIds } } });
+    const bookingIds = bookings.map((b) => b.id);
+    if (bookingIds.length > 0) {
+      await prisma.scheduledMessage.deleteMany({ where: { bookingId: { in: bookingIds } } });
+    }
+  }
+  // Deleting the User cascades ClientProfile -> Booking -> Appointment/CheckIn.
+  await prisma.user.deleteMany({ where: { phone: { startsWith: PHONE_PREFIX } } });
+});
+
+async function getUnGatedService() {
+  return prisma.service.findUniqueOrThrow({ where: { slug: "diagnostic-skin-analysis" } });
+}
+
+async function getGatedService() {
+  return prisma.service.findUniqueOrThrow({ where: { slug: "signature-facials-hydrafacial" } });
+}
+
+async function getOwner() {
+  return prisma.user.findUniqueOrThrow({ where: { email: "owner@lunia.local" } });
+}
+
+async function getSpecialist() {
+  return prisma.user.findUniqueOrThrow({ where: { email: "specialist@lunia.local" } });
+}
+
+async function getRooms() {
+  const rooms = await prisma.room.findMany({ where: { isActive: true }, orderBy: { order: "asc" } });
+  return rooms;
+}
+
+describe("createBooking", () => {
+  it("auto-creates a CLIENT user + ClientProfile and an Appointment, and schedules 3 ScheduledMessage rows", async () => {
+    const service = await getUnGatedService();
+    const phone = freshPhone();
+    const startAt = centerLocalToUtc(DATE, 600); // 10:00 center-local
+
+    const booking = await createBooking({
+      serviceId: service.id,
+      startAt,
+      client: { name: "Fresh Client", phone },
+      channel: "ONLINE",
+      sourceChannel: "website",
+    });
+
+    expect(booking.status).toBe("CONFIRMED");
+    expect(booking.channel).toBe("ONLINE");
+    expect(booking.appointments.length).toBe(1);
+    const appt = booking.appointments[0]!;
+    expect(appt.serviceId).toBe(service.id);
+    expect(appt.startAt.getTime()).toBe(startAt.getTime());
+    expect(appt.endAt.getTime()).toBe(startAt.getTime() + service.durationMin * 60_000);
+    expect(appt.priceMinorSnapshot).toBe(service.priceMinor);
+
+    const user = await prisma.user.findUniqueOrThrow({ where: { phone }, include: { clientProfile: true } });
+    expect(user.type).toBe("CLIENT");
+    expect(user.clientProfile).not.toBeNull();
+    expect(user.clientProfile!.fullName).toBe("Fresh Client");
+    expect(user.clientProfile!.sourceChannel).toBe("website");
+    expect(booking.clientProfileId).toBe(user.clientProfile!.id);
+
+    const messages = await prisma.scheduledMessage.findMany({ where: { bookingId: booking.id } });
+    expect(messages.length).toBe(3);
+    const kinds = messages.map((m) => m.kind).sort();
+    expect(kinds).toEqual(["CONFIRMATION", "POST_VISIT", "REMINDER_24H"]);
+    for (const m of messages) {
+      expect(m.toPhone).toBe(phone);
+      expect(m.status).toBe("PENDING");
+    }
+    const reminder = messages.find((m) => m.kind === "REMINDER_24H")!;
+    expect(reminder.sendAt.getTime()).toBe(startAt.getTime() - 24 * 60 * 60 * 1000);
+    const postVisit = messages.find((m) => m.kind === "POST_VISIT")!;
+    expect(postVisit.sendAt.getTime()).toBe(appt.endAt.getTime() + 2 * 60 * 60 * 1000);
+  });
+
+  it("reuses the same client (User + ClientProfile) on a second booking with the same phone", async () => {
+    const service = await getUnGatedService();
+    const phone = freshPhone();
+    const firstStart = centerLocalToUtc(DATE, 630);
+    const secondStart = centerLocalToUtc(DATE, 720);
+
+    const first = await createBooking({
+      serviceId: service.id,
+      startAt: firstStart,
+      client: { name: "Repeat Client", phone },
+      channel: "ONLINE",
+    });
+    const second = await createBooking({
+      serviceId: service.id,
+      startAt: secondStart,
+      client: { name: "Repeat Client", phone },
+      channel: "ONLINE",
+    });
+
+    expect(second.clientProfileId).toBe(first.clientProfileId);
+    const users = await prisma.user.findMany({ where: { phone } });
+    expect(users.length).toBe(1);
+    const profiles = await prisma.clientProfile.findMany({ where: { userId: users[0]!.id } });
+    expect(profiles.length).toBe(1);
+  });
+
+  it("rejects double-booking the same staff + room + time", async () => {
+    const service = await getUnGatedService();
+    const owner = await getOwner();
+    const rooms = await getRooms();
+    const room = rooms[0]!;
+    const startAt = centerLocalToUtc(DATE, 660);
+
+    await createBooking({
+      serviceId: service.id,
+      startAt,
+      staffUserId: owner.id,
+      roomId: room.id,
+      client: { name: "First Taker", phone: freshPhone() },
+      channel: "FRONT_DESK",
+    });
+
+    await expect(
+      createBooking({
+        serviceId: service.id,
+        startAt,
+        staffUserId: owner.id,
+        roomId: room.id,
+        client: { name: "Second Taker", phone: freshPhone() },
+        channel: "FRONT_DESK",
+      }),
+    ).rejects.toThrow(/no longer available|just taken/i);
+  });
+
+  it("rejects a guest (no membership) online client from booking a tier-gated service, with a clear error", async () => {
+    const gated = await getGatedService();
+    const startAt = centerLocalToUtc(DATE, 690);
+
+    await expect(
+      createBooking({
+        serviceId: gated.id,
+        startAt,
+        client: { name: "Guest Client", phone: freshPhone() },
+        channel: "ONLINE",
+      }),
+    ).rejects.toThrow(/vip/i);
+  });
+});
+
+describe("getServiceSlots", () => {
+  it("returns slots for a normal weekday, and excludes a time once both staff members are fully booked at it", async () => {
+    const service = await getUnGatedService();
+    const owner = await getOwner();
+    const specialist = await getSpecialist();
+    const rooms = await getRooms();
+    const blockedStart = centerLocalToUtc(DATE, 900); // 15:00 center-local
+
+    const before = await getServiceSlots(service.id, DATE);
+    expect(before.length).toBeGreaterThan(0);
+    expect(before.some((s) => s.startAt.getTime() === blockedStart.getTime())).toBe(true);
+
+    // Exhaust both staff members at this exact start time so no (staff, room)
+    // assignment remains possible, regardless of room capacity.
+    await createBooking({
+      serviceId: service.id,
+      startAt: blockedStart,
+      staffUserId: owner.id,
+      roomId: rooms[0]!.id,
+      client: { name: "Blocker One", phone: freshPhone() },
+      channel: "FRONT_DESK",
+    });
+    await createBooking({
+      serviceId: service.id,
+      startAt: blockedStart,
+      staffUserId: specialist.id,
+      roomId: rooms[1]!.id,
+      client: { name: "Blocker Two", phone: freshPhone() },
+      channel: "FRONT_DESK",
+    });
+
+    const after = await getServiceSlots(service.id, DATE);
+    expect(after.some((s) => s.startAt.getTime() === blockedStart.getTime())).toBe(false);
+    // Other times on the same day remain bookable.
+    expect(after.length).toBeGreaterThan(0);
+  });
+});
+
+describe("lifecycle", () => {
+  async function makeBooking(startMin: number) {
+    const service = await getUnGatedService();
+    return createBooking({
+      serviceId: service.id,
+      startAt: centerLocalToUtc(DATE, startMin),
+      client: { name: "Lifecycle Client", phone: freshPhone() },
+      channel: "ONLINE",
+    });
+  }
+
+  it("checkIn then complete works", async () => {
+    const booking = await makeBooking(1020); // 17:00 Riyadh, well past the exhausted 15:00 slot above
+    const checkedIn = await checkIn(booking.id);
+    expect(checkedIn.status).toBe("CHECKED_IN");
+    const ci = await prisma.checkIn.findUnique({ where: { bookingId: booking.id } });
+    expect(ci).not.toBeNull();
+
+    const completed = await complete(booking.id);
+    expect(completed.status).toBe("COMPLETED");
+  });
+
+  it("cancel on a confirmed booking works", async () => {
+    const booking = await makeBooking(630 + 15 * 21);
+    const cancelled = await cancel(booking.id);
+    expect(cancelled.status).toBe("CANCELLED");
+  });
+
+  it("throws on an invalid transition: completing an already-cancelled booking", async () => {
+    const booking = await makeBooking(630 + 15 * 22);
+    await cancel(booking.id);
+    await expect(complete(booking.id)).rejects.toThrow();
+  });
+
+  it("markNoShow works from CONFIRMED", async () => {
+    const booking = await makeBooking(630 + 15 * 23);
+    const noShow = await markNoShow(booking.id);
+    expect(noShow.status).toBe("NO_SHOW");
+  });
+
+  it("confirmBooking rejects a booking that is not REQUESTED (createBooking starts it as CONFIRMED)", async () => {
+    const service = await getUnGatedService();
+    const specialist = await getSpecialist();
+    const rooms = await getRooms();
+    // Explicit staff+room (specialist + the high-capacity Recovery Lounge) at
+    // the very last valid start of the staff window, so this can't collide
+    // with the auto-resolved or owner-explicit bookings other tests make.
+    const booking = await createBooking({
+      serviceId: service.id,
+      startAt: centerLocalToUtc(DATE, 1155),
+      staffUserId: specialist.id,
+      roomId: rooms[2]!.id,
+      client: { name: "Confirm Guard Client", phone: freshPhone() },
+      channel: "ONLINE",
+    });
+    expect(booking.status).toBe("CONFIRMED");
+    await expect(confirmBooking(booking.id)).rejects.toThrow(/confirm/i);
+  });
+
+  it("reschedule frees the old slot and takes the new one", async () => {
+    const service = await getUnGatedService();
+    const owner = await getOwner();
+    const rooms = await getRooms();
+    // Gap between old and new start must be >= the service duration (45 min)
+    // so the moved appointment's window no longer overlaps the freed slot.
+    const oldStart = centerLocalToUtc(DATE, 1080);
+    const newStart = centerLocalToUtc(DATE, 1140);
+
+    const booking = await createBooking({
+      serviceId: service.id,
+      startAt: oldStart,
+      staffUserId: owner.id,
+      roomId: rooms[0]!.id,
+      client: { name: "Reschedule Client", phone: freshPhone() },
+      channel: "FRONT_DESK",
+    });
+
+    const rescheduled = await reschedule(booking.id, newStart, owner.id, rooms[0]!.id);
+    const appt = rescheduled.appointments[0]!;
+    expect(appt.startAt.getTime()).toBe(newStart.getTime());
+
+    // The old slot is free again: booking another client into it at the same
+    // staff+room should now succeed.
+    const another = await createBooking({
+      serviceId: service.id,
+      startAt: oldStart,
+      staffUserId: owner.id,
+      roomId: rooms[0]!.id,
+      client: { name: "Takes Old Slot", phone: freshPhone() },
+      channel: "FRONT_DESK",
+    });
+    expect(another.appointments[0]!.startAt.getTime()).toBe(oldStart.getTime());
+
+    // And the new slot is now genuinely taken.
+    await expect(
+      createBooking({
+        serviceId: service.id,
+        startAt: newStart,
+        staffUserId: owner.id,
+        roomId: rooms[0]!.id,
+        client: { name: "Blocked From New Slot", phone: freshPhone() },
+        channel: "FRONT_DESK",
+      }),
+    ).rejects.toThrow();
+  });
+});
+
+describe("listBookings / getBooking", () => {
+  // A separate Sunday, entirely decoupled from the other describe blocks'
+  // bookings, so this test's date-scoped list assertion can't be affected
+  // by (or accidentally affect) their appointments.
+  const LIST_DATE = "2026-09-20";
+
+  it("lists bookings filtered by date and finds one by id", async () => {
+    const service = await getUnGatedService();
+    const phone = freshPhone();
+    const startAt = centerLocalToUtc(LIST_DATE, 600);
+    const created = await createBooking({
+      serviceId: service.id,
+      startAt,
+      client: { name: "List Client", phone },
+      channel: "ONLINE",
+    });
+
+    const fetched = await getBooking(created.id);
+    expect(fetched?.id).toBe(created.id);
+
+    const listed = await listBookings({ date: LIST_DATE });
+    expect(listed.some((b) => b.id === created.id)).toBe(true);
+  });
+});
