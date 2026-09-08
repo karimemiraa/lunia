@@ -103,6 +103,7 @@ model ClientProfile {
   createdAt     DateTime          @default(now())
   membership    ClientMembership?
   bookings      Booking[]
+  visitNotes    VisitNote[]
 }
 
 model ClientMembership {
@@ -310,6 +311,8 @@ model Booking {
   updatedAt       DateTime       @default(now()) @updatedAt
   appointments    Appointment[]
   checkIn         CheckIn?
+
+  @@index([createdAt])
 }
 
 model Appointment {
@@ -370,4 +373,64 @@ model CommunicationLog {
 
   @@index([toPhone])
   @@index([bookingId])
+}
+
+// Free-text clinical/CRM notes attached to a client, optionally tied to the
+// booking/visit they were written during. bookingId/authorUserId are kept as
+// soft String refs (no hard FK) since notes should survive a booking being
+// deleted or a staff user being deactivated — only the client relation
+// cascades.
+model VisitNote {
+  id              String        @id @default(cuid())
+  clientProfileId String
+  client          ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  bookingId       String?
+  authorUserId    String
+  body            String        @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now()) @updatedAt
+
+  @@index([clientProfileId])
+}
+
+// Monthly ad spend per channel, used to compute CAC alongside sourceChannel
+// on ClientProfile/Booking. periodMonth is a "YYYY-MM" string.
+model CampaignSpend {
+  id          String   @id @default(cuid())
+  channel     String
+  periodMonth String
+  amountMinor Int
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@unique([channel, periodMonth])
+}
+
+// One row per page load, written by client-side analytics beaconing.
+model PageView {
+  id           String   @id @default(cuid())
+  path         String
+  locale       String?
+  referrerHost String?
+  source       String?
+  sessionId    String
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path])
+  @@index([source])
+}
+
+// Generic funnel/interaction events (e.g. "booking_started",
+// "booking_completed"), written by client-side analytics beaconing.
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  name      String
+  path      String?
+  sessionId String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([name])
 }
