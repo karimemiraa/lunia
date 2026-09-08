@@ -12,7 +12,18 @@ export async function createSession(userId: string): Promise<string> {
 
 export async function getSession(token: string): Promise<{ userId: string } | null> {
   const raw = await getRedis().get(keyFor(token));
-  return raw ? (JSON.parse(raw) as { userId: string }) : null;
+  if (raw === null) return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === "object" && typeof (parsed as { userId?: unknown }).userId === "string") {
+      return { userId: (parsed as { userId: string }).userId };
+    }
+  } catch {
+    // fall through to cleanup
+  }
+  // Corrupt or malformed value: drop it so it stops causing errors, treat as logged-out.
+  await getRedis().del(keyFor(token));
+  return null;
 }
 
 export async function destroySession(token: string): Promise<void> {
