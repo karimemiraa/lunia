@@ -20,6 +20,8 @@ describe("getSession hardening", () => {
     const token = "corrupt-token-shape";
     await getRedis().set(`session:${token}`, JSON.stringify({ nope: 1 }), "EX", 60);
     expect(await getSession(token)).toBeNull();
+    // getSession must have deleted the malformed value, same as the non-JSON case.
+    expect(await getRedis().get(`session:${token}`)).toBeNull();
     await destroySession(token);
   });
 
