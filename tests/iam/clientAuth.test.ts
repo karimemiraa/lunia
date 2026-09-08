@@ -51,6 +51,18 @@ describe("clientAuth", () => {
     expect(record.code).toBe(devCode);
   });
 
+  it("does not persist the OTP code in the CommunicationLog body (redacted)", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+
+    const { devCode } = await requestOtp(phone);
+    const logs = await prisma.communicationLog.findMany({ where: { toPhone: phone, kind: "OTP" } });
+    expect(logs.length).toBeGreaterThanOrEqual(1);
+    for (const log of logs) {
+      expect(log.body).not.toContain(devCode as string);
+    }
+  });
+
   it("throws when requestOtp is called beyond the hourly rate limit", async () => {
     const phone = uniquePhone();
     usedPhones.push(phone);
@@ -202,7 +214,9 @@ describe("clientAuth", () => {
     expect(logs).toHaveLength(1);
     expect(logs[0].channel).toBe("sms");
     expect(logs[0].status).toBe("SENT");
-    expect(logs[0].body).toContain(devCode);
+    // The stored audit body is redacted: it records that an OTP was sent but
+    // never the code itself (the real code went to the user's phone).
+    expect(logs[0].body).not.toContain(devCode as string);
   });
 
   it("requestOtp sends the code via an injected SMS sender (production-simulated) using the requested locale's template, and logs it SENT", async () => {
