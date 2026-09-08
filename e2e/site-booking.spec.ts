@@ -15,12 +15,36 @@ function isSunToThu(dateISO: string): boolean {
   return weekday >= 0 && weekday <= 4;
 }
 
+// This project's three booking-flow e2e specs (this file,
+// site-account.spec.ts, admin-calendar.spec.ts) all drive the same seeded
+// services/staff/rooms, and Playwright runs different spec files in
+// parallel workers by default -- so without care, two files could land a
+// booking on the same date and race for the same handful of staff+room+time
+// slots. Since bookings.ts now runs its create transaction at SERIALIZABLE
+// isolation (see bookings.ts's createBooking, Stage 4 C1 fix), a genuine
+// race there surfaces as a real "that time was just taken" failure instead
+// of silently double-booking. Each spec/test in that trio is pinned to its
+// own dedicated weekday, so they can never contend for the same day's
+// slots regardless of how many workers run them concurrently or how many
+// times the suite is re-run. This file claims Thursday; the wizard only
+// renders the next 14 days, so the *farthest* Thursday within that window
+// is preferred (falling back to any other open day only if that Thursday
+// is unexpectedly fully booked).
+const TARGET_WEEKDAY = 4; // Thursday
+
 async function selectFirstOpenSlot(page: Page) {
   const dayButtons = page.locator("button[data-date]");
   await expect(dayButtons.first()).toBeVisible();
   const dateAttrs = await dayButtons.evaluateAll((els) => els.map((el) => el.getAttribute("data-date")));
-  const candidateDates = dateAttrs.filter((d): d is string => !!d && isSunToThu(d));
-  expect(candidateDates.length).toBeGreaterThan(0);
+  const allOpenDates = dateAttrs.filter((d): d is string => !!d && isSunToThu(d));
+  expect(allOpenDates.length).toBeGreaterThan(0);
+
+  const targetDates = allOpenDates
+    .filter((d) => new Date(`${d}T12:00:00Z`).getUTCDay() === TARGET_WEEKDAY)
+    .sort()
+    .reverse();
+  const otherDates = allOpenDates.filter((d) => !targetDates.includes(d));
+  const candidateDates = [...targetDates, ...otherDates];
 
   for (const dateISO of candidateDates) {
     await page.locator(`button[data-date="${dateISO}"]`).click();
@@ -39,6 +63,14 @@ async function selectFirstOpenSlot(page: Page) {
     }
   }
   throw new Error("No open slot found among the rendered Sun-Thu dates");
+}
+
+// Timestamp + a random suffix: two tests (possibly in different parallel
+// workers/files) starting in the same millisecond would otherwise be able
+// to generate the identical phone number.
+function uniquePhone(prefix: string): string {
+  const rand = Math.floor(100 + Math.random() * 900);
+  return `${prefix}${Date.now().toString().slice(-8)}${rand}`;
 }
 
 test.describe("public booking flow", () => {
@@ -64,9 +96,9 @@ test.describe("public booking flow", () => {
 
     // Step 3: contact details + OTP.
     await expect(page.getByTestId("booking-step-contact")).toBeVisible();
-    const uniquePhone = `+9665${Date.now().toString().slice(-8)}`;
+    const phone = uniquePhone("+9665");
     await page.getByLabel("Full name").fill("Sarah Booking Test");
-    await page.getByLabel("Phone number").fill(uniquePhone);
+    await page.getByLabel("Phone number").fill(phone);
     await page.getByRole("button", { name: "Send verification code" }).click();
 
     const devCodeEl = page.getByTestId("dev-otp-code");

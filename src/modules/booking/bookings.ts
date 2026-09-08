@@ -5,7 +5,8 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import type { Booking, BookingStatus, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import type { Booking, BookingStatus } from "@prisma/client";
 import {
   computeSlots,
   centerLocalToUtc,
@@ -77,7 +78,7 @@ export async function getServiceSlots(
     select: { staffUserId: true, roomId: true, startAt: true, endAt: true },
   });
 
-  return computeSlots({
+  const slots = computeSlots({
     date: dateISO,
     durationMin: service.durationMin,
     staffSchedules,
@@ -85,6 +86,15 @@ export async function getServiceSlots(
     existingAppointments,
     businessHours,
   });
+
+  // The availability engine (availability.ts) is pure and knows nothing
+  // about "now" -- it happily returns a slot for 09:00 today even at
+  // 14:00. Drop any slot that has already started/passed here, at the
+  // DB-facing layer, so a client can never be offered (or book) a past
+  // time. Future days are entirely unaffected since every slot on them is
+  // already in the future.
+  const now = new Date();
+  return slots.filter((slot) => slot.startAt.getTime() > now.getTime());
 }
 
 const clientInputSchema = z.object({
@@ -208,6 +218,91 @@ async function assertSlotStillFree(
   }
 }
 
+// Postgres' codes for "could not serialize access due to concurrent update"
+// (40001) and "deadlock detected" (40P01) -- both transient, safe-to-retry
+// conditions under SERIALIZABLE isolation. Prisma 7's driver-adapter
+// architecture wraps these as a `DriverAdapterError` (name
+// "DriverAdapterError", message "TransactionWriteConflict") with the actual
+// Postgres SQLSTATE nested under `err.cause.originalCode` -- NOT as the
+// `PrismaClientKnownRequestError` code "P2034" the classic Prisma engine
+// used to surface (also checked below, for older/other Prisma error
+// surfaces). `err.cause` is a plain object here, not a typed Prisma export,
+// so it's read structurally rather than via `instanceof`.
+const SERIALIZATION_FAILURE_CODE = "P2034";
+const POSTGRES_SERIALIZATION_FAILURE = "40001";
+const POSTGRES_DEADLOCK_DETECTED = "40P01";
+const MAX_SERIALIZABLE_ATTEMPTS = 5;
+
+function isSerializationFailure(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === SERIALIZATION_FAILURE_CODE) {
+    return true;
+  }
+  if (!(err instanceof Error)) return false;
+  if (err.message.includes("could not serialize") || err.message.includes("deadlock detected")) {
+    return true;
+  }
+  const cause = (err as { cause?: unknown }).cause;
+  if (cause && typeof cause === "object") {
+    const c = cause as Record<string, unknown>;
+    if (c.originalCode === POSTGRES_SERIALIZATION_FAILURE || c.originalCode === POSTGRES_DEADLOCK_DETECTED) {
+      return true;
+    }
+    if (c.kind === "TransactionWriteConflict") return true;
+    if (
+      typeof c.originalMessage === "string" &&
+      (c.originalMessage.includes("could not serialize") || c.originalMessage.includes("deadlock detected"))
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Runs `fn` inside a SERIALIZABLE transaction, retrying it (up to
+// MAX_SERIALIZABLE_ATTEMPTS times) whenever Postgres aborts it with a
+// serialization failure. Under READ COMMITTED (Prisma/Postgres' default),
+// two concurrent create/reschedule transactions can each pass
+// assertSlotStillFree's re-check before either commits, double-booking the
+// slot. SERIALIZABLE makes Postgres detect that race and abort one side
+// instead -- this helper turns that abort into a transparent retry rather
+// than a surprise error, so the caller only ever sees either a clean
+// success or (if every retry also loses the race, or the abort keeps
+// recurring) the underlying error re-thrown after the last attempt.
+//
+// A *logical* conflict -- assertSlotStillFree seeing an already-committed
+// overlapping appointment and throwing "That time was just taken" -- is a
+// plain Error, not a serialization failure, and is never retried: it
+// propagates immediately so the caller gets the real conflict message.
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function runSerializableTransaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_SERIALIZABLE_ATTEMPTS; attempt++) {
+    try {
+      return await prisma.$transaction(fn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (err) {
+      if (!isSerializationFailure(err)) {
+        throw err;
+      }
+      lastError = err;
+      // A short, jittered backoff before retrying: under heavy concurrent
+      // load (many simultaneous SERIALIZABLE transactions touching the
+      // Booking/Appointment tables), Postgres can abort several attempts
+      // in a row even between transactions that aren't really contending
+      // for the same slot. Backing off briefly -- instead of retrying in a
+      // tight loop -- gives the colliding transaction(s) a chance to
+      // commit/abort and reduces the odds of every attempt losing the race.
+      if (attempt < MAX_SERIALIZABLE_ATTEMPTS) {
+        const backoffMs = 10 * 2 ** (attempt - 1) + Math.floor(Math.random() * 10);
+        await sleep(backoffMs);
+      }
+    }
+  }
+  throw lastError;
+}
+
 // Creates a booking end-to-end:
 //  1. Validates the service (published; ONLINE additionally requires
 //     onlineBookable and not inCenterOnly).
@@ -220,6 +315,9 @@ async function assertSlotStillFree(
 export async function createBooking(input: CreateBookingInput): Promise<BookingWithAppointments> {
   const data = createBookingSchema.parse(input);
   const startAt = coerceDate(data.startAt, "startAt");
+  if (startAt.getTime() <= Date.now()) {
+    throw new Error("That time is in the past");
+  }
 
   const service = await prisma.service.findUnique({ where: { id: data.serviceId } });
   if (!service) {
@@ -246,7 +344,7 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
 
   const resolved = await resolveStaffAndRoom(service.id, startAt, data.staffUserId, data.roomId);
 
-  const booking = await prisma.$transaction(async (tx) => {
+  const booking = await runSerializableTransaction(async (tx) => {
     await assertSlotStillFree(tx, { ...resolved, startAt, endAt });
 
     return tx.booking.create({
@@ -273,7 +371,8 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
   });
 
   const now = new Date();
-  await Promise.all([
+  const reminderSendAt = new Date(startAt.getTime() - 24 * 60 * 60 * 1000);
+  const messagesToSchedule = [
     scheduleMessage({
       bookingId: booking.id,
       kind: "CONFIRMATION",
@@ -284,21 +383,31 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
     }),
     scheduleMessage({
       bookingId: booking.id,
-      kind: "REMINDER_24H",
-      toPhone: data.client.phone,
-      locale: data.locale,
-      sendAt: new Date(startAt.getTime() - 24 * 60 * 60 * 1000),
-      payload: { bookingId: booking.id, serviceId: service.id },
-    }),
-    scheduleMessage({
-      bookingId: booking.id,
       kind: "POST_VISIT",
       toPhone: data.client.phone,
       locale: data.locale,
       sendAt: new Date(endAt.getTime() + 2 * 60 * 60 * 1000),
       payload: { bookingId: booking.id, serviceId: service.id },
     }),
-  ]);
+  ];
+  // Only schedule the 24h-ahead reminder when it would actually land in the
+  // future: a booking made within 24h of its own appointment (e.g. a
+  // walk-in booked 2h out) would otherwise get a REMINDER_24H whose sendAt
+  // is already in the past, which processDueMessages would fire off
+  // immediately/late and confuse the client.
+  if (reminderSendAt.getTime() > now.getTime()) {
+    messagesToSchedule.push(
+      scheduleMessage({
+        bookingId: booking.id,
+        kind: "REMINDER_24H",
+        toPhone: data.client.phone,
+        locale: data.locale,
+        sendAt: reminderSendAt,
+        payload: { bookingId: booking.id, serviceId: service.id },
+      }),
+    );
+  }
+  await Promise.all(messagesToSchedule);
 
   return booking;
 }
@@ -508,6 +617,9 @@ export async function reschedule(
   roomId?: string,
 ): Promise<BookingWithAppointments> {
   const startAt = coerceDate(newStartAt, "newStartAt");
+  if (startAt.getTime() <= Date.now()) {
+    throw new Error("That time is in the past");
+  }
 
   const booking = await getBookingOrThrow(bookingId);
   if (booking.status === "COMPLETED" || booking.status === "CANCELLED" || booking.status === "NO_SHOW") {
@@ -522,7 +634,7 @@ export async function reschedule(
   const endAt = new Date(startAt.getTime() + service.durationMin * 60_000);
   const resolved = await resolveStaffAndRoom(service.id, startAt, staffUserId, roomId, appointment.id);
 
-  await prisma.$transaction(async (tx) => {
+  await runSerializableTransaction(async (tx) => {
     await assertSlotStillFree(tx, { ...resolved, startAt, endAt, excludeAppointmentId: appointment.id });
     await tx.appointment.update({
       where: { id: appointment.id },

@@ -1,17 +1,46 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// Selects a service-1 slot that starts at least `minHours` from now, trying
-// each rendered day button in turn and reading each slot's real
-// `data-slot-time` ISO timestamp rather than assuming anything about the
-// seeded schedule or the time of day the suite happens to run at. This lets
-// the account e2e test create a booking guaranteed to be well outside the
-// 24h cancellation window, regardless of when/where it runs.
-async function selectSlotAtLeastHoursAhead(page: Page, minHours: number): Promise<string> {
+// This project's three booking-flow e2e specs (site-booking.spec.ts, this
+// file, admin-calendar.spec.ts) all drive the same seeded
+// services/staff/rooms, and Playwright runs different spec files in
+// parallel workers by default -- so without care, two files could land a
+// booking on the same date and race for the same handful of staff+room+time
+// slots. Since bookings.ts now runs its create transaction at SERIALIZABLE
+// isolation (see bookings.ts's createBooking, Stage 4 C1 fix), a genuine
+// race there surfaces as a real "that time was just taken" failure instead
+// of silently double-booking. Each spec/test in that trio is pinned to its
+// own dedicated weekday, so they can never contend for the same day's
+// slots regardless of how many workers run them concurrently or how many
+// times the suite is re-run. The public wizard only renders the next 14
+// days, so the *farthest* occurrence of the dedicated weekday within that
+// window is preferred (falling back to any other open day, still meeting
+// the `minHours` floor, only if that day is unexpectedly fully booked).
+// This file's two booking tests (en, ar) each claim their own weekday so
+// they can't contend with each other either, even though they run
+// sequentially within this file.
+const EN_TEST_WEEKDAY = 3; // Wednesday
+const AR_TEST_WEEKDAY = 2; // Tuesday
+
+// Selects a service-1 slot that starts at least `minHours` from now,
+// preferring the farthest occurrence of `preferredWeekday` among the
+// rendered day buttons and reading each slot's real `data-slot-time` ISO
+// timestamp rather than assuming anything about the seeded schedule or the
+// time of day the suite happens to run at. This lets the account e2e test
+// create a booking guaranteed to be well outside the 24h cancellation
+// window, regardless of when/where it runs.
+async function selectSlotAtLeastHoursAhead(page: Page, minHours: number, preferredWeekday: number): Promise<string> {
   const dayButtons = page.locator("button[data-date]");
   await expect(dayButtons.first()).toBeVisible();
   const dateAttrs = await dayButtons.evaluateAll((els) => els.map((el) => el.getAttribute("data-date")));
-  const candidateDates = dateAttrs.filter((d): d is string => !!d);
-  expect(candidateDates.length).toBeGreaterThan(0);
+  const allDates = dateAttrs.filter((d): d is string => !!d);
+  expect(allDates.length).toBeGreaterThan(0);
+
+  const preferredDates = allDates
+    .filter((d) => new Date(`${d}T12:00:00Z`).getUTCDay() === preferredWeekday)
+    .sort()
+    .reverse();
+  const otherDates = allDates.filter((d) => !preferredDates.includes(d));
+  const candidateDates = [...preferredDates, ...otherDates];
 
   for (const dateISO of candidateDates) {
     await page.locator(`button[data-date="${dateISO}"]`).click();
@@ -42,10 +71,19 @@ async function selectSlotAtLeastHoursAhead(page: Page, minHours: number): Promis
   throw new Error(`No open slot found at least ${minHours}h ahead across the rendered dates`);
 }
 
+// Timestamp + a random suffix: two tests (possibly in different parallel
+// workers/files) starting in the same millisecond would otherwise be able
+// to generate the identical phone number.
+function uniquePhone(prefix: string): string {
+  const rand = Math.floor(100 + Math.random() * 900);
+  return `${prefix}${Date.now().toString().slice(-8)}${rand}`;
+}
+
 // Books an appointment for `phone` at least 30h out (comfortably clear of
-// the 24h cancellation cutoff) via the public wizard, verifying by the
-// dev-mode OTP code. Ends on the wizard's success screen.
-async function bookFarOutAppointment(page: Page, phone: string) {
+// the 24h cancellation cutoff) via the public wizard, on `preferredWeekday`
+// where possible (see EN_TEST_WEEKDAY/AR_TEST_WEEKDAY above), verifying by
+// the dev-mode OTP code. Ends on the wizard's success screen.
+async function bookFarOutAppointment(page: Page, phone: string, preferredWeekday: number) {
   await page.goto("/en/book");
 
   const firstService = page.locator("button[data-service-id]").first();
@@ -53,7 +91,7 @@ async function bookFarOutAppointment(page: Page, phone: string) {
   await firstService.click();
 
   await expect(page.getByTestId("booking-step-datetime")).toBeVisible();
-  await selectSlotAtLeastHoursAhead(page, 30);
+  await selectSlotAtLeastHoursAhead(page, 30, preferredWeekday);
   await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(page.getByTestId("booking-step-contact")).toBeVisible();
@@ -90,9 +128,9 @@ async function loginAtAccountPage(page: Page, locale: "en" | "ar", phone: string
 
 test.describe("client account area", () => {
   test("en: book a far-out appointment, sign in by OTP, see it, then cancel it", async ({ page }) => {
-    const uniquePhone = `+9665${Date.now().toString().slice(-8)}`;
+    const phone = uniquePhone("+9665");
 
-    await bookFarOutAppointment(page, uniquePhone);
+    await bookFarOutAppointment(page, phone, EN_TEST_WEEKDAY);
 
     // The booking wizard signs the client in as a side effect of confirming
     // (see book/actions.ts verifyAndBook) — clear that cookie so the
@@ -100,7 +138,7 @@ test.describe("client account area", () => {
     // flow rather than riding on an already-set session.
     await page.context().clearCookies();
 
-    await loginAtAccountPage(page, "en", uniquePhone);
+    await loginAtAccountPage(page, "en", phone);
 
     const h1 = page.getByRole("heading", { level: 1 });
     await expect(h1).toBeVisible();
@@ -147,16 +185,16 @@ test.describe("client account area (ar spot-check)", () => {
   });
 
   test("ar: sign in by OTP and see the account page", async ({ page }) => {
-    const uniquePhone = `+9666${Date.now().toString().slice(-8)}`;
+    const phone = uniquePhone("+9666");
 
     // Seed a booking for this phone via the (English) wizard — the wizard
     // itself is already covered end-to-end in site-booking.spec.ts, so this
     // spot-check only needs *a* booking to exist for the phone, not to
     // re-verify the wizard's own bilingual behavior.
-    await bookFarOutAppointment(page, uniquePhone);
+    await bookFarOutAppointment(page, phone, AR_TEST_WEEKDAY);
     await page.context().clearCookies();
 
-    await loginAtAccountPage(page, "ar", uniquePhone);
+    await loginAtAccountPage(page, "ar", phone);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
 
     const h1 = page.getByRole("heading", { level: 1 });

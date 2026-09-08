@@ -24,11 +24,33 @@ function toCenterDateISO(date: Date): string {
   );
 }
 
-// Picks the first available walk-in slot, trying the form's default date
-// first and then walking forward through the next open (Sun-Thu) days if
-// today has no slots left (or isn't a business day). Returns the date that
-// was actually booked, since it may differ from the day the calendar page
-// happened to be showing.
+// This project's three booking-flow e2e specs (site-booking.spec.ts,
+// site-account.spec.ts, this file) all drive the same seeded
+// services/staff/rooms, and Playwright runs different spec files in
+// parallel workers by default -- so without care, two files could land a
+// booking on the same date and race for the same handful of staff+room+time
+// slots. Since bookings.ts now runs its create transaction at SERIALIZABLE
+// isolation (see bookings.ts's createBooking, Stage 4 C1 fix), a genuine
+// race there surfaces as a real "that time was just taken" failure instead
+// of silently double-booking. Unlike the public wizard (capped to the next
+// 14 rendered days), the walk-in form's date input takes any date directly,
+// so this spec claims a genuinely far-future day -- well clear of the
+// 14-day window the other two specs pick from -- eliminating any chance of
+// contention with them.
+const FAR_FUTURE_DAYS_OUT = 60;
+
+function farFutureOpenDate(daysOut: number): string {
+  const now = new Date();
+  for (let i = daysOut; ; i++) {
+    const candidate = toCenterDateISO(new Date(now.getTime() + i * 86_400_000));
+    if (isSunToThu(candidate)) return candidate;
+  }
+}
+
+// Picks an available walk-in slot on a dedicated far-future date (see
+// FAR_FUTURE_DAYS_OUT above), falling back to a handful of subsequent open
+// days only in the unlikely event that date is already fully booked.
+// Returns the date that was actually booked.
 async function pickFirstOpenWalkInSlot(walkInForm: Locator): Promise<string> {
   const dateInput = walkInForm.locator('input[type="date"]');
   const slotButton = walkInForm.locator("[data-slot-time]").first();
@@ -42,14 +64,15 @@ async function pickFirstOpenWalkInSlot(walkInForm: Locator): Promise<string> {
     return (await slotButton.count()) > 0;
   }
 
+  const targetDate = farFutureOpenDate(FAR_FUTURE_DAYS_OUT);
+  await dateInput.fill(targetDate);
   if (await slotIsAvailable()) {
     await slotButton.click();
-    return dateInput.inputValue();
+    return targetDate;
   }
 
-  const now = new Date();
   for (let i = 1; i <= 8; i++) {
-    const candidate = toCenterDateISO(new Date(now.getTime() + i * 86_400_000));
+    const candidate = toCenterDateISO(new Date(Date.now() + (FAR_FUTURE_DAYS_OUT + i) * 86_400_000));
     if (!isSunToThu(candidate)) continue;
     await dateInput.fill(candidate);
     if (await slotIsAvailable()) {
@@ -57,7 +80,7 @@ async function pickFirstOpenWalkInSlot(walkInForm: Locator): Promise<string> {
       return candidate;
     }
   }
-  throw new Error("No open walk-in slot found in the next 8 days");
+  throw new Error(`No open walk-in slot found near ${FAR_FUTURE_DAYS_OUT} days out`);
 }
 
 test("staff calendar: front-desk walk-in booking, check-in, and complete", async ({ page }) => {
@@ -72,8 +95,12 @@ test("staff calendar: front-desk walk-in booking, check-in, and complete", async
   const bookedDate = await pickFirstOpenWalkInSlot(walkInForm);
 
   const stamp = Date.now();
+  const rand = Math.floor(100 + Math.random() * 900);
   const clientName = `E2E Walk-in Client ${stamp}`;
-  const uniquePhone = `+9665${stamp.toString().slice(-8)}`;
+  // Timestamp + a random suffix: two tests (possibly in different parallel
+  // workers/files) starting in the same millisecond would otherwise be able
+  // to generate the identical phone number.
+  const uniquePhone = `+9665${stamp.toString().slice(-8)}${rand}`;
 
   await walkInForm.getByLabel("Client name").fill(clientName);
   await walkInForm.getByLabel("Client phone").fill(uniquePhone);

@@ -1,6 +1,6 @@
-import { describe, it, expect, afterAll } from "vitest";
+import { describe, it, expect, afterAll, vi } from "vitest";
 import { prisma } from "@/lib/db";
-import { centerLocalToUtc } from "@/modules/booking/availability";
+import { centerLocalToUtc, utcToCenterLocal } from "@/modules/booking/availability";
 import { requestOtp, verifyOtp } from "@/modules/iam/clientAuth";
 import {
   getServiceSlots,
@@ -66,6 +66,29 @@ async function getSpecialist() {
 async function getRooms() {
   const rooms = await prisma.room.findMany({ where: { isActive: true }, orderBy: { order: "asc" } });
   return rooms;
+}
+
+// Finds a genuinely free (per getServiceSlots -- which already excludes
+// whatever's already booked) slot whose "hours from now" falls in
+// [minHoursAhead, maxHoursAhead], scanning forward a few center-local days.
+// Used instead of a hardcoded staff+time offset because this suite runs
+// against a persistent dev database that can already carry a dense set of
+// appointments for the seeded staff near the real current time (e.g. from
+// earlier e2e runs) -- a fixed "now + Nh" for a fixed staff member is not
+// reliably free.
+async function findFreeSlotWithinHours(serviceId: string, minHoursAhead: number, maxHoursAhead: number) {
+  const now = Date.now();
+  for (let dayOffset = 0; dayOffset < 8; dayOffset++) {
+    const dateISO = utcToCenterLocal(new Date(now + dayOffset * 86_400_000)).dateISO;
+    const slots = await getServiceSlots(serviceId, dateISO);
+    for (const slot of slots) {
+      const hoursAhead = (slot.startAt.getTime() - now) / (60 * 60 * 1000);
+      if (hoursAhead >= minHoursAhead && hoursAhead <= maxHoursAhead) {
+        return slot;
+      }
+    }
+  }
+  throw new Error(`No free slot found between ${minHoursAhead}h and ${maxHoursAhead}h ahead`);
 }
 
 describe("createBooking", () => {
@@ -416,6 +439,149 @@ describe("lifecycle", () => {
     const appt = rescheduled.appointments[0]!;
     expect(appt.startAt.getTime()).toBe(newStart.getTime());
     expect(appt.endAt.getTime()).toBe(newStart.getTime() + service.durationMin * 60_000);
+  });
+});
+
+describe("createBooking concurrency (C1)", () => {
+  // A dedicated Sunday+time, untouched by every other describe block in
+  // this file. Deliberately kept close to "today" (rather than far in the
+  // future, like most of this file's other fixed dates) -- e2e/
+  // admin-calendar.spec.ts books a walk-in appointment on a genuinely
+  // far-future date (today + 60 days or more, see FAR_FUTURE_DAYS_OUT
+  // there), and a fixed date picked too far out here could eventually land
+  // on the exact same day as that floating target and collide with it.
+  const CONCURRENCY_DATE = "2026-09-13";
+
+  it("under two concurrent createBooking calls for the same staff+room+time, exactly one succeeds and exactly one Appointment is created", async () => {
+    const service = await getUnGatedService();
+    const owner = await getOwner();
+    const rooms = await getRooms();
+    const room = rooms[0]!;
+    const startAt = centerLocalToUtc(CONCURRENCY_DATE, 600);
+
+    const attempt = () =>
+      createBooking({
+        serviceId: service.id,
+        startAt,
+        staffUserId: owner.id,
+        roomId: room.id,
+        client: { name: "Concurrent Client", phone: freshPhone() },
+        channel: "FRONT_DESK",
+      });
+
+    const results = await Promise.allSettled([attempt(), attempt()]);
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r) => r.status === "rejected");
+
+    expect(fulfilled.length).toBe(1);
+    expect(rejected.length).toBe(1);
+
+    const appointments = await prisma.appointment.findMany({
+      where: { staffUserId: owner.id, startAt },
+    });
+    expect(appointments.length).toBe(1);
+  });
+});
+
+describe("past-time guards (I1)", () => {
+  it("getServiceSlots excludes already-past times for today but leaves future days unaffected", async () => {
+    const service = await getUnGatedService();
+    // Fix "now" to 14:00 center-local on a known open (Sunday) date, so
+    // slots earlier that same day (staff window opens 10:00) are provably
+    // in the past and slots later that day, and on the following (also
+    // open) day, are provably still in the future -- independent of
+    // whatever real-world weekday the test suite happens to run on.
+    const fixedDateISO = "2026-11-01"; // Sunday -- open
+    const nextDateISO = "2026-11-02"; // Monday -- also open
+    const fixedNow = centerLocalToUtc(fixedDateISO, 14 * 60); // 14:00 center-local
+
+    vi.useFakeTimers();
+    vi.setSystemTime(fixedNow);
+    try {
+      const todaySlots = await getServiceSlots(service.id, fixedDateISO);
+      expect(todaySlots.length).toBeGreaterThan(0);
+      for (const slot of todaySlots) {
+        expect(slot.startAt.getTime()).toBeGreaterThan(fixedNow.getTime());
+      }
+      const pastSlot = centerLocalToUtc(fixedDateISO, 600); // 10:00, before fixedNow
+      expect(todaySlots.some((s) => s.startAt.getTime() === pastSlot.getTime())).toBe(false);
+
+      // A future day is untouched by the past-time filter: its own
+      // (still-future) morning slot remains bookable.
+      const nextDaySlots = await getServiceSlots(service.id, nextDateISO);
+      const morningSlotNextDay = centerLocalToUtc(nextDateISO, 600);
+      expect(nextDaySlots.some((s) => s.startAt.getTime() === morningSlotNextDay.getTime())).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("createBooking rejects a startAt in the past", async () => {
+    const service = await getUnGatedService();
+    const pastStart = new Date(Date.now() - 60 * 60 * 1000);
+
+    await expect(
+      createBooking({
+        serviceId: service.id,
+        startAt: pastStart,
+        client: { name: "Past Client", phone: freshPhone() },
+        channel: "ONLINE",
+      }),
+    ).rejects.toThrow(/past/i);
+  });
+
+  it("reschedule rejects a newStartAt in the past", async () => {
+    const service = await getUnGatedService();
+    const booking = await createBooking({
+      serviceId: service.id,
+      startAt: centerLocalToUtc(DATE, 630 + 15 * 24),
+      client: { name: "Reschedule Past Guard Client", phone: freshPhone() },
+      channel: "ONLINE",
+    });
+
+    await expect(reschedule(booking.id, new Date(Date.now() - 60 * 60 * 1000))).rejects.toThrow(/past/i);
+  });
+});
+
+describe("REMINDER_24H scheduling (I3)", () => {
+  it("omits REMINDER_24H for a booking made within 24h of its appointment, but still schedules CONFIRMATION + POST_VISIT", async () => {
+    const service = await getUnGatedService();
+    // A genuinely free slot 1-20h out: comfortably short notice (sendAt =
+    // startAt-24h is already in the past) while leaving margin against the
+    // test's own execution time.
+    const slot = await findFreeSlotWithinHours(service.id, 1, 20);
+
+    const booking = await createBooking({
+      serviceId: service.id,
+      startAt: slot.startAt,
+      staffUserId: slot.staffUserId,
+      roomId: slot.roomId,
+      client: { name: "Short Notice Client", phone: freshPhone() },
+      channel: "FRONT_DESK",
+    });
+
+    const messages = await prisma.scheduledMessage.findMany({ where: { bookingId: booking.id } });
+    const kinds = messages.map((m) => m.kind).sort();
+    expect(kinds).toEqual(["CONFIRMATION", "POST_VISIT"]);
+  });
+
+  it("schedules all three messages, including REMINDER_24H, for a booking more than 24h out", async () => {
+    const service = await getUnGatedService();
+    // A genuinely free slot 30h+ out: comfortably past the 24h cutoff.
+    const slot = await findFreeSlotWithinHours(service.id, 30, 300);
+
+    const booking = await createBooking({
+      serviceId: service.id,
+      startAt: slot.startAt,
+      staffUserId: slot.staffUserId,
+      roomId: slot.roomId,
+      client: { name: "Plenty Of Notice Client", phone: freshPhone() },
+      channel: "FRONT_DESK",
+    });
+
+    const messages = await prisma.scheduledMessage.findMany({ where: { bookingId: booking.id } });
+    const kinds = messages.map((m) => m.kind).sort();
+    expect(kinds).toEqual(["CONFIRMATION", "POST_VISIT", "REMINDER_24H"]);
   });
 });
 

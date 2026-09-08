@@ -34,4 +34,32 @@ describe("rbac", () => {
       await prisma.user.delete({ where: { id: user.id } });
     }
   });
+
+  it("getCurrentUser returns null for a CLIENT user's session token, but resolves a STAFF (owner) session token", async () => {
+    // A client and a staff session share the exact same underlying Session
+    // mechanism (createSession/getSession), just stored under different
+    // cookie names (lunia_client_session vs lunia_session) -- so a client's
+    // token, if passed to getCurrentUser (the admin-side resolver), must
+    // NOT resolve to a user, or a client could satisfy requireAdmin().
+    const client = await prisma.user.create({
+      data: { type: "CLIENT", phone: `+9665${Date.now()}9999`, isActive: true },
+    });
+    const clientToken = await createSession(client.id);
+
+    const owner = await prisma.user.findFirstOrThrow({ where: { email: "owner@lunia.local" } });
+    const staffToken = await createSession(owner.id);
+
+    try {
+      const asClient = await getCurrentUser(clientToken);
+      expect(asClient).toBeNull();
+
+      const asStaff = await getCurrentUser(staffToken);
+      expect(asStaff).not.toBeNull();
+      expect(asStaff?.id).toBe(owner.id);
+    } finally {
+      await destroySession(clientToken);
+      await destroySession(staffToken);
+      await prisma.user.delete({ where: { id: client.id } });
+    }
+  });
 });
