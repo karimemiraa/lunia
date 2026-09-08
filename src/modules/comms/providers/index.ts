@@ -1,14 +1,17 @@
-// Provider adapter factory. TEMPORARY STAND-IN for Task 2: makeSender()
-// currently returns stubSender for every provider so that sender.ts's
-// *selection* logic (which provider to route to, based on CommsConfig) is
-// complete and testable now, without any real outbound HTTP calls. Task 3
-// replaces each branch's body with a real meta_whatsapp/twilio/unifonic
-// HTTP adapter behind the same CommsSender interface — nothing in
-// sender.ts or its callers needs to change when that happens.
+// Provider adapter factory. Builds the real fetch-based CommsSender for
+// whichever provider CommsConfig selects. sender.ts only calls this once its
+// own selection logic (production + configured) has decided a real provider
+// should be used; callers never invoke this for provider "none" or an
+// unconfigured provider, but each branch still falls back to stubSender if
+// its config sub-object is unexpectedly missing (defense in depth — the
+// exhaustiveness guard below only covers the outer provider union).
 
 import type { CommsSender } from "@/modules/booking/outbox";
 import { stubSender } from "@/modules/booking/outbox";
 import type { CommsConfig } from "@/modules/comms/config";
+import { makeMetaSender } from "@/modules/comms/providers/meta";
+import { makeTwilioSender } from "@/modules/comms/providers/twilio";
+import { makeUnifonicSender } from "@/modules/comms/providers/unifonic";
 
 // Exhaustiveness guard: CommsProvider is a closed union, so passing
 // anything but `never` here is a compile error — this makes an unhandled
@@ -26,14 +29,14 @@ function assertUnreachable(value: never): CommsSender {
 export function makeSender(config: CommsConfig): CommsSender {
   switch (config.provider) {
     case "meta_whatsapp":
-      // TODO(Task 3): real Meta WhatsApp Cloud API adapter using config.meta.
-      return stubSender;
+      if (!config.meta) return stubSender;
+      return makeMetaSender({ ...config.meta, from: config.from });
     case "twilio":
-      // TODO(Task 3): real Twilio adapter using config.twilio.
-      return stubSender;
+      if (!config.twilio) return stubSender;
+      return makeTwilioSender(config.twilio);
     case "unifonic":
-      // TODO(Task 3): real Unifonic adapter using config.unifonic.
-      return stubSender;
+      if (!config.unifonic) return stubSender;
+      return makeUnifonicSender(config.unifonic);
     case "none":
       return stubSender;
     default:
