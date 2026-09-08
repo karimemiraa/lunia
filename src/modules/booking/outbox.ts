@@ -10,6 +10,13 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { Prisma, ScheduledMessage } from "@prisma/client";
+import { getCommsConfig } from "@/modules/comms/config";
+// NOTE: comms/templates.ts imports renderMessageBody from this file, so this
+// is a circular import. Safe: both bindings are only referenced inside
+// function bodies (never at module-eval time), a standard safe cycle under
+// Node/Vite ESM. Keep it that way — a future top-level use of either import
+// here or in templates.ts would break at load time.
+import { renderTemplate } from "@/modules/comms/templates";
 
 const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT"]);
 export type MsgKind = z.infer<typeof msgKindSchema>;
@@ -97,6 +104,38 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
   }
 }
 
+// Maps the configured comms provider to the channel processDueMessages
+// renders/sends on. meta_whatsapp and twilio are WhatsApp-first providers;
+// unifonic is SMS-only. "none" (no provider configured, e.g. local dev/CI)
+// defaults to "whatsapp" -- harmless, since stubSender doesn't care and
+// renderTemplate/renderMessageBody render fine for either channel. A
+// twilio-configured-for-SMS nuance is out of scope here.
+function channelForProvider(provider: ReturnType<typeof getCommsConfig>["provider"]): string {
+  switch (provider) {
+    case "unifonic":
+      return "sms";
+    case "meta_whatsapp":
+    case "twilio":
+    case "none":
+    default:
+      return "whatsapp";
+  }
+}
+
+// Coerces a ScheduledMessage.payload (free-form JSON) into the
+// Record<string, string> shape renderTemplate's {{token}} interpolation
+// expects. Non-string values (numbers, booleans) are stringified; nullish
+// values are dropped so interpolate() falls back to "" for them, same as a
+// missing key.
+function payloadToParams(payload: Record<string, unknown>): Record<string, string> {
+  const params: Record<string, string> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (value === null || value === undefined) continue;
+    params[key] = typeof value === "string" ? value : String(value);
+  }
+  return params;
+}
+
 const DEFAULT_BATCH_SIZE = 100;
 
 // Fetches due (status=PENDING, sendAt<=now) ScheduledMessage rows in a
@@ -118,13 +157,18 @@ export async function processDueMessages(
 
   let sent = 0;
   let failed = 0;
+  const channel = channelForProvider(getCommsConfig().provider);
 
   for (const message of due) {
-    const payload = (message.payload ?? {}) as Record<string, unknown>;
-    const body = renderMessageBody(message.kind, message.locale, payload);
-    const channel = "whatsapp";
-
+    // Rendering does Prisma reads (template lookup), so keep it INSIDE the
+    // per-message try: a transient DB error while rendering one message must
+    // mark that message FAILED, not abort the whole batch.
+    let body = "";
     try {
+      const payload = (message.payload ?? {}) as Record<string, unknown>;
+      const params = payloadToParams(payload);
+      ({ body } = await renderTemplate(message.kind, message.locale, channel, params));
+
       const result = await sender.send({
         channel,
         toPhone: message.toPhone,

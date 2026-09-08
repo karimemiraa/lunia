@@ -1,0 +1,67 @@
+// Comms provider configuration. All of this is read from OPTIONAL env vars
+// (never from src/lib/env.ts's strict schema — comms creds are only needed
+// once a client actually wants real WhatsApp/SMS sending; local dev and CI
+// never set them). getCommsConfig() NEVER throws: an unset or malformed env
+// simply resolves to provider "none" / configured=false, which sender.ts
+// then maps to the logging-only stubSender.
+
+export type CommsProvider = "none" | "meta_whatsapp" | "twilio" | "unifonic";
+
+export interface CommsConfig {
+  provider: CommsProvider;
+  from?: string;
+  meta?: { token: string; phoneId: string };
+  twilio?: { accountSid: string; authToken: string; from: string };
+  unifonic?: { appSid: string; senderId: string };
+  configured: boolean;
+}
+
+// A minimal, injectable stand-in for process.env: any object mapping env
+// var names to (possibly undefined) strings. Using this instead of
+// NodeJS.ProcessEnv lets tests pass small partial objects (e.g. {}, or just
+// {COMMS_PROVIDER: "..."}) without satisfying process.env's full shape.
+export type EnvSource = Record<string, string | undefined>;
+
+const PROVIDER_VALUES: readonly CommsProvider[] = ["none", "meta_whatsapp", "twilio", "unifonic"];
+
+function isCommsProvider(value: string | undefined): value is CommsProvider {
+  return value !== undefined && (PROVIDER_VALUES as readonly string[]).includes(value);
+}
+
+// Trims to undefined for "", so a blank env var reads the same as an unset
+// one rather than as a present-but-empty credential.
+function nonEmpty(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+// Reads comms provider config from `env` (an injectable stand-in for
+// process.env, so tests never touch the real process.env). Unknown/unset
+// COMMS_PROVIDER falls back to "none". `configured` is true only when the
+// selected provider's full set of required creds is present.
+export function getCommsConfig(env: EnvSource = process.env): CommsConfig {
+  const rawProvider = nonEmpty(env.COMMS_PROVIDER);
+  const provider: CommsProvider = isCommsProvider(rawProvider) ? rawProvider : "none";
+  const from = nonEmpty(env.COMMS_FROM);
+
+  const metaToken = nonEmpty(env.META_WA_TOKEN);
+  const metaPhoneId = nonEmpty(env.META_WA_PHONE_ID);
+  const meta = metaToken && metaPhoneId ? { token: metaToken, phoneId: metaPhoneId } : undefined;
+
+  const twilioSid = nonEmpty(env.TWILIO_ACCOUNT_SID);
+  const twilioToken = nonEmpty(env.TWILIO_AUTH_TOKEN);
+  const twilioFrom = nonEmpty(env.TWILIO_FROM);
+  const twilio =
+    twilioSid && twilioToken && twilioFrom ? { accountSid: twilioSid, authToken: twilioToken, from: twilioFrom } : undefined;
+
+  const unifonicAppSid = nonEmpty(env.UNIFONIC_APP_SID);
+  const unifonicSenderId = nonEmpty(env.UNIFONIC_SENDER_ID);
+  const unifonic = unifonicAppSid && unifonicSenderId ? { appSid: unifonicAppSid, senderId: unifonicSenderId } : undefined;
+
+  const configured =
+    (provider === "meta_whatsapp" && meta !== undefined) ||
+    (provider === "twilio" && twilio !== undefined) ||
+    (provider === "unifonic" && unifonic !== undefined);
+
+  return { provider, from, meta, twilio, unifonic, configured };
+}

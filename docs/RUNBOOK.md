@@ -172,13 +172,145 @@ near real traffic or data:
 This step is a prerequisite for the live deploy, not something this build
 task performs — it requires hands-on access to the actual VPS.
 
+## 8. Communications (WhatsApp / SMS)
+
+Stage 6 adds booking confirmations, 24h reminders, post-visit follow-ups
+(all via `worker/index.ts` polling `processDueMessages()`), and client OTP
+login SMS (`src/modules/iam/clientAuth.ts`). **Out of the box — local dev,
+CI, and any deploy that hasn't set `COMMS_PROVIDER` — none of this sends a
+real message.** Every send attempt is instead logged via `stubSender`
+(`src/modules/booking/outbox.ts`) and still recorded in `CommunicationLog`,
+so the full pipeline (scheduling, rendering, status flips, audit log) is
+exercised end-to-end without ever touching a real provider or costing money.
+
+### 8.1 Enabling a real provider
+
+Real sends require **both**:
+
+1. `NODE_ENV=production`, and
+2. the selected provider's full credential set present in the environment.
+
+`getConfiguredSender()` / `getSmsSender()` (`src/modules/comms/sender.ts`)
+fall back to the logging-only stub whenever either condition isn't met —
+this is a deliberate safety rail, not a bug, so don't "fix" it by relaxing
+the check.
+
+Set `COMMS_PROVIDER` to one of `meta_whatsapp` | `twilio` | `unifonic`, plus
+`COMMS_FROM` and that provider's credentials (exact env var names, from
+`src/modules/comms/config.ts`):
+
+| Provider | `COMMS_PROVIDER` | Required env vars |
+|---|---|---|
+| Meta WhatsApp Cloud API | `meta_whatsapp` | `META_WA_TOKEN`, `META_WA_PHONE_ID` |
+| Twilio (SMS or WhatsApp) | `twilio` | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM` |
+| Unifonic (SMS) | `unifonic` | `UNIFONIC_APP_SID`, `UNIFONIC_SENDER_ID` |
+
+`COMMS_FROM` is read by `getCommsConfig()` for all providers but is only
+strictly required for Twilio (`TWILIO_FROM` is what Twilio's adapter
+actually sends from); keep it set regardless for consistency. All of the
+above are optional env vars — they are validated by `getCommsConfig()`
+(never by the strict `src/lib/env.ts` schema), so leaving them unset never
+fails a build or a non-comms deploy. See `.env.example` for the full list
+with inline comments.
+
+Add these to `.env.prod` on the VPS (see section 1) and restart the `app`
+and `worker` services to pick them up:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d app worker
+```
+
+### 8.2 WhatsApp go-live prerequisite — READ BEFORE ENABLING `meta_whatsapp`
+
+**Meta's WhatsApp Cloud API does not allow free-form business-initiated
+messages.** Booking confirmations, 24h reminders, and post-visit
+follow-ups are all *business-initiated* (the client didn't just message us),
+so Meta requires they go out as **pre-approved message templates** — plain
+text is rejected outside a 24-hour customer-service window (i.e. only after
+the customer themselves messaged the business number recently, which does
+not apply to any of these three message kinds).
+
+Until all four of the following are done, `meta_whatsapp` sends for
+CONFIRMATION / REMINDER_24H / POST_VISIT **will fail** (recorded as
+`FAILED` in the comms log, never a crash — see 8.4):
+
+1. **WhatsApp Business API verification** — the client must complete Meta's
+   business verification for their WhatsApp Business Account.
+2. **Create and get approval for message templates** in Meta Business
+   Manager matching our copy (see the bilingual templates editable at
+   `/admin/comms/templates` for the current en/ar wording per kind).
+   Approval can take from minutes to a few days and is entirely on Meta's
+   side.
+3. **Set `providerTemplateName`** on each approved `MessageTemplate` row (via
+   `/admin/comms/templates`) to the exact template name Meta approved. This
+   field already exists on the model and is read by `renderTemplate()`
+   (`src/modules/comms/templates.ts`), but nothing sends it yet — see next.
+4. **Complete the Meta adapter's template-send path.** The current
+   `makeMetaSender()` (`src/modules/comms/providers/meta.ts`) only sends
+   plain `type: "text"` messages — there's a documented `TODO` in that file
+   marking where a `{type: "template", template: {name, ...}}` request body
+   (using `providerTemplateName` and positional params) needs to be built
+   instead. This is required engineering work, not just configuration.
+
+**Until all four are done, do not set `COMMS_PROVIDER=meta_whatsapp` in
+production** — sends will simply fail (logged, not silently dropped, but no
+message reaches the client). **SMS via Twilio or Unifonic has no such
+template restriction** — plain-text SMS sends immediately once that
+provider's credentials are set and `NODE_ENV=production`. If WhatsApp
+approval is still pending, SMS is the deployable option for booking
+messages and OTP today.
+
+### 8.3 Message templates
+
+Bilingual (ar/en) message templates are editable at `/admin/comms/templates`
+(`src/app/admin/comms/templates/`). Each row is keyed by (kind, locale,
+channel) — kind is one of `CONFIRMATION`, `REMINDER_24H`, `POST_VISIT`,
+`OTP`; channel is `whatsapp` or `sms`. Body text uses `{{placeholder}}`
+tokens (e.g. `{{serviceName}}`, `{{dateTime}}`) interpolated at send time by
+`renderTemplate()`. If no active template row exists for a given
+kind/locale/channel, rendering falls back (same-kind other channel, then
+English, then a built-in default) — see that function's comment for the
+exact order — so the pipeline never fails to produce a body.
+
+Provider status and the full send log (every attempt, success or failure)
+are visible at `/admin/comms`. The provider-status panel shows only
+**which** credentials are present (`Yes`/`No`), never their values — see
+`CredentialRow` in `src/app/admin/comms/page.tsx`.
+
+### 8.4 Client OTP (phone login)
+
+`requestOtp()` (`src/modules/iam/clientAuth.ts`) sends the OTP code via SMS
+through `getSmsSender()` — the same production+configured gate as above,
+restricted to the two SMS-capable providers (`twilio`, `unifonic`;
+`meta_whatsapp` is WhatsApp-only and is never selected for OTP). In any
+non-production environment (dev, test, CI, or a deploy without an SMS
+provider configured), `requestOtp()` returns `{ devCode }` — the code
+in-band, for local testing — instead of relying on an actual SMS. In
+production it returns `{}` and the user must read the code off their phone.
+
+### 8.5 Failure handling
+
+A provider outage never takes down the worker or the OTP flow:
+
+- `processDueMessages()` (`src/modules/booking/outbox.ts`) catches both a
+  `{ok: false}` result and a thrown/rejected `sender.send()` per message,
+  marks that `ScheduledMessage` `FAILED`, writes a `CommunicationLog` row
+  for it, and moves on to the next message in the batch.
+- `worker/index.ts`'s poll loop (`tick()`) additionally wraps the whole
+  `processDueMessages()` call, so even an unexpected throw there just logs
+  and waits for the next 30s tick rather than killing the process.
+- `requestOtp()`'s `sendOtpSms()` swallows template-render, sender, and
+  log-write errors independently — a comms outage never blocks OTP issuance,
+  since the code is already stored in Redis regardless of whether the SMS
+  (or its log row) went out.
+
+Every attempt — success or failure, WhatsApp/SMS/OTP — is recorded in
+`CommunicationLog`, visible at `/admin/comms`.
+
 ## Follow-ups (not in this stage)
 
-- **`worker` service**: `docker-compose.prod.yml` has no BullMQ worker yet —
-  the app doesn't have any queues wired up at this point in the build. When
-  the Booking stage introduces reminder jobs, add a `worker` service reusing
-  this same image with an alternate CMD (e.g. `node worker.js`), the same
-  `env_file`, and `depends_on: [postgres, redis]`.
-- Service-access rules and the full catalog, CMS/media/settings UI, and
-  client OTP login are out of scope for this stage (see the Foundation
-  plan's self-review).
+- Service-access rules and the full catalog, CMS/media/settings UI are out
+  of scope for this stage (see the Foundation plan's self-review).
+- **Inbound message handling / two-way chat**, **marketing broadcast
+  campaigns**, and **delivery-receipt webhooks** are out of scope for Stage
+  6 (see that stage's self-review) — a possible later enhancement.
