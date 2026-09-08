@@ -174,4 +174,31 @@ describe("inquiries", () => {
       }),
     ).rejects.toThrow();
   });
+
+  it("succeeds with no email at all (email is optional)", async () => {
+    const inquiry = await createInquiry({
+      name: "No Email Caller",
+      phone: "+9665XXXXXXXX",
+      message: "Interested in a consultation.",
+      locale: "en",
+    });
+    try {
+      expect(inquiry.id).toBeTruthy();
+      expect(inquiry.email).toBeNull();
+    } finally {
+      await prisma.contactInquiry.delete({ where: { id: inquiry.id } });
+    }
+  });
+
+  it("throws on a malformed email", async () => {
+    await expect(
+      createInquiry({
+        name: "Bad Email Caller",
+        phone: "+9665XXXXXXXX",
+        email: "not-an-email",
+        message: "Interested in a consultation.",
+        locale: "en",
+      }),
+    ).rejects.toThrow();
+  });
 });

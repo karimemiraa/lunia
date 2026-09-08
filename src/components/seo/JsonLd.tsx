@@ -9,8 +9,10 @@ export function JsonLd({ data }: { data: JsonLdData | JsonLdData[] }) {
     <script
       type="application/ld+json"
       // JSON.stringify of a trusted, self-authored structured-data object — the
-      // standard/safe pattern for embedding JSON-LD in the page.
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      // standard/safe pattern for embedding JSON-LD in the page. Angle
+      // brackets are escaped as defense-in-depth against a script-tag
+      // breakout, since the underlying data is admin-authored content.
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }}
     />
   );
 }

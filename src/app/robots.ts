@@ -1,8 +1,16 @@
 import type { MetadataRoute } from "next";
 import { getEnv } from "@/lib/env";
 
+function baseUrl(): string {
+  try {
+    return getEnv().APP_URL.replace(/\/$/, "");
+  } catch {
+    return "http://localhost:3000";
+  }
+}
+
 export default function robots(): MetadataRoute.Robots {
-  const base = getEnv().APP_URL.replace(/\/$/, "");
+  const base = baseUrl();
 
   return {
     rules: {

@@ -5,7 +5,10 @@ import { prisma } from "@/lib/db";
 export const inquiryInputSchema = z.object({
   name: z.string().min(1),
   phone: z.string().min(3),
-  email: z.string().optional(),
+  // The contact-form action already converts an empty string to
+  // `undefined` before calling createInquiry, so a defined value here is
+  // always a real submitted address and should be format-checked.
+  email: z.string().email().optional(),
   message: z.string().min(1),
   locale: z.enum(["ar", "en"]),
   sourcePage: z.string().optional(),

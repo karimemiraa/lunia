@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getEnv } from "@/lib/env";
 import { routing } from "@/i18n/routing";
-import { listServices } from "@/modules/catalog/services";
+import { listDepartments } from "@/modules/catalog/departments";
 import { listBrands } from "@/modules/catalog/brands";
 import { listPublishedPosts } from "@/modules/catalog/journal";
 
@@ -10,7 +10,11 @@ const STATIC_PATHS = ["/", "/about", "/services", "/brands", "/results", "/journ
 type SitemapEntry = MetadataRoute.Sitemap[number];
 
 function baseUrl(): string {
-  return getEnv().APP_URL.replace(/\/$/, "");
+  try {
+    return getEnv().APP_URL.replace(/\/$/, "");
+  } catch {
+    return "http://localhost:3000";
+  }
 }
 
 // Absolute, locale-prefixed URL for a locale-agnostic path, e.g.
@@ -49,16 +53,17 @@ async function safeCatalogRead<T>(read: () => Promise<T[]>): Promise<T[]> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [services, brands, posts] = await Promise.all([
-    safeCatalogRead(() => listServices(undefined, { publishedOnly: true })),
+  const [departments, brands, posts] = await Promise.all([
+    safeCatalogRead(() => listDepartments({ publishedOnly: true })),
     safeCatalogRead(() => listBrands({ publishedOnly: true })),
     safeCatalogRead(() => listPublishedPosts()),
   ]);
 
   const entries: SitemapEntry[] = STATIC_PATHS.flatMap((path) => entriesForPath(path));
 
-  for (const service of services) {
-    entries.push(...entriesForPath(`/services/${service.slug}`, service.updatedAt));
+  // /services/[slug] is keyed by department slug, not individual service slug.
+  for (const department of departments) {
+    entries.push(...entriesForPath(`/services/${department.slug}`, department.updatedAt));
   }
   for (const brand of brands) {
     entries.push(...entriesForPath(`/brands/${brand.slug}`, brand.updatedAt));
