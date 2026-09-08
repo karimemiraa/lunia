@@ -135,12 +135,26 @@ describe("ltv", () => {
     await refreshClientLtv(low.clientProfileId);
     await refreshClientLtv(high.clientProfileId);
 
-    const top = await topClientsByLtv(5);
-    const highIndex = top.findIndex((t) => t.clientProfileId === high.clientProfileId);
-    const lowIndex = top.findIndex((t) => t.clientProfileId === low.clientProfileId);
-    expect(highIndex).toBeGreaterThanOrEqual(0);
-    expect(lowIndex).toBeGreaterThanOrEqual(0);
-    expect(highIndex).toBeLessThan(lowIndex);
+    // Asserting membership in a small top-N slice (e.g. top 5) is flaky
+    // against a shared dev DB that may already contain other clients with
+    // higher cached LTV than either fixture -- our two clients could get
+    // pushed out of the top 5 without the function itself being wrong.
+    // Instead, fetch the FULL ranked list (limit = total client count) and
+    // assert two isolation-robust properties: (1) each fixture client is
+    // found by id with its exact expected ltvMinor, and (2) the whole
+    // result is sorted descending -- neither depends on how many other
+    // clients/rows already exist in the database.
+    const totalClients = await prisma.clientProfile.count();
+    const all = await topClientsByLtv(totalClients);
+
+    const highRow = all.find((t) => t.clientProfileId === high.clientProfileId);
+    const lowRow = all.find((t) => t.clientProfileId === low.clientProfileId);
+    expect(highRow?.ltvMinor).toBe(500_000);
+    expect(lowRow?.ltvMinor).toBe(1_000);
+
+    for (let i = 1; i < all.length; i++) {
+      expect(all[i - 1]!.ltvMinor).toBeGreaterThanOrEqual(all[i]!.ltvMinor);
+    }
   });
 });
 

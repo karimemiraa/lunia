@@ -22,7 +22,11 @@ export function AdminNav({ permissions }: AdminNavProps) {
     links.push({ href: "/admin/clients", label: "Clients" });
   }
   if (permissions.has(PERMISSIONS.ANALYTICS_VIEW)) {
-    links.push({ href: "/admin/dashboard", label: "Business" }, { href: "/admin/marketing", label: "Marketing" });
+    links.push(
+      { href: "/admin/dashboard", label: "Business" },
+      { href: "/admin/marketing", label: "Marketing" },
+      { href: "/admin/reports", label: "Reports" },
+    );
   }
   if (permissions.has(PERMISSIONS.CMS_MANAGE)) {
     links.push(
