@@ -32,7 +32,7 @@ export function SectionHeading({ eyebrow, heading, intro, align = "start", class
   return (
     <div className={`flex max-w-2xl flex-col gap-4 ${alignClass} ${className}`.trim()}>
       {eyebrow && (
-        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-canopy)]">
+        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-teal-ink)]">
           <GlowMark />
           {eyebrow}
         </span>

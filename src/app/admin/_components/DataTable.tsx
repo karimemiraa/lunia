@@ -35,20 +35,36 @@ export function DataTable<T>({
   return (
     <div className="flex flex-col gap-3">
       {searchAccessor && (
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={searchPlaceholder}
-          className="w-full max-w-sm rounded border border-[var(--color-ink)]/20 px-3 py-2 text-sm focus:border-[var(--color-teal)] focus:outline-none"
-        />
+        <div className="relative max-w-sm">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-[var(--color-ink)]/40"
+          >
+            <circle cx="11" cy="11" r="6.5" />
+            <path strokeLinecap="round" d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={searchPlaceholder}
+            className="lunia-input ps-9"
+          />
+        </div>
       )}
-      <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+      <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
         <table className="w-full text-left text-sm">
-          <thead className="bg-[var(--color-cream)]/60">
-            <tr>
+          <thead>
+            <tr className="border-b border-[var(--line)] bg-[var(--surface-2)]">
               {columns.map((column) => (
-                <th key={column.key} className="px-4 py-2 font-medium text-[var(--color-ink)]">
+                <th
+                  key={column.key}
+                  className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--color-ink)]/55"
+                >
                   {column.header}
                 </th>
               ))}
@@ -63,9 +79,12 @@ export function DataTable<T>({
               </tr>
             ) : (
               filtered.map((row) => (
-                <tr key={rowKey(row)} className="border-t border-[var(--color-ink)]/10">
+                <tr
+                  key={rowKey(row)}
+                  className="border-t border-[var(--line)] transition-colors hover:bg-[var(--color-teal)]/[0.06]"
+                >
                   {columns.map((column) => (
-                    <td key={column.key} className="px-4 py-2 text-[var(--color-ink)]">
+                    <td key={column.key} className="px-4 py-3 text-[var(--color-ink)]/90">
                       {column.render ? column.render(row) : String((row as Record<string, unknown>)[column.key] ?? "")}
                     </td>
                   ))}

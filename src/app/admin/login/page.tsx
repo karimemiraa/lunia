@@ -1,19 +1,154 @@
 "use client";
+
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { login } from "./actions";
-import { Button } from "@/components/ui/button";
+import { Starfield } from "@/components/site/Starfield";
+
+function GlowMark({ className = "" }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className={className}>
+      <path
+        fill="currentColor"
+        d="M12 0c.6 4.8 2.6 8.2 6 9.6L24 12l-6 2.4c-3.4 1.4-5.4 4.8-6 9.6-.6-4.8-2.6-8.2-6-9.6L0 12l6-2.4C9.4 8.2 11.4 4.8 12 0Z"
+      />
+    </svg>
+  );
+}
+
+function MailIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4">
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path strokeLinecap="round" d="m4 7 8 5 8-5" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4">
+      <rect x="4.5" y="10" width="15" height="10" rx="2.5" />
+      <path strokeLinecap="round" d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="lunia-btn lunia-btn-primary mt-2 w-full py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-70"
+    >
+      {pending ? (
+        <>
+          <span className="h-4 w-4 animate-[lunia-spin-slow_0.8s_linear_infinite] rounded-full border-2 border-[var(--color-ink)]/30 border-t-[var(--color-ink)]" />
+          Signing in
+        </>
+      ) : (
+        "Sign in"
+      )}
+    </button>
+  );
+}
+
+const fieldWrap =
+  "flex items-center gap-3 rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--surface)] px-3.5 transition-colors focus-within:border-[var(--color-teal)] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-teal)_28%,transparent)]";
+const fieldInput =
+  "w-full bg-transparent py-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink)]/40 focus:outline-none";
 
 export default function LoginPage() {
   const [state, action] = useActionState(login, null);
+
   return (
-    <main className="mx-auto max-w-sm mt-32 px-6">
-      <h1 className="text-2xl mb-6">Lunia Admin</h1>
-      <form action={action} className="flex flex-col gap-4">
-        <input name="email" type="email" placeholder="Email" className="border p-3" required />
-        <input name="password" type="password" placeholder="Password" className="border p-3" required />
-        {state?.error && <p className="text-red-600 text-sm">{state.error}</p>}
-        <Button type="submit">Sign in</Button>
-      </form>
+    <main className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
+      {/* Brand panel */}
+      <section className="lunia-aurora lunia-grain relative hidden flex-col justify-between p-12 text-[var(--color-cream)] lg:flex">
+        <Starfield tone="cream" />
+        <div className="lunia-animate-fade-in relative z-10 flex items-center gap-3">
+          <GlowMark className="lunia-glow-pulse h-5 w-5 text-[var(--color-teal)]" />
+          <span className="font-[family-name:var(--font-display)] text-2xl tracking-[0.32em]">LUNIA</span>
+        </div>
+
+        <div className="lunia-animate-fade-up lunia-delay-2 relative z-10 max-w-md">
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[var(--color-teal)]">
+            Skin Quality Center
+          </p>
+          <h1 className="mt-5 font-[family-name:var(--font-display)] text-4xl leading-[1.1] xl:text-5xl">
+            Where natural beauty begins.
+          </h1>
+          <p className="mt-5 text-sm leading-relaxed text-[var(--color-cream)]/75">
+            The Lunia management suite — bookings, clients, catalog, and communications, in one calm,
+            considered place.
+          </p>
+        </div>
+
+        <p className="lunia-animate-fade-in lunia-delay-4 relative z-10 text-xs tracking-wide text-[var(--color-cream)]/55">
+          Riyadh, Saudi Arabia — 2026
+        </p>
+      </section>
+
+      {/* Form panel */}
+      <section className="relative flex items-center justify-center bg-[var(--color-page)] px-6 py-16">
+        <div className="lunia-animate-fade-up w-full max-w-sm">
+          {/* Compact brand lockup for small screens */}
+          <div className="mb-10 flex items-center gap-2.5 lg:hidden">
+            <GlowMark className="h-5 w-5 text-[var(--color-teal-ink)]" />
+            <span className="font-[family-name:var(--font-display)] text-xl tracking-[0.3em] text-[var(--color-ink)]">
+              LUNIA
+            </span>
+          </div>
+
+          <h2 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)]">Welcome back</h2>
+          <p className="mt-2 text-sm text-[var(--color-ink)]/60">Sign in to the Lunia management suite.</p>
+
+          <form action={action} className="mt-8 flex flex-col gap-4">
+            <label className="flex flex-col gap-2">
+              <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--color-ink)]/60">Email</span>
+              <span className={fieldWrap}>
+                <span className="text-[var(--color-ink)]/45">
+                  <MailIcon />
+                </span>
+                <input name="email" type="email" autoComplete="email" placeholder="you@lunia.com" className={fieldInput} required />
+              </span>
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--color-ink)]/60">Password</span>
+              <span className={fieldWrap}>
+                <span className="text-[var(--color-ink)]/45">
+                  <LockIcon />
+                </span>
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  className={fieldInput}
+                  required
+                />
+              </span>
+            </label>
+
+            {state?.error && (
+              <p
+                role="alert"
+                className="lunia-animate-fade-in rounded-[var(--radius-sm)] border border-red-300/60 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
+              >
+                {state.error}
+              </p>
+            )}
+
+            <SubmitButton />
+          </form>
+
+          <p className="mt-8 text-center text-xs text-[var(--color-ink)]/45">
+            Protected area. Access is monitored and audited.
+          </p>
+        </div>
+      </section>
     </main>
   );
 }

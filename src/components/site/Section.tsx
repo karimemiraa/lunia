@@ -1,4 +1,5 @@
 import { PropsWithChildren } from "react";
+import { Reveal } from "./Reveal";
 
 type SectionTone = "plain" | "tinted" | "ink";
 
@@ -31,7 +32,7 @@ export function Section({
   const Tag = as;
   return (
     <Tag id={id} className={`py-20 sm:py-28 ${TONE_CLASSES[tone]} ${className}`.trim()}>
-      <div className={containerClassName}>{children}</div>
+      <Reveal className={containerClassName}>{children}</Reveal>
     </Tag>
   );
 }

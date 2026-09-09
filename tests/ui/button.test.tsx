@@ -7,6 +7,9 @@ describe("Button", () => {
   it("renders label and primary variant class", () => {
     render(<Button variant="primary">Book Now</Button>);
     const el = screen.getByRole("button", { name: "Book Now" });
-    expect(el.className).toContain("bg-[var(--color-teal)]");
+    // Primary buttons carry the shared design-system classes (styling lives in
+    // globals.css .lunia-btn/.lunia-btn-primary).
+    expect(el.className).toContain("lunia-btn");
+    expect(el.className).toContain("lunia-btn-primary");
   });
 });

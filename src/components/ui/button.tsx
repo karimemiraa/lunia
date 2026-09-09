@@ -1,11 +1,15 @@
 import { ButtonHTMLAttributes } from "react";
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" };
+type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "ghost" | "ink";
+  size?: "sm" | "md";
+};
 
-export function Button({ variant = "primary", className = "", ...props }: Props) {
-  const base = "inline-flex items-center justify-center px-6 py-3 font-medium tracking-wide transition-colors";
-  const styles = variant === "primary"
-    ? "bg-[var(--color-teal)] text-[var(--color-ink)] hover:bg-[var(--color-canopy)]"
-    : "bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-cream)]";
-  return <button className={`${base} ${styles} ${className}`} {...props} />;
+// Shared admin button. Styling lives in globals.css (.lunia-btn*) so every
+// button across the suite stays consistent and premium.
+export function Button({ variant = "primary", size = "md", className = "", ...props }: Props) {
+  const variantClass =
+    variant === "ghost" ? "lunia-btn-ghost" : variant === "ink" ? "lunia-btn-ink" : "lunia-btn-primary";
+  const sizeClass = size === "sm" ? "px-3.5 py-1.5 text-xs" : "";
+  return <button className={`lunia-btn ${variantClass} ${sizeClass} ${className}`.trim()} {...props} />;
 }

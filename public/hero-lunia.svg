@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Lunia atmosphere">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#f3ece0"/>
+      <stop offset="0.45" stop-color="#bcd8d2"/>
+      <stop offset="0.8" stop-color="#3f7a74"/>
+      <stop offset="1" stop-color="#16413d"/>
+    </linearGradient>
+    <radialGradient id="moon" cx="0.82" cy="0.2" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="0.25" stop-color="#d9efec" stop-opacity="0.85"/>
+      <stop offset="0.6" stop-color="#9ed5d0" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#9ed5d0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="skin" cx="0.12" cy="0.85" r="0.7">
+      <stop offset="0" stop-color="#f4d9b8" stop-opacity="0.9"/>
+      <stop offset="0.4" stop-color="#e9c79f" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#e9c79f" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bokeh" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="veil" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16413d" stop-opacity="0"/>
+      <stop offset="0.7" stop-color="#16413d" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#12332f" stop-opacity="0.85"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="26"/>
+    </filter>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.06"/></feComponentTransfer>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#base)"/>
+
+  <!-- flowing silk waves: movement + serenity -->
+  <g opacity="0.5" fill="none" stroke-linecap="round">
+    <path d="M-50 620 C 300 520 520 720 820 640 S 1300 520 1680 600" stroke="#d9efec" stroke-opacity="0.5" stroke-width="2"/>
+    <path d="M-50 700 C 320 600 560 800 880 700 S 1350 600 1680 690" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1.5"/>
+    <path d="M-50 540 C 260 470 480 600 760 540 S 1250 450 1680 520" stroke="#9ed5d0" stroke-opacity="0.45" stroke-width="1.5"/>
+  </g>
+
+  <rect width="1600" height="1000" fill="url(#skin)"/>
+  <rect width="1600" height="1000" fill="url(#moon)"/>
+
+  <!-- soft bokeh, upper-right lunar field -->
+  <g>
+    <circle cx="1180" cy="180" r="70" fill="url(#bokeh)" opacity="0.5" filter="url(#soft)"/>
+    <circle cx="1360" cy="300" r="46" fill="url(#bokeh)" opacity="0.45" filter="url(#soft)"/>
+    <circle cx="980" cy="120" r="34" fill="url(#bokeh)" opacity="0.4" filter="url(#soft)"/>
+    <circle cx="1470" cy="150" r="28" fill="url(#bokeh)" opacity="0.35" filter="url(#soft)"/>
+  </g>
+
+  <!-- the four-point brand glow, faint, high in frame -->
+  <g fill="#ffffff" opacity="0.55">
+    <path transform="translate(1240 250) scale(1.6)" d="M12 0c.6 4.8 2.6 8.2 6 9.6L24 12l-6 2.4c-3.4 1.4-5.4 4.8-6 9.6-.6-4.8-2.6-8.2-6-9.6L0 12l6-2.4C9.4 8.2 11.4 4.8 12 0Z"/>
+    <path transform="translate(1080 360) scale(0.7)" d="M12 0c.6 4.8 2.6 8.2 6 9.6L24 12l-6 2.4c-3.4 1.4-5.4 4.8-6 9.6-.6-4.8-2.6-8.2-6-9.6L0 12l6-2.4C9.4 8.2 11.4 4.8 12 0Z"/>
+  </g>
+
+  <rect width="1600" height="1000" fill="url(#veil)"/>
+  <rect width="1600" height="1000" filter="url(#grain)" opacity="0.6"/>
+</svg>

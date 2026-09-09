@@ -11,13 +11,12 @@ interface FieldProps {
   step?: string;
 }
 
-const inputClass =
-  "w-full rounded border border-[var(--color-ink)]/20 px-3 py-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-teal)] focus:outline-none";
+const inputClass = "lunia-input";
 
 export function Field({ label, name, type = "text", defaultValue, placeholder, required, step }: FieldProps) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className="font-medium text-[var(--color-ink)]">{label}</span>
+    <label className="flex flex-col gap-1.5 text-sm">
+      <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">{label}</span>
       {type === "textarea" ? (
         <textarea
           name={name}

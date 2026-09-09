@@ -1,32 +1,72 @@
+import type { ReactNode } from "react";
 import { requireAdmin } from "./_components/requireAdmin";
 import { AdminShell } from "./_components/AdminShell";
-import { PERMISSIONS } from "@/modules/iam/permissions";
+import { PERMISSIONS, type PermissionKey } from "@/modules/iam/permissions";
 
-const QUICK_LINKS = [
-  { href: "/admin/media", label: "Media library", permission: PERMISSIONS.CMS_MANAGE },
-  { href: "/admin/content", label: "Page content", permission: PERMISSIONS.CMS_MANAGE },
-  { href: "/admin/settings", label: "Site settings", permission: PERMISSIONS.SETTINGS_MANAGE },
-  { href: "/admin/tiers", label: "Membership tiers", permission: PERMISSIONS.SETTINGS_MANAGE },
-  { href: "/admin/roles", label: "Roles & staff", permission: PERMISSIONS.STAFF_MANAGE },
-] as const;
+interface QuickLink {
+  href: string;
+  label: string;
+  description: string;
+  permission: PermissionKey;
+  icon: "calendar" | "users" | "chart" | "image" | "gear" | "layers";
+}
+
+const QUICK_LINKS: QuickLink[] = [
+  { href: "/admin/calendar", label: "Calendar", description: "Bookings, walk-ins & check-ins", permission: PERMISSIONS.BOOKING_VIEW, icon: "calendar" },
+  { href: "/admin/clients", label: "Clients", description: "Profiles, history & membership", permission: PERMISSIONS.CLIENT_VIEW, icon: "users" },
+  { href: "/admin/dashboard", label: "Business", description: "Revenue, LTV & performance", permission: PERMISSIONS.ANALYTICS_VIEW, icon: "chart" },
+  { href: "/admin/media", label: "Media library", description: "Hero images & photography", permission: PERMISSIONS.CMS_MANAGE, icon: "image" },
+  { href: "/admin/content", label: "Page content", description: "Editable site copy & sections", permission: PERMISSIONS.CMS_MANAGE, icon: "layers" },
+  { href: "/admin/settings", label: "Site settings", description: "Hours, contact, SEO & social", permission: PERMISSIONS.SETTINGS_MANAGE, icon: "gear" },
+];
+
+const ICONS: Record<QuickLink["icon"], ReactNode> = {
+  calendar: <path strokeLinecap="round" d="M3.5 9h17M8 3v4M16 3v4M3.5 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />,
+  users: <path strokeLinecap="round" d="M9 11a3.2 3.2 0 1 0 0-6.4A3.2 3.2 0 0 0 9 11ZM3.5 20a5.5 5.5 0 0 1 11 0M16 6.5a3 3 0 0 1 0 5.5M20.5 20a4.8 4.8 0 0 0-3-4.4" />,
+  chart: <path strokeLinecap="round" d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6" />,
+  image: <path strokeLinejoin="round" d="M3.5 6.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2zM4 18l5-5 4 4 3-3 4 4M9 10.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />,
+  layers: <path strokeLinejoin="round" d="m12 3 8 4-8 4-8-4 8-4ZM4 12l8 4 8-4M4 17l8 4 8-4" />,
+  gear: <path strokeLinecap="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" />,
+};
 
 export default async function AdminHome() {
   const user = await requireAdmin();
   const links = QUICK_LINKS.filter((link) => user.permissions.has(link.permission));
 
   return (
-    <AdminShell user={user} title="Dashboard" description="Welcome back.">
-      <p className="text-[var(--color-ink)]">Signed in. Permissions: {user.permissions.size}</p>
+    <AdminShell user={user} title="Dashboard" description="Welcome back to the Lunia management suite.">
+      <div className="lunia-card relative overflow-hidden p-8">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-teal)_35%,transparent),transparent_70%)]"
+        />
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-teal-ink)]">Overview</p>
+        <h2 className="mt-3 max-w-xl font-[family-name:var(--font-display)] text-3xl leading-snug text-[var(--color-ink)]">
+          Everything Lunia needs — bookings, clients, and content — in one calm place.
+        </h2>
+        <p className="mt-3 text-sm text-[var(--color-ink)]/60">
+          You have access to {user.permissions.size} area{user.permissions.size === 1 ? "" : "s"}. Jump back in below.
+        </p>
+      </div>
 
       {links.length > 0 && (
-        <div className="mt-6 flex flex-wrap gap-3">
-          {links.map((link) => (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {links.map((link, i) => (
             <a
               key={link.href}
               href={link.href}
-              className="rounded border border-[var(--color-ink)]/15 px-4 py-3 text-sm text-[var(--color-ink)] hover:border-[var(--color-teal)] hover:bg-[var(--color-cream)]/40"
+              style={{ animationDelay: `${i * 50}ms` }}
+              className="lunia-animate-fade-up group flex items-start gap-4 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--color-teal)_50%,transparent)] hover:shadow-[var(--shadow-md)]"
             >
-              {link.label}
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius)] bg-[var(--color-teal)]/15 text-[var(--color-teal-ink)] transition-colors group-hover:bg-[var(--color-teal)]/25">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-5 w-5">
+                  {ICONS[link.icon]}
+                </svg>
+              </span>
+              <span className="flex flex-col gap-0.5">
+                <span className="font-medium text-[var(--color-ink)]">{link.label}</span>
+                <span className="text-xs leading-relaxed text-[var(--color-ink)]/55">{link.description}</span>
+              </span>
             </a>
           ))}
         </div>
