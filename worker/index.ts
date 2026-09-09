@@ -29,7 +29,6 @@ const POLL_INTERVAL_MS = 30_000;
 
 async function main() {
   const { processDueMessages, reclaimStaleClaims } = await import("@/modules/booking/outbox");
-  const { getConfiguredSender } = await import("@/modules/comms/sender");
   const { prisma } = await import("@/lib/db");
 
   let stopping = false;
@@ -41,9 +40,11 @@ async function main() {
       // before claiming this tick's batch.
       const reclaimed = await reclaimStaleClaims(new Date());
       if (reclaimed > 0) console.log(`[worker] reclaimed ${reclaimed} stale claim(s)`);
-      const result = await processDueMessages(new Date(), getConfiguredSender());
+      // No sender override: processDueMessages resolves the real/stub sender
+      // per message based on its resolved channel (whatsapp/sms/email).
+      const result = await processDueMessages(new Date());
       console.log(
-        `[worker] heartbeat ${new Date().toISOString()} processed=${result.processed} sent=${result.sent} failed=${result.failed}`,
+        `[worker] heartbeat ${new Date().toISOString()} processed=${result.processed} sent=${result.sent} failed=${result.failed} skipped=${result.skipped}`,
       );
     } catch (err) {
       // A single failed poll must not kill the worker — log and keep going.

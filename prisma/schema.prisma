@@ -104,6 +104,7 @@ model ClientProfile {
   membership    ClientMembership?
   bookings      Booking[]
   visitNotes    VisitNote[]
+  notificationPreference NotificationPreference?
 }
 
 model ClientMembership {
@@ -263,6 +264,29 @@ enum MsgStatus {
   SENDING
   SENT
   FAILED
+  SKIPPED
+}
+
+// A client's messaging preferences: which channel to reach them on, and which
+// non-transactional message kinds they've opted into. Consulted by the outbox
+// (per-message routing + opt-out skipping). OTP is transactional and ignores
+// the marketing opt-out.
+enum CommsChannelPref {
+  AUTO
+  WHATSAPP
+  SMS
+  EMAIL
+}
+
+model NotificationPreference {
+  id              String           @id @default(cuid())
+  clientProfileId String           @unique
+  clientProfile   ClientProfile    @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  channel         CommsChannelPref @default(AUTO)
+  remindersOptIn  Boolean          @default(true)
+  postVisitOptIn  Boolean          @default(true)
+  marketingOptIn  Boolean          @default(true)
+  updatedAt       DateTime         @default(now()) @updatedAt
 }
 
 model Room {
@@ -346,13 +370,17 @@ model ScheduledMessage {
   id        String    @id @default(cuid())
   bookingId String?
   kind      MsgKind
-  toPhone   String
+  toPhone   String?
+  toEmail   String?
   locale    String
   sendAt    DateTime
   sentAt    DateTime?
   status    MsgStatus @default(PENDING)
   payload   Json
   createdAt DateTime  @default(now())
+  // Optional link to the client this message is for, so the outbox can look
+  // up their NotificationPreference (channel routing + opt-out skipping).
+  clientProfileId String?
   // Set atomically when a worker claims a batch (PENDING -> SENDING); lets
   // multiple worker replicas run without double-sending, and lets an
   // abandoned SENDING row (crashed worker) be reclaimed after a timeout.

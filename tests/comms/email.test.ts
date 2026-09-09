@@ -74,10 +74,11 @@ describe("makeEmailSender", () => {
   });
 
   it("uses implicit TLS (secure) only for port 465", async () => {
+    const lastConfig = () => (createTransportMock.mock.calls.at(-1) as unknown[])[0];
     makeEmailSender({ ...cfg, port: 465 });
-    expect(createTransportMock.mock.calls.at(-1)![0]).toMatchObject({ secure: true });
+    expect(lastConfig()).toMatchObject({ secure: true });
     makeEmailSender({ ...cfg, port: 587 });
-    expect(createTransportMock.mock.calls.at(-1)![0]).toMatchObject({ secure: false });
+    expect(lastConfig()).toMatchObject({ secure: false });
   });
 });
 
