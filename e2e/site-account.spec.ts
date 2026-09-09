@@ -96,7 +96,7 @@ async function bookFarOutAppointment(page: Page, phone: string, preferredWeekday
 
   await expect(page.getByTestId("booking-step-contact")).toBeVisible();
   await page.getByLabel("Full name").fill("Account Test Client");
-  await page.getByLabel("Phone number").fill(phone);
+  await page.getByLabel("Phone or email").fill(phone);
   await page.getByRole("button", { name: "Send verification code" }).click();
 
   const devCodeEl = page.getByTestId("dev-otp-code");
@@ -151,6 +151,13 @@ test.describe("client account area", () => {
 
     const past = page.getByTestId("account-past");
     await expect(past.getByText("You don't have any past bookings yet.")).toBeVisible();
+
+    // A5: the Notifications panel renders and its channel + save round-trips.
+    const notifications = page.getByTestId("notifications-panel");
+    await expect(notifications).toBeVisible();
+    await notifications.locator("[data-testid='notifications-channel']").selectOption("EMAIL");
+    await notifications.getByRole("button", { name: "Save preferences" }).click();
+    await expect(page.getByTestId("notifications-saved")).toBeVisible();
 
     await upcoming.getByRole("button", { name: "Cancel booking" }).click();
 

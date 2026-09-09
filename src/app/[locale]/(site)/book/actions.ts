@@ -15,7 +15,13 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { getServiceSlots, createBooking } from "@/modules/booking/bookings";
-import { requestOtp, verifyOtp, createClientSession, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
+import {
+  requestOtp,
+  verifyOtp,
+  resolveIdentifier,
+  createClientSession,
+  CLIENT_SESSION_COOKIE,
+} from "@/modules/iam/clientAuth";
 
 export type BookLocale = "en" | "ar";
 
@@ -64,18 +70,26 @@ export async function getSlots(serviceId: string, dateISO: string, locale: strin
 
 export type StartOtpResult = { ok: true; devCode?: string } | { ok: false; error: string };
 
-const phoneSchema = z.string().trim().min(6).max(20);
+// The identify step accepts either a phone number or an email address in one
+// field -- resolveIdentifier (clientAuth.ts) classifies which one it is and
+// requestOtp/verifyOtp route delivery accordingly. This schema only bounds
+// length; the real format check (and the specific "Invalid phone"/"Invalid
+// email" error) happens inside resolveIdentifier so both paths share one
+// source of truth for what counts as valid.
+const identifierSchema = z.string().trim().min(3).max(254);
 
-export async function startOtp(phone: string, locale: string): Promise<StartOtpResult> {
+export async function startOtp(identifier: string, locale: string): Promise<StartOtpResult> {
   const t = await errorTranslator(locale);
   try {
-    const normalized = phoneSchema.parse(phone);
-    const result = await requestOtp(normalized);
+    const normalized = identifierSchema.parse(identifier);
+    const result = await requestOtp(normalized, { locale });
     return { ok: true, devCode: result.devCode };
   } catch (err) {
     const message = messageOf(err);
-    if (message.includes("Invalid phone")) return { ok: false, error: t("invalidPhone") };
-    if (message.includes("Too many OTP")) return { ok: false, error: t("rateLimited") };
+    if (message.includes("Invalid phone") || message.includes("Invalid email")) {
+      return { ok: false, error: t("invalidIdentifier") };
+    }
+    if (message.includes("Too many code requests")) return { ok: false, error: t("rateLimited") };
     return { ok: false, error: t("generic") };
   }
 }
@@ -93,7 +107,7 @@ const verifyAndBookSchema = z.object({
   serviceId: z.string().min(1),
   startAt: z.string().min(1),
   name: z.string().trim().min(1).max(200),
-  phone: z.string().trim().min(6).max(20),
+  identifier: z.string().trim().min(3).max(254),
   code: z.string().trim().regex(/^\d{6}$/, "Invalid code"),
   locale: z.enum(["en", "ar"]),
   sourceChannel: z.string().trim().min(1).max(100).optional(),
@@ -109,6 +123,9 @@ function mapBookingError(err: unknown, t: Awaited<ReturnType<typeof getTranslati
   if (tierMatch) return t("tierGated", { tier: tierMatch[1] });
   if (message.includes("not currently available for booking") || message.includes("not available for online booking")) {
     return t("serviceUnavailable");
+  }
+  if (message.includes("Invalid phone") || message.includes("Invalid email")) {
+    return t("invalidIdentifier");
   }
   return t("generic");
 }
@@ -139,7 +156,7 @@ export async function verifyAndBook(input: VerifyAndBookInput): Promise<VerifyAn
   try {
     const data = verifyAndBookSchema.parse(input);
 
-    const verified = await verifyOtp(data.phone, data.code, { sourceChannel: data.sourceChannel });
+    const verified = await verifyOtp(data.identifier, data.code, { sourceChannel: data.sourceChannel });
     if (!verified) {
       return { ok: false, error: t("invalidCode") };
     }
@@ -153,10 +170,18 @@ export async function verifyAndBook(input: VerifyAndBookInput): Promise<VerifyAn
       maxAge: 60 * 60 * 24 * 30,
     });
 
+    // The code above already verified via verifyOtp, so the identifier is
+    // known-valid here -- resolveIdentifier just classifies it again to
+    // decide whether it goes into client.phone or client.email.
+    const id = resolveIdentifier(data.identifier);
     const booking = await createBooking({
       serviceId: data.serviceId,
       startAt: data.startAt,
-      client: { name: data.name, phone: data.phone },
+      client: {
+        name: data.name,
+        phone: id.kind === "phone" ? id.value : undefined,
+        email: id.kind === "email" ? id.value : undefined,
+      },
       channel: "ONLINE",
       sourceChannel: data.sourceChannel,
       locale: data.locale,

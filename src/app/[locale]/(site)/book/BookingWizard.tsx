@@ -99,7 +99,10 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
   const [selectedSlot, setSelectedSlot] = useState<SlotDTO | null>(null);
 
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  // Either a phone number or an email address — resolved server-side (see
+  // ./actions.ts's startOtp/verifyAndBook, which pass this raw value
+  // straight to requestOtp/verifyOtp for classification).
+  const [identifier, setIdentifier] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [devCode, setDevCode] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -108,7 +111,7 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
   const [summary, setSummary] = useState<BookingSummaryDTO | null>(null);
 
   const nameId = useId();
-  const phoneId = useId();
+  const identifierId = useId();
   const codeId = useId();
   const dateId = useId();
 
@@ -175,12 +178,12 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
 
   function handleSendCode() {
     setContactError(null);
-    if (!name.trim() || !phone.trim()) {
+    if (!name.trim() || !identifier.trim()) {
       setContactError(t("errors.missingContact"));
       return;
     }
     startTransition(async () => {
-      const result = await startOtp(phone, locale);
+      const result = await startOtp(identifier, locale);
       if (result.ok) {
         setOtpSent(true);
         setDevCode(result.devCode ?? null);
@@ -201,7 +204,7 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
         serviceId: selectedServiceId,
         startAt: selectedSlot.startAt,
         name,
-        phone,
+        identifier,
         code,
         locale,
         sourceChannel,
@@ -224,7 +227,7 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
     setSlotsError(null);
     setSelectedSlot(null);
     setName("");
-    setPhone("");
+    setIdentifier("");
     setOtpSent(false);
     setDevCode(null);
     setCode("");
@@ -444,18 +447,18 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor={phoneId} className={labelClass}>
-              {t("contact.phoneLabel")}
+            <label htmlFor={identifierId} className={labelClass}>
+              {t("contact.identifierLabel")}
             </label>
             <input
-              id={phoneId}
-              type="tel"
+              id={identifierId}
+              type="text"
+              inputMode="email"
               required
-              maxLength={20}
-              autoComplete="tel"
-              value={phone}
+              maxLength={254}
+              value={identifier}
               disabled={otpSent}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setIdentifier(e.target.value)}
               className={inputClass}
             />
           </div>
@@ -466,7 +469,7 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
             </button>
           ) : (
             <>
-              <p className="text-sm text-[var(--color-ink)]/65">{t("contact.codeIntro", { phone })}</p>
+              <p className="text-sm text-[var(--color-ink)]/65">{t("contact.codeIntro", { contact: identifier })}</p>
               {devCode && (
                 <p data-testid="dev-otp-code" className="text-sm font-medium text-[var(--color-canopy)]">
                   {t("contact.devCodeHint", { code: devCode })}
@@ -508,7 +511,7 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
                   }}
                   className="text-sm font-medium text-[var(--color-ink)] underline decoration-[var(--color-gold)] decoration-2 underline-offset-4"
                 >
-                  {t("contact.changeNumberLabel")}
+                  {t("contact.changeContactLabel")}
                 </button>
               </div>
             </>

@@ -9,8 +9,10 @@ import { localized } from "@/modules/catalog/localize";
 import { prisma } from "@/lib/db";
 import { listBookings } from "@/modules/booking/bookings";
 import { getClientSessionUser, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
+import { getPreference } from "@/modules/comms/preferences";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { AccountBookings, type AccountBookingDTO } from "./AccountBookings";
+import { NotificationsPanel } from "./NotificationsPanel";
 import { logout } from "./actions";
 
 interface AccountPageProps {
@@ -120,6 +122,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
   const serviceById = new Map(services.map((service) => [service.id, service]));
 
   const { upcoming, past } = classifyBookings(bookings, serviceById, locale);
+  const preference = await getPreference(user.clientProfile.id);
 
   const t = await getTranslations({ locale, namespace: "account" });
   const logoutAction = logout.bind(null, locale);
@@ -150,6 +153,8 @@ export default async function AccountPage({ params }: AccountPageProps) {
           </div>
 
           <AccountBookings locale={locale} upcoming={upcoming} past={past} />
+
+          <NotificationsPanel locale={locale} preference={preference} />
         </div>
       </Section>
     </main>

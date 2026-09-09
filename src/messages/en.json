@@ -349,16 +349,16 @@
     },
     "contact": {
       "heading": "Your details",
-      "intro": "We'll text a 6-digit code to confirm this number.",
+      "intro": "We'll send a 6-digit code to confirm your phone or email.",
       "nameLabel": "Full name",
-      "phoneLabel": "Phone number",
+      "identifierLabel": "Phone or email",
       "sendCodeLabel": "Send verification code",
       "sendingLabel": "Sending…",
-      "codeIntro": "Enter the 6-digit code sent to {phone}.",
+      "codeIntro": "Enter the 6-digit code sent to {contact}.",
       "codeLabel": "Verification code",
       "verifyLabel": "Confirm booking",
       "verifyingLabel": "Confirming…",
-      "changeNumberLabel": "Use a different number",
+      "changeContactLabel": "Use a different phone or email",
       "devCodeHint": "Dev/test code: {code}"
     },
     "success": {
@@ -373,8 +373,9 @@
     },
     "errors": {
       "generic": "Something went wrong — please try again.",
-      "missingContact": "Please enter your name and phone number.",
+      "missingContact": "Please enter your name and a phone number or email address.",
       "invalidPhone": "Please enter a valid phone number.",
+      "invalidIdentifier": "Please enter a valid phone number or email address.",
       "rateLimited": "Too many attempts — please try again in a little while.",
       "invalidCode": "That code is incorrect or has expired — please try again.",
       "serviceUnavailable": "This service isn't available for online booking right now.",
@@ -436,6 +437,30 @@
       "notFound": "We couldn't find that booking.",
       "tooLateToCancel": "This booking can no longer be cancelled online — please contact us.",
       "generic": "Something went wrong — please try again."
+    },
+    "notifications": {
+      "heading": "Notifications",
+      "intro": "Choose how we reach you and which messages you'd like to receive.",
+      "channelLabel": "Preferred channel",
+      "channel": {
+        "AUTO": "Automatic (based on how you sign in)",
+        "WHATSAPP": "WhatsApp",
+        "SMS": "SMS",
+        "EMAIL": "Email"
+      },
+      "remindersLabel": "Appointment reminders",
+      "remindersHint": "A reminder 24 hours before your appointment.",
+      "postVisitLabel": "Post-visit messages",
+      "postVisitHint": "A short note after your visit.",
+      "marketingLabel": "Offers and news",
+      "marketingHint": "Occasional promotions and updates from Lunia.",
+      "saveLabel": "Save preferences",
+      "savingLabel": "Saving…",
+      "savedLabel": "Saved.",
+      "errors": {
+        "notAuthenticated": "Please sign in to manage your notification preferences.",
+        "generic": "Something went wrong — please try again."
+      }
     }
   }
 }
