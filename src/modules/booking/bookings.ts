@@ -99,11 +99,19 @@ export async function getServiceSlots(
   return slots.filter((slot) => slot.startAt.getTime() > now.getTime());
 }
 
-const clientInputSchema = z.object({
-  name: z.string().min(1),
-  phone: z.string().min(1),
-  email: z.string().email().optional(),
-});
+// A client is identified by a phone number OR an email address (or both) --
+// the public wizard's OTP identify step accepts either (see book/actions.ts,
+// which already resolved+verified whichever one the client entered before
+// calling createBooking). Front-desk/walk-in booking still typically
+// supplies a phone. At least one of the two is required so
+// findOrCreateClientProfile always has something to look the client up by.
+const clientInputSchema = z
+  .object({
+    name: z.string().min(1),
+    phone: z.string().min(1).optional(),
+    email: z.string().email().optional(),
+  })
+  .refine((v) => Boolean(v.phone || v.email), { message: "client requires a phone or an email" });
 export type BookingClientInput = z.infer<typeof clientInputSchema>;
 
 const bookingChannelSchema = z.enum(["ONLINE", "FRONT_DESK", "WALK_IN"]);
@@ -151,16 +159,21 @@ function coerceDate(value: Date | string, label: string): Date {
   return date;
 }
 
-// Finds the ClientProfile for this phone number (via the linked User),
-// creating a CLIENT User + ClientProfile if none exists. sourceChannel is
-// only recorded the first time a profile is created for a phone -- it is
-// never overwritten on a later booking with the same phone.
+// Finds the ClientProfile for this client (via the linked User), creating a
+// CLIENT User + ClientProfile if none exists. Looks up by phone when one was
+// given (matching the public wizard's OTP-verified identifier -- whichever
+// one that was, findOrCreateClientUser in clientAuth.ts already
+// found-or-created the exact same User by that same field, so this lookup
+// lands on it rather than creating a duplicate), otherwise by email.
+// sourceChannel is only recorded the first time a profile is created for a
+// client -- it is never overwritten on a later booking for the same client.
 async function findOrCreateClientProfile(
   client: BookingClientInput,
   sourceChannel: string | undefined,
 ): Promise<string> {
+  const where = client.phone ? { phone: client.phone } : { email: client.email! };
   const existingUser = await prisma.user.findUnique({
-    where: { phone: client.phone },
+    where,
     include: { clientProfile: true },
   });
 
@@ -175,8 +188,8 @@ async function findOrCreateClientProfile(
   const created = await prisma.user.create({
     data: {
       type: "CLIENT",
-      phone: client.phone,
-      email: client.email,
+      phone: client.phone ?? null,
+      email: client.email ?? null,
       clientProfile: { create: { fullName: client.name, sourceChannel: sourceChannel ?? null } },
     },
     include: { clientProfile: true },
@@ -406,6 +419,8 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
       bookingId: booking.id,
       kind: "CONFIRMATION",
       toPhone: data.client.phone,
+      toEmail: data.client.email,
+      clientProfileId,
       locale: data.locale,
       sendAt: now,
       payload: messagePayload,
@@ -414,6 +429,8 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
       bookingId: booking.id,
       kind: "POST_VISIT",
       toPhone: data.client.phone,
+      toEmail: data.client.email,
+      clientProfileId,
       locale: data.locale,
       sendAt: new Date(endAt.getTime() + 2 * 60 * 60 * 1000),
       payload: messagePayload,
@@ -430,6 +447,8 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
         bookingId: booking.id,
         kind: "REMINDER_24H",
         toPhone: data.client.phone,
+        toEmail: data.client.email,
+        clientProfileId,
         locale: data.locale,
         sendAt: reminderSendAt,
         payload: messagePayload,

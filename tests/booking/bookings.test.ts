@@ -317,6 +317,51 @@ describe("attribution end-to-end (public flow order: verifyOtp then createBookin
     // file's fixtures and isn't swept by the top-level afterAll.
     await prisma.user.delete({ where: { id: (verified as { userId: string }).userId } });
   });
+
+  // A5: the public wizard's identify step now accepts an email instead of a
+  // phone (see book/actions.ts's verifyAndBook, which resolves the raw
+  // identifier via resolveIdentifier before calling createBooking). This
+  // guards findOrCreateClientProfile's email-lookup branch: it must land on
+  // the exact same User/ClientProfile that verifyOtp already found-or-
+  // created for this email, not create a second, duplicate one.
+  it("(email identifier) resolves to the same clientProfile verifyOtp created, with toEmail set on scheduled messages", async () => {
+    const service = await getUnGatedService();
+    const email = `test.bookings.${Date.now()}.${phoneCounter}@example.com`;
+    // 16:30 center-local -- clear of every other fixed DATE offset this file uses.
+    const startAt = centerLocalToUtc(DATE, 990);
+
+    const { devCode } = await requestOtp(email);
+    const verified = await verifyOtp(email, devCode as string, { sourceChannel: "website" });
+    expect(verified).not.toBeNull();
+    const userId = (verified as { userId: string }).userId;
+
+    const booking = await createBooking({
+      serviceId: service.id,
+      startAt,
+      client: { name: "Email Client", email },
+      channel: "ONLINE",
+      sourceChannel: "website",
+    });
+
+    const profile = await prisma.clientProfile.findUniqueOrThrow({ where: { userId } });
+    expect(booking.clientProfileId).toBe(profile.id);
+
+    // No duplicate User was created for this email.
+    const usersWithEmail = await prisma.user.findMany({ where: { email } });
+    expect(usersWithEmail.length).toBe(1);
+    expect(usersWithEmail[0]!.phone).toBeNull();
+
+    const messages = await prisma.scheduledMessage.findMany({ where: { bookingId: booking.id } });
+    expect(messages.length).toBe(3);
+    for (const m of messages) {
+      expect(m.toEmail).toBe(email);
+      expect(m.toPhone).toBeNull();
+      expect(m.clientProfileId).toBe(profile.id);
+    }
+
+    await prisma.scheduledMessage.deleteMany({ where: { bookingId: booking.id } });
+    await prisma.user.delete({ where: { id: userId } });
+  });
 });
 
 describe("getServiceSlots", () => {
