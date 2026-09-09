@@ -89,6 +89,14 @@ model MembershipTier {
   name        String
   priority    Int                @default(0)
   discountPct Int                @default(0)
+  // Loyalty-points threshold for automatic tier assignment (applyAutoTier in
+  // src/modules/crm/loyalty.ts): a client is auto-upgraded to the highest
+  // tier whose minPoints is <= their points balance. Defaults to 0, which
+  // would make every tier "reachable" at zero points -- see the seed data
+  // (prisma/seed.ts) for the deliberate thresholds that keep this sane
+  // (guest=0, member/vip staged, and non-loyalty program tiers like
+  // bride/postsurgery set unreachably high so they stay staff-assigned-only).
+  minPoints   Int                @default(0)
   isSystem    Boolean            @default(false)
   memberships ClientMembership[]
 }
@@ -105,6 +113,8 @@ model ClientProfile {
   bookings      Booking[]
   visitNotes    VisitNote[]
   notificationPreference NotificationPreference?
+  loyaltyAccount      LoyaltyAccount?
+  loyaltyTransactions LoyaltyTransaction[]
 }
 
 model ClientMembership {
@@ -289,6 +299,40 @@ model NotificationPreference {
   updatedAt       DateTime         @default(now()) @updatedAt
 }
 
+// A client's points wallet (1:1 with ClientProfile). pointsBalance is a
+// denormalized running total kept in sync with the LoyaltyTransaction ledger
+// by earnForBooking/redeemPoints/adjustPoints (src/modules/crm/loyalty.ts) --
+// list/summary views read this directly rather than summing the ledger.
+model LoyaltyAccount {
+  id              String        @id @default(cuid())
+  clientProfileId String        @unique
+  clientProfile   ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  pointsBalance   Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now()) @updatedAt
+}
+
+// Append-only ledger of every points earn/redeem/manual-adjustment/tier-note.
+// `reason` is a plain string (not an enum), following
+// CommunicationLog/MessageTemplate's convention, so new reasons don't need a
+// schema migration. The (bookingId, reason) unique constraint makes earning
+// idempotent per booking: two calls to earnForBooking for the same booking
+// only ever insert one reason="EARN" row (Postgres treats each NULL
+// bookingId as distinct, so non-booking-tied reasons like "ADJUST"/"TIER"
+// are never blocked by this constraint).
+model LoyaltyTransaction {
+  id              String        @id @default(cuid())
+  clientProfileId String
+  client          ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  deltaPoints     Int
+  reason          String
+  bookingId       String?
+  createdAt       DateTime      @default(now())
+
+  @@unique([bookingId, reason])
+  @@index([clientProfileId, createdAt])
+}
+
 model Room {
   id           String        @id @default(cuid())
   name         String
@@ -336,6 +380,11 @@ model Booking {
   updatedAt       DateTime       @default(now()) @updatedAt
   appointments    Appointment[]
   checkIn         CheckIn?
+  // Loyalty-points discount applied at booking time (redeemPoints in
+  // src/modules/crm/loyalty.ts), in the same integer minor currency unit as
+  // Appointment.priceMinorSnapshot. Payments stay off -- this only records
+  // the intended discount for the ledger/earn-basis, never a real charge.
+  discountMinor   Int            @default(0)
 
   @@index([createdAt])
 }

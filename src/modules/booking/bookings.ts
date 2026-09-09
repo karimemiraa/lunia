@@ -19,6 +19,7 @@ import { getSetting } from "@/modules/cms/settings";
 import { getMinTierForService, clientMeetsTier } from "./accessRules";
 import { scheduleMessage } from "./outbox";
 import { refreshClientLtv } from "@/modules/crm/ltv";
+import { earnForBooking, applyAutoTier, redeemPoints as redeemLoyaltyPoints } from "@/modules/crm/loyalty";
 import { localized } from "@/modules/catalog/localize";
 
 export type Slot = ComputedSlot;
@@ -127,6 +128,12 @@ const createBookingSchema = z.object({
   notes: z.string().min(1).optional(),
   createdById: z.string().min(1).optional(),
   locale: z.string().min(1).default("ar"),
+  // Optional: redeem this many loyalty points as a discount on the booking
+  // being created. Capped internally (by redeemPoints in
+  // src/modules/crm/loyalty.ts) at the client's balance and at the
+  // booking's own price -- never causes createBooking itself to fail.
+  // Omitted/undefined/0 is a no-op, so existing callers stay unaffected.
+  redeemPoints: z.number().int().nonnegative().optional(),
 });
 export type CreateBookingInput = z.input<typeof createBookingSchema>;
 
@@ -406,6 +413,13 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
     });
   });
 
+  // Optional points redemption: applies its own SERIALIZABLE cap (balance +
+  // booking price), so this can be called unconditionally whenever the
+  // caller asked for a positive amount without re-deriving those limits here.
+  if (data.redeemPoints && data.redeemPoints > 0) {
+    await redeemLoyaltyPoints(clientProfileId, data.redeemPoints, booking.id);
+  }
+
   const now = new Date();
   const reminderSendAt = new Date(startAt.getTime() - 24 * 60 * 60 * 1000);
   const messagePayload = {
@@ -648,6 +662,18 @@ export async function complete(bookingId: string): Promise<Booking> {
     await refreshClientLtv(updated.clientProfileId);
   } catch (err) {
     console.error(`Failed to refresh LTV for client "${updated.clientProfileId}" after completing booking "${bookingId}"`, err);
+  }
+
+  // Best-effort, same as the LTV refresh above: award loyalty points for
+  // this booking and re-evaluate the client's auto-tier. Neither step may
+  // ever throw/block completion -- a missed points award is recoverable
+  // (staff can adjustPoints manually), but failing to record the booking as
+  // completed is not.
+  try {
+    await earnForBooking(bookingId);
+    await applyAutoTier(updated.clientProfileId);
+  } catch (err) {
+    console.error(`Failed to award loyalty points/apply auto-tier for client "${updated.clientProfileId}" after completing booking "${bookingId}"`, err);
   }
 
   return updated;
