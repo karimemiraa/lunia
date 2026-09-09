@@ -180,12 +180,13 @@ export async function earnForBooking(bookingId: string): Promise<number> {
  * already has no LoyaltyAccount (balance 0) and is already on/below the
  * lowest tier, or when the computed tier matches their current one.
  *
- * NOTE (documented per design): this always *sets* the computed tier -- it
- * does not check whether the client's current tier was manually assigned by
- * staff to something the points balance wouldn't itself justify (e.g. a
- * "VIP" granted for other reasons). Keeping this simple per the engagement
- * spec; a future revision could special-case that "never downgrade a
- * staff-assigned tier" scenario if it turns out to matter in practice.
+ * UPGRADE-ONLY: this never *lowers* a client's tier. Membership tier
+ * `priority` gates service access (accessRules.clientMeetsTier), and
+ * staff-assigned program tiers (e.g. "bride"/"postsurgery"/VIP) deliberately
+ * sit above the points ladder (unreachable minPoints). If auto-tier were
+ * allowed to downgrade, completing any booking would silently revoke a
+ * staff-granted client's tier-gated access. So we only promote when the
+ * points-derived tier outranks the current one.
  */
 export async function applyAutoTier(clientProfileId: string): Promise<void> {
   const account = await prisma.loyaltyAccount.findUnique({ where: { clientProfileId } });
@@ -198,8 +199,15 @@ export async function applyAutoTier(clientProfileId: string): Promise<void> {
   });
   if (!targetTier) return; // No tier qualifies (shouldn't happen once "guest" @ minPoints=0 is seeded).
 
-  const currentMembership = await prisma.clientMembership.findUnique({ where: { clientId: clientProfileId } });
-  if (currentMembership?.tierId === targetTier.id) return; // Already on the right tier -- nothing to do.
+  const currentMembership = await prisma.clientMembership.findUnique({
+    where: { clientId: clientProfileId },
+    include: { tier: true },
+  });
+  if (currentMembership) {
+    if (currentMembership.tierId === targetTier.id) return; // Already on the right tier.
+    // Upgrade-only: never demote below (or sideways from) the current tier.
+    if (currentMembership.tier.priority >= targetTier.priority) return;
+  }
 
   await prisma.clientMembership.upsert({
     where: { clientId: clientProfileId },
@@ -248,6 +256,16 @@ export async function redeemPoints(clientProfileId: string, points: number, book
     ]);
     if (!booking || booking.clientProfileId !== clientProfileId) {
       throw new Error(`Booking "${bookingId}" not found for client "${clientProfileId}"`);
+    }
+
+    // Idempotency: points can only be redeemed against a booking once. A
+    // repeat call is a clean no-op rather than a unique-constraint (P2002)
+    // throw on the (bookingId, REDEEM) index.
+    const existingRedeem = await tx.loyaltyTransaction.findFirst({
+      where: { bookingId, reason: REDEEM_REASON },
+    });
+    if (existingRedeem) {
+      return { pointsRedeemed: 0, discountMinor: 0 };
     }
 
     const balance = account?.pointsBalance ?? 0;

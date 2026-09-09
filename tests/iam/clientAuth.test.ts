@@ -65,7 +65,7 @@ describe("clientAuth", () => {
 
   it("requestOtp with an email identifier delivers on the email channel and stores the code under the email key", async () => {
     const email = `otp-${Date.now()}@example.com`;
-    const captured: Array<{ channel: string; toEmail?: string; toPhone?: string; subject?: string }> = [];
+    const captured: Array<{ channel: string; toEmail?: string; toPhone?: string; subject?: string; body: string }> = [];
     const sender: CommsSender = {
       async send(msg) {
         captured.push(msg);
@@ -79,6 +79,10 @@ describe("clientAuth", () => {
       expect(captured[0]!.channel).toBe("email");
       expect(captured[0]!.toEmail).toBe(email);
       expect(captured[0]!.subject).toBeTruthy();
+      // The DELIVERED body must contain the code (regression guard for C1: an
+      // email channel with no seeded template must still render the code via
+      // the built-in fallback, else email login is impossible in production).
+      expect(captured[0]!.body).toContain(devCode as string);
 
       const raw = await getRedis().get(`otp:email:${email}`);
       expect(raw).toBeTruthy();

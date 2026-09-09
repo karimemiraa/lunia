@@ -795,6 +795,18 @@ async function main() {
       channel: "sms",
       bodyTemplate: "رمز التحقق الخاص بك في لونيا هو {{code}}.",
     },
+    {
+      kind: "OTP",
+      locale: "en",
+      channel: "email",
+      bodyTemplate: "Your Lunia verification code is {{code}}. It is valid for 5 minutes.",
+    },
+    {
+      kind: "OTP",
+      locale: "ar",
+      channel: "email",
+      bodyTemplate: "رمز التحقق الخاص بك في لونيا هو {{code}}. صالح لمدة ٥ دقائق.",
+    },
   ];
   for (const tpl of messageTemplateSeeds) {
     await prisma.messageTemplate.upsert({

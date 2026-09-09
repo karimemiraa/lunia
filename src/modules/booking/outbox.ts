@@ -111,6 +111,17 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
   const ref = bookingId ? ` (${bookingId})` : "";
 
   switch (kind) {
+    case "OTP": {
+      // MUST include the code: this built-in is the last-resort fallback when
+      // no MessageTemplate row exists for the (kind, locale, channel) — e.g.
+      // the email channel, which has no seeded OTP template. A code-less OTP
+      // body would make email/SMS login impossible in production (where the
+      // dev devCode is not returned).
+      const code = typeof payload.code === "string" ? payload.code : "";
+      return isAr
+        ? `رمز الدخول إلى لونيا هو ${code}. صالح لمدة ٥ دقائق.`
+        : `Your Lunia verification code is ${code}. It is valid for 5 minutes.`;
+    }
     case "CONFIRMATION":
       return isAr
         ? `تم تأكيد حجزك في لونيا${ref}. نتطلع لرؤيتك قريباً.`
