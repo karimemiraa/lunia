@@ -31,7 +31,9 @@
   },
   "home": {
     "heroStatement": "Where natural beauty begins",
-    "hero": { "eyebrow": "Skin Quality Center · Riyadh" },
+    "hero": {
+      "eyebrow": "Skin Quality Center · Riyadh"
+    },
     "meta": {
       "title": "Lunia | Riyadh's Skin Quality Center",
       "description": "Diagnostic-led skin, hair & scalp, and post-surgery recovery care in Riyadh, built on a Korean-inspired philosophy. Not facials — skin quality, sustained."
@@ -218,7 +220,11 @@
       "heading": "Quality you can see, built session by session",
       "intro": "Every result here reflects a real diagnostic plan, sustained over time — not a single dramatic transformation. Photography is shared only with client consent."
     },
-    "categories": ["Skin Quality", "Hair & Scalp", "Post-Surgery Recovery"],
+    "categories": [
+      "Skin Quality",
+      "Hair & Scalp",
+      "Post-Surgery Recovery"
+    ],
     "allLabel": "All results",
     "beforeAfterLabel": "Before & after",
     "consentNote": "Real client photography is added with explicit consent as it becomes available. Every placeholder above reflects a treatment category, not a specific client.",
@@ -460,6 +466,24 @@
       "errors": {
         "notAuthenticated": "Please sign in to manage your notification preferences.",
         "generic": "Something went wrong — please try again."
+      }
+    },
+    "loyalty": {
+      "heading": "Loyalty points",
+      "intro": "Earn points on every visit and redeem them toward future bookings.",
+      "balanceLabel": "Your points balance",
+      "pointsUnit": "points",
+      "currentTierLabel": "Current tier",
+      "progressToNext": "{tier} is next",
+      "pointsRemaining": "{count} points to go",
+      "topTierReached": "You've reached our top tier",
+      "historyHeading": "Recent activity",
+      "emptyHistory": "No points activity yet — it starts with your first completed visit.",
+      "reasons": {
+        "EARN": "Points earned",
+        "REDEEM": "Points redeemed",
+        "TIER": "Tier updated",
+        "ADJUST": "Adjustment"
       }
     }
   }

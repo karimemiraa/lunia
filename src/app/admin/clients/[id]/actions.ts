@@ -7,6 +7,7 @@
 // client's profile path so a following router.refresh() picks up fresh
 // data. Mirrors admin/calendar/actions.ts's structure.
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
@@ -15,6 +16,7 @@ import { prisma } from "@/lib/db";
 import { addVisitNote, deleteVisitNote } from "@/modules/crm/visitNotes";
 import { updateClientTier } from "@/modules/crm/clients";
 import { upsertPreference } from "@/modules/comms/preferences";
+import { adjustPoints } from "@/modules/crm/loyalty";
 import type { CommsChannelPref } from "@prisma/client";
 
 export interface ClientActionState {
@@ -138,6 +140,55 @@ export async function updateNotificationPreferenceAction(
     entityType: "NotificationPreference",
     entityId: clientProfileId,
     summary: `Updated notification preferences for client "${clientProfileId}"`,
+  });
+
+  revalidateClient(clientProfileId);
+  return { success: true };
+}
+
+const adjustLoyaltyPointsSchema = z.object({
+  clientProfileId: z.string().min(1, "Missing client."),
+  deltaPoints: z.coerce
+    .number()
+    .int("Points must be a whole number.")
+    .refine((n) => n !== 0, { message: "Points must be non-zero." }),
+  reason: z.string().trim().min(1, "A reason is required."),
+});
+
+// Applies a manual loyalty-points adjustment (positive credit or negative
+// correction) for a client -- e.g. a goodwill gesture or fixing a mistaken
+// earn. Guarded by CLIENT_MANAGE (same as updateTierAction/
+// updateNotificationPreferenceAction above) and audited, since it directly
+// changes a client's spendable points balance. adjustPoints itself refuses
+// (throws) an adjustment that would push the balance negative.
+export async function adjustLoyaltyPointsAction(
+  _prev: ClientActionState | null,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+
+  const parsed = adjustLoyaltyPointsSchema.safeParse({
+    clientProfileId: formData.get("clientProfileId"),
+    deltaPoints: formData.get("deltaPoints"),
+    reason: formData.get("reason"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const { clientProfileId, deltaPoints, reason } = parsed.data;
+
+  try {
+    await adjustPoints(clientProfileId, deltaPoints, reason);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to adjust points." };
+  }
+
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "LOYALTY_POINTS_ADJUST",
+    entityType: "LoyaltyAccount",
+    entityId: clientProfileId,
+    summary: `Adjusted loyalty points for client "${clientProfileId}" by ${deltaPoints > 0 ? "+" : ""}${deltaPoints} (${reason})`,
   });
 
   revalidateClient(clientProfileId);

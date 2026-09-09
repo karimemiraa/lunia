@@ -10,9 +10,11 @@ import { prisma } from "@/lib/db";
 import { listBookings } from "@/modules/booking/bookings";
 import { getClientSessionUser, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
 import { getPreference } from "@/modules/comms/preferences";
+import { getLoyalty } from "@/modules/crm/loyalty";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { AccountBookings, type AccountBookingDTO } from "./AccountBookings";
 import { NotificationsPanel } from "./NotificationsPanel";
+import { LoyaltyPanel } from "./LoyaltyPanel";
 import { logout } from "./actions";
 
 interface AccountPageProps {
@@ -123,6 +125,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
 
   const { upcoming, past } = classifyBookings(bookings, serviceById, locale);
   const preference = await getPreference(user.clientProfile.id);
+  const loyalty = await getLoyalty(user.clientProfile.id);
 
   const t = await getTranslations({ locale, namespace: "account" });
   const logoutAction = logout.bind(null, locale);
@@ -153,6 +156,22 @@ export default async function AccountPage({ params }: AccountPageProps) {
           </div>
 
           <AccountBookings locale={locale} upcoming={upcoming} past={past} />
+
+          <LoyaltyPanel
+            locale={locale}
+            balance={loyalty.balance}
+            currentTierName={loyalty.currentTier?.name ?? null}
+            currentTierMinPoints={loyalty.currentTier?.minPoints ?? 0}
+            nextTierName={loyalty.nextTier?.name ?? null}
+            pointsToNextTier={loyalty.pointsToNextTier}
+            nextTierMinPoints={loyalty.nextTier?.minPoints ?? null}
+            transactions={loyalty.transactions.map((txn) => ({
+              id: txn.id,
+              deltaPoints: txn.deltaPoints,
+              reason: txn.reason,
+              createdAtIso: txn.createdAt.toISOString(),
+            }))}
+          />
 
           <NotificationsPanel locale={locale} preference={preference} />
         </div>

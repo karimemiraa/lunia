@@ -24,6 +24,16 @@ const REDEEM_REASON = "REDEEM";
 const ADJUST_REASON = "ADJUST";
 const TIER_REASON = "TIER";
 
+// Some seeded tiers (bride/postsurgery -- see prisma/seed.ts) are
+// staff-assigned program tiers, not loyalty ranks, and are deliberately
+// given an unreachable minPoints (~1e9) so points alone never auto-assigns
+// them. getLoyalty's "next tier" progress display should never surface one
+// of those as "your next tier" (which would show a nonsensical multi-million
+// point gap) -- this ceiling excludes them from that specific computation
+// while leaving applyAutoTier's tier selection untouched (a balance that
+// high never occurs in practice, so it's a no-op there).
+const LOYALTY_LADDER_CEILING = 1_000_000;
+
 // --- Serializable-transaction retry helper ---------------------------------
 // Mirrors src/modules/booking/bookings.ts's runSerializableTransaction (see
 // that file for the detailed rationale): redeemPoints/adjustPoints read the
@@ -347,7 +357,8 @@ export async function getLoyalty(clientProfileId: string, options: { transaction
 
   const balance = account?.pointsBalance ?? 0;
   const currentTier = membership?.tier ?? null;
-  const nextTier = tiers.find((tier) => tier.minPoints > balance) ?? null;
+  const nextTier =
+    tiers.find((tier) => tier.minPoints > balance && tier.minPoints <= LOYALTY_LADDER_CEILING) ?? null;
 
   return {
     balance,

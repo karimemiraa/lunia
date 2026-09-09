@@ -259,6 +259,15 @@ describe("loyalty/getLoyalty", () => {
     expect(summary.pointsToNextTier).toBe(2_000 - 610);
     expect(summary.transactions.length).toBeGreaterThan(0);
   });
+
+  it("never surfaces an unreachable staff-assigned program tier (bride/postsurgery) as 'next tier'", async () => {
+    const clientProfileId = await makeClient("Top Of Ladder Client");
+    await prisma.loyaltyAccount.create({ data: { clientProfileId, pointsBalance: 5_000 } }); // past vip's 2000
+
+    const summary = await getLoyalty(clientProfileId);
+    expect(summary.nextTier).toBeNull();
+    expect(summary.pointsToNextTier).toBeNull();
+  });
 });
 
 describe("loyalty hooked into booking completion", () => {

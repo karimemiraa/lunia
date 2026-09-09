@@ -5,10 +5,12 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { getClientDetail } from "@/modules/crm/clients";
 import { listTiers } from "@/modules/iam/tiers";
 import { getPreference } from "@/modules/comms/preferences";
+import { getLoyalty } from "@/modules/crm/loyalty";
 import { TierEditor } from "./TierEditor";
 import { VisitNoteForm } from "./VisitNoteForm";
 import { VisitNoteRow } from "./VisitNoteRow";
 import { NotificationPreferenceEditor } from "./NotificationPreferenceEditor";
+import { LoyaltyAdjustForm } from "./LoyaltyAdjustForm";
 
 interface ClientDetailPageProps {
   params: Promise<{ id: string }>;
@@ -45,6 +47,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   if (!detail) notFound();
 
   const preference = canManage ? await getPreference(detail.profile.id) : null;
+  const loyalty = await getLoyalty(detail.profile.id);
 
   return (
     <AdminShell user={user} title={detail.profile.fullName} description="Client profile, treatment history, and visit notes.">
@@ -85,6 +88,58 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             <NotificationPreferenceEditor clientProfileId={detail.profile.id} preference={preference} />
           </section>
         )}
+
+        <section className="flex flex-col gap-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">Loyalty points</h2>
+          <div className="grid grid-cols-1 gap-4 rounded border border-[var(--color-ink)]/10 p-5 sm:grid-cols-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">Balance</p>
+              <p className="text-lg font-medium text-[var(--color-ink)]" data-testid="loyalty-balance">
+                {loyalty.balance.toLocaleString("en-US")} pts
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">Current tier</p>
+              <p className="text-sm text-[var(--color-ink)]">{loyalty.currentTier?.name ?? "No tier (guest)"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">Next tier</p>
+              <p className="text-sm text-[var(--color-ink)]">
+                {loyalty.nextTier
+                  ? `${loyalty.nextTier.name} (${loyalty.pointsToNextTier?.toLocaleString("en-US")} pts to go)`
+                  : "Top tier reached"}
+              </p>
+            </div>
+          </div>
+
+          {canManage && <LoyaltyAdjustForm clientProfileId={detail.profile.id} />}
+
+          {loyalty.transactions.length > 0 && (
+            <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+              <table className="w-full text-left text-sm" data-testid="loyalty-transactions-table">
+                <thead className="bg-[var(--color-cream)]/60">
+                  <tr>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Date</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Reason</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loyalty.transactions.map((txn) => (
+                    <tr key={txn.id} className="border-t border-[var(--color-ink)]/10">
+                      <td className="px-4 py-2 text-[var(--color-ink)]">{formatDateTime(txn.createdAt)}</td>
+                      <td className="px-4 py-2 text-[var(--color-ink)]">{txn.reason}</td>
+                      <td className={`px-4 py-2 font-medium ${txn.deltaPoints < 0 ? "text-red-700" : "text-[var(--color-ink)]"}`}>
+                        {txn.deltaPoints > 0 ? "+" : ""}
+                        {txn.deltaPoints}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
