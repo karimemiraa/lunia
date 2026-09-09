@@ -11,6 +11,7 @@ import {
   type HoursSettings,
   type SocialSettings,
   type SeoSettings,
+  type CommsSettings,
 } from "@/modules/cms/settings";
 
 export interface SaveSettingsState {
@@ -28,6 +29,18 @@ function str(formData: FormData, name: string): string {
 function optionalStr(formData: FormData, name: string): string | undefined {
   const value = str(formData, name).trim();
   return value.length > 0 ? value : undefined;
+}
+
+const OTP_CHANNEL_VALUES = ["AUTO", "WHATSAPP", "SMS", "EMAIL"] as const;
+
+// Falls back to "AUTO" for a missing/tampered value rather than throwing --
+// this is a select the form always renders with a valid defaultValue, so an
+// unrecognized value here only happens for a malformed direct POST.
+function otpChannelFromForm(formData: FormData): CommsSettings["otpChannel"] {
+  const raw = str(formData, "comms.otpChannel");
+  return (OTP_CHANNEL_VALUES as readonly string[]).includes(raw)
+    ? (raw as CommsSettings["otpChannel"])
+    : "AUTO";
 }
 
 // Reads and validates every settings section from the combined settings form,
@@ -71,11 +84,16 @@ export async function saveSettings(_prev: SaveSettingsState | null, formData: Fo
     defaultDescAr: str(formData, "defaultDesc.ar"),
   };
 
+  const comms: CommsSettings = {
+    otpChannel: otpChannelFromForm(formData),
+  };
+
   try {
     await setSetting("business", business);
     await setSetting("hours", hours);
     await setSetting("social", social);
     await setSetting("seo", seo);
+    await setSetting("comms", comms);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to save settings." };
   }
@@ -84,7 +102,7 @@ export async function saveSettings(_prev: SaveSettingsState | null, formData: Fo
     actorUserId: admin.id,
     action: "SETTINGS_UPDATE",
     entityType: "SiteSetting",
-    summary: "Updated business, hours, social, and SEO settings",
+    summary: "Updated business, hours, social, SEO, and communications settings",
   });
   revalidatePath("/admin/settings");
   revalidatePath("/", "layout");

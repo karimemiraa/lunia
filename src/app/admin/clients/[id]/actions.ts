@@ -10,9 +10,12 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { recordAudit } from "@/modules/iam/audit";
 import { prisma } from "@/lib/db";
 import { addVisitNote, deleteVisitNote } from "@/modules/crm/visitNotes";
 import { updateClientTier } from "@/modules/crm/clients";
+import { upsertPreference } from "@/modules/comms/preferences";
+import type { CommsChannelPref } from "@prisma/client";
 
 export interface ClientActionState {
   error?: string;
@@ -93,6 +96,49 @@ export async function updateTierAction(_prev: ClientActionState | null, formData
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update tier." };
   }
+
+  revalidateClient(clientProfileId);
+  return { success: true };
+}
+
+const NOTIFICATION_CHANNEL_VALUES = ["AUTO", "WHATSAPP", "SMS", "EMAIL"] as const;
+
+// Updates a client's NotificationPreference (channel + opt-ins) on their
+// behalf -- e.g. when a client asks staff over the phone to change how they
+// get reminded. Guarded by CLIENT_MANAGE (like updateTierAction above) and
+// audited since it changes how/whether the client is contacted.
+export async function updateNotificationPreferenceAction(
+  _prev: ClientActionState | null,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+
+  const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
+  if (!clientProfileId) {
+    return { error: "Missing client." };
+  }
+
+  const rawChannel = String(formData.get("channel") ?? "");
+  const channel = (NOTIFICATION_CHANNEL_VALUES as readonly string[]).includes(rawChannel)
+    ? (rawChannel as CommsChannelPref)
+    : "AUTO";
+  const remindersOptIn = formData.get("remindersOptIn") === "on";
+  const postVisitOptIn = formData.get("postVisitOptIn") === "on";
+  const marketingOptIn = formData.get("marketingOptIn") === "on";
+
+  try {
+    await upsertPreference(clientProfileId, { channel, remindersOptIn, postVisitOptIn, marketingOptIn });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update notification preferences." };
+  }
+
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "CLIENT_NOTIFICATION_PREFERENCE_UPDATE",
+    entityType: "NotificationPreference",
+    entityId: clientProfileId,
+    summary: `Updated notification preferences for client "${clientProfileId}"`,
+  });
 
   revalidateClient(clientProfileId);
   return { success: true };

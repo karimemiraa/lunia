@@ -4,9 +4,11 @@ import { AdminShell } from "../../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { getClientDetail } from "@/modules/crm/clients";
 import { listTiers } from "@/modules/iam/tiers";
+import { getPreference } from "@/modules/comms/preferences";
 import { TierEditor } from "./TierEditor";
 import { VisitNoteForm } from "./VisitNoteForm";
 import { VisitNoteRow } from "./VisitNoteRow";
+import { NotificationPreferenceEditor } from "./NotificationPreferenceEditor";
 
 interface ClientDetailPageProps {
   params: Promise<{ id: string }>;
@@ -42,6 +44,8 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   const [detail, tiers] = await Promise.all([getClientDetail(id), canManage ? listTiers() : Promise.resolve([])]);
   if (!detail) notFound();
 
+  const preference = canManage ? await getPreference(detail.profile.id) : null;
+
   return (
     <AdminShell user={user} title={detail.profile.fullName} description="Client profile, treatment history, and visit notes.">
       <div className="flex flex-col gap-8">
@@ -70,6 +74,15 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
           <section>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">Edit tier</h2>
             <TierEditor clientProfileId={detail.profile.id} currentTierId={detail.tier?.id ?? null} tiers={tiers} />
+          </section>
+        )}
+
+        {canManage && preference && (
+          <section>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
+              Notification preferences
+            </h2>
+            <NotificationPreferenceEditor clientProfileId={detail.profile.id} preference={preference} />
           </section>
         )}
 

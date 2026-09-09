@@ -32,3 +32,21 @@ test("site settings: update WhatsApp and Instagram and persist", async ({ page }
   await expect(page.locator('input[name="whatsapp"]')).toHaveValue(whatsapp);
   await expect(page.locator('input[name="instagram"]')).toHaveValue(instagram);
 });
+
+test("site settings: update the OTP channel default and persist (A4)", async ({ page }) => {
+  await signInAsOwner(page);
+
+  await page.goto("/admin/settings");
+  await expect(page.getByTestId("communications-settings")).toBeVisible();
+
+  const otpSelect = page.getByTestId("otp-channel-select");
+  await expect(otpSelect).toBeVisible();
+  await expect(page.getByTestId("booking-channel-readonly")).toBeVisible();
+
+  await otpSelect.selectOption("EMAIL");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByTestId("otp-channel-select")).toHaveValue("EMAIL");
+});
