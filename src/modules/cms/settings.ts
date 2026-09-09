@@ -50,12 +50,22 @@ const heroSettingsSchema = z.object({
 });
 export type HeroSettings = z.infer<typeof heroSettingsSchema>;
 
+// Global communications defaults. otpChannel is the fallback delivery channel
+// for one-time codes when a client has no explicit per-client preference.
+// AUTO = derive from the identifier (email identifier -> email; phone -> the
+// booking channel).
+const commsSettingsSchema = z.object({
+  otpChannel: z.enum(["AUTO", "WHATSAPP", "SMS", "EMAIL"]).default("AUTO"),
+});
+export type CommsSettings = z.infer<typeof commsSettingsSchema>;
+
 export const settingsRegistry = {
   business: businessSettingsSchema,
   hours: hoursSettingsSchema,
   social: socialSettingsSchema,
   seo: seoSettingsSchema,
   hero: heroSettingsSchema,
+  comms: commsSettingsSchema,
 } as const;
 
 export type SettingKey = keyof typeof settingsRegistry;
