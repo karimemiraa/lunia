@@ -16,7 +16,15 @@ describe("getCommsConfig bookingChannel", () => {
 });
 
 describe("resolveBookingChannel", () => {
-  const base = { from: undefined, meta: undefined, twilio: undefined, unifonic: undefined, configured: false } as const;
+  const base = {
+    from: undefined,
+    meta: undefined,
+    twilio: undefined,
+    unifonic: undefined,
+    configured: false,
+    email: undefined,
+    emailConfigured: false,
+  } as const;
 
   it("honors an explicit bookingChannel over the provider default", () => {
     expect(resolveBookingChannel({ ...base, provider: "twilio", bookingChannel: "sms" })).toBe("sms");

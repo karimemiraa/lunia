@@ -86,7 +86,7 @@ describe("processDueMessages", () => {
       payload: { bookingId: "b-future" },
     });
 
-    const sent: Array<{ toPhone: string; body: string; channel: string; kind: string }> = [];
+    const sent: Array<{ toPhone?: string; body: string; channel: string; kind: string }> = [];
     const fakeSender: CommsSender = {
       send: async (msg) => {
         sent.push(msg);

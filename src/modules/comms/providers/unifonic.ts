@@ -40,6 +40,7 @@ function isSuccessFlag(value: string | boolean | undefined): boolean {
 export function makeUnifonicSender(cfg: UnifonicSenderConfig): CommsSender {
   return {
     async send(msg) {
+      if (!msg.toPhone) return { ok: false };
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
       try {

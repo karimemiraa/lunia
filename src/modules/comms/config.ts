@@ -8,6 +8,14 @@
 export type CommsProvider = "none" | "meta_whatsapp" | "twilio" | "unifonic";
 export type BookingChannel = "whatsapp" | "sms";
 
+export interface EmailConfig {
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  from: string;
+}
+
 export interface CommsConfig {
   provider: CommsProvider;
   from?: string;
@@ -15,6 +23,10 @@ export interface CommsConfig {
   twilio?: { accountSid: string; authToken: string; from: string };
   unifonic?: { appSid: string; senderId: string };
   configured: boolean;
+  // Email (SMTP) is independent of the WhatsApp/SMS `provider`: it can be
+  // configured on its own, so it has its own `emailConfigured` flag.
+  email?: EmailConfig;
+  emailConfigured: boolean;
   // Explicit override for the channel booking messages are sent on. When
   // unset, the channel is derived from the provider (see resolveBookingChannel
   // in outbox.ts) — e.g. a Twilio account provisioned for SMS rather than
@@ -73,5 +85,18 @@ export function getCommsConfig(env: EnvSource = process.env): CommsConfig {
   const bookingChannel: BookingChannel | undefined =
     rawChannel === "whatsapp" || rawChannel === "sms" ? rawChannel : undefined;
 
-  return { provider, from, meta, twilio, unifonic, configured, bookingChannel };
+  // Email (SMTP) — configured independently of the WhatsApp/SMS provider.
+  const smtpHost = nonEmpty(env.SMTP_HOST);
+  const smtpUser = nonEmpty(env.SMTP_USER);
+  const smtpPass = nonEmpty(env.SMTP_PASS);
+  const smtpFrom = nonEmpty(env.COMMS_EMAIL_FROM);
+  const smtpPortRaw = nonEmpty(env.SMTP_PORT);
+  const smtpPort = smtpPortRaw && /^\d+$/.test(smtpPortRaw) ? Number(smtpPortRaw) : 587;
+  const email: EmailConfig | undefined =
+    smtpHost && smtpUser && smtpPass && smtpFrom
+      ? { host: smtpHost, port: smtpPort, user: smtpUser, pass: smtpPass, from: smtpFrom }
+      : undefined;
+  const emailConfigured = email !== undefined;
+
+  return { provider, from, meta, twilio, unifonic, configured, bookingChannel, email, emailConfigured };
 }

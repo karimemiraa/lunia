@@ -372,7 +372,10 @@ model CommunicationLog {
   id          String   @id @default(cuid())
   channel     String
   kind        String
-  toPhone     String
+  // Exactly one recipient field is set per row, depending on the channel:
+  // phone channels (whatsapp/sms) set toPhone; the email channel sets toEmail.
+  toPhone     String?
+  toEmail     String?
   bookingId   String?
   status      String
   body        String   @db.Text
@@ -380,6 +383,7 @@ model CommunicationLog {
   createdAt   DateTime @default(now())
 
   @@index([toPhone])
+  @@index([toEmail])
   @@index([bookingId])
 }
 

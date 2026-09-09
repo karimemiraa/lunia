@@ -223,7 +223,7 @@ describe("clientAuth", () => {
     const phone = uniquePhone();
     usedPhones.push(phone);
 
-    const sent: { channel: string; toPhone: string; body: string; kind: string }[] = [];
+    const sent: { channel: string; toPhone?: string; body: string; kind: string }[] = [];
     const fakeSender: CommsSender = {
       async send(msg) {
         sent.push(msg);

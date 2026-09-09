@@ -295,6 +295,7 @@ describe("makeSender dispatch", () => {
       provider: "meta_whatsapp",
       meta: { token: "t", phoneId: "phone-456" },
       configured: true,
+      emailConfigured: false,
     });
     await sender.send(sampleMsg);
     const [url] = fetchMock.mock.calls[0] as FetchArgs;
@@ -306,6 +307,7 @@ describe("makeSender dispatch", () => {
       provider: "twilio",
       twilio: { accountSid: "AC1", authToken: "tok", from: "+15550009999" },
       configured: true,
+      emailConfigured: false,
     });
     await sender.send(sampleMsg);
     const [url] = fetchMock.mock.calls[0] as FetchArgs;
@@ -317,6 +319,7 @@ describe("makeSender dispatch", () => {
       provider: "unifonic",
       unifonic: { appSid: "app-1", senderId: "Lunia" },
       configured: true,
+      emailConfigured: false,
     });
     await sender.send(sampleMsg);
     const [url] = fetchMock.mock.calls[0] as FetchArgs;
@@ -324,7 +327,7 @@ describe("makeSender dispatch", () => {
   });
 
   it("returns stubSender (no fetch call) for provider none", async () => {
-    const sender = makeSender({ provider: "none", configured: false });
+    const sender = makeSender({ provider: "none", configured: false, emailConfigured: false });
     await sender.send(sampleMsg);
     expect(fetchMock).not.toHaveBeenCalled();
   });

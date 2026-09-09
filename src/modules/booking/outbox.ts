@@ -53,27 +53,34 @@ export async function scheduleMessage(input: ScheduleMessageInput): Promise<Sche
 
 // --- Delivery ---------------------------------------------------------
 
-// The interface a message-sending provider implements. Stage 6 swaps in a
-// real WhatsApp/SMS provider behind this same shape; nothing in
-// processDueMessages needs to change when that happens.
-export interface CommsSender {
-  send(msg: {
-    channel: string;
-    toPhone: string;
-    body: string;
-    kind: string;
-    bookingId?: string;
-  }): Promise<{ ok: boolean; providerRef?: string }>;
+// A single outbound message. Channel-agnostic: phone channels (whatsapp/sms)
+// read toPhone; the email channel reads toEmail + subject. A given send only
+// populates the fields its channel needs.
+export interface CommsMessage {
+  channel: string;
+  toPhone?: string;
+  toEmail?: string;
+  subject?: string;
+  body: string;
+  kind: string;
+  bookingId?: string;
 }
 
-// Stand-in sender: no external provider is wired up yet (that's Stage 6).
-// It just logs the outbound message and reports success with a synthetic
-// providerRef, so the rest of the pipeline (status flips, CommunicationLog)
-// can be exercised end-to-end today.
+// The interface a message-sending provider implements (WhatsApp/SMS/email).
+// processDueMessages and the OTP flow send through this same shape.
+export interface CommsSender {
+  send(msg: CommsMessage): Promise<{ ok: boolean; providerRef?: string }>;
+}
+
+// Stand-in sender: logs the outbound message and reports success with a
+// synthetic providerRef, so the pipeline (status flips, CommunicationLog) can
+// be exercised without a real provider. Used everywhere outside a configured
+// production environment.
 export const stubSender: CommsSender = {
   async send(msg) {
     const providerRef = `stub-${Math.random().toString(36).slice(2, 10)}`;
-    console.info(`[stubSender] ${msg.channel} -> ${msg.toPhone} (${msg.kind}): ${msg.body}`);
+    const recipient = msg.toEmail ?? msg.toPhone ?? "?";
+    console.info(`[stubSender] ${msg.channel} -> ${recipient} (${msg.kind}): ${msg.body}`);
     return { ok: true, providerRef };
   },
 };

@@ -20,7 +20,7 @@ import { renderMessageBody } from "@/modules/booking/outbox";
 // validate upsertTemplate() below, rather than re-declaring these lists.
 export const KIND_VALUES = ["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "OTP"] as const;
 export const LOCALE_VALUES = ["ar", "en"] as const;
-export const CHANNEL_VALUES = ["whatsapp", "sms"] as const;
+export const CHANNEL_VALUES = ["whatsapp", "sms", "email"] as const;
 
 const kindSchema = z.enum(KIND_VALUES);
 const localeSchema = z.enum(LOCALE_VALUES);
