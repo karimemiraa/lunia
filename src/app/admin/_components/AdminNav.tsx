@@ -137,6 +137,7 @@ const GROUPS: NavGroup[] = [
     label: "Operations",
     items: [
       { href: "/admin/calendar", label: "Calendar", perm: PERMISSIONS.BOOKING_VIEW, icon: I.calendar },
+      { href: "/admin/waitlist", label: "Waitlist", perm: PERMISSIONS.BOOKING_VIEW, icon: I.inbox },
       { href: "/admin/clients", label: "Clients", perm: PERMISSIONS.CLIENT_VIEW, icon: I.users },
       { href: "/admin/booking/rooms", label: "Rooms", perm: PERMISSIONS.STAFF_MANAGE, icon: I.book },
       { href: "/admin/booking/schedules", label: "Schedules", perm: PERMISSIONS.STAFF_MANAGE, icon: I.calendar },

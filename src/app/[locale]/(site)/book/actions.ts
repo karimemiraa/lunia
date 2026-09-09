@@ -15,6 +15,7 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { getServiceSlots, createBooking } from "@/modules/booking/bookings";
+import { joinWaitlist } from "@/modules/booking/waitlist";
 import {
   requestOtp,
   verifyOtp,
@@ -334,5 +335,52 @@ export async function applyPackageToBookingAction(
     return { ok: true, sessionsRemaining: result.sessionsRemaining };
   } catch (err) {
     return { ok: false, error: messageOf(err) || t("generic") };
+  }
+}
+
+// --- Waitlist join (public, unauthenticated) --------------------------
+// Offered by the wizard's date/time step when getSlots comes back empty for
+// the chosen service+day. Deliberately doesn't require OTP verification --
+// unlike an actual booking, joining a waitlist makes no promise/commitment,
+// so the same "name + phone-or-email" pattern used to identify a client
+// elsewhere is enough here; joinWaitlist (waitlist.ts) is Zod-validated
+// server-side regardless of what this layer already checked.
+
+export type JoinWaitlistResult = { ok: true } | { ok: false; error: string };
+
+const joinWaitlistActionSchema = z.object({
+  serviceId: z.string().min(1),
+  desiredDateISO: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
+  name: z.string().trim().min(1).max(200),
+  identifier: z.string().trim().min(3).max(254),
+  locale: z.enum(["en", "ar"]),
+});
+export type JoinWaitlistActionInput = z.input<typeof joinWaitlistActionSchema>;
+
+export async function joinWaitlistAction(input: JoinWaitlistActionInput): Promise<JoinWaitlistResult> {
+  const t = await errorTranslator(extractRawLocale(input));
+  try {
+    const data = joinWaitlistActionSchema.parse(input);
+    const id = resolveIdentifier(data.identifier);
+
+    await joinWaitlist({
+      serviceId: data.serviceId,
+      desiredDateISO: data.desiredDateISO,
+      name: data.name,
+      phone: id.kind === "phone" ? id.value : undefined,
+      email: id.kind === "email" ? id.value : undefined,
+      locale: data.locale,
+    });
+
+    return { ok: true };
+  } catch (err) {
+    const message = messageOf(err);
+    if (message.includes("Invalid phone") || message.includes("Invalid email")) {
+      return { ok: false, error: t("invalidIdentifier") };
+    }
+    if (message.includes("not found")) {
+      return { ok: false, error: t("serviceUnavailable") };
+    }
+    return { ok: false, error: t("generic") };
   }
 }

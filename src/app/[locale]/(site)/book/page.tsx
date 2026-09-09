@@ -12,7 +12,7 @@ import { BookingWizard, type BookableServiceDTO } from "./BookingWizard";
 
 interface BookPageProps {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ src?: string | string[] }>;
+  searchParams: Promise<{ src?: string | string[]; service?: string | string[]; staff?: string | string[] }>;
 }
 
 function isPublicLocale(locale: string): locale is PublicLocale {
@@ -62,10 +62,11 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
   const { locale: rawLocale } = await params;
   const locale: PublicLocale = isPublicLocale(rawLocale) ? rawLocale : "ar";
 
-  const [services, sourceChannel, tHero] = await Promise.all([
+  const [services, sourceChannel, tHero, resolvedSearchParams] = await Promise.all([
     getBookableServices(),
     resolveSourceChannel(searchParams),
     getTranslations({ locale, namespace: "book.hero" }),
+    searchParams,
   ]);
 
   const tierNotes = await getTierGateNotesForServices(services.map((service) => service.id));
@@ -78,6 +79,16 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
     priceMinor: service.priceMinor,
     tierNote: tierNotes[service.id] ?? null,
   }));
+
+  // One-tap rebooking deep-link (account page's "Book again"):
+  // /book?service=<slug>&staff=<staffUserId>. Resolved server-side against
+  // the actual bookable services list -- an unknown/stale slug or staff id
+  // (e.g. the service was unpublished, or the staff member left) just falls
+  // back to the normal step-1 flow rather than erroring.
+  const serviceParam = Array.isArray(resolvedSearchParams.service) ? resolvedSearchParams.service[0] : resolvedSearchParams.service;
+  const staffParam = Array.isArray(resolvedSearchParams.staff) ? resolvedSearchParams.staff[0] : resolvedSearchParams.staff;
+  const prefillServiceId = serviceParam ? (services.find((s) => s.slug === serviceParam)?.id ?? null) : null;
+  const prefillStaffUserId = prefillServiceId ? (staffParam ?? null) : null;
 
   return (
     <main className="flex flex-col">
@@ -94,7 +105,13 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
       </Section>
 
       <Section tone="plain">
-        <BookingWizard services={serviceDTOs} locale={locale} sourceChannel={sourceChannel} />
+        <BookingWizard
+          services={serviceDTOs}
+          locale={locale}
+          sourceChannel={sourceChannel}
+          prefillServiceId={prefillServiceId}
+          prefillStaffUserId={prefillStaffUserId}
+        />
       </Section>
     </main>
   );

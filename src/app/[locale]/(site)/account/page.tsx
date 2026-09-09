@@ -33,7 +33,7 @@ function isPublicLocale(locale: string): locale is PublicLocale {
 interface BookingWithServiceName {
   id: string;
   status: string;
-  appointments: { startAt: Date; serviceId: string }[];
+  appointments: { startAt: Date; serviceId: string; staffUserId: string }[];
 }
 
 // Splits this client's bookings into upcoming/past buckets and works out
@@ -43,7 +43,7 @@ interface BookingWithServiceName {
 // once per request, just not inline in component body.
 function classifyBookings(
   bookings: BookingWithServiceName[],
-  serviceById: Map<string, { nameEn: string; nameAr: string }>,
+  serviceById: Map<string, { slug: string; nameEn: string; nameAr: string }>,
   locale: PublicLocale,
 ): { upcoming: AccountBookingDTO[]; past: AccountBookingDTO[] } {
   const now = Date.now();
@@ -64,12 +64,22 @@ function classifyBookings(
       CANCELLABLE_STATUSES.has(booking.status) &&
       hoursUntilStart > MIN_HOURS_BEFORE_CANCEL;
 
+    // One-tap rebooking (D2): a past COMPLETED booking whose service is
+    // still known gets a "Book again" deep-link to the wizard, prefilled
+    // with that service (and the same staff member, when the wizard can
+    // still resolve them a free slot -- see BookingWizard's prefill effect).
+    const rebook =
+      booking.status === "COMPLETED" && service
+        ? { serviceSlug: service.slug, staffUserId: appointment.staffUserId }
+        : null;
+
     const dto: AccountBookingDTO = {
       id: booking.id,
       serviceName,
       startAtIso: appointment.startAt.toISOString(),
       status: booking.status as AccountBookingDTO["status"],
       canCancel,
+      rebook,
     };
 
     if (isUpcoming) {

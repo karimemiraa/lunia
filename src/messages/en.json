@@ -353,6 +353,13 @@
       "continueLabel": "Continue",
       "selectServicePrompt": "Select a service to see available times."
     },
+    "waitlist": {
+      "heading": "Join the waitlist",
+      "intro": "We'll let you know the moment a spot opens up on this day.",
+      "joinLabel": "Join the waitlist",
+      "joiningLabel": "Joining…",
+      "joinedMessage": "You're on the waitlist — we'll reach out the moment a spot opens up."
+    },
     "contact": {
       "heading": "Your details",
       "intro": "We'll send a 6-digit code to confirm your phone or email.",
@@ -440,6 +447,7 @@
     "rebookLabel": "Book another visit",
     "cancelLabel": "Cancel booking",
     "cancellingLabel": "Cancelling…",
+    "bookAgainLabel": "Book again",
     "status": {
       "REQUESTED": "Requested",
       "CONFIRMED": "Confirmed",
