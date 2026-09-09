@@ -11,10 +11,12 @@ import { listBookings } from "@/modules/booking/bookings";
 import { getClientSessionUser, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
 import { getPreference } from "@/modules/comms/preferences";
 import { getLoyalty } from "@/modules/crm/loyalty";
+import { listClientCredits } from "@/modules/commerce/packages";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { AccountBookings, type AccountBookingDTO } from "./AccountBookings";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { LoyaltyPanel } from "./LoyaltyPanel";
+import { MyCreditsPanel } from "./MyCreditsPanel";
 import { logout } from "./actions";
 
 interface AccountPageProps {
@@ -126,6 +128,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
   const { upcoming, past } = classifyBookings(bookings, serviceById, locale);
   const preference = await getPreference(user.clientProfile.id);
   const loyalty = await getLoyalty(user.clientProfile.id);
+  const credits = await listClientCredits(user.clientProfile.id);
 
   const t = await getTranslations({ locale, namespace: "account" });
   const logoutAction = logout.bind(null, locale);
@@ -170,6 +173,24 @@ export default async function AccountPage({ params }: AccountPageProps) {
               deltaPoints: txn.deltaPoints,
               reason: txn.reason,
               createdAtIso: txn.createdAt.toISOString(),
+            }))}
+          />
+
+          <MyCreditsPanel
+            locale={locale}
+            giftCards={credits.giftCards.map((card) => ({
+              id: card.id,
+              code: card.code,
+              balanceMinor: card.balanceMinor,
+              currency: card.currency,
+              expiresAtIso: card.expiresAt ? card.expiresAt.toISOString() : null,
+            }))}
+            packages={credits.packages.map((pkg) => ({
+              id: pkg.id,
+              nameEn: pkg.packageNameEn,
+              nameAr: pkg.packageNameAr,
+              sessionsRemaining: pkg.sessionsRemaining,
+              sessionsTotal: pkg.sessionsTotal,
             }))}
           />
 

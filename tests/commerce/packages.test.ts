@@ -7,6 +7,7 @@ import {
   consumePackageSession,
   listActivePackagePurchasesForClient,
   listClientCredits,
+  listPackagePurchases,
 } from "@/modules/commerce/packages";
 
 // Mirrors tests/crm/loyalty.test.ts's PHONE_PREFIX convention. Deleting the
@@ -188,5 +189,27 @@ describe("packages/listClientCredits", () => {
 
     const active = await listActivePackagePurchasesForClient(clientProfileId);
     expect(active.map((p) => p.id)).not.toContain(purchase.id);
+  });
+});
+
+describe("packages/listPackagePurchases", () => {
+  it("lists purchases across clients, filterable by status", async () => {
+    const clientProfileId = await makeClient("Admin List Client");
+    const pkg = await makePackage(2);
+    const purchase = await purchasePackage(clientProfileId, pkg.id);
+
+    const all = await listPackagePurchases();
+    const row = all.find((p) => p.id === purchase.id);
+    expect(row).toBeDefined();
+    expect(row?.clientName).toBe("Admin List Client");
+    expect(row?.status).toBe("ACTIVE");
+
+    const activeOnly = await listPackagePurchases({ status: "ACTIVE" });
+    expect(activeOnly.map((p) => p.id)).toContain(purchase.id);
+
+    await consumePackageSession(purchase.id);
+    await consumePackageSession(purchase.id);
+    const exhaustedOnly = await listPackagePurchases({ status: "EXHAUSTED" });
+    expect(exhaustedOnly.map((p) => p.id)).toContain(purchase.id);
   });
 });

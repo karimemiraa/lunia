@@ -230,6 +230,23 @@ export async function redeemGiftCard(
 
 export type GiftCardWithRedemptions = GiftCard & { redemptions: GiftCardRedemption[] };
 
+/**
+ * Voids a gift card (admin action -- e.g. issued in error, or reported
+ * stolen), making it permanently unredeemable regardless of remaining
+ * balance. A no-op guard: refuses to void an already-REDEEMED card (nothing
+ * left to protect) or one already VOID.
+ */
+export async function voidGiftCard(giftCardId: string): Promise<GiftCard> {
+  const card = await prisma.giftCard.findUnique({ where: { id: giftCardId } });
+  if (!card) {
+    throw new Error("Gift card not found");
+  }
+  if (card.status !== "ACTIVE") {
+    throw new Error(`Cannot void a gift card with status "${card.status}"`);
+  }
+  return prisma.giftCard.update({ where: { id: giftCardId }, data: { status: "VOID" } });
+}
+
 export async function getGiftCard(code: string): Promise<GiftCardWithRedemptions | null> {
   return prisma.giftCard.findUnique({
     where: { code: code.trim() },

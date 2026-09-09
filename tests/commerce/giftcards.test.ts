@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/db";
-import { issueGiftCard, redeemGiftCard, getGiftCard, listGiftCards, listActiveGiftCardsForClient } from "@/modules/commerce/giftcards";
+import { issueGiftCard, redeemGiftCard, getGiftCard, listGiftCards, listActiveGiftCardsForClient, voidGiftCard } from "@/modules/commerce/giftcards";
 
 // Every client created by this suite carries this phone prefix so cleanup
 // can find (and remove) everything it created -- mirrors
@@ -152,6 +152,32 @@ describe("giftcards/redeemGiftCard", () => {
     const fetched = await getGiftCard(card.code);
     expect(fetched?.balanceMinor).toBe(1_000 - totalRedeemed);
     expect(fetched!.balanceMinor).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("giftcards/voidGiftCard", () => {
+  it("marks an ACTIVE card VOID, blocking future redemption", async () => {
+    const card = await issue({ initialMinor: 500 });
+    const voided = await voidGiftCard(card.id);
+    expect(voided.status).toBe("VOID");
+
+    await expect(redeemGiftCard(card.code, 1)).rejects.toThrow();
+  });
+
+  it("refuses to void an already-REDEEMED card", async () => {
+    const card = await issue({ initialMinor: 500 });
+    await redeemGiftCard(card.code, 500);
+    await expect(voidGiftCard(card.id)).rejects.toThrow();
+  });
+
+  it("refuses to void an already-VOID card", async () => {
+    const card = await issue({ initialMinor: 500 });
+    await voidGiftCard(card.id);
+    await expect(voidGiftCard(card.id)).rejects.toThrow();
+  });
+
+  it("rejects an unknown gift card id", async () => {
+    await expect(voidGiftCard("nonexistent-id")).rejects.toThrow(/not found/i);
   });
 });
 

@@ -365,7 +365,10 @@
       "verifyLabel": "Confirm booking",
       "verifyingLabel": "Confirming…",
       "changeContactLabel": "Use a different phone or email",
-      "devCodeHint": "Dev/test code: {code}"
+      "devCodeHint": "Dev/test code: {code}",
+      "giftCardLabel": "Gift card code (optional)",
+      "giftCardPlaceholder": "e.g. AB3D-EF7H-JK2M-NP9Q",
+      "giftCardHint": "Have a gift card? We'll apply what we can toward this booking."
     },
     "success": {
       "heading": "You're booked",
@@ -374,6 +377,13 @@
       "dateLabel": "Date",
       "timeLabel": "Time",
       "priceLabel": "Price",
+      "giftCardAppliedLabel": "Gift card applied",
+      "usePackageLabel": "Use a package for this booking",
+      "selectPackagePlaceholder": "Choose a package",
+      "sessionsRemainingOption": "({remaining} of {total} sessions left)",
+      "applyPackageLabel": "Apply package",
+      "applyingLabel": "Applying…",
+      "packageAppliedLabel": "Package session applied to this booking.",
       "accountLabel": "View my bookings",
       "bookAnotherLabel": "Book another visit"
     },
@@ -485,6 +495,16 @@
         "TIER": "Tier updated",
         "ADJUST": "Adjustment"
       }
+    },
+    "credits": {
+      "heading": "My credits",
+      "intro": "Your gift card balances and prepaid session packages.",
+      "giftCardsHeading": "Gift cards",
+      "emptyGiftCards": "You don't have any gift card balance yet.",
+      "giftCardExpiry": "Expires {date}",
+      "packagesHeading": "Packages",
+      "emptyPackages": "You don't have any active packages yet.",
+      "sessionsRemaining": "{remaining} of {total} sessions left"
     }
   }
 }

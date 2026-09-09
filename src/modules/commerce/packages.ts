@@ -10,7 +10,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
-import type { ServicePackage, PackagePurchase, PackageRedemption, PackagePurchaseStatus } from "@prisma/client";
+import type { ServicePackage, PackagePurchase, PackagePurchaseStatus } from "@prisma/client";
 
 // --- Serializable-transaction retry helper ---------------------------------
 // Duplicated from giftcards.ts/loyalty.ts/bookings.ts (see those files for
@@ -104,6 +104,46 @@ export async function listPackages(filter: ListPackagesFilter = {}): Promise<Ser
     where: { isActive: filter.isActive },
     orderBy: { createdAt: "desc" },
   });
+}
+
+export interface PackagePurchaseRow {
+  id: string;
+  clientProfileId: string;
+  clientName: string;
+  packageId: string;
+  packageNameEn: string;
+  packageNameAr: string;
+  sessionsRemaining: number;
+  sessionsTotal: number;
+  status: PackagePurchaseStatus;
+  createdAt: Date;
+}
+
+export interface ListPackagePurchasesFilter {
+  status?: PackagePurchaseStatus;
+  clientProfileId?: string;
+}
+
+/** All package purchases (any client), newest first -- backs the admin commerce page's purchases table. */
+export async function listPackagePurchases(filter: ListPackagePurchasesFilter = {}): Promise<PackagePurchaseRow[]> {
+  const purchases = await prisma.packagePurchase.findMany({
+    where: { status: filter.status, clientProfileId: filter.clientProfileId },
+    include: { package: true, clientProfile: true },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+  return purchases.map((p) => ({
+    id: p.id,
+    clientProfileId: p.clientProfileId,
+    clientName: p.clientProfile.fullName,
+    packageId: p.packageId,
+    packageNameEn: p.package.nameEn,
+    packageNameAr: p.package.nameAr,
+    sessionsRemaining: p.sessionsRemaining,
+    sessionsTotal: p.package.sessionsTotal,
+    status: p.status,
+    createdAt: p.createdAt,
+  }));
 }
 
 export async function getPackage(packageId: string): Promise<ServicePackage | null> {

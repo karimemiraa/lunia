@@ -4,7 +4,16 @@ import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { trackEvent } from "@/components/analytics/Tracker";
-import { getSlots, startOtp, verifyAndBook, type SlotDTO, type BookingSummaryDTO } from "./actions";
+import {
+  getSlots,
+  startOtp,
+  verifyAndBook,
+  getMyActivePackages,
+  applyPackageToBookingAction,
+  type SlotDTO,
+  type BookingSummaryDTO,
+  type MyPackageOptionDTO,
+} from "./actions";
 
 export interface BookableServiceDTO {
   id: string;
@@ -107,13 +116,27 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
   const [devCode, setDevCode] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [contactError, setContactError] = useState<string | null>(null);
+  // Optional gift-card code, entered alongside the OTP code -- applied
+  // best-effort by verifyAndBook (a bad/unknown/expired code never blocks
+  // the booking itself; see ./actions.ts's applyGiftCardBestEffort).
+  const [giftCardCode, setGiftCardCode] = useState("");
 
   const [summary, setSummary] = useState<BookingSummaryDTO | null>(null);
+
+  // Post-booking "apply a package" widget on the success step (step 4) --
+  // only ever shows the now-authenticated client's own packages (see
+  // getMyActivePackages's privacy rationale in ./actions.ts).
+  const [myPackages, setMyPackages] = useState<MyPackageOptionDTO[] | null>(null);
+  const [selectedPackageId, setSelectedPackageId] = useState("");
+  const [packageApplyState, setPackageApplyState] = useState<"idle" | "applying" | "applied" | "error">("idle");
+  const [packageApplyError, setPackageApplyError] = useState<string | null>(null);
 
   const nameId = useId();
   const identifierId = useId();
   const codeId = useId();
   const dateId = useId();
+  const giftCardId = useId();
+  const packageSelectId = useId();
 
   // Funnel analytics: privacy-preserving, anonymous, and best-effort -- see
   // src/components/analytics/Tracker.tsx. Never blocks or throws.
@@ -208,13 +231,32 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
         code,
         locale,
         sourceChannel,
+        giftCardCode: giftCardCode.trim() || undefined,
       });
       if (result.ok) {
         setSummary(result.booking);
         setStep(4);
         trackEvent("booking_completed", { serviceId: selectedServiceId });
+        // Best-effort, non-blocking: the booking above already succeeded
+        // regardless of whether this client happens to hold any packages.
+        void getMyActivePackages().then(setMyPackages);
       } else {
         setContactError(result.error);
+      }
+    });
+  }
+
+  function handleApplyPackage() {
+    if (!summary || !selectedPackageId) return;
+    setPackageApplyState("applying");
+    setPackageApplyError(null);
+    startTransition(async () => {
+      const result = await applyPackageToBookingAction(summary.bookingId, selectedPackageId, locale);
+      if (result.ok) {
+        setPackageApplyState("applied");
+      } else {
+        setPackageApplyState("error");
+        setPackageApplyError(result.error);
       }
     });
   }
@@ -232,7 +274,12 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
     setDevCode(null);
     setCode("");
     setContactError(null);
+    setGiftCardCode("");
     setSummary(null);
+    setMyPackages(null);
+    setSelectedPackageId("");
+    setPackageApplyState("idle");
+    setPackageApplyError(null);
   }
 
   const stepLabels = [t("steps.service"), t("steps.datetime"), t("steps.contact"), t("steps.confirm")];
@@ -492,6 +539,21 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
                   className={inputClass}
                 />
               </div>
+              <div className="flex flex-col gap-2">
+                <label htmlFor={giftCardId} className={labelClass}>
+                  {t("contact.giftCardLabel")}
+                </label>
+                <input
+                  id={giftCardId}
+                  type="text"
+                  autoCapitalize="characters"
+                  placeholder={t("contact.giftCardPlaceholder")}
+                  value={giftCardCode}
+                  onChange={(e) => setGiftCardCode(e.target.value.toUpperCase())}
+                  className={inputClass}
+                />
+                <p className="text-xs text-[var(--color-ink)]/50">{t("contact.giftCardHint")}</p>
+              </div>
               <div className="flex flex-wrap items-center gap-4">
                 <button
                   type="button"
@@ -551,7 +613,62 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
               <dt className="text-[var(--color-ink)]/50">{t("success.priceLabel")}</dt>
               <dd className="font-medium text-[var(--color-ink)]">{formatSar(summary.priceMinorSnapshot, locale)}</dd>
             </div>
+            {summary.giftCardAppliedMinor !== undefined && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--color-ink)]/50">{t("success.giftCardAppliedLabel")}</dt>
+                <dd className="font-medium text-[var(--color-teal)]">
+                  {formatSar(summary.giftCardAppliedMinor, locale)}
+                </dd>
+              </div>
+            )}
           </dl>
+
+          {myPackages && myPackages.length > 0 && (
+            <div
+              className="flex flex-col gap-3 rounded-2xl border border-[var(--color-ink)]/10 bg-[var(--color-page)] p-6"
+              data-testid="booking-apply-package"
+            >
+              <span className={labelClass}>{t("success.usePackageLabel")}</span>
+              {packageApplyState === "applied" ? (
+                <p className="text-sm font-medium text-[var(--color-teal)]">{t("success.packageAppliedLabel")}</p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label htmlFor={packageSelectId} className="sr-only">
+                      {t("success.usePackageLabel")}
+                    </label>
+                    <select
+                      id={packageSelectId}
+                      value={selectedPackageId}
+                      onChange={(e) => setSelectedPackageId(e.target.value)}
+                      className={`${inputClass} w-auto min-w-[14rem]`}
+                    >
+                      <option value="">{t("success.selectPackagePlaceholder")}</option>
+                      {myPackages.map((pkg) => (
+                        <option key={pkg.id} value={pkg.id}>
+                          {(locale === "ar" ? pkg.nameAr : pkg.nameEn)}{" "}
+                          {t("success.sessionsRemainingOption", { remaining: pkg.sessionsRemaining, total: pkg.sessionsTotal })}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleApplyPackage}
+                      disabled={!selectedPackageId || packageApplyState === "applying"}
+                      className={secondaryButtonClass}
+                    >
+                      {packageApplyState === "applying" ? t("success.applyingLabel") : t("success.applyPackageLabel")}
+                    </button>
+                  </div>
+                  {packageApplyState === "error" && packageApplyError && (
+                    <p role="alert" className="text-sm font-medium text-red-700">
+                      {packageApplyError}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-4">
             <Link href={`/${locale}/account`} className={primaryButtonClass}>
