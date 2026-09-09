@@ -18,7 +18,7 @@ import { renderMessageBody } from "@/modules/booking/outbox";
 // Exported so admin UI (Stage 6's comms/templates page) and the log filters
 // can build <select> option lists from the same source of truth used to
 // validate upsertTemplate() below, rather than re-declaring these lists.
-export const KIND_VALUES = ["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "OTP", "WAITLIST_OPEN"] as const;
+export const KIND_VALUES = ["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "OTP", "WAITLIST_OPEN", "REVIEW_REQUEST"] as const;
 export const LOCALE_VALUES = ["ar", "en"] as const;
 export const CHANNEL_VALUES = ["whatsapp", "sms", "email"] as const;
 

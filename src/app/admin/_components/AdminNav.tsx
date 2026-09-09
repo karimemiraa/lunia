@@ -110,6 +110,11 @@ const I = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M14 4H6v16h8M14 12h7m0 0-3-3m3 3-3 3" />
     </svg>
   ),
+  star: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+      <path strokeLinejoin="round" d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6-4.5-4.2 6.1-.7L12 3Z" />
+    </svg>
+  ),
 };
 
 function GlowMark({ className = "" }: { className?: string }) {
@@ -150,6 +155,7 @@ const GROUPS: NavGroup[] = [
       { href: "/admin/content", label: "Content", perm: PERMISSIONS.CMS_MANAGE, icon: I.content },
       { href: "/admin/catalog", label: "Catalog", perm: PERMISSIONS.CMS_MANAGE, icon: I.layers },
       { href: "/admin/inquiries", label: "Inquiries", perm: PERMISSIONS.CMS_MANAGE, icon: I.inbox },
+      { href: "/admin/reviews", label: "Reviews", perm: PERMISSIONS.CMS_MANAGE, icon: I.star },
     ],
   },
   {

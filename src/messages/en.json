@@ -514,5 +514,32 @@
       "emptyPackages": "You don't have any active packages yet.",
       "sessionsRemaining": "{remaining} of {total} sessions left"
     }
+  },
+  "review": {
+    "meta": {
+      "title": "Share your review — Lunia",
+      "description": "Tell us about your visit to Lunia."
+    },
+    "heading": "How was your visit?",
+    "intro": "Your feedback helps other clients and helps us improve. This only takes a minute.",
+    "ratingLabel": "Your rating",
+    "titleLabel": "Title (optional)",
+    "bodyLabel": "Tell us more (optional)",
+    "bodyPlaceholder": "What did you enjoy about your visit?",
+    "nameLabel": "Name to display (optional)",
+    "namePlaceholder": "e.g. Sara A.",
+    "consentLabel": "I'm happy for Lunia to feature this review publicly (e.g. on the website).",
+    "submitLabel": "Submit review",
+    "submittingLabel": "Submitting…",
+    "ratingRequired": "Please choose a rating from 1 to 5 stars.",
+    "successHeading": "Thank you!",
+    "successBody": "Your review has been received and will appear once it's reviewed by our team.",
+    "alreadySubmittedHeading": "Already submitted",
+    "alreadySubmittedBody": "This review link has already been used. Thank you again for sharing your feedback.",
+    "invalidHeading": "Link not found",
+    "invalidBody": "This review link is invalid or has expired.",
+    "errors": {
+      "generic": "Something went wrong — please try again."
+    }
   }
 }

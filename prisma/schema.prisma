@@ -118,6 +118,7 @@ model ClientProfile {
   giftCards           GiftCard[]
   packagePurchases    PackagePurchase[]
   waitlistEntries     WaitlistEntry[]
+  reviews             Review[]
 }
 
 model ClientMembership {
@@ -199,6 +200,7 @@ model Service {
   appointments   Appointment[]
   packages       ServicePackage[]
   waitlistEntries WaitlistEntry[]
+  reviews         Review[]
 }
 
 model Brand {
@@ -273,6 +275,7 @@ enum MsgKind {
   REMINDER_24H
   POST_VISIT
   WAITLIST_OPEN
+  REVIEW_REQUEST
 }
 
 enum MsgStatus {
@@ -510,6 +513,59 @@ model WaitlistEntry {
   @@index([serviceId, desiredDateISO, status])
 }
 
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// A client's post-visit review of a completed booking. Row lifecycle:
+// 1. complete() (bookings.ts) calls scheduleReviewRequest, which creates this
+//    row up-front in status PENDING with a fresh unguessable `token` and NO
+//    content yet (rating 0 is the sentinel for "not submitted"; the public
+//    submit page is the only thing that ever writes real content), and
+//    schedules a REVIEW_REQUEST message containing the tokenized link. This
+//    "pre-created" design (rather than creating the row only at submit time)
+//    is what lets submitReview enforce single-use purely from this table
+//    (token lookup + tokenUsedAt), with no separate token store.
+// 2. The client visits /{locale}/review/<token> and submits once
+//    (submitReview sets rating/title/body/authorDisplayName/consentPublic +
+//    tokenUsedAt, still PENDING -- moderation-required before publish).
+// 3. An admin approves or rejects it (approveReview/rejectReview, audited).
+// Only APPROVED rows with consentPublic=true ever appear in
+// getAggregate/listApprovedReviews (public-facing reads).
+model Review {
+  id                String        @id @default(cuid())
+  clientProfileId   String?
+  clientProfile     ClientProfile? @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
+  bookingId         String?       @unique
+  booking           Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  serviceId         String?
+  service           Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  // 0 until the client submits (see design note above); submitReview
+  // validates/writes 1..5.
+  rating            Int           @default(0)
+  title             String?
+  body              String?
+  locale            String        @default("ar")
+  authorDisplayName String?
+  status            ReviewStatus  @default(PENDING)
+  // Whether the client consented to their name/quote being shown publicly
+  // (Testimonials, JSON-LD Review entities). A review can be APPROVED for
+  // internal reputation tracking without ever being public.
+  consentPublic     Boolean       @default(false)
+  // Unguessable (crypto.randomBytes-derived) single-use token for the public
+  // submit link; tokenUsedAt is set the moment submitReview succeeds so a
+  // replayed/shared link can never overwrite an already-submitted review.
+  token             String        @unique
+  tokenUsedAt       DateTime?
+  createdAt         DateTime      @default(now())
+  approvedAt        DateTime?
+
+  @@index([status])
+  @@index([serviceId])
+}
+
 model Booking {
   id              String         @id @default(cuid())
   clientProfileId String
@@ -524,6 +580,7 @@ model Booking {
   updatedAt       DateTime       @default(now()) @updatedAt
   appointments    Appointment[]
   checkIn         CheckIn?
+  review          Review?
   // Loyalty-points discount applied at booking time (redeemPoints in
   // src/modules/crm/loyalty.ts), in the same integer minor currency unit as
   // Appointment.priceMinorSnapshot. Payments stay off -- this only records

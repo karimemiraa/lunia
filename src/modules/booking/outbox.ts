@@ -26,7 +26,7 @@ import { getPreference, resolveDeliveryChannel } from "@/modules/comms/preferenc
 // cycle above.
 import { resolveSenderForChannel } from "@/modules/comms/sender";
 
-const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "WAITLIST_OPEN"]);
+const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "WAITLIST_OPEN", "REVIEW_REQUEST"]);
 export type MsgKind = z.infer<typeof msgKindSchema>;
 
 // Payload is a free-form JSON object (message-template data); Prisma's Json
@@ -127,6 +127,17 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
       return isAr
         ? `تفتح لديك فرصة حجز في لونيا -- تم فتح موعد كنت بانتظاره. احجز الآن قبل أن يُحجز.`
         : `A spot just opened up at Lunia for a time you were waiting for. Book now before it's taken.`;
+    case "REVIEW_REQUEST": {
+      // The tokenized submit link -- reviews.ts always sets payload.link, but
+      // this fallback renders sensibly (dropping the link) even if it's ever
+      // missing, rather than leaking a literal "{{link}}" token.
+      const link = typeof payload.link === "string" ? payload.link : "";
+      const linkPartAr = link ? ` ${link}` : "";
+      const linkPartEn = link ? ` ${link}` : "";
+      return isAr
+        ? `شكراً لزيارتك لونيا${ref}. نسعد بمشاركتك رأيك:${linkPartAr}`
+        : `Thank you for visiting Lunia${ref}. We'd love to hear about your experience:${linkPartEn}`;
+    }
     default:
       return isAr ? `رسالة من لونيا${ref}.` : `A message from Lunia${ref}.`;
   }
@@ -237,7 +248,9 @@ async function finalizeSkipped(message: ScheduledMessage): Promise<boolean> {
 function isOptedOut(kind: string, pref: { remindersOptIn: boolean; postVisitOptIn: boolean } | null): boolean {
   if (!pref) return false;
   if (kind === "REMINDER_24H") return !pref.remindersOptIn;
-  if (kind === "POST_VISIT") return !pref.postVisitOptIn;
+  // A review request is inherently a post-visit follow-up, so it shares
+  // POST_VISIT's opt-in flag rather than needing a dedicated one.
+  if (kind === "POST_VISIT" || kind === "REVIEW_REQUEST") return !pref.postVisitOptIn;
   return false;
 }
 
@@ -389,6 +402,8 @@ function subjectForKind(kind: string, locale: string): string {
       return isAr ? "شكراً لزيارتك لونيا" : "Thank you for visiting Lunia";
     case "WAITLIST_OPEN":
       return isAr ? "فتح موعد كنت بانتظاره في لونيا" : "A spot opened up at Lunia";
+    case "REVIEW_REQUEST":
+      return isAr ? "شاركينا رأيك في زيارتك لونيا" : "Share your Lunia experience";
     default:
       return "Lunia";
   }

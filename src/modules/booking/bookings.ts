@@ -22,6 +22,7 @@ import { refreshClientLtv } from "@/modules/crm/ltv";
 import { earnForBooking, applyAutoTier, redeemPoints as redeemLoyaltyPoints } from "@/modules/crm/loyalty";
 import { localized } from "@/modules/catalog/localize";
 import { notifyWaitlistForSlot } from "./waitlist";
+import { scheduleReviewRequest } from "@/modules/reviews/reviews";
 
 export type Slot = ComputedSlot;
 
@@ -675,6 +676,16 @@ export async function complete(bookingId: string): Promise<Booking> {
     await applyAutoTier(updated.clientProfileId);
   } catch (err) {
     console.error(`Failed to award loyalty points/apply auto-tier for client "${updated.clientProfileId}" after completing booking "${bookingId}"`, err);
+  }
+
+  // Best-effort, same pattern as above: schedule a review request for
+  // REVIEW_DELAY_DAYS after this visit. A missed/failed review request is
+  // recoverable (staff can nudge the client another way); failing to record
+  // the completion is not.
+  try {
+    await scheduleReviewRequest(booking, { completedAt: new Date() });
+  } catch (err) {
+    console.error(`Failed to schedule review request for booking "${bookingId}"`, err);
   }
 
   return updated;

@@ -21,7 +21,8 @@ import { listDepartments } from "@/modules/catalog/departments";
 import { listBrands } from "@/modules/catalog/brands";
 import { localized } from "@/modules/catalog/localize";
 import { buildMetadata } from "@/modules/seo/metadata";
-import { localBusinessJsonLd, faqPageJsonLd } from "@/modules/seo/jsonld";
+import { localBusinessJsonLd, faqPageJsonLd, aggregateRatingJsonLd, reviewJsonLd } from "@/modules/seo/jsonld";
+import { listApprovedReviews, getAggregate } from "@/modules/reviews/reviews";
 
 interface HomePageProps {
   params: Promise<{ locale: string }>;
@@ -104,6 +105,15 @@ export default async function Home({ params }: HomePageProps) {
 
   const bookHref = `/${locale}/book`;
 
+  // Approved + public-consent reviews feed Testimonials (falling back to the
+  // static localized copy when there are none yet) and the AggregateRating/
+  // Review JSON-LD below -- ONLY emitted when count > 0, since an
+  // AggregateRating with zero reviews should never be published.
+  const [reviewsAggregate, approvedReviews] = await Promise.all([
+    getAggregate({}),
+    listApprovedReviews({ limit: 6 }),
+  ]);
+
   const departmentMedia = await Promise.all(
     departments.map((department: Department) => resolveMedia(department.heroMediaId)),
   );
@@ -114,10 +124,22 @@ export default async function Home({ params }: HomePageProps) {
     body: step.body,
   }));
 
-  const testimonialItems = (tTestimonials.raw("items") as TestimonialMessage[]).map((item) => ({
-    quote: item.quote,
-    author: item.author,
-  }));
+  // Real approved reviews take priority over the static localized copy; the
+  // static copy is kept as a fallback so the section never looks empty on a
+  // fresh environment with no reviews yet.
+  const reviewTestimonials = approvedReviews
+    .filter((review) => review.body || review.title)
+    .map((review) => ({
+      quote: (review.body ?? review.title) as string,
+      author: review.authorDisplayName ?? undefined,
+    }));
+  const testimonialItems =
+    reviewTestimonials.length > 0
+      ? reviewTestimonials
+      : (tTestimonials.raw("items") as TestimonialMessage[]).map((item) => ({
+          quote: item.quote,
+          author: item.author,
+        }));
 
   const faqItems = tFaq.raw("items") as FaqMessage[];
 
@@ -146,11 +168,38 @@ export default async function Home({ params }: HomePageProps) {
 
   const faqEntity = faqItems.length > 0 ? faqPageJsonLd(faqItems.map(({ q, a }) => ({ q, a }))) : null;
 
+  // Resolves the Stage-3 AggregateRating deferral. Never emitted with zero
+  // reviews (getAggregate/listApprovedReviews already only count
+  // APPROVED + consentPublic rows, so an empty result here just means no
+  // publishable reviews exist yet).
+  const businessName = business ? localized(locale, business.nameEn, business.nameAr) : tCommon("brandName");
+  const itemReviewed = { type: "HealthAndBeautyBusiness", name: businessName, url: homeUrl };
+  const aggregateRatingEntity =
+    reviewsAggregate.count > 0
+      ? aggregateRatingJsonLd({ itemReviewed, ratingValue: reviewsAggregate.avg, reviewCount: reviewsAggregate.count })
+      : null;
+  // listApprovedReviews() already scopes to consentPublic=true, so every row
+  // here is safe to name in a public Review entity.
+  const reviewEntities = approvedReviews.map((review) =>
+    reviewJsonLd({
+      itemReviewed,
+      author: review.authorDisplayName ?? tCommon("brandName"),
+      ratingValue: review.rating,
+      reviewBody: review.body ?? undefined,
+      datePublished: (review.approvedAt ?? review.createdAt).toISOString(),
+    }),
+  );
+
+  const jsonLdEntities = [
+    ...(localBusiness ? [localBusiness] : []),
+    ...(faqEntity ? [faqEntity] : []),
+    ...(aggregateRatingEntity ? [aggregateRatingEntity] : []),
+    ...reviewEntities,
+  ];
+
   return (
     <main className="flex flex-col">
-      {(localBusiness || faqEntity) && (
-        <JsonLd data={[...(localBusiness ? [localBusiness] : []), ...(faqEntity ? [faqEntity] : [])]} />
-      )}
+      {jsonLdEntities.length > 0 && <JsonLd data={jsonLdEntities} />}
 
       <Hero
         eyebrow={tHero("eyebrow")}

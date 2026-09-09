@@ -6,6 +6,8 @@ import {
   breadcrumbJsonLd,
   articleJsonLd,
   faqPageJsonLd,
+  aggregateRatingJsonLd,
+  reviewJsonLd,
 } from "@/modules/seo/jsonld";
 
 describe("buildMetadata", () => {
@@ -214,5 +216,48 @@ describe("faqPageJsonLd", () => {
       name: "Is this a facial?",
       acceptedAnswer: { "@type": "Answer", text: "No, it targets skin quality at a deeper level." },
     });
+  });
+});
+
+describe("aggregateRatingJsonLd", () => {
+  it("builds a standalone AggregateRating naming what it's about via itemReviewed", () => {
+    const jsonLd = aggregateRatingJsonLd({
+      itemReviewed: { type: "HealthAndBeautyBusiness", name: "Lunia", url: "https://lunia.sa/en" },
+      ratingValue: 4.66,
+      reviewCount: 23,
+    });
+    expect(jsonLd["@type"]).toBe("AggregateRating");
+    expect(jsonLd.itemReviewed).toMatchObject({ "@type": "HealthAndBeautyBusiness", name: "Lunia" });
+    // Rounded to one decimal place.
+    expect(jsonLd.ratingValue).toBe(4.7);
+    expect(jsonLd.reviewCount).toBe(23);
+    expect(jsonLd.bestRating).toBe(5);
+    expect(jsonLd.worstRating).toBe(1);
+  });
+});
+
+describe("reviewJsonLd", () => {
+  it("builds a Review entity with a nested Person author and Rating", () => {
+    const jsonLd = reviewJsonLd({
+      itemReviewed: { type: "Service", name: "Diagnostic Skin Analysis" },
+      author: "Sara A.",
+      ratingValue: 5,
+      reviewBody: "Loved every minute.",
+      datePublished: "2026-02-01T00:00:00.000Z",
+    });
+    expect(jsonLd["@type"]).toBe("Review");
+    expect(jsonLd.author).toMatchObject({ "@type": "Person", name: "Sara A." });
+    expect(jsonLd.reviewRating).toMatchObject({ "@type": "Rating", ratingValue: 5, bestRating: 5, worstRating: 1 });
+    expect(jsonLd.reviewBody).toBe("Loved every minute.");
+  });
+
+  it("omits reviewBody when not provided", () => {
+    const jsonLd = reviewJsonLd({
+      itemReviewed: { type: "Service", name: "Diagnostic Skin Analysis" },
+      author: "Anonymous",
+      ratingValue: 4,
+      datePublished: "2026-02-01T00:00:00.000Z",
+    });
+    expect(jsonLd.reviewBody).toBeUndefined();
   });
 });
