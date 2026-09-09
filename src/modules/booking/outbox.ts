@@ -26,7 +26,7 @@ import { getPreference, resolveDeliveryChannel } from "@/modules/comms/preferenc
 // cycle above.
 import { resolveSenderForChannel } from "@/modules/comms/sender";
 
-const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT"]);
+const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "WAITLIST_OPEN"]);
 export type MsgKind = z.infer<typeof msgKindSchema>;
 
 // Payload is a free-form JSON object (message-template data); Prisma's Json
@@ -123,6 +123,10 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
       return isAr
         ? `شكراً لزيارتك لونيا${ref}. نتمنى أن تكون تجربتك ممتازة.`
         : `Thank you for visiting Lunia${ref}. We hope you had a great experience.`;
+    case "WAITLIST_OPEN":
+      return isAr
+        ? `تفتح لديك فرصة حجز في لونيا -- تم فتح موعد كنت بانتظاره. احجز الآن قبل أن يُحجز.`
+        : `A spot just opened up at Lunia for a time you were waiting for. Book now before it's taken.`;
     default:
       return isAr ? `رسالة من لونيا${ref}.` : `A message from Lunia${ref}.`;
   }
@@ -383,6 +387,8 @@ function subjectForKind(kind: string, locale: string): string {
       return isAr ? "تذكير بموعدك في لونيا" : "Your Lunia appointment reminder";
     case "POST_VISIT":
       return isAr ? "شكراً لزيارتك لونيا" : "Thank you for visiting Lunia";
+    case "WAITLIST_OPEN":
+      return isAr ? "فتح موعد كنت بانتظاره في لونيا" : "A spot opened up at Lunia";
     default:
       return "Lunia";
   }

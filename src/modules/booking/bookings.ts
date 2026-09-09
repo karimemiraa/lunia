@@ -21,6 +21,7 @@ import { scheduleMessage } from "./outbox";
 import { refreshClientLtv } from "@/modules/crm/ltv";
 import { earnForBooking, applyAutoTier, redeemPoints as redeemLoyaltyPoints } from "@/modules/crm/loyalty";
 import { localized } from "@/modules/catalog/localize";
+import { notifyWaitlistForSlot } from "./waitlist";
 
 export type Slot = ComputedSlot;
 
@@ -684,7 +685,23 @@ export async function cancel(bookingId: string): Promise<Booking> {
   if (booking.status === "COMPLETED") {
     throw new Error("Cannot cancel a completed booking");
   }
-  return prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED" } });
+  const updated = await prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED" } });
+
+  // Best-effort, same pattern as complete()'s LTV refresh: cancelling frees
+  // this booking's appointment slot(s), so check whether anyone is waiting
+  // for that service on that day and notify them. Must never fail/block the
+  // cancellation itself -- a missed waitlist notification is recoverable,
+  // failing to record the cancellation is not.
+  for (const appointment of booking.appointments) {
+    try {
+      const { dateISO } = utcToCenterLocal(appointment.startAt);
+      await notifyWaitlistForSlot(appointment.serviceId, dateISO);
+    } catch (err) {
+      console.error(`Failed to notify waitlist after cancelling booking "${bookingId}"`, err);
+    }
+  }
+
+  return updated;
 }
 
 export async function markNoShow(bookingId: string): Promise<Booking> {
@@ -720,6 +737,12 @@ export async function reschedule(
   const endAt = new Date(startAt.getTime() + service.durationMin * 60_000);
   const resolved = await resolveStaffAndRoom(service.id, startAt, staffUserId, roomId, appointment.id);
 
+  // Captured before the move: this is the slot that becomes free once the
+  // appointment moves off of it, and its center-local day is what the
+  // notify-on-free hook below needs to check.
+  const freedServiceId = appointment.serviceId;
+  const freedDateISO = utcToCenterLocal(appointment.startAt).dateISO;
+
   await runSerializableTransaction(async (tx) => {
     await assertSlotStillFree(tx, { ...resolved, startAt, endAt, excludeAppointmentId: appointment.id });
     await tx.appointment.update({
@@ -728,5 +751,16 @@ export async function reschedule(
     });
   });
 
-  return getBookingOrThrow(bookingId);
+  const result = await getBookingOrThrow(bookingId);
+
+  // Best-effort, same pattern as cancel() above: moving the appointment
+  // frees its old slot, so check whether anyone is waiting for that service
+  // on that day and notify them. Must never fail/block the reschedule.
+  try {
+    await notifyWaitlistForSlot(freedServiceId, freedDateISO);
+  } catch (err) {
+    console.error(`Failed to notify waitlist after rescheduling booking "${bookingId}"`, err);
+  }
+
+  return result;
 }

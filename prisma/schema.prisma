@@ -117,6 +117,7 @@ model ClientProfile {
   loyaltyTransactions LoyaltyTransaction[]
   giftCards           GiftCard[]
   packagePurchases    PackagePurchase[]
+  waitlistEntries     WaitlistEntry[]
 }
 
 model ClientMembership {
@@ -197,6 +198,7 @@ model Service {
   accessRule     ServiceAccessRule?
   appointments   Appointment[]
   packages       ServicePackage[]
+  waitlistEntries WaitlistEntry[]
 }
 
 model Brand {
@@ -270,6 +272,7 @@ enum MsgKind {
   CONFIRMATION
   REMINDER_24H
   POST_VISIT
+  WAITLIST_OPEN
 }
 
 enum MsgStatus {
@@ -470,6 +473,41 @@ model ServiceAccessRule {
   serviceId String  @unique
   service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   minTierId String?
+}
+
+enum WaitlistStatus {
+  WAITING
+  NOTIFIED
+  CONVERTED
+  EXPIRED
+}
+
+// A client (or walk-up contact) waiting for a slot to open on a given
+// service+day. Notify-on-free (cancel()/reschedule() in bookings.ts, via
+// notifyWaitlistForSlot in waitlist.ts) schedules a WAITLIST_OPEN message
+// for the oldest WAITING entries and flips them to NOTIFIED. clientProfileId
+// is set for a signed-in client (their User's phone/email/locale is used to
+// notify); name/phone/email/locale are the walk-up fallback used when there
+// is no clientProfileId (the public join form and admin walk-up add don't
+// require OTP verification the way the booking wizard does).
+model WaitlistEntry {
+  id              String         @id @default(cuid())
+  serviceId       String
+  service         Service        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  clientProfileId String?
+  clientProfile   ClientProfile? @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  name            String?
+  phone           String?
+  email           String?
+  locale          String         @default("ar")
+  /** Center-local "YYYY-MM-DD" the client wants a slot on. */
+  desiredDateISO  String
+  desiredWindow   String?
+  status          WaitlistStatus @default(WAITING)
+  createdAt       DateTime       @default(now())
+  notifiedAt      DateTime?
+
+  @@index([serviceId, desiredDateISO, status])
 }
 
 model Booking {
