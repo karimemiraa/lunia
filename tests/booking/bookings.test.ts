@@ -655,6 +655,21 @@ describe("past-time guards (I1)", () => {
 });
 
 describe("REMINDER_24H scheduling (I3)", () => {
+  // These assertions turn on how far the appointment is from *now*, so they
+  // must not depend on which wall-clock day the suite happens to run on: staff
+  // work Sun-Thu, so on Fri/Sat there is no bookable slot within 24h at all and
+  // findFreeSlotWithinHours(1, 20) would have nothing to return. Freeze "now"
+  // to a fixed open weekday (Wed 2027-06-02 09:00 center-local) so the 1-20h /
+  // 30h+ windows always land on real working hours. Fake only Date, leaving
+  // Prisma's own I/O timers untouched.
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(centerLocalToUtc("2027-06-02", 540));
+  });
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it("omits REMINDER_24H for a booking made within 24h of its appointment, but still schedules CONFIRMATION + POST_VISIT", async () => {
     const service = await getUnGatedService();
     // A genuinely free slot 1-20h out: comfortably short notice (sendAt =

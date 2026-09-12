@@ -113,7 +113,7 @@ describe("loyalty/earnForBooking", () => {
 });
 
 describe("loyalty/applyAutoTier", () => {
-  it("selects the highest tier whose minPoints <= balance, re-evaluating up and down as balance changes", async () => {
+  it("promotes to the highest tier whose minPoints <= balance, and is UPGRADE-ONLY (never auto-demotes)", async () => {
     const clientProfileId = await makeClient("Auto Tier Client");
     await prisma.loyaltyAccount.create({ data: { clientProfileId, pointsBalance: 600 } });
 
@@ -126,13 +126,26 @@ describe("loyalty/applyAutoTier", () => {
     membership = await prisma.clientMembership.findUnique({ where: { clientId: clientProfileId }, include: { tier: true } });
     expect(membership?.tier.key).toBe("vip");
 
-    // Documented behavior: applyAutoTier always sets the computed tier, so a
-    // balance drop (e.g. after a large redemption) can move a client back
-    // down too -- there's no "sticky" floor.
+    // Upgrade-only (review finding I1): a balance drop (e.g. after a large
+    // redemption) must NOT auto-demote. Auto-tiering only ever promotes, so a
+    // staff-assigned program tier (bride/postsurgery/VIP) can never be
+    // silently overwritten -- and access gated on tier priority is preserved.
     await prisma.loyaltyAccount.update({ where: { clientProfileId }, data: { pointsBalance: 100 } });
     await applyAutoTier(clientProfileId);
     membership = await prisma.clientMembership.findUnique({ where: { clientId: clientProfileId }, include: { tier: true } });
-    expect(membership?.tier.key).toBe("guest");
+    expect(membership?.tier.key).toBe("vip"); // stays at highest achieved -- no demotion
+  });
+
+  it("never overwrites a higher staff-assigned tier when the points-derived tier is lower", async () => {
+    const clientProfileId = await makeClient("Bride Client");
+    // Staff grants a high-priority program tier the points ladder can't reach.
+    const vip = await prisma.membershipTier.findFirstOrThrow({ where: { key: "vip" } });
+    await prisma.clientMembership.create({ data: { clientId: clientProfileId, tierId: vip.id } });
+    await prisma.loyaltyAccount.create({ data: { clientProfileId, pointsBalance: 10 } });
+
+    await applyAutoTier(clientProfileId);
+    const membership = await prisma.clientMembership.findUnique({ where: { clientId: clientProfileId }, include: { tier: true } });
+    expect(membership?.tier.key).toBe("vip"); // unchanged -- low points balance does not demote
   });
 
   it("is a no-op when the client is already on the correct tier (no duplicate TIER ledger rows)", async () => {
