@@ -1,6 +1,9 @@
 import "@/app/globals.css";
 import { fontVariables } from "@/app/fonts";
 
+// Auth-gated, per-request; never statically prerendered.
+export const dynamic = "force-dynamic";
+
 // The admin suite is English-default / LTR. It applies the same brand font
 // variables as the public site so headings render in The Seasons (Cormorant)
 // and body copy in Inter, rather than the browser default.

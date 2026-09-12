@@ -1,34 +1,31 @@
 # Known Issues
 
-## 1. Production build (`next build`) fails at static prerender of `/_global-error` — BLOCKS DEPLOY
+## 1. Production build — RESOLVED (was: `/_global-error` prerender crash)
 
-**Status:** Open · **Priority:** High (blocks production deploy) · **Introduced:** Pre-existing (fails on `main` before and after the engagement stage)
+**Status:** ✅ Resolved (2026-09-12) · The production Docker build succeeds end-to-end and the image runs.
 
-### Symptom
-`pnpm build` compiles successfully, then fails during static page generation:
+### What was happening
+`pnpm build` failed during static export with `TypeError: Cannot read properties of null (reading 'useContext')` on Next's built-in `/_global-error` page (and, before that, on statically-exported content pages).
 
-```
-Error occurred prerendering page "/_global-error".
-TypeError: Cannot read properties of null (reading 'useContext')
-    at ignore-listed frames { digest: '3849081143' }
-Export encountered an error on /_global-error/page: /_global-error, exiting the build.
-```
+### Root cause (two separate things)
+1. **DB-backed pages were statically exported at build time.** The `[slug]` pages had `generateStaticParams` that query Postgres, and the `(site)` pages read CMS/catalog data during render — so `next build` needed a live database and froze content at build time. Wrong model for a CMS-driven site.
+2. **A local-only static-export crash.** On **local macOS + Node 20**, Next's static-export worker rendered `/_global-error` (and other statically-exported pages) with React resolving to `null` inside Next's internal `LayoutRouter` → the `useContext` crash. This is **environment-specific**: it does **not** reproduce in the production build (**Node 22 / Linux**, as pinned in the Dockerfile), and `next dev` is unaffected.
 
-Accompanied by a flood of `Each child in a list should have a unique "key" prop` warnings on Next-internal boundaries (`<meta>`, `<head>`, `<__next_viewport_boundary__>`). Auth-gated `/admin/*` pages report the same `useContext` null (and `/admin` a `Cannot read properties of undefined (reading 'length')`) as knock-on failures.
+Verified independent of: Next version (16.3.4 / 16.3.5 / 16.4 canary), React version (19.1.9 / 19.2.8 / 19.3.0), next-intl, `output: standalone`, Turbopack vs webpack, root-layout structure, and a clean reinstall.
 
-### What it is NOT
-- **Not** caused by the engagement stage — `git checkout main` (before the merge) builds with the identical error.
-- **Not** `node_modules`/pnpm-store corruption — `pnpm install` reports "Already up to date"; `tsc`, 452 unit tests, and 86 e2e all pass.
-- **Not** userland-fixable via a custom `global-error.tsx` — the crash persists on Next's synthetic `/_global-error` page even with one present.
-- **Not** a runtime problem — `next dev` works fine; the app runs and the full e2e suite (against the dev server) is green.
+### The fix (commit on `main`)
+Render the site **dynamically** — correct for a DB-backed CMS: content is always fresh, there is no build-time DB dependency, and nothing is statically exported (which also sidesteps the local macOS quirk).
+- `src/app/[locale]/(site)/layout.tsx` → `export const dynamic = "force-dynamic"`
+- `src/app/admin/layout.tsx` → `export const dynamic = "force-dynamic"` (auth-gated, per-request anyway)
+- Removed `generateStaticParams` from `brands/[slug]`, `services/[slug]`, `journal/[slug]` (they now render on demand).
 
-### Diagnosis
-Framework-level. `useContext` returning null in Next's built-in error-page prerender points to a React dispatcher/version incompatibility in **static export** under **Next 16.3.4 + React 19.2.8**. It surfaces only in the production static-generation path.
+SEO is preserved: dynamic SSR still serves full HTML with metadata + JSON-LD, and `sitemap.ts` / `robots.ts` / hreflang are unaffected.
 
-### Partial mitigation found
-Adding `export const dynamic = "force-dynamic"` to `src/app/admin/layout.tsx` removes the `/admin/*` prerender errors (correct anyway — every admin page is auth-gated/per-request via `requireAdmin`, which reads the session cookie, so the segment should never be statically prerendered). This does **not** fix the fatal `/_global-error` crash, so it was not committed on its own; fold it into the real fix.
+### Verification
+- ✅ `docker build .` (Node 22 / Linux — the real deploy build) completes; full image runs: `/api/health` 200, `/` 307→`/ar`, `/ar` 200.
+- ✅ tsc clean · 452 unit tests · 86 e2e.
 
-### Suggested next steps (deliberate, human-gated — touches framework deps)
-1. Align React/`react-dom` to the version Next 16.3.4 expects (or move Next to a version compatible with React 19.2.8); rebuild.
-2. If a version bump is undesirable, investigate an experimental config to opt the error page out of static export.
-3. After a fix: add `force-dynamic` to the admin layout, and add `pnpm build` to CI so this can't regress silently (today only `tsc`/unit/e2e run, and e2e uses `next dev`).
+### Notes for developers
+- **Local `next build` on macOS/Node 20 still hits the `/_global-error` quirk** — use `next dev` for local work, and the **Docker build** to produce/verify a production build. Consider moving local dev to Node 22 to match production.
+- Add `docker build` (or a Node-22 `next build`) to CI so production-build regressions are caught — `next dev`-based e2e does not exercise the production build.
+- Dockerfile line 66 sets a **dummy** build-time `SESSION_SECRET` (the `SecretsUsedInArgOrEnv` warning) — the real secret is injected at runtime via compose; the dummy is only to let `next build` run.
