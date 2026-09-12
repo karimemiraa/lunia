@@ -13,8 +13,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { getMedia } from "@/modules/cms/media";
 import { getEnv } from "@/lib/env";
-import { routing } from "@/i18n/routing";
-import { listDepartments, getDepartmentBySlug } from "@/modules/catalog/departments";
+import { getDepartmentBySlug } from "@/modules/catalog/departments";
 import { localized, localizedList } from "@/modules/catalog/localize";
 import { buildMetadata } from "@/modules/seo/metadata";
 import { breadcrumbJsonLd, serviceJsonLd, faqPageJsonLd, aggregateRatingJsonLd } from "@/modules/seo/jsonld";
@@ -48,13 +47,6 @@ async function resolveMedia(mediaId: string | null): Promise<{ key: string; kind
 }
 
 // Pre-renders every published department for both locales at build time.
-export async function generateStaticParams() {
-  const departments = await listDepartments({ publishedOnly: true });
-  return routing.locales.flatMap((locale) =>
-    departments.map((department) => ({ locale, slug: department.slug })),
-  );
-}
-
 export async function generateMetadata({ params }: DepartmentPageProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale: PublicLocale = isPublicLocale(rawLocale) ? rawLocale : "ar";

@@ -7,6 +7,10 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Tracker } from "@/components/analytics/Tracker";
 import "@/app/globals.css";
 
+// DB-backed CMS content renders per request (fresh content, no build-time DB
+// dependency, and no static-export step).
+export const dynamic = "force-dynamic";
+
 export default async function SiteLayout({
   children,
   params,

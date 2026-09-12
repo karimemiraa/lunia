@@ -11,8 +11,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { getMedia } from "@/modules/cms/media";
 import { getEnv } from "@/lib/env";
-import { routing } from "@/i18n/routing";
-import { listPublishedPosts, getPostBySlug } from "@/modules/catalog/journal";
+import { getPostBySlug } from "@/modules/catalog/journal";
 import { localized } from "@/modules/catalog/localize";
 import { buildMetadata } from "@/modules/seo/metadata";
 import { breadcrumbJsonLd, articleJsonLd } from "@/modules/seo/jsonld";
@@ -46,12 +45,6 @@ function formatDate(locale: PublicLocale, date: Date | null): string | null {
     month: "long",
     day: "numeric",
   }).format(date);
-}
-
-// Pre-renders every published post for both locales at build time.
-export async function generateStaticParams() {
-  const posts = await listPublishedPosts();
-  return routing.locales.flatMap((locale) => posts.map((post) => ({ locale, slug: post.slug })));
 }
 
 export async function generateMetadata({ params }: JournalPostPageProps): Promise<Metadata> {

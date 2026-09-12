@@ -10,8 +10,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { getMedia } from "@/modules/cms/media";
 import { getEnv } from "@/lib/env";
-import { routing } from "@/i18n/routing";
-import { listBrands, getBrandBySlug } from "@/modules/catalog/brands";
+import { getBrandBySlug } from "@/modules/catalog/brands";
 import { localized } from "@/modules/catalog/localize";
 import { buildMetadata } from "@/modules/seo/metadata";
 import { breadcrumbJsonLd } from "@/modules/seo/jsonld";
@@ -39,11 +38,6 @@ async function resolveMedia(mediaId: string | null): Promise<{ key: string; kind
 }
 
 // Pre-renders every published brand for both locales at build time.
-export async function generateStaticParams() {
-  const brands = await listBrands({ publishedOnly: true });
-  return routing.locales.flatMap((locale) => brands.map((brand) => ({ locale, slug: brand.slug })));
-}
-
 export async function generateMetadata({ params }: BrandPageProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale: PublicLocale = isPublicLocale(rawLocale) ? rawLocale : "ar";
