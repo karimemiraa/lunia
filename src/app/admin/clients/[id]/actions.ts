@@ -7,12 +7,17 @@
 // client's profile path so a following router.refresh() picks up fresh
 // data. Mirrors admin/calendar/actions.ts's structure.
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { recordAudit } from "@/modules/iam/audit";
 import { prisma } from "@/lib/db";
 import { addVisitNote, deleteVisitNote } from "@/modules/crm/visitNotes";
 import { updateClientTier } from "@/modules/crm/clients";
+import { upsertPreference } from "@/modules/comms/preferences";
+import { adjustPoints } from "@/modules/crm/loyalty";
+import type { CommsChannelPref } from "@prisma/client";
 
 export interface ClientActionState {
   error?: string;
@@ -93,6 +98,98 @@ export async function updateTierAction(_prev: ClientActionState | null, formData
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update tier." };
   }
+
+  revalidateClient(clientProfileId);
+  return { success: true };
+}
+
+const NOTIFICATION_CHANNEL_VALUES = ["AUTO", "WHATSAPP", "SMS", "EMAIL"] as const;
+
+// Updates a client's NotificationPreference (channel + opt-ins) on their
+// behalf -- e.g. when a client asks staff over the phone to change how they
+// get reminded. Guarded by CLIENT_MANAGE (like updateTierAction above) and
+// audited since it changes how/whether the client is contacted.
+export async function updateNotificationPreferenceAction(
+  _prev: ClientActionState | null,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+
+  const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
+  if (!clientProfileId) {
+    return { error: "Missing client." };
+  }
+
+  const rawChannel = String(formData.get("channel") ?? "");
+  const channel = (NOTIFICATION_CHANNEL_VALUES as readonly string[]).includes(rawChannel)
+    ? (rawChannel as CommsChannelPref)
+    : "AUTO";
+  const remindersOptIn = formData.get("remindersOptIn") === "on";
+  const postVisitOptIn = formData.get("postVisitOptIn") === "on";
+  const marketingOptIn = formData.get("marketingOptIn") === "on";
+
+  try {
+    await upsertPreference(clientProfileId, { channel, remindersOptIn, postVisitOptIn, marketingOptIn });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update notification preferences." };
+  }
+
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "CLIENT_NOTIFICATION_PREFERENCE_UPDATE",
+    entityType: "NotificationPreference",
+    entityId: clientProfileId,
+    summary: `Updated notification preferences for client "${clientProfileId}"`,
+  });
+
+  revalidateClient(clientProfileId);
+  return { success: true };
+}
+
+const adjustLoyaltyPointsSchema = z.object({
+  clientProfileId: z.string().min(1, "Missing client."),
+  deltaPoints: z.coerce
+    .number()
+    .int("Points must be a whole number.")
+    .refine((n) => n !== 0, { message: "Points must be non-zero." }),
+  reason: z.string().trim().min(1, "A reason is required."),
+});
+
+// Applies a manual loyalty-points adjustment (positive credit or negative
+// correction) for a client -- e.g. a goodwill gesture or fixing a mistaken
+// earn. Guarded by CLIENT_MANAGE (same as updateTierAction/
+// updateNotificationPreferenceAction above) and audited, since it directly
+// changes a client's spendable points balance. adjustPoints itself refuses
+// (throws) an adjustment that would push the balance negative.
+export async function adjustLoyaltyPointsAction(
+  _prev: ClientActionState | null,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+
+  const parsed = adjustLoyaltyPointsSchema.safeParse({
+    clientProfileId: formData.get("clientProfileId"),
+    deltaPoints: formData.get("deltaPoints"),
+    reason: formData.get("reason"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const { clientProfileId, deltaPoints, reason } = parsed.data;
+
+  try {
+    await adjustPoints(clientProfileId, deltaPoints, reason);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to adjust points." };
+  }
+
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "LOYALTY_POINTS_ADJUST",
+    entityType: "LoyaltyAccount",
+    entityId: clientProfileId,
+    summary: `Adjusted loyalty points for client "${clientProfileId}" by ${deltaPoints > 0 ? "+" : ""}${deltaPoints} (${reason})`,
+  });
 
   revalidateClient(clientProfileId);
   return { success: true };

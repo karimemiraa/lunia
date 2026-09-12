@@ -86,7 +86,7 @@ describe("processDueMessages", () => {
       payload: { bookingId: "b-future" },
     });
 
-    const sent: Array<{ toPhone: string; body: string; channel: string; kind: string }> = [];
+    const sent: Array<{ toPhone?: string; body: string; channel: string; kind: string }> = [];
     const fakeSender: CommsSender = {
       send: async (msg) => {
         sent.push(msg);
@@ -260,6 +260,80 @@ describe("processDueMessages", () => {
     expect(after.status).toBe("SENDING");
     // cleanup: drain it so afterEach can delete by phone prefix
     await prisma.scheduledMessage.update({ where: { id: m.id }, data: { status: "PENDING", claimId: null, claimedAt: null } });
+  });
+
+  it("skips a message whose kind the client opted out of (marked SKIPPED, no send)", async () => {
+    const now = new Date();
+    const phone = freshPhone();
+    const client = await prisma.user.create({
+      data: { type: "CLIENT", clientProfile: { create: { fullName: `outbox-optout-${Date.now()}` } } },
+      include: { clientProfile: true },
+    });
+    const cp = client.clientProfile!.id;
+    await prisma.notificationPreference.create({ data: { clientProfileId: cp, remindersOptIn: false } });
+    const msg = await scheduleMessage({
+      kind: "REMINDER_24H",
+      toPhone: phone,
+      clientProfileId: cp,
+      locale: "en",
+      sendAt: new Date(now.getTime() - 1000),
+      payload: {},
+    });
+
+    let sends = 0;
+    const counting: CommsSender = { send: async () => { sends += 1; return { ok: true, providerRef: "r" }; } };
+    const result = await processDueMessages(now, counting);
+    expect(sends).toBe(0);
+    expect(result.skipped).toBe(1);
+    const updated = await prisma.scheduledMessage.findUniqueOrThrow({ where: { id: msg.id } });
+    expect(updated.status).toBe("SKIPPED");
+    const logs = await prisma.communicationLog.findMany({ where: { toPhone: phone } });
+    expect(logs.length).toBe(0);
+
+    await prisma.scheduledMessage.deleteMany({ where: { id: msg.id } });
+    await prisma.user.delete({ where: { id: client.id } });
+  });
+
+  it("routes to email when the client's channel preference is EMAIL", async () => {
+    const now = new Date();
+    const phone = freshPhone();
+    const email = `route-${Date.now()}@example.com`;
+    const client = await prisma.user.create({
+      data: { type: "CLIENT", clientProfile: { create: { fullName: `outbox-route-${Date.now()}` } } },
+      include: { clientProfile: true },
+    });
+    const cp = client.clientProfile!.id;
+    await prisma.notificationPreference.create({ data: { clientProfileId: cp, channel: "EMAIL" } });
+    const msg = await scheduleMessage({
+      kind: "CONFIRMATION",
+      toPhone: phone,
+      toEmail: email,
+      clientProfileId: cp,
+      locale: "en",
+      sendAt: new Date(now.getTime() - 1000),
+      payload: {},
+    });
+
+    const captured: Array<{ channel: string; toEmail?: string; toPhone?: string; subject?: string }> = [];
+    const capturing: CommsSender = {
+      send: async (m) => {
+        captured.push(m);
+        return { ok: true, providerRef: "email-ref" };
+      },
+    };
+    const result = await processDueMessages(now, capturing);
+    expect(result.sent).toBe(1);
+    expect(captured).toHaveLength(1);
+    expect(captured[0]!.channel).toBe("email");
+    expect(captured[0]!.toEmail).toBe(email);
+    expect(captured[0]!.subject).toBeTruthy();
+    const logs = await prisma.communicationLog.findMany({ where: { toEmail: email } });
+    expect(logs.length).toBe(1);
+    expect(logs[0]!.channel).toBe("email");
+
+    await prisma.communicationLog.deleteMany({ where: { toEmail: email } });
+    await prisma.scheduledMessage.deleteMany({ where: { id: msg.id } });
+    await prisma.user.delete({ where: { id: client.id } });
   });
 
   it("defaults to stubSender when no sender is provided, and does not throw", async () => {

@@ -31,7 +31,9 @@
   },
   "home": {
     "heroStatement": "Where natural beauty begins",
-    "hero": { "eyebrow": "Skin Quality Center · Riyadh" },
+    "hero": {
+      "eyebrow": "Skin Quality Center · Riyadh"
+    },
     "meta": {
       "title": "Lunia | Riyadh's Skin Quality Center",
       "description": "Diagnostic-led skin, hair & scalp, and post-surgery recovery care in Riyadh, built on a Korean-inspired philosophy. Not facials — skin quality, sustained."
@@ -218,7 +220,11 @@
       "heading": "Quality you can see, built session by session",
       "intro": "Every result here reflects a real diagnostic plan, sustained over time — not a single dramatic transformation. Photography is shared only with client consent."
     },
-    "categories": ["Skin Quality", "Hair & Scalp", "Post-Surgery Recovery"],
+    "categories": [
+      "Skin Quality",
+      "Hair & Scalp",
+      "Post-Surgery Recovery"
+    ],
     "allLabel": "All results",
     "beforeAfterLabel": "Before & after",
     "consentNote": "Real client photography is added with explicit consent as it becomes available. Every placeholder above reflects a treatment category, not a specific client.",
@@ -347,19 +353,29 @@
       "continueLabel": "Continue",
       "selectServicePrompt": "Select a service to see available times."
     },
+    "waitlist": {
+      "heading": "Join the waitlist",
+      "intro": "We'll let you know the moment a spot opens up on this day.",
+      "joinLabel": "Join the waitlist",
+      "joiningLabel": "Joining…",
+      "joinedMessage": "You're on the waitlist — we'll reach out the moment a spot opens up."
+    },
     "contact": {
       "heading": "Your details",
-      "intro": "We'll text a 6-digit code to confirm this number.",
+      "intro": "We'll send a 6-digit code to confirm your phone or email.",
       "nameLabel": "Full name",
-      "phoneLabel": "Phone number",
+      "identifierLabel": "Phone or email",
       "sendCodeLabel": "Send verification code",
       "sendingLabel": "Sending…",
-      "codeIntro": "Enter the 6-digit code sent to {phone}.",
+      "codeIntro": "Enter the 6-digit code sent to {contact}.",
       "codeLabel": "Verification code",
       "verifyLabel": "Confirm booking",
       "verifyingLabel": "Confirming…",
-      "changeNumberLabel": "Use a different number",
-      "devCodeHint": "Dev/test code: {code}"
+      "changeContactLabel": "Use a different phone or email",
+      "devCodeHint": "Dev/test code: {code}",
+      "giftCardLabel": "Gift card code (optional)",
+      "giftCardPlaceholder": "e.g. AB3D-EF7H-JK2M-NP9Q",
+      "giftCardHint": "Have a gift card? We'll apply what we can toward this booking."
     },
     "success": {
       "heading": "You're booked",
@@ -368,13 +384,21 @@
       "dateLabel": "Date",
       "timeLabel": "Time",
       "priceLabel": "Price",
+      "giftCardAppliedLabel": "Gift card applied",
+      "usePackageLabel": "Use a package for this booking",
+      "selectPackagePlaceholder": "Choose a package",
+      "sessionsRemainingOption": "({remaining} of {total} sessions left)",
+      "applyPackageLabel": "Apply package",
+      "applyingLabel": "Applying…",
+      "packageAppliedLabel": "Package session applied to this booking.",
       "accountLabel": "View my bookings",
       "bookAnotherLabel": "Book another visit"
     },
     "errors": {
       "generic": "Something went wrong — please try again.",
-      "missingContact": "Please enter your name and phone number.",
+      "missingContact": "Please enter your name and a phone number or email address.",
       "invalidPhone": "Please enter a valid phone number.",
+      "invalidIdentifier": "Please enter a valid phone number or email address.",
       "rateLimited": "Too many attempts — please try again in a little while.",
       "invalidCode": "That code is incorrect or has expired — please try again.",
       "serviceUnavailable": "This service isn't available for online booking right now.",
@@ -423,6 +447,7 @@
     "rebookLabel": "Book another visit",
     "cancelLabel": "Cancel booking",
     "cancellingLabel": "Cancelling…",
+    "bookAgainLabel": "Book again",
     "status": {
       "REQUESTED": "Requested",
       "CONFIRMED": "Confirmed",
@@ -435,6 +460,85 @@
       "notAuthenticated": "Please sign in to manage your bookings.",
       "notFound": "We couldn't find that booking.",
       "tooLateToCancel": "This booking can no longer be cancelled online — please contact us.",
+      "generic": "Something went wrong — please try again."
+    },
+    "notifications": {
+      "heading": "Notifications",
+      "intro": "Choose how we reach you and which messages you'd like to receive.",
+      "channelLabel": "Preferred channel",
+      "channel": {
+        "AUTO": "Automatic (based on how you sign in)",
+        "WHATSAPP": "WhatsApp",
+        "SMS": "SMS",
+        "EMAIL": "Email"
+      },
+      "remindersLabel": "Appointment reminders",
+      "remindersHint": "A reminder 24 hours before your appointment.",
+      "postVisitLabel": "Post-visit messages",
+      "postVisitHint": "A short note after your visit.",
+      "marketingLabel": "Offers and news",
+      "marketingHint": "Occasional promotions and updates from Lunia.",
+      "saveLabel": "Save preferences",
+      "savingLabel": "Saving…",
+      "savedLabel": "Saved.",
+      "errors": {
+        "notAuthenticated": "Please sign in to manage your notification preferences.",
+        "generic": "Something went wrong — please try again."
+      }
+    },
+    "loyalty": {
+      "heading": "Loyalty points",
+      "intro": "Earn points on every visit and redeem them toward future bookings.",
+      "balanceLabel": "Your points balance",
+      "pointsUnit": "points",
+      "currentTierLabel": "Current tier",
+      "progressToNext": "{tier} is next",
+      "pointsRemaining": "{count} points to go",
+      "topTierReached": "You've reached our top tier",
+      "historyHeading": "Recent activity",
+      "emptyHistory": "No points activity yet — it starts with your first completed visit.",
+      "reasons": {
+        "EARN": "Points earned",
+        "REDEEM": "Points redeemed",
+        "TIER": "Tier updated",
+        "ADJUST": "Adjustment"
+      }
+    },
+    "credits": {
+      "heading": "My credits",
+      "intro": "Your gift card balances and prepaid session packages.",
+      "giftCardsHeading": "Gift cards",
+      "emptyGiftCards": "You don't have any gift card balance yet.",
+      "giftCardExpiry": "Expires {date}",
+      "packagesHeading": "Packages",
+      "emptyPackages": "You don't have any active packages yet.",
+      "sessionsRemaining": "{remaining} of {total} sessions left"
+    }
+  },
+  "review": {
+    "meta": {
+      "title": "Share your review — Lunia",
+      "description": "Tell us about your visit to Lunia."
+    },
+    "heading": "How was your visit?",
+    "intro": "Your feedback helps other clients and helps us improve. This only takes a minute.",
+    "ratingLabel": "Your rating",
+    "titleLabel": "Title (optional)",
+    "bodyLabel": "Tell us more (optional)",
+    "bodyPlaceholder": "What did you enjoy about your visit?",
+    "nameLabel": "Name to display (optional)",
+    "namePlaceholder": "e.g. Sara A.",
+    "consentLabel": "I'm happy for Lunia to feature this review publicly (e.g. on the website).",
+    "submitLabel": "Submit review",
+    "submittingLabel": "Submitting…",
+    "ratingRequired": "Please choose a rating from 1 to 5 stars.",
+    "successHeading": "Thank you!",
+    "successBody": "Your review has been received and will appear once it's reviewed by our team.",
+    "alreadySubmittedHeading": "Already submitted",
+    "alreadySubmittedBody": "This review link has already been used. Thank you again for sharing your feedback.",
+    "invalidHeading": "Link not found",
+    "invalidBody": "This review link is invalid or has expired.",
+    "errors": {
       "generic": "Something went wrong — please try again."
     }
   }

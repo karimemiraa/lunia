@@ -94,6 +94,12 @@ const I = {
       <path strokeLinejoin="round" d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z" /><path strokeLinecap="round" d="m9 12 2 2 4-4" />
     </svg>
   ),
+  giftcard: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+      <rect x="2.5" y="7" width="19" height="13" rx="2" /><path strokeLinecap="round" d="M2.5 12h19M12 7v13" />
+      <path strokeLinejoin="round" d="M12 7c-1.2-3-3.4-4-4.7-2.8C6 5.4 7 7 9 7h3ZM12 7c1.2-3 3.4-4 4.7-2.8C18 5.4 17 7 15 7h-3Z" />
+    </svg>
+  ),
   book: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
       <path strokeLinejoin="round" d="M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3 3V4Z" /><path strokeLinecap="round" d="M17 7h2v13h-2" />
@@ -102,6 +108,11 @@ const I = {
   door: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M14 4H6v16h8M14 12h7m0 0-3-3m3 3-3 3" />
+    </svg>
+  ),
+  star: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+      <path strokeLinejoin="round" d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6-4.5-4.2 6.1-.7L12 3Z" />
     </svg>
   ),
 };
@@ -131,6 +142,7 @@ const GROUPS: NavGroup[] = [
     label: "Operations",
     items: [
       { href: "/admin/calendar", label: "Calendar", perm: PERMISSIONS.BOOKING_VIEW, icon: I.calendar },
+      { href: "/admin/waitlist", label: "Waitlist", perm: PERMISSIONS.BOOKING_VIEW, icon: I.inbox },
       { href: "/admin/clients", label: "Clients", perm: PERMISSIONS.CLIENT_VIEW, icon: I.users },
       { href: "/admin/booking/rooms", label: "Rooms", perm: PERMISSIONS.STAFF_MANAGE, icon: I.book },
       { href: "/admin/booking/schedules", label: "Schedules", perm: PERMISSIONS.STAFF_MANAGE, icon: I.calendar },
@@ -143,6 +155,7 @@ const GROUPS: NavGroup[] = [
       { href: "/admin/content", label: "Content", perm: PERMISSIONS.CMS_MANAGE, icon: I.content },
       { href: "/admin/catalog", label: "Catalog", perm: PERMISSIONS.CMS_MANAGE, icon: I.layers },
       { href: "/admin/inquiries", label: "Inquiries", perm: PERMISSIONS.CMS_MANAGE, icon: I.inbox },
+      { href: "/admin/reviews", label: "Reviews", perm: PERMISSIONS.CMS_MANAGE, icon: I.star },
     ],
   },
   {
@@ -150,6 +163,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/settings", label: "Settings", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.gear },
       { href: "/admin/tiers", label: "Tiers", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.tag },
+      { href: "/admin/commerce", label: "Gift cards & packages", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.giftcard },
       { href: "/admin/comms", label: "Communications", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.message },
       { href: "/admin/audit", label: "Audit Log", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.shield },
       { href: "/admin/roles", label: "Roles", perm: PERMISSIONS.STAFF_MANAGE, icon: I.users },

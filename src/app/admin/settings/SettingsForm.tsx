@@ -29,7 +29,18 @@ interface SettingsFormProps {
   x: string;
   defaultTitle: LocalizedValue;
   defaultDesc: LocalizedValue;
+  /** SiteSetting("comms").otpChannel -- fallback delivery channel for one-time codes. */
+  otpChannel: "AUTO" | "WHATSAPP" | "SMS" | "EMAIL";
+  /** The provider-derived default channel for booking messages (read-only; see COMMS_BOOKING_CHANNEL). */
+  bookingChannel: string;
 }
+
+const OTP_CHANNEL_OPTIONS: { value: "AUTO" | "WHATSAPP" | "SMS" | "EMAIL"; label: string }[] = [
+  { value: "AUTO", label: "Automatic (booking channel for phones, email for emails)" },
+  { value: "WHATSAPP", label: "WhatsApp" },
+  { value: "SMS", label: "SMS" },
+  { value: "EMAIL", label: "Email" },
+];
 
 const initialState: SaveSettingsState = {};
 
@@ -50,6 +61,8 @@ export function SettingsForm({
   x,
   defaultTitle,
   defaultDesc,
+  otpChannel,
+  bookingChannel,
 }: SettingsFormProps) {
   const [state, action, pending] = useActionState(saveSettings, initialState);
 
@@ -118,6 +131,35 @@ export function SettingsForm({
         <h2 className="text-lg font-semibold text-[var(--color-ink)]">SEO defaults</h2>
         <LocalizedField label="Default title" name="defaultTitle" defaultValue={defaultTitle} />
         <LocalizedField label="Default description" name="defaultDesc" type="textarea" defaultValue={defaultDesc} />
+      </section>
+
+      <section className={sectionClass} data-testid="communications-settings">
+        <h2 className="text-lg font-semibold text-[var(--color-ink)]">Communications</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-[var(--color-ink)]">One-time code (OTP) channel</span>
+            <select name="comms.otpChannel" defaultValue={otpChannel} className={inputClass} data-testid="otp-channel-select">
+              {OTP_CHANNEL_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-[var(--color-ink)]/60">
+              Used when a client has no personal preference set. An email identifier always delivers by email
+              regardless of this setting.
+            </span>
+          </label>
+          <div className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-[var(--color-ink)]">Default booking channel</span>
+            <p className="rounded border border-[var(--color-ink)]/10 bg-[var(--color-cream)]/40 px-3 py-2 text-sm text-[var(--color-ink)]/80" data-testid="booking-channel-readonly">
+              {bookingChannel}
+            </p>
+            <span className="text-xs text-[var(--color-ink)]/60">
+              Set via the COMMS_BOOKING_CHANNEL / COMMS_PROVIDER environment variables — read-only here.
+            </span>
+          </div>
+        </div>
       </section>
 
       <div className="flex items-center gap-3">

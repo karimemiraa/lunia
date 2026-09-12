@@ -17,6 +17,13 @@ export interface AccountBookingDTO {
   status: AccountBookingStatus;
   /** True when this booking is still cancellable (upcoming, active, and >24h out). */
   canCancel: boolean;
+  /**
+   * One-tap rebooking (D2): set for a past COMPLETED booking whose service
+   * is still known -- deep-links the wizard at /book?service=<slug>&staff=<id>,
+   * which prefills that service (and tries the same staff) and lands on the
+   * next available slot. Null when this booking isn't rebookable this way.
+   */
+  rebook: { serviceSlug: string; staffUserId: string } | null;
 }
 
 interface AccountBookingsProps {
@@ -80,6 +87,17 @@ function BookingCard({
           >
             {isCancelling ? t("cancellingLabel") : t("cancelLabel")}
           </button>
+        </div>
+      )}
+      {booking.rebook && (
+        <div className="mt-2">
+          <Link
+            href={`/${locale}/book?service=${encodeURIComponent(booking.rebook.serviceSlug)}&staff=${encodeURIComponent(booking.rebook.staffUserId)}`}
+            className={secondaryButtonClass}
+            data-testid="account-book-again"
+          >
+            {t("bookAgainLabel")}
+          </Link>
         </div>
       )}
     </li>

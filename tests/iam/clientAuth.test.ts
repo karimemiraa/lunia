@@ -28,7 +28,7 @@ afterEach(async () => {
   }
   const phones = usedPhones.splice(0);
   for (const phone of phones) {
-    await getRedis().del(`otp:${phone}`, `otpreq:${phone}`, `otpver:${phone}`);
+    await getRedis().del(`otp:phone:${phone}`, `otpreq:phone:${phone}`, `otpver:phone:${phone}`);
     await prisma.communicationLog.deleteMany({ where: { toPhone: phone } });
   }
 });
@@ -45,7 +45,7 @@ describe("clientAuth", () => {
     const { devCode } = await requestOtp(phone);
     expect(devCode).toMatch(/^\d{6}$/);
 
-    const raw = await getRedis().get(`otp:${phone}`);
+    const raw = await getRedis().get(`otp:phone:${phone}`);
     expect(raw).toBeTruthy();
     const record = JSON.parse(raw as string) as { code: string };
     expect(record.code).toBe(devCode);
@@ -60,6 +60,51 @@ describe("clientAuth", () => {
     expect(logs.length).toBeGreaterThanOrEqual(1);
     for (const log of logs) {
       expect(log.body).not.toContain(devCode as string);
+    }
+  });
+
+  it("requestOtp with an email identifier delivers on the email channel and stores the code under the email key", async () => {
+    const email = `otp-${Date.now()}@example.com`;
+    const captured: Array<{ channel: string; toEmail?: string; toPhone?: string; subject?: string; body: string }> = [];
+    const sender: CommsSender = {
+      async send(msg) {
+        captured.push(msg);
+        return { ok: true, providerRef: "email-otp-ref" };
+      },
+    };
+    try {
+      const { devCode } = await requestOtp(email, { sender, locale: "en" });
+      expect(devCode).toMatch(/^\d{6}$/);
+      expect(captured).toHaveLength(1);
+      expect(captured[0]!.channel).toBe("email");
+      expect(captured[0]!.toEmail).toBe(email);
+      expect(captured[0]!.subject).toBeTruthy();
+      // The DELIVERED body must contain the code (regression guard for C1: an
+      // email channel with no seeded template must still render the code via
+      // the built-in fallback, else email login is impossible in production).
+      expect(captured[0]!.body).toContain(devCode as string);
+
+      const raw = await getRedis().get(`otp:email:${email}`);
+      expect(raw).toBeTruthy();
+
+      // The log stores the email recipient with the code redacted.
+      const logs = await prisma.communicationLog.findMany({ where: { toEmail: email, kind: "OTP" } });
+      expect(logs.length).toBeGreaterThanOrEqual(1);
+      expect(logs[0]!.channel).toBe("email");
+      expect(logs[0]!.body).not.toContain(devCode as string);
+
+      // Verifying creates a CLIENT user identified by email.
+      const result = await verifyOtp(email, devCode as string);
+      expect(result).not.toBeNull();
+      const userId = (result as { userId: string }).userId;
+      createdUserIds.push(userId);
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      expect(user?.type).toBe("CLIENT");
+      expect(user?.email).toBe(email);
+      expect(user?.phone).toBeNull();
+    } finally {
+      await getRedis().del(`otp:email:${email}`, `otpreq:email:${email}`, `otpver:email:${email}`);
+      await prisma.communicationLog.deleteMany({ where: { toEmail: email } });
     }
   });
 
@@ -91,7 +136,7 @@ describe("clientAuth", () => {
     });
     expect(profile).not.toBeNull();
 
-    const raw = await getRedis().get(`otp:${phone}`);
+    const raw = await getRedis().get(`otp:phone:${phone}`);
     expect(raw).toBeNull();
   });
 
@@ -135,7 +180,7 @@ describe("clientAuth", () => {
     const result = await verifyOtp(phone, devCode as string);
     expect(result).toBeNull();
 
-    const raw = await getRedis().get(`otp:${phone}`);
+    const raw = await getRedis().get(`otp:phone:${phone}`);
     expect(raw).toBeNull();
   });
 
@@ -207,7 +252,7 @@ describe("clientAuth", () => {
     const phone = uniquePhone();
     usedPhones.push(phone);
 
-    const { devCode } = await requestOtp(phone);
+    const { devCode } = await requestOtp(phone, { channel: "sms" });
     expect(devCode).toMatch(/^\d{6}$/);
 
     const logs = await prisma.communicationLog.findMany({ where: { toPhone: phone, kind: "OTP" } });
@@ -223,7 +268,7 @@ describe("clientAuth", () => {
     const phone = uniquePhone();
     usedPhones.push(phone);
 
-    const sent: { channel: string; toPhone: string; body: string; kind: string }[] = [];
+    const sent: { channel: string; toPhone?: string; body: string; kind: string }[] = [];
     const fakeSender: CommsSender = {
       async send(msg) {
         sent.push(msg);
@@ -231,7 +276,7 @@ describe("clientAuth", () => {
       },
     };
 
-    const { devCode } = await requestOtp(phone, { sender: fakeSender, locale: "en" });
+    const { devCode } = await requestOtp(phone, { sender: fakeSender, locale: "en", channel: "sms" });
 
     expect(sent).toHaveLength(1);
     expect(sent[0].channel).toBe("sms");
@@ -258,7 +303,7 @@ describe("clientAuth", () => {
     const { devCode } = await requestOtp(phone, { sender: throwingSender });
     expect(devCode).toMatch(/^\d{6}$/);
 
-    const raw = await getRedis().get(`otp:${phone}`);
+    const raw = await getRedis().get(`otp:phone:${phone}`);
     expect(raw).toBeTruthy();
     const record = JSON.parse(raw as string) as { code: string };
     expect(record.code).toBe(devCode);

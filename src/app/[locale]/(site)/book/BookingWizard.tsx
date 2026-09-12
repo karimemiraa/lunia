@@ -4,7 +4,17 @@ import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { trackEvent } from "@/components/analytics/Tracker";
-import { getSlots, startOtp, verifyAndBook, type SlotDTO, type BookingSummaryDTO } from "./actions";
+import {
+  getSlots,
+  startOtp,
+  verifyAndBook,
+  getMyActivePackages,
+  applyPackageToBookingAction,
+  joinWaitlistAction,
+  type SlotDTO,
+  type BookingSummaryDTO,
+  type MyPackageOptionDTO,
+} from "./actions";
 
 export interface BookableServiceDTO {
   id: string;
@@ -20,6 +30,10 @@ interface BookingWizardProps {
   services: BookableServiceDTO[];
   locale: "en" | "ar";
   sourceChannel: string;
+  /** One-tap rebooking deep-link (account page's "Book again"): pre-selects this service and jumps to step 2. */
+  prefillServiceId?: string | null;
+  /** Preferred staff for the deep-link above; matched against the first available slot when possible, otherwise ignored. */
+  prefillStaffUserId?: string | null;
 }
 
 type Step = 1 | 2 | 3 | 4;
@@ -86,12 +100,26 @@ function formatSar(priceMinor: number, locale: string): string {
 // server actions in ./actions.ts (getSlots / startOtp / verifyAndBook) —
 // this component only holds UI/selection state and never talks to the DB
 // directly.
-export function BookingWizard({ services, locale, sourceChannel }: BookingWizardProps) {
+export function BookingWizard({
+  services,
+  locale,
+  sourceChannel,
+  prefillServiceId = null,
+  prefillStaffUserId = null,
+}: BookingWizardProps) {
   const t = useTranslations("book");
   const [isPending, startTransition] = useTransition();
 
-  const [step, setStep] = useState<Step>(1);
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  // One-tap rebooking (account page's "Book again"): a valid prefillServiceId
+  // (validated against the actual services list) seeds step/selectedServiceId
+  // directly via lazy initial state, rather than an effect that would call
+  // setState synchronously on mount -- only the async "find the next
+  // available slot for it" part below needs an effect.
+  const initialServiceId =
+    prefillServiceId && services.some((service) => service.id === prefillServiceId) ? prefillServiceId : null;
+
+  const [step, setStep] = useState<Step>(initialServiceId ? 2 : 1);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(initialServiceId);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [slots, setSlots] = useState<SlotDTO[] | null>(null);
@@ -99,18 +127,48 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
   const [selectedSlot, setSelectedSlot] = useState<SlotDTO | null>(null);
 
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  // Either a phone number or an email address — resolved server-side (see
+  // ./actions.ts's startOtp/verifyAndBook, which pass this raw value
+  // straight to requestOtp/verifyOtp for classification).
+  const [identifier, setIdentifier] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [devCode, setDevCode] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [contactError, setContactError] = useState<string | null>(null);
+  // Optional gift-card code, entered alongside the OTP code -- applied
+  // best-effort by verifyAndBook (a bad/unknown/expired code never blocks
+  // the booking itself; see ./actions.ts's applyGiftCardBestEffort).
+  const [giftCardCode, setGiftCardCode] = useState("");
 
   const [summary, setSummary] = useState<BookingSummaryDTO | null>(null);
 
+  // "Join the waitlist" affordance, offered on the date/time step once a
+  // chosen day comes back with no bookable slot for the selected service.
+  // Deliberately its own name/identifier fields (rather than reusing the
+  // step-3 contact fields above) since it can be submitted before the
+  // client ever reaches step 3.
+  const [waitlistName, setWaitlistName] = useState("");
+  const [waitlistIdentifier, setWaitlistIdentifier] = useState("");
+  const [waitlistError, setWaitlistError] = useState<string | null>(null);
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
+  const [waitlistPending, startWaitlistTransition] = useTransition();
+
+  // Post-booking "apply a package" widget on the success step (step 4) --
+  // only ever shows the now-authenticated client's own packages (see
+  // getMyActivePackages's privacy rationale in ./actions.ts).
+  const [myPackages, setMyPackages] = useState<MyPackageOptionDTO[] | null>(null);
+  const [selectedPackageId, setSelectedPackageId] = useState("");
+  const [packageApplyState, setPackageApplyState] = useState<"idle" | "applying" | "applied" | "error">("idle");
+  const [packageApplyError, setPackageApplyError] = useState<string | null>(null);
+
   const nameId = useId();
-  const phoneId = useId();
+  const identifierId = useId();
   const codeId = useId();
   const dateId = useId();
+  const giftCardId = useId();
+  const packageSelectId = useId();
+  const waitlistNameId = useId();
+  const waitlistIdentifierId = useId();
 
   // Funnel analytics: privacy-preserving, anonymous, and best-effort -- see
   // src/components/analytics/Tracker.tsx. Never blocks or throws.
@@ -143,12 +201,51 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
     return Array.from({ length: 14 }, (_, i) => toCenterDateISO(new Date(now.getTime() + i * 86_400_000)));
   }, []);
 
+  // One-tap rebooking (account page's "Book again"): when the page was
+  // reached via /book?service=<slug>&staff=<staffUserId>, initialServiceId
+  // above already seeded step 2 -- this effect does the async part, landing
+  // on the next available slot for that service. It prefers the same staff
+  // member when one of their slots is free on that day, otherwise falls
+  // back to the first free slot on the first day that has one. Runs once on
+  // mount; ordinary (non-deep-link) visits are unaffected since
+  // initialServiceId is null.
+  useEffect(() => {
+    if (!initialServiceId) return;
+
+    startTransition(async () => {
+      for (const dateISO of next14Days) {
+        const result = await getSlots(initialServiceId, dateISO, locale);
+        if (!result.ok || result.slots.length === 0) continue;
+
+        const preferred = prefillStaffUserId
+          ? result.slots.find((slot) => slot.staffUserId === prefillStaffUserId)
+          : undefined;
+
+        setSelectedDate(dateISO);
+        setSlots(result.slots);
+        setSelectedSlot(preferred ?? result.slots[0]!);
+        return;
+      }
+    });
+    // Intentionally runs once on mount only -- initialServiceId/prefillStaffUserId
+    // are deep-link inputs, not live selection state to keep re-syncing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function resetWaitlistState() {
+    setWaitlistName("");
+    setWaitlistIdentifier("");
+    setWaitlistError(null);
+    setWaitlistJoined(false);
+  }
+
   function selectService(serviceId: string) {
     setSelectedServiceId(serviceId);
     setSelectedDate(null);
     setSlots(null);
     setSlotsError(null);
     setSelectedSlot(null);
+    resetWaitlistState();
     setStep(2);
   }
 
@@ -157,6 +254,7 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
     setSelectedSlot(null);
     setSlots(null);
     setSlotsError(null);
+    resetWaitlistState();
     if (!selectedServiceId) return;
     startTransition(async () => {
       const result = await getSlots(selectedServiceId, dateISO, locale);
@@ -168,6 +266,29 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
     });
   }
 
+  function handleJoinWaitlist() {
+    setWaitlistError(null);
+    if (!waitlistName.trim() || !waitlistIdentifier.trim()) {
+      setWaitlistError(t("errors.missingContact"));
+      return;
+    }
+    if (!selectedServiceId || !selectedDate) return;
+    startWaitlistTransition(async () => {
+      const result = await joinWaitlistAction({
+        serviceId: selectedServiceId,
+        desiredDateISO: selectedDate,
+        name: waitlistName,
+        identifier: waitlistIdentifier,
+        locale,
+      });
+      if (result.ok) {
+        setWaitlistJoined(true);
+      } else {
+        setWaitlistError(result.error);
+      }
+    });
+  }
+
   function goToContactStep() {
     if (!selectedSlot) return;
     setStep(3);
@@ -175,12 +296,12 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
 
   function handleSendCode() {
     setContactError(null);
-    if (!name.trim() || !phone.trim()) {
+    if (!name.trim() || !identifier.trim()) {
       setContactError(t("errors.missingContact"));
       return;
     }
     startTransition(async () => {
-      const result = await startOtp(phone, locale);
+      const result = await startOtp(identifier, locale);
       if (result.ok) {
         setOtpSent(true);
         setDevCode(result.devCode ?? null);
@@ -201,17 +322,36 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
         serviceId: selectedServiceId,
         startAt: selectedSlot.startAt,
         name,
-        phone,
+        identifier,
         code,
         locale,
         sourceChannel,
+        giftCardCode: giftCardCode.trim() || undefined,
       });
       if (result.ok) {
         setSummary(result.booking);
         setStep(4);
         trackEvent("booking_completed", { serviceId: selectedServiceId });
+        // Best-effort, non-blocking: the booking above already succeeded
+        // regardless of whether this client happens to hold any packages.
+        void getMyActivePackages().then(setMyPackages);
       } else {
         setContactError(result.error);
+      }
+    });
+  }
+
+  function handleApplyPackage() {
+    if (!summary || !selectedPackageId) return;
+    setPackageApplyState("applying");
+    setPackageApplyError(null);
+    startTransition(async () => {
+      const result = await applyPackageToBookingAction(summary.bookingId, selectedPackageId, locale);
+      if (result.ok) {
+        setPackageApplyState("applied");
+      } else {
+        setPackageApplyState("error");
+        setPackageApplyError(result.error);
       }
     });
   }
@@ -224,12 +364,18 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
     setSlotsError(null);
     setSelectedSlot(null);
     setName("");
-    setPhone("");
+    setIdentifier("");
     setOtpSent(false);
     setDevCode(null);
     setCode("");
     setContactError(null);
+    setGiftCardCode("");
     setSummary(null);
+    setMyPackages(null);
+    setSelectedPackageId("");
+    setPackageApplyState("idle");
+    setPackageApplyError(null);
+    resetWaitlistState();
   }
 
   const stepLabels = [t("steps.service"), t("steps.datetime"), t("steps.contact"), t("steps.confirm")];
@@ -369,7 +515,76 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
                 <p className="text-sm text-[var(--color-ink)]/60">{t("date.loadingSlots")}</p>
               )}
               {slotsError && <p className="text-sm font-medium text-red-700">{slotsError}</p>}
-              {slots && slots.length === 0 && <p className="text-sm text-[var(--color-ink)]/60">{t("date.noSlots")}</p>}
+              {slots && slots.length === 0 && (
+                <div className="flex flex-col gap-4">
+                  <p className="text-sm text-[var(--color-ink)]/60">{t("date.noSlots")}</p>
+
+                  <div
+                    className="lunia-card lunia-animate-fade-in flex flex-col gap-4 p-5"
+                    data-testid="booking-waitlist-form"
+                  >
+                    {waitlistJoined ? (
+                      <p className="text-sm font-medium text-[var(--color-teal)]" data-testid="booking-waitlist-joined">
+                        {t("waitlist.joinedMessage")}
+                      </p>
+                    ) : (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <h3 className="text-base font-medium text-[var(--color-ink)]">{t("waitlist.heading")}</h3>
+                          <p className="text-sm text-[var(--color-ink)]/65">{t("waitlist.intro")}</p>
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="flex flex-col gap-2">
+                            <label htmlFor={waitlistNameId} className={labelClass}>
+                              {t("contact.nameLabel")}
+                            </label>
+                            <input
+                              id={waitlistNameId}
+                              type="text"
+                              maxLength={200}
+                              autoComplete="name"
+                              value={waitlistName}
+                              onChange={(e) => setWaitlistName(e.target.value)}
+                              className={inputClass}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label htmlFor={waitlistIdentifierId} className={labelClass}>
+                              {t("contact.identifierLabel")}
+                            </label>
+                            <input
+                              id={waitlistIdentifierId}
+                              type="text"
+                              inputMode="email"
+                              maxLength={254}
+                              value={waitlistIdentifier}
+                              onChange={(e) => setWaitlistIdentifier(e.target.value)}
+                              className={inputClass}
+                            />
+                          </div>
+                        </div>
+
+                        {waitlistError && (
+                          <p role="alert" className="text-sm font-medium text-red-700">
+                            {waitlistError}
+                          </p>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={handleJoinWaitlist}
+                          disabled={waitlistPending}
+                          className={`w-fit ${secondaryButtonClass}`}
+                          data-testid="booking-waitlist-submit"
+                        >
+                          {waitlistPending ? t("waitlist.joiningLabel") : t("waitlist.joinLabel")}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
               {slots && slots.length > 0 && (
                 <div className="flex flex-wrap gap-2" data-testid="booking-slots">
                   {slots.map((slot) => {
@@ -444,18 +659,18 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor={phoneId} className={labelClass}>
-              {t("contact.phoneLabel")}
+            <label htmlFor={identifierId} className={labelClass}>
+              {t("contact.identifierLabel")}
             </label>
             <input
-              id={phoneId}
-              type="tel"
+              id={identifierId}
+              type="text"
+              inputMode="email"
               required
-              maxLength={20}
-              autoComplete="tel"
-              value={phone}
+              maxLength={254}
+              value={identifier}
               disabled={otpSent}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setIdentifier(e.target.value)}
               className={inputClass}
             />
           </div>
@@ -466,7 +681,7 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
             </button>
           ) : (
             <>
-              <p className="text-sm text-[var(--color-ink)]/65">{t("contact.codeIntro", { phone })}</p>
+              <p className="text-sm text-[var(--color-ink)]/65">{t("contact.codeIntro", { contact: identifier })}</p>
               {devCode && (
                 <p data-testid="dev-otp-code" className="text-sm font-medium text-[var(--color-canopy)]">
                   {t("contact.devCodeHint", { code: devCode })}
@@ -489,6 +704,21 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
                   className={inputClass}
                 />
               </div>
+              <div className="flex flex-col gap-2">
+                <label htmlFor={giftCardId} className={labelClass}>
+                  {t("contact.giftCardLabel")}
+                </label>
+                <input
+                  id={giftCardId}
+                  type="text"
+                  autoCapitalize="characters"
+                  placeholder={t("contact.giftCardPlaceholder")}
+                  value={giftCardCode}
+                  onChange={(e) => setGiftCardCode(e.target.value.toUpperCase())}
+                  className={inputClass}
+                />
+                <p className="text-xs text-[var(--color-ink)]/50">{t("contact.giftCardHint")}</p>
+              </div>
               <div className="flex flex-wrap items-center gap-4">
                 <button
                   type="button"
@@ -508,7 +738,7 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
                   }}
                   className="text-sm font-medium text-[var(--color-ink)] underline decoration-[var(--color-gold)] decoration-2 underline-offset-4"
                 >
-                  {t("contact.changeNumberLabel")}
+                  {t("contact.changeContactLabel")}
                 </button>
               </div>
             </>
@@ -548,7 +778,62 @@ export function BookingWizard({ services, locale, sourceChannel }: BookingWizard
               <dt className="text-[var(--color-ink)]/50">{t("success.priceLabel")}</dt>
               <dd className="font-medium text-[var(--color-ink)]">{formatSar(summary.priceMinorSnapshot, locale)}</dd>
             </div>
+            {summary.giftCardAppliedMinor !== undefined && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--color-ink)]/50">{t("success.giftCardAppliedLabel")}</dt>
+                <dd className="font-medium text-[var(--color-teal)]">
+                  {formatSar(summary.giftCardAppliedMinor, locale)}
+                </dd>
+              </div>
+            )}
           </dl>
+
+          {myPackages && myPackages.length > 0 && (
+            <div
+              className="flex flex-col gap-3 rounded-2xl border border-[var(--color-ink)]/10 bg-[var(--color-page)] p-6"
+              data-testid="booking-apply-package"
+            >
+              <span className={labelClass}>{t("success.usePackageLabel")}</span>
+              {packageApplyState === "applied" ? (
+                <p className="text-sm font-medium text-[var(--color-teal)]">{t("success.packageAppliedLabel")}</p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label htmlFor={packageSelectId} className="sr-only">
+                      {t("success.usePackageLabel")}
+                    </label>
+                    <select
+                      id={packageSelectId}
+                      value={selectedPackageId}
+                      onChange={(e) => setSelectedPackageId(e.target.value)}
+                      className={`${inputClass} w-auto min-w-[14rem]`}
+                    >
+                      <option value="">{t("success.selectPackagePlaceholder")}</option>
+                      {myPackages.map((pkg) => (
+                        <option key={pkg.id} value={pkg.id}>
+                          {(locale === "ar" ? pkg.nameAr : pkg.nameEn)}{" "}
+                          {t("success.sessionsRemainingOption", { remaining: pkg.sessionsRemaining, total: pkg.sessionsTotal })}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleApplyPackage}
+                      disabled={!selectedPackageId || packageApplyState === "applying"}
+                      className={secondaryButtonClass}
+                    >
+                      {packageApplyState === "applying" ? t("success.applyingLabel") : t("success.applyPackageLabel")}
+                    </button>
+                  </div>
+                  {packageApplyState === "error" && packageApplyError && (
+                    <p role="alert" className="text-sm font-medium text-red-700">
+                      {packageApplyError}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-4">
             <Link href={`/${locale}/account`} className={primaryButtonClass}>

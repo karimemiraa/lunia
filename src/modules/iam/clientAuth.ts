@@ -4,9 +4,13 @@ import { prisma } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { createSession, getSession, destroySession } from "./session";
 import type { CommsSender } from "@/modules/booking/outbox";
-import { getSmsSender } from "@/modules/comms/sender";
+import { resolveSenderForChannel } from "@/modules/comms/sender";
+import { resolveBookingChannel } from "@/modules/booking/outbox";
+import { getCommsConfig } from "@/modules/comms/config";
 import { renderTemplate } from "@/modules/comms/templates";
 import { redactOtpBody } from "@/modules/comms/redact";
+import { getPreference, prefToChannel } from "@/modules/comms/preferences";
+import { getSetting } from "@/modules/cms/settings";
 
 /** Cookie name for client (customer) sessions — distinct from the staff `lunia_session` cookie. */
 export const CLIENT_SESSION_COOKIE = "lunia_client_session";
@@ -21,13 +25,38 @@ interface OtpRecord {
   code: string;
 }
 
-const otpKey = (phone: string) => `otp:${phone}`;
-const requestCountKey = (phone: string) => `otpreq:${phone}`;
-const verifyAttemptsKey = (phone: string) => `otpver:${phone}`;
+// An OTP identifier is either a phone number or an email address. The kind
+// determines both how the client is looked up / created and which channels
+// the code can be delivered on (you cannot SMS an email or email a phone).
+export type IdentifierKind = "phone" | "email";
+export interface Identifier {
+  kind: IdentifierKind;
+  value: string;
+}
 
-/** Constant-time comparison of two OTP codes. Guards on length first (timingSafeEqual
- * throws on mismatched buffer lengths) — a length mismatch is just treated as "not equal"
- * without leaking timing info about the code content itself. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Normalizes and classifies a raw login identifier. Emails are lowercased;
+// phones keep an optional leading "+" and 6-20 digits.
+export function resolveIdentifier(raw: string): Identifier {
+  const trimmed = raw.trim();
+  if (trimmed.includes("@")) {
+    const value = trimmed.toLowerCase();
+    if (!EMAIL_RE.test(value)) throw new Error("Invalid email address");
+    return { kind: "email", value };
+  }
+  if (!/^\+?[0-9]{6,20}$/.test(trimmed)) {
+    throw new Error("Invalid phone number");
+  }
+  return { kind: "phone", value: trimmed };
+}
+
+const keyBase = (id: Identifier) => `${id.kind}:${id.value}`;
+const otpKey = (id: Identifier) => `otp:${keyBase(id)}`;
+const requestCountKey = (id: Identifier) => `otpreq:${keyBase(id)}`;
+const verifyAttemptsKey = (id: Identifier) => `otpver:${keyBase(id)}`;
+
+/** Constant-time comparison of two OTP codes (length-guarded). */
 function codesMatch(a: string, b: string): boolean {
   const bufA = Buffer.from(a);
   const bufB = Buffer.from(b);
@@ -35,104 +64,135 @@ function codesMatch(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB);
 }
 
-/** Basic phone validation/normalization: trims whitespace, requires an optional
- * leading `+` followed by 6-20 digits. Not a full E.164 validator — good enough
- * for a dev-mode OTP flow; real formatting/carrier checks arrive with Stage 6 SMS.
- */
-function normalizePhone(phone: string): string {
-  const trimmed = phone.trim();
-  if (!/^\+?[0-9]{6,20}$/.test(trimmed)) {
-    throw new Error("Invalid phone number");
-  }
-  return trimmed;
-}
-
 function generateCode(): string {
   return randomInt(0, 1_000_000).toString().padStart(6, "0");
 }
 
+// Chooses the delivery channel for an OTP:
+//   - email identifier  -> always "email" (only deliverable channel),
+//   - phone identifier   -> "sms" or "whatsapp" from: explicit option, the
+//     client's stored preference (if SMS/WhatsApp), the global comms setting
+//     (SiteSetting "comms".otpChannel), else the booking channel.
+async function resolveOtpChannel(
+  id: Identifier,
+  clientProfileId: string | null,
+  explicit?: string,
+): Promise<string> {
+  if (explicit) return explicit;
+  if (id.kind === "email") return "email";
+
+  const pref = clientProfileId ? await getPreference(clientProfileId) : null;
+  const p = pref ? prefToChannel(pref.channel) : null;
+  if (p === "sms" || p === "whatsapp") return p;
+
+  const comms = await getSetting("comms").catch(() => null);
+  const g = comms ? prefToChannel(comms.otpChannel) : null;
+  if (g === "sms" || g === "whatsapp") return g;
+
+  const bc = resolveBookingChannel(getCommsConfig());
+  return bc === "sms" ? "sms" : "whatsapp";
+}
+
+function otpSubject(locale: string): string {
+  return locale.toLowerCase().startsWith("ar") ? "رمز الدخول إلى لونيا" : "Your Lunia code";
+}
+
 export interface RequestOtpOptions {
-  /** UI locale used to render the OTP SMS template. Defaults to "ar". */
+  /** UI locale used to render the OTP template. Defaults to "ar". */
   locale?: string;
-  /**
-   * Test-only injection point for the SMS sender. Production callers should
-   * never pass this — it defaults to getSmsSender(), which itself only
-   * returns a real provider adapter in production with a fully configured
-   * comms provider, and the logging-only stub everywhere else (dev/test/CI).
-   */
+  /** Force a specific delivery channel (e.g. from an account "send via" action). */
+  channel?: string;
+  /** Test-only sender injection. Production defaults to resolveSenderForChannel. */
   sender?: CommsSender;
 }
 
-export async function requestOtp(phone: string, options: RequestOtpOptions = {}): Promise<{ devCode?: string }> {
-  const normalized = normalizePhone(phone);
+export async function requestOtp(
+  identifierRaw: string,
+  options: RequestOtpOptions = {},
+): Promise<{ devCode?: string }> {
+  const id = resolveIdentifier(identifierRaw);
   const redis = getRedis();
 
-  const count = await redis.incr(requestCountKey(normalized));
+  const count = await redis.incr(requestCountKey(id));
   if (count === 1) {
-    await redis.expire(requestCountKey(normalized), REQUEST_WINDOW_SECONDS);
+    await redis.expire(requestCountKey(id), REQUEST_WINDOW_SECONDS);
   }
   if (count > REQUEST_LIMIT) {
-    throw new Error("Too many OTP requests for this phone number. Please try again later.");
+    throw new Error("Too many code requests. Please try again later.");
   }
 
-  // A freshly-issued code gets a fresh verify-attempt budget: without this, a
-  // user who mistyped their way through OTP_MAX_VERIFY_ATTEMPTS on the old
-  // code would still be locked out after requesting (and correctly entering)
-  // a brand new one, since otpver:<phone> would still be sitting at the cap.
-  await redis.del(verifyAttemptsKey(normalized));
+  // Fresh code -> fresh verify-attempt budget.
+  await redis.del(verifyAttemptsKey(id));
 
   const code = generateCode();
   const record: OtpRecord = { code };
-  await redis.set(otpKey(normalized), JSON.stringify(record), "EX", OTP_TTL_SECONDS);
+  await redis.set(otpKey(id), JSON.stringify(record), "EX", OTP_TTL_SECONDS);
 
-  // Best-effort SMS delivery: outside production (or without a configured
-  // SMS provider) getSmsSender() returns the logging-only stub, so this is
-  // always safe to attempt. A send/log failure here must NEVER prevent
-  // requestOtp from succeeding -- the code is already stored, so the user
-  // can still verify it (and in non-production, devCode is returned below
-  // regardless of whether the "send" succeeded).
-  await sendOtpSms(normalized, code, options.locale ?? "ar", options.sender);
+  await sendOtp(id, code, options.locale ?? "ar", options.channel, options.sender);
 
   if (getEnv().NODE_ENV !== "production") {
     return { devCode: code };
   }
-  // Never log/return the code itself outside the SMS body sent to the user.
   return {};
 }
 
-// Renders the OTP template, hands it to the SMS sender, and records a
-// CommunicationLog row for the attempt. Deliberately swallows every error
-// (template render, sender.send rejecting/throwing, or the log write
-// itself) so a provider outage can never break the OTP request flow --
-// worst case, no SMS goes out and/or no audit row is written, but the code
-// the user needs is already safely in Redis.
-async function sendOtpSms(phone: string, code: string, locale: string, injectedSender?: CommsSender): Promise<void> {
+// Renders + delivers the OTP over the resolved channel and records a redacted
+// CommunicationLog row. Never throws: a delivery/log failure must not prevent
+// requestOtp from succeeding (the code is already stored for verification).
+async function sendOtp(
+  id: Identifier,
+  code: string,
+  locale: string,
+  explicitChannel: string | undefined,
+  injectedSender: CommsSender | undefined,
+): Promise<void> {
+  // Existing client (if any) so we can honor their channel preference.
+  const existing = await prisma.user
+    .findUnique({
+      where: id.kind === "phone" ? { phone: id.value } : { email: id.value },
+      include: { clientProfile: { select: { id: true } } },
+    })
+    .catch(() => null);
+  const clientProfileId = existing?.clientProfile?.id ?? null;
+
+  const channel = await resolveOtpChannel(id, clientProfileId, explicitChannel);
+
   let body: string;
   try {
-    body = (await renderTemplate("OTP", locale, "sms", { code })).body;
+    body = (await renderTemplate("OTP", locale, channel, { code })).body;
   } catch (err) {
     console.error("[requestOtp] failed to render OTP template", err);
     return;
   }
 
-  const sender = injectedSender ?? getSmsSender();
+  const sender = injectedSender ?? resolveSenderForChannel(channel);
+  const toPhone = id.kind === "phone" ? id.value : undefined;
+  const toEmail = id.kind === "email" ? id.value : undefined;
+
   let result: { ok: boolean; providerRef?: string };
   try {
-    result = await sender.send({ channel: "sms", toPhone: phone, body, kind: "OTP" });
+    result = await sender.send({
+      channel,
+      toPhone,
+      toEmail,
+      subject: channel === "email" ? otpSubject(locale) : undefined,
+      body,
+      kind: "OTP",
+    });
   } catch (err) {
-    console.error("[requestOtp] SMS sender threw", err);
+    console.error("[requestOtp] OTP sender threw", err);
     result = { ok: false };
   }
 
   try {
-    // The audit row records that an OTP was sent, but MUST NOT store the code
-    // itself (PDPL/security): redact it out of the persisted body. The real
-    // code was already sent to the user's phone via sender.send above.
+    // The stored audit row MUST NOT contain the code (redact it); the real
+    // code went to the user's phone/inbox via sender.send above.
     await prisma.communicationLog.create({
       data: {
-        channel: "sms",
+        channel,
         kind: "OTP",
-        toPhone: phone,
+        toPhone: toPhone ?? null,
+        toEmail: toEmail ?? null,
         status: result.ok ? "SENT" : "FAILED",
         body: redactOtpBody(body, code),
         providerRef: result.providerRef ?? null,
@@ -145,57 +205,45 @@ async function sendOtpSms(phone: string, code: string, locale: string, injectedS
 
 export interface VerifyOtpOptions {
   /**
-   * Attribution source for a brand-new client. This is the ONLY chance to
-   * record it: the public booking flow (book/actions.ts verifyAndBook) calls
-   * verifyOtp before createBooking, so for a first-time phone number this
-   * function -- not createBooking's own find-or-create -- is what actually
-   * inserts the ClientProfile row. Ignored for a phone that already has a
-   * profile (sourceChannel is never overwritten after first creation).
+   * Attribution source for a brand-new client (recorded only on first
+   * creation; never overwritten). See the public booking flow.
    */
   sourceChannel?: string | null;
 }
 
 export async function verifyOtp(
-  phone: string,
+  identifierRaw: string,
   code: string,
   options: VerifyOtpOptions = {},
 ): Promise<{ userId: string } | null> {
-  const normalized = normalizePhone(phone);
+  const id = resolveIdentifier(identifierRaw);
   const redis = getRedis();
 
-  // Atomic brute-force cap: INCR is a single atomic Redis operation, so concurrent
-  // wrong guesses can't race past OTP_MAX_VERIFY_ATTEMPTS the way a read-modify-write
-  // on the OTP record itself could. The counter shares the OTP's TTL window.
-  const verKey = verifyAttemptsKey(normalized);
+  const verKey = verifyAttemptsKey(id);
   const attempts = await redis.incr(verKey);
   if (attempts === 1) {
     await redis.expire(verKey, OTP_TTL_SECONDS);
   }
   if (attempts > OTP_MAX_VERIFY_ATTEMPTS) {
-    // Too many wrong attempts — invalidate the code so it can't be brute-forced further,
-    // even by a subsequent correct-code submission.
-    await redis.del(otpKey(normalized));
+    await redis.del(otpKey(id));
     return null;
   }
 
-  const raw = await redis.get(otpKey(normalized));
+  const raw = await redis.get(otpKey(id));
   if (!raw) return null;
 
   const record = JSON.parse(raw) as OtpRecord;
+  if (!codesMatch(record.code, code)) return null;
 
-  if (!codesMatch(record.code, code)) {
-    // Wrong guess — already counted by the INCR above, nothing else to update.
-    return null;
-  }
+  await redis.del(otpKey(id), verKey);
 
-  await redis.del(otpKey(normalized), verKey);
-
-  const user = await findOrCreateClientUser(normalized, options.sourceChannel ?? null);
+  const user = await findOrCreateClientUser(id, options.sourceChannel ?? null);
   return { userId: user.id };
 }
 
-async function findOrCreateClientUser(phone: string, sourceChannel: string | null): Promise<{ id: string }> {
-  const existing = await prisma.user.findUnique({ where: { phone } });
+async function findOrCreateClientUser(id: Identifier, sourceChannel: string | null): Promise<{ id: string }> {
+  const where = id.kind === "phone" ? { phone: id.value } : { email: id.value };
+  const existing = await prisma.user.findUnique({ where });
   if (existing) {
     const profile = await prisma.clientProfile.findUnique({ where: { userId: existing.id } });
     if (!profile) {
@@ -207,7 +255,8 @@ async function findOrCreateClientUser(phone: string, sourceChannel: string | nul
   const created = await prisma.user.create({
     data: {
       type: "CLIENT",
-      phone,
+      phone: id.kind === "phone" ? id.value : null,
+      email: id.kind === "email" ? id.value : null,
       clientProfile: { create: { fullName: "", sourceChannel } },
     },
   });

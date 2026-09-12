@@ -17,7 +17,8 @@ import { routing } from "@/i18n/routing";
 import { listDepartments, getDepartmentBySlug } from "@/modules/catalog/departments";
 import { localized, localizedList } from "@/modules/catalog/localize";
 import { buildMetadata } from "@/modules/seo/metadata";
-import { breadcrumbJsonLd, serviceJsonLd, faqPageJsonLd } from "@/modules/seo/jsonld";
+import { breadcrumbJsonLd, serviceJsonLd, faqPageJsonLd, aggregateRatingJsonLd } from "@/modules/seo/jsonld";
+import { getAggregate } from "@/modules/reviews/reviews";
 
 interface DepartmentPageProps {
   params: Promise<{ locale: string; slug: string }>;
@@ -121,9 +122,29 @@ export default async function DepartmentPage({ params }: DepartmentPageProps) {
 
   const faqEntity = faqItems.length > 0 ? faqPageJsonLd(faqItems.map(({ q, a }) => ({ q, a }))) : null;
 
+  // Resolves the Stage-3 AggregateRating deferral for this department's
+  // services: one AggregateRating entity per service that already has
+  // published (APPROVED + consentPublic) reviews. Never emitted for a
+  // service with zero reviews.
+  const serviceAggregates = await Promise.all(services.map((service) => getAggregate({ serviceId: service.id })));
+  const aggregateRatingEntities = services
+    .map((service, index) => ({ service, aggregate: serviceAggregates[index]! }))
+    .filter(({ aggregate }) => aggregate.count > 0)
+    .map(({ service, aggregate }) =>
+      aggregateRatingJsonLd({
+        itemReviewed: {
+          type: "Service",
+          name: localized(locale, service.nameEn, service.nameAr),
+          url: `${departmentUrl}#${service.slug}`,
+        },
+        ratingValue: aggregate.avg,
+        reviewCount: aggregate.count,
+      }),
+    );
+
   return (
     <main className="flex flex-col">
-      <JsonLd data={[breadcrumb, ...serviceEntities, ...(faqEntity ? [faqEntity] : [])]} />
+      <JsonLd data={[breadcrumb, ...serviceEntities, ...(faqEntity ? [faqEntity] : []), ...aggregateRatingEntities]} />
 
       <Section tone="plain">
         <div className="grid gap-10 sm:grid-cols-[1.1fr_1fr] sm:items-center sm:gap-16">

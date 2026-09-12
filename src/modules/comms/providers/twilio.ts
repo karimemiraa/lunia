@@ -34,6 +34,7 @@ interface TwilioSendResponse {
 export function makeTwilioSender(cfg: TwilioSenderConfig): CommsSender {
   return {
     async send(msg) {
+      if (!msg.toPhone) return { ok: false };
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
       try {

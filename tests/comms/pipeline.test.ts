@@ -54,7 +54,7 @@ describe("processDueMessages renders via the template registry", () => {
       payload: { bookingId: "b-pipeline-1", serviceName: "HydraFacial", dateTime: "Sep 10, 5:00 PM" },
     });
 
-    const sent: Array<{ toPhone: string; body: string; channel: string; kind: string }> = [];
+    const sent: Array<{ toPhone?: string; body: string; channel: string; kind: string }> = [];
     const fakeSender: CommsSender = {
       send: async (msg) => {
         sent.push(msg);

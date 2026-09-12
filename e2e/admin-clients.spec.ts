@@ -146,6 +146,22 @@ test("clients: search creates client appears, add visit note, and edit tier pers
   await expect(page.getByTestId("current-tier")).toHaveText(targetTierName!);
   await expect(page.getByTestId("tier-editor").locator("select[name='tierId'] option:checked")).toHaveText(targetTierName!);
 
+  // Edit this client's notification preferences and confirm they persist
+  // across a reload (A4: admin-side NotificationPreference editor).
+  const prefEditor = page.getByTestId("notification-preference-editor");
+  await expect(prefEditor).toBeVisible();
+  await prefEditor.locator("select[name='channel']").selectOption("EMAIL");
+  const marketingCheckbox = prefEditor.locator("input[name='marketingOptIn']");
+  await marketingCheckbox.uncheck();
+  await prefEditor.getByRole("button", { name: "Save preferences" }).click();
+  await expect(prefEditor.getByText("Saved.")).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByTestId("notification-preference-editor").locator("select[name='channel']")).toHaveValue(
+    "EMAIL",
+  );
+  await expect(page.getByTestId("notification-preference-editor").locator("input[name='marketingOptIn']")).not.toBeChecked();
+
   // Deleting the note we just added exercises the delete-own path (owner is
   // both the author and holds CLIENT_MANAGE here, but the button reflects
   // the same UI either way).

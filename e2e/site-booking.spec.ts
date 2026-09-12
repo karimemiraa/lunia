@@ -73,6 +73,11 @@ function uniquePhone(prefix: string): string {
   return `${prefix}${Date.now().toString().slice(-8)}${rand}`;
 }
 
+function uniqueEmail(): string {
+  const rand = Math.floor(100 + Math.random() * 900);
+  return `e2e.booking.${Date.now().toString().slice(-8)}${rand}@example.com`;
+}
+
 test.describe("public booking flow", () => {
   test("en: pick a service, date/time, verify by OTP, and confirm the booking", async ({ page }) => {
     await page.goto("/en/book");
@@ -98,7 +103,7 @@ test.describe("public booking flow", () => {
     await expect(page.getByTestId("booking-step-contact")).toBeVisible();
     const phone = uniquePhone("+9665");
     await page.getByLabel("Full name").fill("Sarah Booking Test");
-    await page.getByLabel("Phone number").fill(phone);
+    await page.getByLabel("Phone or email").fill(phone);
     await page.getByRole("button", { name: "Send verification code" }).click();
 
     const devCodeEl = page.getByTestId("dev-otp-code");
@@ -114,6 +119,35 @@ test.describe("public booking flow", () => {
     await expect(page.getByTestId("booking-step-success")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole("heading", { name: "You're booked" })).toBeVisible();
     await expect(page.getByText("Diagnostic Skin Analysis")).toBeVisible();
+  });
+
+  test("en: identify by email instead of phone at the contact step", async ({ page }) => {
+    await page.goto("/en/book");
+
+    const firstService = page.locator("button[data-service-id]").first();
+    await expect(firstService).toBeVisible();
+    await firstService.click();
+
+    await expect(page.getByTestId("booking-step-datetime")).toBeVisible();
+    await selectFirstOpenSlot(page);
+    await page.getByRole("button", { name: "Continue" }).click();
+
+    await expect(page.getByTestId("booking-step-contact")).toBeVisible();
+    const email = uniqueEmail();
+    await page.getByLabel("Full name").fill("Email Booking Test");
+    await page.getByLabel("Phone or email").fill(email);
+    await page.getByRole("button", { name: "Send verification code" }).click();
+
+    const devCodeEl = page.getByTestId("dev-otp-code");
+    await expect(devCodeEl).toBeVisible({ timeout: 10_000 });
+    const devCodeText = await devCodeEl.textContent();
+    const code = devCodeText?.match(/\d{6}/)?.[0];
+    expect(code).toBeTruthy();
+
+    await page.getByLabel("Verification code").fill(code!);
+    await page.getByRole("button", { name: "Confirm booking" }).click();
+
+    await expect(page.getByTestId("booking-step-success")).toBeVisible({ timeout: 10_000 });
   });
 
   test("en: the site header Book Now CTA links to /book", async ({ page }) => {

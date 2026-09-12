@@ -158,3 +158,74 @@ export function faqPageJsonLd(qa: QaPair[]): JsonLd {
     })),
   };
 }
+
+// The schema.org type + identity of the thing a rating/review is about
+// (the site-wide LocalBusiness on Home, or a Service on a department page).
+export interface ReviewedItem {
+  type: string;
+  name: string;
+  url?: string;
+}
+
+function itemReviewedEntity(item: ReviewedItem): JsonLd {
+  return {
+    "@type": item.type,
+    name: item.name,
+    ...(item.url ? { url: item.url } : {}),
+  };
+}
+
+export interface AggregateRatingJsonLdInput {
+  itemReviewed: ReviewedItem;
+  /** Average rating, 1..5. */
+  ratingValue: number;
+  /** Number of ratings the average is computed over. Callers MUST only call this when count > 0 -- an AggregateRating with zero reviews should never be emitted. */
+  reviewCount: number;
+}
+
+// Standalone AggregateRating entity (resolves the Stage-3 AggregateRating
+// deferral) -- valid per Google's "review snippet" structured-data guidance
+// as either a property nested inside the rated entity, or a standalone
+// AggregateRating/Review that names what it's about via `itemReviewed`. The
+// standalone form is used here so Home (itemReviewed = the LocalBusiness)
+// and each Service (itemReviewed = that Service) can share one builder
+// without threading an aggregateRating field through localBusinessJsonLd/
+// serviceJsonLd's existing signatures.
+export function aggregateRatingJsonLd(input: AggregateRatingJsonLdInput): JsonLd {
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "AggregateRating",
+    itemReviewed: itemReviewedEntity(input.itemReviewed),
+    ratingValue: Math.round(input.ratingValue * 10) / 10,
+    reviewCount: input.reviewCount,
+    bestRating: 5,
+    worstRating: 1,
+  };
+}
+
+export interface ReviewJsonLdInput {
+  itemReviewed: ReviewedItem;
+  author: string;
+  /** 1..5. */
+  ratingValue: number;
+  reviewBody?: string;
+  /** ISO 8601 date/datetime the review was approved/published. */
+  datePublished: string;
+}
+
+export function reviewJsonLd(input: ReviewJsonLdInput): JsonLd {
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "Review",
+    itemReviewed: itemReviewedEntity(input.itemReviewed),
+    author: { "@type": "Person", name: input.author },
+    reviewRating: {
+      "@type": "Rating",
+      ratingValue: input.ratingValue,
+      bestRating: 5,
+      worstRating: 1,
+    },
+    ...(input.reviewBody ? { reviewBody: input.reviewBody } : {}),
+    datePublished: input.datePublished,
+  };
+}

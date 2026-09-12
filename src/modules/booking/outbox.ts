@@ -18,22 +18,36 @@ import { getCommsConfig } from "@/modules/comms/config";
 // Node/Vite ESM. Keep it that way — a future top-level use of either import
 // here or in templates.ts would break at load time.
 import { renderTemplate } from "@/modules/comms/templates";
+import { getPreference, resolveDeliveryChannel } from "@/modules/comms/preferences";
+// NOTE: sender.ts imports { stubSender, CommsSender } from THIS file — a
+// circular import. Safe: resolveSenderForChannel is only referenced inside
+// processDueMessages (a function body), never at module-eval time, so the
+// live ESM binding is resolved at call time. Same pattern as the templates.ts
+// cycle above.
+import { resolveSenderForChannel } from "@/modules/comms/sender";
 
-const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT"]);
+const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "WAITLIST_OPEN", "REVIEW_REQUEST"]);
 export type MsgKind = z.infer<typeof msgKindSchema>;
 
 // Payload is a free-form JSON object (message-template data); Prisma's Json
 // column accepts any JSON-serializable value, which z.unknown() can't
 // statically prove, so the create() call below narrows it with a single
 // justified cast.
-const scheduleMessageSchema = z.object({
-  bookingId: z.string().min(1).optional(),
-  kind: msgKindSchema,
-  toPhone: z.string().min(1),
-  locale: z.string().min(1),
-  sendAt: z.date(),
-  payload: z.record(z.string(), z.unknown()).default({}),
-});
+const scheduleMessageSchema = z
+  .object({
+    bookingId: z.string().min(1).optional(),
+    kind: msgKindSchema,
+    toPhone: z.string().min(1).optional(),
+    toEmail: z.string().min(1).optional(),
+    clientProfileId: z.string().min(1).optional(),
+    locale: z.string().min(1),
+    sendAt: z.date(),
+    payload: z.record(z.string(), z.unknown()).default({}),
+  })
+  // A message needs at least one recipient to be deliverable on some channel.
+  .refine((v) => Boolean(v.toPhone || v.toEmail), {
+    message: "scheduleMessage requires toPhone or toEmail",
+  });
 export type ScheduleMessageInput = z.infer<typeof scheduleMessageSchema>;
 
 // Validates `input` and inserts a PENDING ScheduledMessage row.
@@ -43,7 +57,9 @@ export async function scheduleMessage(input: ScheduleMessageInput): Promise<Sche
     data: {
       bookingId: data.bookingId ?? null,
       kind: data.kind,
-      toPhone: data.toPhone,
+      toPhone: data.toPhone ?? null,
+      toEmail: data.toEmail ?? null,
+      clientProfileId: data.clientProfileId ?? null,
       locale: data.locale,
       sendAt: data.sendAt,
       payload: data.payload as Prisma.InputJsonValue,
@@ -53,27 +69,34 @@ export async function scheduleMessage(input: ScheduleMessageInput): Promise<Sche
 
 // --- Delivery ---------------------------------------------------------
 
-// The interface a message-sending provider implements. Stage 6 swaps in a
-// real WhatsApp/SMS provider behind this same shape; nothing in
-// processDueMessages needs to change when that happens.
-export interface CommsSender {
-  send(msg: {
-    channel: string;
-    toPhone: string;
-    body: string;
-    kind: string;
-    bookingId?: string;
-  }): Promise<{ ok: boolean; providerRef?: string }>;
+// A single outbound message. Channel-agnostic: phone channels (whatsapp/sms)
+// read toPhone; the email channel reads toEmail + subject. A given send only
+// populates the fields its channel needs.
+export interface CommsMessage {
+  channel: string;
+  toPhone?: string;
+  toEmail?: string;
+  subject?: string;
+  body: string;
+  kind: string;
+  bookingId?: string;
 }
 
-// Stand-in sender: no external provider is wired up yet (that's Stage 6).
-// It just logs the outbound message and reports success with a synthetic
-// providerRef, so the rest of the pipeline (status flips, CommunicationLog)
-// can be exercised end-to-end today.
+// The interface a message-sending provider implements (WhatsApp/SMS/email).
+// processDueMessages and the OTP flow send through this same shape.
+export interface CommsSender {
+  send(msg: CommsMessage): Promise<{ ok: boolean; providerRef?: string }>;
+}
+
+// Stand-in sender: logs the outbound message and reports success with a
+// synthetic providerRef, so the pipeline (status flips, CommunicationLog) can
+// be exercised without a real provider. Used everywhere outside a configured
+// production environment.
 export const stubSender: CommsSender = {
   async send(msg) {
     const providerRef = `stub-${Math.random().toString(36).slice(2, 10)}`;
-    console.info(`[stubSender] ${msg.channel} -> ${msg.toPhone} (${msg.kind}): ${msg.body}`);
+    const recipient = msg.toEmail ?? msg.toPhone ?? "?";
+    console.info(`[stubSender] ${msg.channel} -> ${recipient} (${msg.kind}): ${msg.body}`);
     return { ok: true, providerRef };
   },
 };
@@ -88,6 +111,17 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
   const ref = bookingId ? ` (${bookingId})` : "";
 
   switch (kind) {
+    case "OTP": {
+      // MUST include the code: this built-in is the last-resort fallback when
+      // no MessageTemplate row exists for the (kind, locale, channel) — e.g.
+      // the email channel, which has no seeded OTP template. A code-less OTP
+      // body would make email/SMS login impossible in production (where the
+      // dev devCode is not returned).
+      const code = typeof payload.code === "string" ? payload.code : "";
+      return isAr
+        ? `رمز الدخول إلى لونيا هو ${code}. صالح لمدة ٥ دقائق.`
+        : `Your Lunia verification code is ${code}. It is valid for 5 minutes.`;
+    }
     case "CONFIRMATION":
       return isAr
         ? `تم تأكيد حجزك في لونيا${ref}. نتطلع لرؤيتك قريباً.`
@@ -100,6 +134,21 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
       return isAr
         ? `شكراً لزيارتك لونيا${ref}. نتمنى أن تكون تجربتك ممتازة.`
         : `Thank you for visiting Lunia${ref}. We hope you had a great experience.`;
+    case "WAITLIST_OPEN":
+      return isAr
+        ? `تفتح لديك فرصة حجز في لونيا -- تم فتح موعد كنت بانتظاره. احجز الآن قبل أن يُحجز.`
+        : `A spot just opened up at Lunia for a time you were waiting for. Book now before it's taken.`;
+    case "REVIEW_REQUEST": {
+      // The tokenized submit link -- reviews.ts always sets payload.link, but
+      // this fallback renders sensibly (dropping the link) even if it's ever
+      // missing, rather than leaking a literal "{{link}}" token.
+      const link = typeof payload.link === "string" ? payload.link : "";
+      const linkPartAr = link ? ` ${link}` : "";
+      const linkPartEn = link ? ` ${link}` : "";
+      return isAr
+        ? `شكراً لزيارتك لونيا${ref}. نسعد بمشاركتك رأيك:${linkPartAr}`
+        : `Thank you for visiting Lunia${ref}. We'd love to hear about your experience:${linkPartEn}`;
+    }
     default:
       return isAr ? `رسالة من لونيا${ref}.` : `A message from Lunia${ref}.`;
   }
@@ -167,7 +216,7 @@ export async function reclaimStaleClaims(now: Date, olderThanMs: number = STALE_
 async function finalizeMessage(
   message: ScheduledMessage,
   status: "SENT" | "FAILED",
-  opts: { channel: string; body: string; providerRef?: string; now: Date },
+  opts: { channel: string; toPhone?: string | null; toEmail?: string | null; body: string; providerRef?: string; now: Date },
 ): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
     const res = await tx.scheduledMessage.updateMany({
@@ -184,7 +233,8 @@ async function finalizeMessage(
       data: {
         channel: opts.channel,
         kind: message.kind,
-        toPhone: message.toPhone,
+        toPhone: opts.toPhone ?? null,
+        toEmail: opts.toEmail ?? null,
         bookingId: message.bookingId ?? null,
         status,
         body: opts.body,
@@ -193,6 +243,46 @@ async function finalizeMessage(
     });
     return true;
   });
+}
+
+// Marks a message SKIPPED (client opted out of this kind) — claim-scoped like
+// finalizeMessage, but writes no CommunicationLog since nothing was sent.
+async function finalizeSkipped(message: ScheduledMessage): Promise<boolean> {
+  const res = await prisma.scheduledMessage.updateMany({
+    where: { id: message.id, claimId: message.claimId },
+    data: { status: "SKIPPED", claimId: null, claimedAt: null },
+  });
+  return res.count === 1;
+}
+
+// Whether the client has opted out of this (non-transactional) message kind.
+function isOptedOut(kind: string, pref: { remindersOptIn: boolean; postVisitOptIn: boolean } | null): boolean {
+  if (!pref) return false;
+  if (kind === "REMINDER_24H") return !pref.remindersOptIn;
+  // A review request is inherently a post-visit follow-up, so it shares
+  // POST_VISIT's opt-in flag rather than needing a dedicated one.
+  if (kind === "POST_VISIT" || kind === "REVIEW_REQUEST") return !pref.postVisitOptIn;
+  return false;
+}
+
+// Chooses the delivery channel + matching recipient for a message, honoring
+// the client's preference and falling back to whichever recipient exists.
+// Returns null when the message has no usable recipient (marked FAILED).
+function pickChannelAndRecipient(
+  message: ScheduledMessage,
+  pref: { channel: import("@prisma/client").CommsChannelPref } | null,
+  globalDefault: string,
+): { channel: string; toPhone?: string; toEmail?: string } | null {
+  const desired = resolveDeliveryChannel({
+    preferenceChannel: pref?.channel,
+    globalDefault: globalDefault as "whatsapp" | "sms" | "email",
+  });
+  if (desired === "email" && message.toEmail) return { channel: "email", toEmail: message.toEmail };
+  if ((desired === "sms" || desired === "whatsapp") && message.toPhone) return { channel: desired, toPhone: message.toPhone };
+  // Desired channel has no recipient — fall back to whatever we do have.
+  if (message.toEmail) return { channel: "email", toEmail: message.toEmail };
+  if (message.toPhone) return { channel: globalDefault, toPhone: message.toPhone };
+  return null;
 }
 
 // Fetches due (status=PENDING, sendAt<=now) ScheduledMessage rows in a
@@ -206,8 +296,8 @@ async function finalizeMessage(
 // aborts the rest of the batch.
 export async function processDueMessages(
   now: Date,
-  sender: CommsSender = stubSender,
-): Promise<{ processed: number; sent: number; failed: number }> {
+  senderOverride?: CommsSender,
+): Promise<{ processed: number; sent: number; failed: number; skipped: number }> {
   // Step 1: pick candidate ids. Step 2: claim them conditionally on still
   // being PENDING (the race-safe step). Step 3: read back exactly the rows
   // this call won by its unique claimId.
@@ -233,21 +323,45 @@ export async function processDueMessages(
 
   let sent = 0;
   let failed = 0;
-  const channel = resolveBookingChannel(getCommsConfig());
+  let skipped = 0;
+  const globalDefault = resolveBookingChannel(getCommsConfig());
 
   for (const message of due) {
     // Rendering does Prisma reads (template lookup), so keep it INSIDE the
     // per-message try: a transient DB error while rendering one message must
     // mark that message FAILED, not abort the whole batch.
+    let channel = globalDefault;
     let body = "";
     try {
+      // Consult the client's notification preference (if the message is linked
+      // to a client): skip an opted-out kind, and route to their channel.
+      const pref = message.clientProfileId ? await getPreference(message.clientProfileId) : null;
+
+      if (isOptedOut(message.kind, pref)) {
+        if (await finalizeSkipped(message)) skipped += 1;
+        continue;
+      }
+
+      const routed = pickChannelAndRecipient(message, pref, globalDefault);
+      if (!routed) {
+        // No usable recipient — record FAILED so it isn't retried forever.
+        if (await finalizeMessage(message, "FAILED", { channel, body: "", now })) failed += 1;
+        continue;
+      }
+      channel = routed.channel;
+
       const payload = (message.payload ?? {}) as Record<string, unknown>;
       const params = payloadToParams(payload);
       ({ body } = await renderTemplate(message.kind, message.locale, channel, params));
 
-      const result = await sender.send({
+      // Use the injected sender when provided (tests); otherwise resolve the
+      // real/stub sender for the resolved channel.
+      const activeSender = senderOverride ?? resolveSenderForChannel(channel);
+      const result = await activeSender.send({
         channel,
-        toPhone: message.toPhone,
+        toPhone: routed.toPhone,
+        toEmail: routed.toEmail,
+        subject: routed.channel === "email" ? subjectForKind(message.kind, message.locale) : undefined,
         body,
         kind: message.kind,
         bookingId: message.bookingId ?? undefined,
@@ -255,6 +369,8 @@ export async function processDueMessages(
 
       const finalized = await finalizeMessage(message, result.ok ? "SENT" : "FAILED", {
         channel,
+        toPhone: routed.toPhone,
+        toEmail: routed.toEmail,
         body,
         providerRef: result.providerRef,
         now,
@@ -280,5 +396,26 @@ export async function processDueMessages(
     }
   }
 
-  return { processed: due.length, sent, failed };
+  return { processed: due.length, sent, failed, skipped };
+}
+
+// A short, human subject line for an email OTP/notification, per kind + locale.
+function subjectForKind(kind: string, locale: string): string {
+  const isAr = locale.toLowerCase().startsWith("ar");
+  switch (kind) {
+    case "OTP":
+      return isAr ? "رمز الدخول إلى لونيا" : "Your Lunia code";
+    case "CONFIRMATION":
+      return isAr ? "تأكيد حجزك في لونيا" : "Your Lunia booking is confirmed";
+    case "REMINDER_24H":
+      return isAr ? "تذكير بموعدك في لونيا" : "Your Lunia appointment reminder";
+    case "POST_VISIT":
+      return isAr ? "شكراً لزيارتك لونيا" : "Thank you for visiting Lunia";
+    case "WAITLIST_OPEN":
+      return isAr ? "فتح موعد كنت بانتظاره في لونيا" : "A spot opened up at Lunia";
+    case "REVIEW_REQUEST":
+      return isAr ? "شاركينا رأيك في زيارتك لونيا" : "Share your Lunia experience";
+    default:
+      return "Lunia";
+  }
 }

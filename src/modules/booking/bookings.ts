@@ -19,7 +19,10 @@ import { getSetting } from "@/modules/cms/settings";
 import { getMinTierForService, clientMeetsTier } from "./accessRules";
 import { scheduleMessage } from "./outbox";
 import { refreshClientLtv } from "@/modules/crm/ltv";
+import { earnForBooking, applyAutoTier, redeemPoints as redeemLoyaltyPoints } from "@/modules/crm/loyalty";
 import { localized } from "@/modules/catalog/localize";
+import { notifyWaitlistForSlot } from "./waitlist";
+import { scheduleReviewRequest } from "@/modules/reviews/reviews";
 
 export type Slot = ComputedSlot;
 
@@ -99,11 +102,19 @@ export async function getServiceSlots(
   return slots.filter((slot) => slot.startAt.getTime() > now.getTime());
 }
 
-const clientInputSchema = z.object({
-  name: z.string().min(1),
-  phone: z.string().min(1),
-  email: z.string().email().optional(),
-});
+// A client is identified by a phone number OR an email address (or both) --
+// the public wizard's OTP identify step accepts either (see book/actions.ts,
+// which already resolved+verified whichever one the client entered before
+// calling createBooking). Front-desk/walk-in booking still typically
+// supplies a phone. At least one of the two is required so
+// findOrCreateClientProfile always has something to look the client up by.
+const clientInputSchema = z
+  .object({
+    name: z.string().min(1),
+    phone: z.string().min(1).optional(),
+    email: z.string().email().optional(),
+  })
+  .refine((v) => Boolean(v.phone || v.email), { message: "client requires a phone or an email" });
 export type BookingClientInput = z.infer<typeof clientInputSchema>;
 
 const bookingChannelSchema = z.enum(["ONLINE", "FRONT_DESK", "WALK_IN"]);
@@ -119,6 +130,12 @@ const createBookingSchema = z.object({
   notes: z.string().min(1).optional(),
   createdById: z.string().min(1).optional(),
   locale: z.string().min(1).default("ar"),
+  // Optional: redeem this many loyalty points as a discount on the booking
+  // being created. Capped internally (by redeemPoints in
+  // src/modules/crm/loyalty.ts) at the client's balance and at the
+  // booking's own price -- never causes createBooking itself to fail.
+  // Omitted/undefined/0 is a no-op, so existing callers stay unaffected.
+  redeemPoints: z.number().int().nonnegative().optional(),
 });
 export type CreateBookingInput = z.input<typeof createBookingSchema>;
 
@@ -151,16 +168,21 @@ function coerceDate(value: Date | string, label: string): Date {
   return date;
 }
 
-// Finds the ClientProfile for this phone number (via the linked User),
-// creating a CLIENT User + ClientProfile if none exists. sourceChannel is
-// only recorded the first time a profile is created for a phone -- it is
-// never overwritten on a later booking with the same phone.
+// Finds the ClientProfile for this client (via the linked User), creating a
+// CLIENT User + ClientProfile if none exists. Looks up by phone when one was
+// given (matching the public wizard's OTP-verified identifier -- whichever
+// one that was, findOrCreateClientUser in clientAuth.ts already
+// found-or-created the exact same User by that same field, so this lookup
+// lands on it rather than creating a duplicate), otherwise by email.
+// sourceChannel is only recorded the first time a profile is created for a
+// client -- it is never overwritten on a later booking for the same client.
 async function findOrCreateClientProfile(
   client: BookingClientInput,
   sourceChannel: string | undefined,
 ): Promise<string> {
+  const where = client.phone ? { phone: client.phone } : { email: client.email! };
   const existingUser = await prisma.user.findUnique({
-    where: { phone: client.phone },
+    where,
     include: { clientProfile: true },
   });
 
@@ -175,8 +197,8 @@ async function findOrCreateClientProfile(
   const created = await prisma.user.create({
     data: {
       type: "CLIENT",
-      phone: client.phone,
-      email: client.email,
+      phone: client.phone ?? null,
+      email: client.email ?? null,
       clientProfile: { create: { fullName: client.name, sourceChannel: sourceChannel ?? null } },
     },
     include: { clientProfile: true },
@@ -393,6 +415,13 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
     });
   });
 
+  // Optional points redemption: applies its own SERIALIZABLE cap (balance +
+  // booking price), so this can be called unconditionally whenever the
+  // caller asked for a positive amount without re-deriving those limits here.
+  if (data.redeemPoints && data.redeemPoints > 0) {
+    await redeemLoyaltyPoints(clientProfileId, data.redeemPoints, booking.id);
+  }
+
   const now = new Date();
   const reminderSendAt = new Date(startAt.getTime() - 24 * 60 * 60 * 1000);
   const messagePayload = {
@@ -406,6 +435,8 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
       bookingId: booking.id,
       kind: "CONFIRMATION",
       toPhone: data.client.phone,
+      toEmail: data.client.email,
+      clientProfileId,
       locale: data.locale,
       sendAt: now,
       payload: messagePayload,
@@ -414,6 +445,8 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
       bookingId: booking.id,
       kind: "POST_VISIT",
       toPhone: data.client.phone,
+      toEmail: data.client.email,
+      clientProfileId,
       locale: data.locale,
       sendAt: new Date(endAt.getTime() + 2 * 60 * 60 * 1000),
       payload: messagePayload,
@@ -430,6 +463,8 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingW
         bookingId: booking.id,
         kind: "REMINDER_24H",
         toPhone: data.client.phone,
+        toEmail: data.client.email,
+        clientProfileId,
         locale: data.locale,
         sendAt: reminderSendAt,
         payload: messagePayload,
@@ -631,6 +666,28 @@ export async function complete(bookingId: string): Promise<Booking> {
     console.error(`Failed to refresh LTV for client "${updated.clientProfileId}" after completing booking "${bookingId}"`, err);
   }
 
+  // Best-effort, same as the LTV refresh above: award loyalty points for
+  // this booking and re-evaluate the client's auto-tier. Neither step may
+  // ever throw/block completion -- a missed points award is recoverable
+  // (staff can adjustPoints manually), but failing to record the booking as
+  // completed is not.
+  try {
+    await earnForBooking(bookingId);
+    await applyAutoTier(updated.clientProfileId);
+  } catch (err) {
+    console.error(`Failed to award loyalty points/apply auto-tier for client "${updated.clientProfileId}" after completing booking "${bookingId}"`, err);
+  }
+
+  // Best-effort, same pattern as above: schedule a review request for
+  // REVIEW_DELAY_DAYS after this visit. A missed/failed review request is
+  // recoverable (staff can nudge the client another way); failing to record
+  // the completion is not.
+  try {
+    await scheduleReviewRequest(booking, { completedAt: new Date() });
+  } catch (err) {
+    console.error(`Failed to schedule review request for booking "${bookingId}"`, err);
+  }
+
   return updated;
 }
 
@@ -639,7 +696,23 @@ export async function cancel(bookingId: string): Promise<Booking> {
   if (booking.status === "COMPLETED") {
     throw new Error("Cannot cancel a completed booking");
   }
-  return prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED" } });
+  const updated = await prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED" } });
+
+  // Best-effort, same pattern as complete()'s LTV refresh: cancelling frees
+  // this booking's appointment slot(s), so check whether anyone is waiting
+  // for that service on that day and notify them. Must never fail/block the
+  // cancellation itself -- a missed waitlist notification is recoverable,
+  // failing to record the cancellation is not.
+  for (const appointment of booking.appointments) {
+    try {
+      const { dateISO } = utcToCenterLocal(appointment.startAt);
+      await notifyWaitlistForSlot(appointment.serviceId, dateISO);
+    } catch (err) {
+      console.error(`Failed to notify waitlist after cancelling booking "${bookingId}"`, err);
+    }
+  }
+
+  return updated;
 }
 
 export async function markNoShow(bookingId: string): Promise<Booking> {
@@ -675,6 +748,12 @@ export async function reschedule(
   const endAt = new Date(startAt.getTime() + service.durationMin * 60_000);
   const resolved = await resolveStaffAndRoom(service.id, startAt, staffUserId, roomId, appointment.id);
 
+  // Captured before the move: this is the slot that becomes free once the
+  // appointment moves off of it, and its center-local day is what the
+  // notify-on-free hook below needs to check.
+  const freedServiceId = appointment.serviceId;
+  const freedDateISO = utcToCenterLocal(appointment.startAt).dateISO;
+
   await runSerializableTransaction(async (tx) => {
     await assertSlotStillFree(tx, { ...resolved, startAt, endAt, excludeAppointmentId: appointment.id });
     await tx.appointment.update({
@@ -683,5 +762,16 @@ export async function reschedule(
     });
   });
 
-  return getBookingOrThrow(bookingId);
+  const result = await getBookingOrThrow(bookingId);
+
+  // Best-effort, same pattern as cancel() above: moving the appointment
+  // frees its old slot, so check whether anyone is waiting for that service
+  // on that day and notify them. Must never fail/block the reschedule.
+  try {
+    await notifyWaitlistForSlot(freedServiceId, freedDateISO);
+  } catch (err) {
+    console.error(`Failed to notify waitlist after rescheduling booking "${bookingId}"`, err);
+  }
+
+  return result;
 }

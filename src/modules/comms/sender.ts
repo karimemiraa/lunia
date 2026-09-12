@@ -16,6 +16,7 @@ import { stubSender } from "@/modules/booking/outbox";
 import type { EnvSource } from "@/modules/comms/config";
 import { getCommsConfig } from "@/modules/comms/config";
 import { makeSender } from "@/modules/comms/providers";
+import { makeEmailSender } from "@/modules/comms/providers/email";
 
 // General-purpose sender (used for WhatsApp-first channels like
 // CONFIRMATION/REMINDER_24H/POST_VISIT). Returns stubSender unless running
@@ -46,4 +47,30 @@ export function getSmsSender(
     return stubSender;
   }
   return makeSender(config);
+}
+
+// Email (SMTP) sender: returns a real nodemailer adapter only in production
+// with SMTP fully configured; the logging-only stub everywhere else.
+export function getEmailSender(
+  env: EnvSource = process.env,
+  nodeEnv: string | undefined = process.env.NODE_ENV,
+): CommsSender {
+  const config = getCommsConfig(env);
+  if (nodeEnv !== "production" || !config.emailConfigured || !config.email) {
+    return stubSender;
+  }
+  return makeEmailSender(config.email);
+}
+
+// Routes to the right sender for a delivery channel. "email" -> SMTP;
+// "sms" -> SMS-capable provider; anything else (whatsapp/none) -> the general
+// configured sender. Each returns the logging stub unless prod + configured.
+export function resolveSenderForChannel(
+  channel: string,
+  env: EnvSource = process.env,
+  nodeEnv: string | undefined = process.env.NODE_ENV,
+): CommsSender {
+  if (channel === "email") return getEmailSender(env, nodeEnv);
+  if (channel === "sms") return getSmsSender(env, nodeEnv);
+  return getConfiguredSender(env, nodeEnv);
 }

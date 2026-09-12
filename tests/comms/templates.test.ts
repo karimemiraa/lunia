@@ -143,7 +143,7 @@ describe("upsertTemplate", () => {
 
   it("rejects an invalid channel", async () => {
     await expect(
-      upsertTemplate({ kind: "CONFIRMATION", locale: "en", channel: "email", bodyTemplate: "x" }),
+      upsertTemplate({ kind: "CONFIRMATION", locale: "en", channel: "carrier-pigeon", bodyTemplate: "x" }),
     ).rejects.toThrow();
   });
 

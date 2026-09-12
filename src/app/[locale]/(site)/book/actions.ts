@@ -15,7 +15,18 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { getServiceSlots, createBooking } from "@/modules/booking/bookings";
-import { requestOtp, verifyOtp, createClientSession, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
+import { joinWaitlist } from "@/modules/booking/waitlist";
+import {
+  requestOtp,
+  verifyOtp,
+  resolveIdentifier,
+  createClientSession,
+  getClientSessionUser,
+  CLIENT_SESSION_COOKIE,
+} from "@/modules/iam/clientAuth";
+import { getGiftCard, redeemGiftCard } from "@/modules/commerce/giftcards";
+import { listActivePackagePurchasesForClient, consumePackageSession } from "@/modules/commerce/packages";
+import { prisma } from "@/lib/db";
 
 export type BookLocale = "en" | "ar";
 
@@ -64,18 +75,26 @@ export async function getSlots(serviceId: string, dateISO: string, locale: strin
 
 export type StartOtpResult = { ok: true; devCode?: string } | { ok: false; error: string };
 
-const phoneSchema = z.string().trim().min(6).max(20);
+// The identify step accepts either a phone number or an email address in one
+// field -- resolveIdentifier (clientAuth.ts) classifies which one it is and
+// requestOtp/verifyOtp route delivery accordingly. This schema only bounds
+// length; the real format check (and the specific "Invalid phone"/"Invalid
+// email" error) happens inside resolveIdentifier so both paths share one
+// source of truth for what counts as valid.
+const identifierSchema = z.string().trim().min(3).max(254);
 
-export async function startOtp(phone: string, locale: string): Promise<StartOtpResult> {
+export async function startOtp(identifier: string, locale: string): Promise<StartOtpResult> {
   const t = await errorTranslator(locale);
   try {
-    const normalized = phoneSchema.parse(phone);
-    const result = await requestOtp(normalized);
+    const normalized = identifierSchema.parse(identifier);
+    const result = await requestOtp(normalized, { locale });
     return { ok: true, devCode: result.devCode };
   } catch (err) {
     const message = messageOf(err);
-    if (message.includes("Invalid phone")) return { ok: false, error: t("invalidPhone") };
-    if (message.includes("Too many OTP")) return { ok: false, error: t("rateLimited") };
+    if (message.includes("Invalid phone") || message.includes("Invalid email")) {
+      return { ok: false, error: t("invalidIdentifier") };
+    }
+    if (message.includes("Too many code requests")) return { ok: false, error: t("rateLimited") };
     return { ok: false, error: t("generic") };
   }
 }
@@ -85,6 +104,12 @@ export interface BookingSummaryDTO {
   startAt: string;
   endAt: string;
   priceMinorSnapshot: number;
+  // Set when a gift-card code was supplied and successfully applied
+  // (best-effort -- see applyGiftCardBestEffort below). Undefined means
+  // either no code was given or it couldn't be applied; either way the
+  // booking itself always goes through unaffected (payments are off, so
+  // this only ever records a ledger entry, never a charge).
+  giftCardAppliedMinor?: number;
 }
 
 export type VerifyAndBookResult = { ok: true; booking: BookingSummaryDTO } | { ok: false; error: string };
@@ -93,12 +118,38 @@ const verifyAndBookSchema = z.object({
   serviceId: z.string().min(1),
   startAt: z.string().min(1),
   name: z.string().trim().min(1).max(200),
-  phone: z.string().trim().min(6).max(20),
+  identifier: z.string().trim().min(3).max(254),
   code: z.string().trim().regex(/^\d{6}$/, "Invalid code"),
   locale: z.enum(["en", "ar"]),
   sourceChannel: z.string().trim().min(1).max(100).optional(),
+  // Optional gift-card code entered at booking time (see BookingWizard's
+  // contact step). Payments are off -- see applyGiftCardBestEffort.
+  giftCardCode: z.string().trim().max(64).optional(),
 });
 export type VerifyAndBookInput = z.input<typeof verifyAndBookSchema>;
+
+// Applies as much of `code`'s remaining balance as covers the booking's
+// price (never more than the booking price -- payments are off, so there is
+// no "change" concept to track beyond the ledger). Deliberately swallows
+// every failure (unknown code, expired, void, already redeemed, or any
+// transient DB error): a bad or empty gift-card code must never break an
+// otherwise-successful booking, per the spec's "optional and non-blocking"
+// requirement. Returns the amount actually applied, or 0 if none.
+async function applyGiftCardBestEffort(code: string | undefined, bookingId: string, priceMinor: number): Promise<number> {
+  const trimmed = code?.trim();
+  if (!trimmed) return 0;
+  try {
+    const card = await getGiftCard(trimmed);
+    if (!card || card.status !== "ACTIVE") return 0;
+    if (card.expiresAt && card.expiresAt.getTime() < Date.now()) return 0;
+    const amount = Math.min(priceMinor, card.balanceMinor);
+    if (amount <= 0) return 0;
+    const result = await redeemGiftCard(trimmed, amount, bookingId);
+    return result.amountRedeemed;
+  } catch {
+    return 0;
+  }
+}
 
 const TIER_GATE_PATTERN = /available to (.+) members/i;
 
@@ -109,6 +160,9 @@ function mapBookingError(err: unknown, t: Awaited<ReturnType<typeof getTranslati
   if (tierMatch) return t("tierGated", { tier: tierMatch[1] });
   if (message.includes("not currently available for booking") || message.includes("not available for online booking")) {
     return t("serviceUnavailable");
+  }
+  if (message.includes("Invalid phone") || message.includes("Invalid email")) {
+    return t("invalidIdentifier");
   }
   return t("generic");
 }
@@ -139,7 +193,7 @@ export async function verifyAndBook(input: VerifyAndBookInput): Promise<VerifyAn
   try {
     const data = verifyAndBookSchema.parse(input);
 
-    const verified = await verifyOtp(data.phone, data.code, { sourceChannel: data.sourceChannel });
+    const verified = await verifyOtp(data.identifier, data.code, { sourceChannel: data.sourceChannel });
     if (!verified) {
       return { ok: false, error: t("invalidCode") };
     }
@@ -153,10 +207,18 @@ export async function verifyAndBook(input: VerifyAndBookInput): Promise<VerifyAn
       maxAge: 60 * 60 * 24 * 30,
     });
 
+    // The code above already verified via verifyOtp, so the identifier is
+    // known-valid here -- resolveIdentifier just classifies it again to
+    // decide whether it goes into client.phone or client.email.
+    const id = resolveIdentifier(data.identifier);
     const booking = await createBooking({
       serviceId: data.serviceId,
       startAt: data.startAt,
-      client: { name: data.name, phone: data.phone },
+      client: {
+        name: data.name,
+        phone: id.kind === "phone" ? id.value : undefined,
+        email: id.kind === "email" ? id.value : undefined,
+      },
       channel: "ONLINE",
       sourceChannel: data.sourceChannel,
       locale: data.locale,
@@ -165,6 +227,16 @@ export async function verifyAndBook(input: VerifyAndBookInput): Promise<VerifyAn
     if (!appointment) {
       return { ok: false, error: t("generic") };
     }
+
+    // Optional, non-blocking: a bad/empty/unknown gift-card code never fails
+    // the booking that's already been created above -- see
+    // applyGiftCardBestEffort's contract.
+    const giftCardAppliedMinor = await applyGiftCardBestEffort(
+      data.giftCardCode,
+      booking.id,
+      appointment.priceMinorSnapshot,
+    );
+
     return {
       ok: true,
       booking: {
@@ -172,9 +244,143 @@ export async function verifyAndBook(input: VerifyAndBookInput): Promise<VerifyAn
         startAt: appointment.startAt.toISOString(),
         endAt: appointment.endAt.toISOString(),
         priceMinorSnapshot: appointment.priceMinorSnapshot,
+        giftCardAppliedMinor: giftCardAppliedMinor > 0 ? giftCardAppliedMinor : undefined,
       },
     };
   } catch (err) {
     return { ok: false, error: mapBookingError(err, t) };
+  }
+}
+
+// --- Package application (post-booking, session-authenticated) -------------
+// Packages can't be safely offered for selection *before* OTP verification
+// (that would let anyone probe whether an arbitrary phone/email has an
+// active package, and how many sessions it holds -- a privacy leak). So
+// unlike the gift-card code above, package application happens as a
+// separate step once the client has a real session (verifyAndBook just
+// established one): the success screen (step 4) can offer the
+// now-authenticated client their *own* active packages to apply to the
+// booking that was just created.
+
+export interface MyPackageOptionDTO {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  sessionsRemaining: number;
+  sessionsTotal: number;
+}
+
+/** The signed-in client's active packages with sessions remaining, or [] if not signed in. Never throws. */
+export async function getMyActivePackages(): Promise<MyPackageOptionDTO[]> {
+  try {
+    const token = (await cookies()).get(CLIENT_SESSION_COOKIE)?.value;
+    if (!token) return [];
+    const sessionUser = await getClientSessionUser(token);
+    if (!sessionUser) return [];
+
+    const user = await prisma.user.findUnique({ where: { id: sessionUser.id }, include: { clientProfile: true } });
+    if (!user?.clientProfile) return [];
+
+    const purchases = await listActivePackagePurchasesForClient(user.clientProfile.id);
+    return purchases.map((p) => ({
+      id: p.id,
+      nameEn: p.package.nameEn,
+      nameAr: p.package.nameAr,
+      sessionsRemaining: p.sessionsRemaining,
+      sessionsTotal: p.package.sessionsTotal,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export type ApplyPackageResult = { ok: true; sessionsRemaining: number } | { ok: false; error: string };
+
+/**
+ * Consumes one session from `packagePurchaseId` against `bookingId`, on
+ * behalf of the currently signed-in client. Guarded by ownership checks on
+ * both sides (the booking and the package purchase must both belong to the
+ * requesting client) since this is a public action reachable right after
+ * booking -- never trusts the client-supplied IDs alone. Intentionally
+ * optional/non-blocking from the caller's perspective: the booking this
+ * refers to already exists regardless of the outcome here.
+ */
+export async function applyPackageToBookingAction(
+  bookingId: string,
+  packagePurchaseId: string,
+  locale: string = "en",
+): Promise<ApplyPackageResult> {
+  const t = await errorTranslator(locale);
+  try {
+    const token = (await cookies()).get(CLIENT_SESSION_COOKIE)?.value;
+    if (!token) return { ok: false, error: t("generic") };
+    const sessionUser = await getClientSessionUser(token);
+    if (!sessionUser) return { ok: false, error: t("generic") };
+
+    const user = await prisma.user.findUnique({ where: { id: sessionUser.id }, include: { clientProfile: true } });
+    if (!user?.clientProfile) return { ok: false, error: t("generic") };
+
+    const [booking, purchase] = await Promise.all([
+      prisma.booking.findUnique({ where: { id: bookingId } }),
+      prisma.packagePurchase.findUnique({ where: { id: packagePurchaseId } }),
+    ]);
+    if (!booking || booking.clientProfileId !== user.clientProfile.id) {
+      return { ok: false, error: t("generic") };
+    }
+    if (!purchase || purchase.clientProfileId !== user.clientProfile.id) {
+      return { ok: false, error: t("generic") };
+    }
+
+    const result = await consumePackageSession(packagePurchaseId, bookingId);
+    return { ok: true, sessionsRemaining: result.sessionsRemaining };
+  } catch (err) {
+    return { ok: false, error: messageOf(err) || t("generic") };
+  }
+}
+
+// --- Waitlist join (public, unauthenticated) --------------------------
+// Offered by the wizard's date/time step when getSlots comes back empty for
+// the chosen service+day. Deliberately doesn't require OTP verification --
+// unlike an actual booking, joining a waitlist makes no promise/commitment,
+// so the same "name + phone-or-email" pattern used to identify a client
+// elsewhere is enough here; joinWaitlist (waitlist.ts) is Zod-validated
+// server-side regardless of what this layer already checked.
+
+export type JoinWaitlistResult = { ok: true } | { ok: false; error: string };
+
+const joinWaitlistActionSchema = z.object({
+  serviceId: z.string().min(1),
+  desiredDateISO: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
+  name: z.string().trim().min(1).max(200),
+  identifier: z.string().trim().min(3).max(254),
+  locale: z.enum(["en", "ar"]),
+});
+export type JoinWaitlistActionInput = z.input<typeof joinWaitlistActionSchema>;
+
+export async function joinWaitlistAction(input: JoinWaitlistActionInput): Promise<JoinWaitlistResult> {
+  const t = await errorTranslator(extractRawLocale(input));
+  try {
+    const data = joinWaitlistActionSchema.parse(input);
+    const id = resolveIdentifier(data.identifier);
+
+    await joinWaitlist({
+      serviceId: data.serviceId,
+      desiredDateISO: data.desiredDateISO,
+      name: data.name,
+      phone: id.kind === "phone" ? id.value : undefined,
+      email: id.kind === "email" ? id.value : undefined,
+      locale: data.locale,
+    });
+
+    return { ok: true };
+  } catch (err) {
+    const message = messageOf(err);
+    if (message.includes("Invalid phone") || message.includes("Invalid email")) {
+      return { ok: false, error: t("invalidIdentifier") };
+    }
+    if (message.includes("not found")) {
+      return { ok: false, error: t("serviceUnavailable") };
+    }
+    return { ok: false, error: t("generic") };
   }
 }

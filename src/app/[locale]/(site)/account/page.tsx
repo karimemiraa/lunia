@@ -9,8 +9,14 @@ import { localized } from "@/modules/catalog/localize";
 import { prisma } from "@/lib/db";
 import { listBookings } from "@/modules/booking/bookings";
 import { getClientSessionUser, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
+import { getPreference } from "@/modules/comms/preferences";
+import { getLoyalty } from "@/modules/crm/loyalty";
+import { listClientCredits } from "@/modules/commerce/packages";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { AccountBookings, type AccountBookingDTO } from "./AccountBookings";
+import { NotificationsPanel } from "./NotificationsPanel";
+import { LoyaltyPanel } from "./LoyaltyPanel";
+import { MyCreditsPanel } from "./MyCreditsPanel";
 import { logout } from "./actions";
 
 interface AccountPageProps {
@@ -27,7 +33,7 @@ function isPublicLocale(locale: string): locale is PublicLocale {
 interface BookingWithServiceName {
   id: string;
   status: string;
-  appointments: { startAt: Date; serviceId: string }[];
+  appointments: { startAt: Date; serviceId: string; staffUserId: string }[];
 }
 
 // Splits this client's bookings into upcoming/past buckets and works out
@@ -37,7 +43,7 @@ interface BookingWithServiceName {
 // once per request, just not inline in component body.
 function classifyBookings(
   bookings: BookingWithServiceName[],
-  serviceById: Map<string, { nameEn: string; nameAr: string }>,
+  serviceById: Map<string, { slug: string; nameEn: string; nameAr: string }>,
   locale: PublicLocale,
 ): { upcoming: AccountBookingDTO[]; past: AccountBookingDTO[] } {
   const now = Date.now();
@@ -58,12 +64,22 @@ function classifyBookings(
       CANCELLABLE_STATUSES.has(booking.status) &&
       hoursUntilStart > MIN_HOURS_BEFORE_CANCEL;
 
+    // One-tap rebooking (D2): a past COMPLETED booking whose service is
+    // still known gets a "Book again" deep-link to the wizard, prefilled
+    // with that service (and the same staff member, when the wizard can
+    // still resolve them a free slot -- see BookingWizard's prefill effect).
+    const rebook =
+      booking.status === "COMPLETED" && service
+        ? { serviceSlug: service.slug, staffUserId: appointment.staffUserId }
+        : null;
+
     const dto: AccountBookingDTO = {
       id: booking.id,
       serviceName,
       startAtIso: appointment.startAt.toISOString(),
       status: booking.status as AccountBookingDTO["status"],
       canCancel,
+      rebook,
     };
 
     if (isUpcoming) {
@@ -120,6 +136,9 @@ export default async function AccountPage({ params }: AccountPageProps) {
   const serviceById = new Map(services.map((service) => [service.id, service]));
 
   const { upcoming, past } = classifyBookings(bookings, serviceById, locale);
+  const preference = await getPreference(user.clientProfile.id);
+  const loyalty = await getLoyalty(user.clientProfile.id);
+  const credits = await listClientCredits(user.clientProfile.id);
 
   const t = await getTranslations({ locale, namespace: "account" });
   const logoutAction = logout.bind(null, locale);
@@ -150,6 +169,42 @@ export default async function AccountPage({ params }: AccountPageProps) {
           </div>
 
           <AccountBookings locale={locale} upcoming={upcoming} past={past} />
+
+          <LoyaltyPanel
+            locale={locale}
+            balance={loyalty.balance}
+            currentTierName={loyalty.currentTier?.name ?? null}
+            currentTierMinPoints={loyalty.currentTier?.minPoints ?? 0}
+            nextTierName={loyalty.nextTier?.name ?? null}
+            pointsToNextTier={loyalty.pointsToNextTier}
+            nextTierMinPoints={loyalty.nextTier?.minPoints ?? null}
+            transactions={loyalty.transactions.map((txn) => ({
+              id: txn.id,
+              deltaPoints: txn.deltaPoints,
+              reason: txn.reason,
+              createdAtIso: txn.createdAt.toISOString(),
+            }))}
+          />
+
+          <MyCreditsPanel
+            locale={locale}
+            giftCards={credits.giftCards.map((card) => ({
+              id: card.id,
+              code: card.code,
+              balanceMinor: card.balanceMinor,
+              currency: card.currency,
+              expiresAtIso: card.expiresAt ? card.expiresAt.toISOString() : null,
+            }))}
+            packages={credits.packages.map((pkg) => ({
+              id: pkg.id,
+              nameEn: pkg.packageNameEn,
+              nameAr: pkg.packageNameAr,
+              sessionsRemaining: pkg.sessionsRemaining,
+              sessionsTotal: pkg.sessionsTotal,
+            }))}
+          />
+
+          <NotificationsPanel locale={locale} preference={preference} />
         </div>
       </Section>
     </main>

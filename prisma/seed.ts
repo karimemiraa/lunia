@@ -61,17 +61,27 @@ async function main() {
     }
   }
 
+  // minPoints drives loyalty auto-tier upgrades (applyAutoTier in
+  // src/modules/crm/loyalty.ts): a client is auto-set to the highest tier
+  // whose minPoints <= their points balance (1 point per 100 minor currency
+  // units spent -- see EARN_DIVISOR). guest/member/vip form the actual
+  // points ladder; bride/postsurgery are staff-assigned program tiers, not
+  // loyalty ranks, so their minPoints is set unreachably high (below Int's
+  // ~2.1B ceiling) so points earning never auto-assigns/overwrites them.
   const tiers = [
-    { key: "guest", name: "Guest", priority: 0, discountPct: 0 },
-    { key: "member", name: "Member", priority: 10, discountPct: 5 },
-    { key: "vip", name: "VIP", priority: 20, discountPct: 10 },
-    { key: "bride", name: "Bride Program", priority: 15, discountPct: 0 },
-    { key: "postsurgery", name: "Post-Surgery Program", priority: 15, discountPct: 0 },
+    { key: "guest", name: "Guest", priority: 0, discountPct: 0, minPoints: 0 },
+    { key: "member", name: "Member", priority: 10, discountPct: 5, minPoints: 500 },
+    { key: "vip", name: "VIP", priority: 20, discountPct: 10, minPoints: 2000 },
+    { key: "bride", name: "Bride Program", priority: 15, discountPct: 0, minPoints: 999_999_900 },
+    { key: "postsurgery", name: "Post-Surgery Program", priority: 15, discountPct: 0, minPoints: 999_999_901 },
   ];
   for (const t of tiers) {
     await prisma.membershipTier.upsert({
       where: { key: t.key },
-      update: {},
+      // Only minPoints is kept in sync on re-seed (this is its first
+      // population) -- name/priority/discountPct are left alone in case an
+      // admin has since edited them via the tiers UI.
+      update: { minPoints: t.minPoints },
       create: { ...t, isSystem: true },
     });
   }
@@ -784,6 +794,18 @@ async function main() {
       locale: "ar",
       channel: "sms",
       bodyTemplate: "رمز التحقق الخاص بك في لونيا هو {{code}}.",
+    },
+    {
+      kind: "OTP",
+      locale: "en",
+      channel: "email",
+      bodyTemplate: "Your Lunia verification code is {{code}}. It is valid for 5 minutes.",
+    },
+    {
+      kind: "OTP",
+      locale: "ar",
+      channel: "email",
+      bodyTemplate: "رمز التحقق الخاص بك في لونيا هو {{code}}. صالح لمدة ٥ دقائق.",
     },
   ];
   for (const tpl of messageTemplateSeeds) {
