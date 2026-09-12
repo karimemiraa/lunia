@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { MediaFrame } from "./MediaFrame";
 import { Starfield } from "./Starfield";
@@ -17,6 +18,9 @@ interface HeroProps {
   /** Optional secondary link shown beside the primary CTA. */
   secondaryLabel?: string;
   secondaryHref?: string;
+  /** Optional floating card (e.g. a rating/trust badge) overlapping the hero's
+   *  inline-end edge on larger screens — adds depth without new media. */
+  floatingCard?: ReactNode;
 }
 
 const focusRingClass =
@@ -52,6 +56,7 @@ export function Hero({
   media,
   secondaryLabel,
   secondaryHref,
+  floatingCard,
 }: HeroProps) {
   return (
     <section className="relative isolate overflow-hidden bg-[var(--color-ink)]">
@@ -120,6 +125,12 @@ export function Hero({
             )}
           </div>
         </div>
+
+        {floatingCard && (
+          <div className="lunia-animate-fade-up lunia-delay-5 pointer-events-none absolute bottom-12 hidden lg:block" style={{ insetInlineEnd: "1.5rem" }}>
+            {floatingCard}
+          </div>
+        )}
       </div>
 
       {/* Quiet scroll cue */}

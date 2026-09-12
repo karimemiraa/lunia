@@ -53,8 +53,11 @@ export function MediaFrame({
   const objectPosition = `${focalX * 100}% ${focalY * 100}%`;
   const src = `/api/media/${mediaKey}`;
 
+  // An on-brand gradient sits behind the media so, while it decodes, the frame
+  // shows a soft brand wash instead of a blank white box (a lightweight
+  // blur-up feel without shipping per-asset placeholder data).
   return (
-    <div className={shapeClass}>
+    <div className={`${shapeClass} bg-gradient-to-br from-[var(--color-cream)] to-[var(--color-teal)]/25`}>
       {kind === "VIDEO" ? (
         <video
           src={src}
@@ -72,6 +75,7 @@ export function MediaFrame({
           src={src}
           alt={alt}
           loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover"
           style={{ objectPosition }}
         />
