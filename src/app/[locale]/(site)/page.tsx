@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import type { Department, Brand } from "@prisma/client";
 
 import { Hero } from "@/components/site/Hero";
+import { HeroRatingCard } from "@/components/site/HeroRatingCard";
 import { Section } from "@/components/site/Section";
 import { SectionHeading } from "@/components/site/SectionHeading";
 import { JourneySteps } from "@/components/site/JourneySteps";
@@ -208,6 +209,15 @@ export default async function Home({ params }: HomePageProps) {
         ctaLabel={hero.cta}
         ctaHref={bookHref}
         media={hero.heroMedia}
+        floatingCard={
+          reviewsAggregate.count > 0 ? (
+            <HeroRatingCard
+              avg={reviewsAggregate.avg}
+              count={reviewsAggregate.count}
+              summary={tTestimonials("ratingSummary", { count: reviewsAggregate.count })}
+            />
+          ) : undefined
+        }
       />
 
       <Section tone="plain">

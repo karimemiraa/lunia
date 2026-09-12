@@ -1,4 +1,4 @@
-import { SectionHeading } from "./SectionHeading";
+import { Reveal } from "./Reveal";
 
 interface JourneyStep {
   title: string;
@@ -11,7 +11,7 @@ interface JourneyStepsProps {
   steps: JourneyStep[];
 }
 
-// The brand's quiet moon/star "glow" mark, used here as the step marker.
+// The brand's quiet moon/star "glow" mark.
 function GlowMark({ className = "" }: { className?: string }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className={className}>
@@ -23,33 +23,55 @@ function GlowMark({ className = "" }: { className?: string }) {
   );
 }
 
-// Renders the 6-moment client journey (Analyze → Personalize → Treat →
-// Relax → Maintain → Return) as a quiet numbered sequence rather than a
-// stock "process steps" grid: each marker carries the glow motif instead of
-// a generic icon, and the ordinal is typographic (uppercase, tracked out)
-// rather than boxed. Works with any step count the caller passes, though
-// the brand journey is always 6. Order follows source order, which already
-// respects the array direction the page provides — no side-specific
-// classes here, so it mirrors correctly under RTL.
+// The client journey rendered as an editorial, scroll-told sequence rather than
+// a flat grid: on large screens the heading pins (sticky) in the inline-start
+// column while the numbered steps scroll past in the inline-end column, each
+// carrying an oversized, ghosted ordinal and a hairline rule. Every step
+// reveals on scroll (Reveal is reduced-motion aware and JS-free-degradable).
+// Uses logical properties throughout, so it mirrors correctly under RTL.
 export function JourneySteps({ eyebrow, heading, steps }: JourneyStepsProps) {
   return (
-    <div className="flex flex-col gap-14">
-      {heading && <SectionHeading eyebrow={eyebrow} heading={heading} align="center" className="mx-auto" />}
+    <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
+      {/* Sticky heading column */}
+      <div className="lg:sticky lg:top-28 lg:self-start">
+        <div className="flex flex-col gap-5 text-start">
+          {eyebrow && (
+            <span className="inline-flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.4em] text-[var(--color-teal-ink)]">
+              <GlowMark className="h-3.5 w-3.5 shrink-0 text-[var(--color-gold)]" />
+              {eyebrow}
+            </span>
+          )}
+          {heading && (
+            <h2 className="font-[family-name:var(--font-display)] text-4xl leading-[1.1] tracking-tight text-[var(--color-ink)] sm:text-5xl">
+              {heading}
+            </h2>
+          )}
+          <span className="mt-2 inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.3em] text-[var(--color-ink)]/35">
+            01 — {String(steps.length).padStart(2, "0")}
+          </span>
+        </div>
+      </div>
 
-      <ol className="grid gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Steps column */}
+      <ol className="flex flex-col">
         {steps.map((step, index) => (
-          <li key={step.title} className="flex flex-col gap-4 text-start">
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--color-gold)]/40 bg-[var(--color-cream)]/50 text-[var(--color-gold)]">
-                <GlowMark className="h-5 w-5" />
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-ink)]/40">
-                0{index + 1}
-              </span>
+          <Reveal
+            as="li"
+            key={step.title}
+            delay={index * 80}
+            className="relative flex gap-6 border-t border-[var(--line)] py-8 first:border-t-0 first:pt-0 sm:gap-8"
+          >
+            <span
+              aria-hidden="true"
+              className="font-[family-name:var(--font-display)] text-5xl font-medium leading-none text-[var(--color-ink)]/12 sm:text-6xl"
+            >
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <div className="flex flex-col gap-2 pt-1">
+              <h3 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">{step.title}</h3>
+              {step.body && <p className="max-w-md text-sm leading-relaxed text-[var(--color-ink)]/70">{step.body}</p>}
             </div>
-            <h3 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">{step.title}</h3>
-            {step.body && <p className="text-sm leading-relaxed text-[var(--color-ink)]/70">{step.body}</p>}
-          </li>
+          </Reveal>
         ))}
       </ol>
     </div>

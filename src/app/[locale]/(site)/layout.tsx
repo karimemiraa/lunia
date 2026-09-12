@@ -1,9 +1,10 @@
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, getTranslations } from "next-intl/server";
 import { localeDirection } from "@/i18n/routing";
 import { fontVariables } from "@/app/fonts";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
+import { StickyBookCta } from "@/components/site/StickyBookCta";
 import { Tracker } from "@/components/analytics/Tracker";
 import "@/app/globals.css";
 
@@ -19,7 +20,7 @@ export default async function SiteLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const messages = await getMessages();
+  const [messages, tCommon] = await Promise.all([getMessages(), getTranslations({ locale, namespace: "common" })]);
   return (
     <html lang={locale} dir={localeDirection(locale)} className={fontVariables}>
       <body className="flex min-h-screen flex-col">
@@ -27,6 +28,7 @@ export default async function SiteLayout({
           <SiteHeader locale={locale} />
           <div className="flex-1">{children}</div>
           <SiteFooter locale={locale} />
+          <StickyBookCta href={`/${locale}/book`} label={tCommon("bookNow")} />
         </NextIntlClientProvider>
         <Tracker />
       </body>
