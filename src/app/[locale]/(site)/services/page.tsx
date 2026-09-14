@@ -6,6 +6,7 @@ import type { Department, Service } from "@prisma/client";
 import { Hero } from "@/components/site/Hero";
 import { Section } from "@/components/site/Section";
 import { CtaBand } from "@/components/site/CtaBand";
+import { CinematicImage } from "@/components/site/CinematicImage";
 import { MediaFrame } from "@/components/site/MediaFrame";
 import { JsonLd } from "@/components/seo/JsonLd";
 
@@ -152,6 +153,8 @@ export default async function ServicesPage({ params }: ServicesPageProps) {
           })}
         </div>
       </Section>
+
+      <CinematicImage src="/brand/experience-serum.jpg" alt={tCommon("brandName")} />
 
       <Section tone="tinted">
         <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={bookHref} />
