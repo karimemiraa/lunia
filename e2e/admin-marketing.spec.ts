@@ -54,7 +54,7 @@ test("marketing dashboard: owner sees CAC by channel, conversion, and traffic so
   await expect(page.getByTestId("top-clients-table")).toBeVisible();
 
   // The "Marketing" nav link is present (ANALYTICS_VIEW-gated) and points here.
-  await expect(page.getByRole("link", { name: "Marketing", exact: true })).toHaveAttribute("href", "/admin/marketing");
+  await expect(page.getByRole("link", { name: "Campaigns", exact: true })).toHaveAttribute("href", "/admin/marketing");
 
   // Owner also has MARKETING_MANAGE, so the campaigns link is offered here.
   await expect(page.getByRole("link", { name: "Manage campaign spend" })).toHaveAttribute(
