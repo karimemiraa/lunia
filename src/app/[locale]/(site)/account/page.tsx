@@ -15,6 +15,7 @@ import { listClientCredits } from "@/modules/commerce/packages";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { AccountBookings, type AccountBookingDTO } from "./AccountBookings";
 import { NotificationsPanel } from "./NotificationsPanel";
+import { SecurityPanel } from "./SecurityPanel";
 import { LoyaltyPanel } from "./LoyaltyPanel";
 import { MyCreditsPanel } from "./MyCreditsPanel";
 import { logout } from "./actions";
@@ -205,6 +206,12 @@ export default async function AccountPage({ params }: AccountPageProps) {
           />
 
           <NotificationsPanel locale={locale} preference={preference} />
+
+          <SecurityPanel
+            locale={locale}
+            fullName={user.clientProfile.fullName}
+            hasPassword={Boolean(user.passwordHash)}
+          />
         </div>
       </Section>
     </main>

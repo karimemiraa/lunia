@@ -3,6 +3,7 @@ import { getRedis } from "@/lib/redis";
 import { prisma } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { createSession, getSession, destroySession } from "./session";
+import { hashPassword, verifyPassword } from "./password";
 import type { CommsSender } from "@/modules/booking/outbox";
 import { resolveSenderForChannel } from "@/modules/comms/sender";
 import { resolveBookingChannel } from "@/modules/booking/outbox";
@@ -150,10 +151,11 @@ async function sendOtp(
   const existing = await prisma.user
     .findUnique({
       where: id.kind === "phone" ? { phone: id.value } : { email: id.value },
-      include: { clientProfile: { select: { id: true } } },
+      include: { clientProfile: { select: { id: true, fullName: true } } },
     })
     .catch(() => null);
   const clientProfileId = existing?.clientProfile?.id ?? null;
+  const recipientName = existing?.clientProfile?.fullName?.trim() || undefined;
 
   const channel = await resolveOtpChannel(id, clientProfileId, explicitChannel);
 
@@ -178,6 +180,8 @@ async function sendOtp(
       subject: channel === "email" ? otpSubject(locale) : undefined,
       body,
       kind: "OTP",
+      recipientName,
+      locale,
     });
   } catch (err) {
     console.error("[requestOtp] OTP sender threw", err);
@@ -209,6 +213,12 @@ export interface VerifyOtpOptions {
    * creation; never overwritten). See the public booking flow.
    */
   sourceChannel?: string | null;
+  /**
+   * Display name captured at sign-in. Set on a brand-new client, and used to
+   * backfill an existing client whose name was never recorded (an OTP-created
+   * "" name). Never overwrites an already-set name.
+   */
+  name?: string | null;
 }
 
 export async function verifyOtp(
@@ -237,17 +247,30 @@ export async function verifyOtp(
 
   await redis.del(otpKey(id), verKey);
 
-  const user = await findOrCreateClientUser(id, options.sourceChannel ?? null);
+  const user = await findOrCreateClientUser(id, options.sourceChannel ?? null, cleanName(options.name));
   return { userId: user.id };
 }
 
-async function findOrCreateClientUser(id: Identifier, sourceChannel: string | null): Promise<{ id: string }> {
+// Trims a submitted name to a sane length; empty/whitespace becomes undefined.
+function cleanName(raw: string | null | undefined): string | undefined {
+  const trimmed = (raw ?? "").trim();
+  return trimmed ? trimmed.slice(0, 120) : undefined;
+}
+
+async function findOrCreateClientUser(
+  id: Identifier,
+  sourceChannel: string | null,
+  name?: string,
+): Promise<{ id: string }> {
   const where = id.kind === "phone" ? { phone: id.value } : { email: id.value };
   const existing = await prisma.user.findUnique({ where });
   if (existing) {
     const profile = await prisma.clientProfile.findUnique({ where: { userId: existing.id } });
     if (!profile) {
-      await prisma.clientProfile.create({ data: { userId: existing.id, fullName: "", sourceChannel } });
+      await prisma.clientProfile.create({ data: { userId: existing.id, fullName: name ?? "", sourceChannel } });
+    } else if (name && !profile.fullName.trim()) {
+      // Backfill a name onto a profile that never had one; never overwrite.
+      await prisma.clientProfile.update({ where: { id: profile.id }, data: { fullName: name } });
     }
     return { id: existing.id };
   }
@@ -257,10 +280,64 @@ async function findOrCreateClientUser(id: Identifier, sourceChannel: string | nu
       type: "CLIENT",
       phone: id.kind === "phone" ? id.value : null,
       email: id.kind === "email" ? id.value : null,
-      clientProfile: { create: { fullName: "", sourceChannel } },
+      clientProfile: { create: { fullName: name ?? "", sourceChannel } },
     },
   });
   return { id: created.id };
+}
+
+// A fixed bcrypt hash (cost 12) of a random string, matching staff auth's
+// DUMMY_HASH pattern: when no eligible client account exists we still run a
+// verify against this so the response time doesn't reveal whether the account
+// exists (user-enumeration timing). Corresponds to no real password.
+const DUMMY_HASH = "$2b$12$mq5XQoDKh5rx3rB9EzoBnejbJbmMr5iAYhlNrsCTAzaoVCT1jpp/y";
+
+/** Minimum client password length (kept modest for a consumer account). */
+export const MIN_CLIENT_PASSWORD_LENGTH = 8;
+
+/**
+ * Authenticates a client by identifier (phone OR email) + password. Returns
+ * the user id on success, or null. Runs a constant-cost bcrypt compare on
+ * every path so an absent/passwordless account is indistinguishable by timing
+ * from a wrong password.
+ */
+export async function authenticateClient(
+  identifierRaw: string,
+  password: string,
+): Promise<{ userId: string } | null> {
+  let id: Identifier;
+  try {
+    id = resolveIdentifier(identifierRaw);
+  } catch {
+    // Still spend a compare so an invalid identifier costs the same.
+    await verifyPassword(password, DUMMY_HASH);
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: id.kind === "phone" ? { phone: id.value } : { email: id.value },
+  });
+  const eligible = Boolean(user && user.isActive && user.passwordHash && user.type === "CLIENT");
+  const hash = eligible ? user!.passwordHash! : DUMMY_HASH;
+  const ok = await verifyPassword(password, hash);
+  return ok && eligible ? { userId: user!.id } : null;
+}
+
+/** Sets (or replaces) a client's login password. Caller must own the session. */
+export async function setClientPassword(userId: string, plain: string): Promise<void> {
+  if (plain.length < MIN_CLIENT_PASSWORD_LENGTH) {
+    throw new Error(`Password must be at least ${MIN_CLIENT_PASSWORD_LENGTH} characters`);
+  }
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { type: true } });
+  if (!user || user.type !== "CLIENT") throw new Error("Not a client account");
+  const passwordHash = await hashPassword(plain);
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+}
+
+/** Whether the client already has a password set (drives the account UI). */
+export async function clientHasPassword(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true } });
+  return Boolean(user?.passwordHash);
 }
 
 export async function createClientSession(userId: string): Promise<string> {

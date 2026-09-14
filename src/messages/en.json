@@ -445,10 +445,18 @@
         "invalidCode": "That code is incorrect or has expired, please try again.",
         "generic": "Something went wrong, please try again.",
         "missingIdentifier": "Please enter your phone or email.",
-        "invalidIdentifier": "Please enter a valid phone number or email."
+        "invalidIdentifier": "Please enter a valid phone number or email.",
+        "invalidCredentials": "Those sign-in details are incorrect, please try again.",
+        "missingPassword": "Please enter your password."
       },
       "identifierLabel": "Phone or email",
-      "changeContactLabel": "Use a different phone or email"
+      "changeContactLabel": "Use a different phone or email",
+      "nameLabel": "Your name",
+      "nameHint": "First time signing in? Add your name so we can address you properly.",
+      "passwordLabel": "Password",
+      "signInWithPassword": "Sign in with a password instead",
+      "signInWithCode": "Sign in with a verification code instead",
+      "verifyLabelPassword": "Sign in"
     },
     "heading": "My account",
     "signedInAs": "Signed in as {name}",
@@ -526,6 +534,28 @@
       "packagesHeading": "Packages",
       "emptyPackages": "You don't have any active packages yet.",
       "sessionsRemaining": "{remaining} of {total} sessions left"
+    },
+    "security": {
+      "heading": "Sign-in & security",
+      "intro": "Set your name so we can address you properly, and add a password so you can sign in without a code.",
+      "nameLabel": "Your name",
+      "nameSaveLabel": "Save name",
+      "savingLabel": "Saving…",
+      "savedLabel": "Saved",
+      "passwordHeading": "Password",
+      "passwordIntroSet": "You can sign in with a password. Enter a new one below to change it.",
+      "passwordIntroUnset": "Add a password so you can sign in without waiting for a code.",
+      "passwordLabel": "New password",
+      "passwordConfirmLabel": "Confirm password",
+      "passwordSaveLabel": "Save password",
+      "passwordSetBadge": "Password is set",
+      "errors": {
+        "notAuthenticated": "Please sign in again.",
+        "invalidName": "Please enter your name.",
+        "passwordTooShort": "Password must be at least {min} characters.",
+        "passwordMismatch": "The passwords do not match.",
+        "generic": "Something went wrong, please try again."
+      }
     }
   },
   "review": {

@@ -445,10 +445,18 @@
         "invalidCode": "الرمز غير صحيح أو انتهت صلاحيته, حاولي مرة ثانية.",
         "generic": "صار خطأ, حاولي مرة ثانية.",
         "missingIdentifier": "فضلاً أدخلي رقم جوالك أو بريدك الإلكتروني.",
-        "invalidIdentifier": "فضلاً أدخلي رقم جوال أو بريد إلكتروني صحيح."
+        "invalidIdentifier": "فضلاً أدخلي رقم جوال أو بريد إلكتروني صحيح.",
+        "invalidCredentials": "بيانات الدخول غير صحيحة، يرجى المحاولة مرة أخرى.",
+        "missingPassword": "يرجى إدخال كلمة المرور."
       },
       "identifierLabel": "الجوال أو البريد الإلكتروني",
-      "changeContactLabel": "استخدمي جوالاً أو بريداً آخر"
+      "changeContactLabel": "استخدمي جوالاً أو بريداً آخر",
+      "nameLabel": "اسمك",
+      "nameHint": "أول مرة تسجّل الدخول؟ أضف اسمك حتى نخاطبك به.",
+      "passwordLabel": "كلمة المرور",
+      "signInWithPassword": "سجّل الدخول بكلمة المرور بدلاً من ذلك",
+      "signInWithCode": "سجّل الدخول برمز التحقق بدلاً من ذلك",
+      "verifyLabelPassword": "تسجيل الدخول"
     },
     "heading": "حسابي",
     "signedInAs": "مسجّلة دخول باسم {name}",
@@ -526,6 +534,28 @@
       "packagesHeading": "الباقات",
       "emptyPackages": "ما عندك باقات فعالة لحد الآن.",
       "sessionsRemaining": "باقي {remaining} من {total} جلسة"
+    },
+    "security": {
+      "heading": "تسجيل الدخول والأمان",
+      "intro": "أضف اسمك حتى نخاطبك به، وأضف كلمة مرور لتسجّل الدخول دون رمز.",
+      "nameLabel": "اسمك",
+      "nameSaveLabel": "حفظ الاسم",
+      "savingLabel": "جارٍ الحفظ…",
+      "savedLabel": "تم الحفظ",
+      "passwordHeading": "كلمة المرور",
+      "passwordIntroSet": "يمكنك تسجيل الدخول بكلمة المرور. أدخل كلمة جديدة أدناه لتغييرها.",
+      "passwordIntroUnset": "أضف كلمة مرور لتسجّل الدخول دون انتظار رمز.",
+      "passwordLabel": "كلمة المرور الجديدة",
+      "passwordConfirmLabel": "تأكيد كلمة المرور",
+      "passwordSaveLabel": "حفظ كلمة المرور",
+      "passwordSetBadge": "تم تعيين كلمة المرور",
+      "errors": {
+        "notAuthenticated": "يرجى تسجيل الدخول مرة أخرى.",
+        "invalidName": "يرجى إدخال اسمك.",
+        "passwordTooShort": "يجب أن تتكون كلمة المرور من {min} أحرف على الأقل.",
+        "passwordMismatch": "كلمتا المرور غير متطابقتين.",
+        "generic": "حدث خطأ ما، يرجى المحاولة مرة أخرى."
+      }
     }
   },
   "review": {

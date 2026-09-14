@@ -40,7 +40,12 @@ export function makeEmailSender(cfg: EmailSenderConfig): CommsSender {
           subject,
           text: msg.body,
           // Branded HTML alongside the plain-text fallback.
-          html: renderEmailHtml({ subject, body: msg.body }),
+          html: renderEmailHtml({
+            subject,
+            body: msg.body,
+            recipientName: msg.recipientName,
+            locale: msg.locale,
+          }),
         });
         // A real send always yields a messageId; treat its absence as failure
         // so "SENT" always means the SMTP server accepted the message.

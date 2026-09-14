@@ -18,7 +18,7 @@ import { getCommsConfig } from "@/modules/comms/config";
 // Node/Vite ESM. Keep it that way — a future top-level use of either import
 // here or in templates.ts would break at load time.
 import { renderTemplate } from "@/modules/comms/templates";
-import { getPreference, resolveDeliveryChannel } from "@/modules/comms/preferences";
+import { resolveDeliveryChannel } from "@/modules/comms/preferences";
 // NOTE: sender.ts imports { stubSender, CommsSender } from THIS file — a
 // circular import. Safe: resolveSenderForChannel is only referenced inside
 // processDueMessages (a function body), never at module-eval time, so the
@@ -80,6 +80,10 @@ export interface CommsMessage {
   body: string;
   kind: string;
   bookingId?: string;
+  /** Recipient's name, for a personalized email greeting ("Hi Sara,"). */
+  recipientName?: string;
+  /** UI/content locale, so the email shell renders LTR/RTL correctly. */
+  locale?: string;
 }
 
 // The interface a message-sending provider implements (WhatsApp/SMS/email).
@@ -334,8 +338,16 @@ export async function processDueMessages(
     let body = "";
     try {
       // Consult the client's notification preference (if the message is linked
-      // to a client): skip an opted-out kind, and route to their channel.
-      const pref = message.clientProfileId ? await getPreference(message.clientProfileId) : null;
+      // to a client): skip an opted-out kind, and route to their channel. The
+      // same lookup yields the client's name for a personalized greeting.
+      const client = message.clientProfileId
+        ? await prisma.clientProfile.findUnique({
+            where: { id: message.clientProfileId },
+            select: { fullName: true, notificationPreference: true },
+          })
+        : null;
+      const pref = client?.notificationPreference ?? null;
+      const recipientName = client?.fullName?.trim() || undefined;
 
       if (isOptedOut(message.kind, pref)) {
         if (await finalizeSkipped(message)) skipped += 1;
@@ -352,6 +364,9 @@ export async function processDueMessages(
 
       const payload = (message.payload ?? {}) as Record<string, unknown>;
       const params = payloadToParams(payload);
+      // Make the client's first name available to templates as {{name}} unless
+      // the payload already carries one.
+      if (recipientName && params.name === undefined) params.name = recipientName.split(/\s+/)[0]!;
       ({ body } = await renderTemplate(message.kind, message.locale, channel, params));
 
       // Use the injected sender when provided (tests); otherwise resolve the
@@ -365,6 +380,8 @@ export async function processDueMessages(
         body,
         kind: message.kind,
         bookingId: message.bookingId ?? undefined,
+        recipientName,
+        locale: message.locale,
       });
 
       const finalized = await finalizeMessage(message, result.ok ? "SENT" : "FAILED", {

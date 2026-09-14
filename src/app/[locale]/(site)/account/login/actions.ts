@@ -8,7 +8,26 @@
 import { z } from "zod";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
-import { requestOtp, verifyOtp, createClientSession, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
+import {
+  requestOtp,
+  verifyOtp,
+  authenticateClient,
+  createClientSession,
+  CLIENT_SESSION_COOKIE,
+} from "@/modules/iam/clientAuth";
+
+const SESSION_COOKIE_OPTIONS = {
+  httpOnly: true as const,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: 60 * 60 * 24 * 30,
+};
+
+async function establishSession(userId: string): Promise<void> {
+  const token = await createClientSession(userId);
+  (await cookies()).set(CLIENT_SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
+}
 
 type AccountLocale = "en" | "ar";
 
@@ -50,6 +69,9 @@ export async function startLoginOtp(identifier: string, locale: string): Promise
 const verifyLoginSchema = z.object({
   identifier: z.string().trim().min(3).max(120),
   code: z.string().trim().regex(/^\d{6}$/, "Invalid code"),
+  // Optional display name, captured for new accounts so emails can be
+  // personalized. Blank is fine (existing clients signing in).
+  name: z.string().trim().max(120).optional(),
   locale: z.enum(["en", "ar"]),
 });
 export type VerifyLoginInput = z.input<typeof verifyLoginSchema>;
@@ -64,19 +86,34 @@ export async function verifyLogin(input: VerifyLoginInput): Promise<VerifyLoginR
   const data = verifyLoginSchema.parse(input);
   const t = await errorTranslator(data.locale);
 
-  const verified = await verifyOtp(data.identifier, data.code);
+  const verified = await verifyOtp(data.identifier, data.code, { name: data.name });
   if (!verified) {
     return { ok: false, error: t("invalidCode") };
   }
 
-  const token = await createClientSession(verified.userId);
-  (await cookies()).set(CLIENT_SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  await establishSession(verified.userId);
+  return { ok: true };
+}
 
+const passwordLoginSchema = z.object({
+  identifier: z.string().trim().min(3).max(120),
+  password: z.string().min(1).max(200),
+  locale: z.enum(["en", "ar"]),
+});
+export type PasswordLoginInput = z.input<typeof passwordLoginSchema>;
+
+// Identifier (phone OR email) + password sign-in, an alternative to the OTP
+// flow for clients who have set a password (see /account settings). Returns a
+// generic error on any failure so it never reveals whether the account exists.
+export async function loginWithPassword(input: PasswordLoginInput): Promise<VerifyLoginResult> {
+  const data = passwordLoginSchema.parse(input);
+  const t = await errorTranslator(data.locale);
+
+  const authed = await authenticateClient(data.identifier, data.password);
+  if (!authed) {
+    return { ok: false, error: t("invalidCredentials") };
+  }
+
+  await establishSession(authed.userId);
   return { ok: true };
 }

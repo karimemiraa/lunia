@@ -5,6 +5,9 @@ import {
   createClientSession,
   getClientSessionUser,
   destroyClientSession,
+  authenticateClient,
+  setClientPassword,
+  clientHasPassword,
 } from "@/modules/iam/clientAuth";
 import { createSession, destroySession } from "@/modules/iam/session";
 import { getRedis } from "@/lib/redis";
@@ -219,6 +222,78 @@ describe("clientAuth", () => {
 
     const profile = await prisma.clientProfile.findUniqueOrThrow({ where: { userId } });
     expect(profile.sourceChannel).toBe("instagram");
+  });
+
+  it("verifyOtp records a captured name on a brand-new client, and backfills but never overwrites an existing name", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+
+    // New client: name is set from the captured value.
+    const first = await requestOtp(phone);
+    const created = await verifyOtp(phone, first.devCode as string, { name: "  Sara Ahmed  " });
+    const userId = (created as { userId: string }).userId;
+    createdUserIds.push(userId);
+    let profile = await prisma.clientProfile.findUniqueOrThrow({ where: { userId } });
+    expect(profile.fullName).toBe("Sara Ahmed");
+
+    // Existing client with a name: a later different name never overwrites it.
+    const second = await requestOtp(phone);
+    await verifyOtp(phone, second.devCode as string, { name: "Someone Else" });
+    profile = await prisma.clientProfile.findUniqueOrThrow({ where: { userId } });
+    expect(profile.fullName).toBe("Sara Ahmed");
+  });
+
+  it("verifyOtp backfills a name onto a profile that was created without one", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+
+    const first = await requestOtp(phone);
+    const created = await verifyOtp(phone, first.devCode as string); // no name
+    const userId = (created as { userId: string }).userId;
+    createdUserIds.push(userId);
+    expect((await prisma.clientProfile.findUniqueOrThrow({ where: { userId } })).fullName).toBe("");
+
+    const second = await requestOtp(phone);
+    await verifyOtp(phone, second.devCode as string, { name: "Lina" });
+    expect((await prisma.clientProfile.findUniqueOrThrow({ where: { userId } })).fullName).toBe("Lina");
+  });
+
+  it("setClientPassword + authenticateClient: correct credentials succeed, wrong password / absent account fail", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+
+    const { devCode } = await requestOtp(phone);
+    const verified = await verifyOtp(phone, devCode as string);
+    const userId = (verified as { userId: string }).userId;
+    createdUserIds.push(userId);
+
+    expect(await clientHasPassword(userId)).toBe(false);
+    await setClientPassword(userId, "correct horse battery");
+    expect(await clientHasPassword(userId)).toBe(true);
+
+    // Correct password (by phone) authenticates to the same user.
+    expect(await authenticateClient(phone, "correct horse battery")).toEqual({ userId });
+    // Wrong password fails.
+    expect(await authenticateClient(phone, "wrong password")).toBeNull();
+    // Absent account fails (no timing leak — still returns null).
+    expect(await authenticateClient(uniquePhone(), "correct horse battery")).toBeNull();
+  });
+
+  it("setClientPassword rejects a too-short password and refuses non-client accounts", async () => {
+    const phone = uniquePhone();
+    usedPhones.push(phone);
+    const { devCode } = await requestOtp(phone);
+    const verified = await verifyOtp(phone, devCode as string);
+    const userId = (verified as { userId: string }).userId;
+    createdUserIds.push(userId);
+
+    await expect(setClientPassword(userId, "short")).rejects.toThrow();
+
+    const staff = await prisma.user.create({
+      data: { type: "STAFF", email: `pw-staff-${Date.now()}@lunia.local`, isActive: true },
+    });
+    createdUserIds.push(staff.id);
+    await expect(setClientPassword(staff.id, "a-long-enough-password")).rejects.toThrow();
   });
 
   it("getClientSessionUser returns the user for a CLIENT session token, and null for a STAFF user's token", async () => {

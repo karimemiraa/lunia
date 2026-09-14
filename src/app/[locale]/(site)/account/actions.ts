@@ -11,7 +11,13 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { getBooking, cancel } from "@/modules/booking/bookings";
-import { getClientSessionUser, destroyClientSession, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
+import {
+  getClientSessionUser,
+  destroyClientSession,
+  setClientPassword,
+  MIN_CLIENT_PASSWORD_LENGTH,
+  CLIENT_SESSION_COOKIE,
+} from "@/modules/iam/clientAuth";
 import { upsertPreference } from "@/modules/comms/preferences";
 import type { CommsChannelPref } from "@prisma/client";
 
@@ -30,6 +36,13 @@ async function requireClientProfileId(): Promise<string | null> {
   if (!sessionUser) return null;
   const profile = await prisma.clientProfile.findUnique({ where: { userId: sessionUser.id } });
   return profile?.id ?? null;
+}
+
+async function requireClientUserId(): Promise<string | null> {
+  const token = (await cookies()).get(CLIENT_SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const sessionUser = await getClientSessionUser(token);
+  return sessionUser?.id ?? null;
 }
 
 export type CancelBookingResult = { ok: true } | { ok: false; error: string };
@@ -129,5 +142,46 @@ export async function updateNotificationPreference(
     return { ok: false, error: t("generic") };
   }
 
+  return { ok: true };
+}
+
+export type AccountActionResult = { ok: true } | { ok: false; error: string };
+
+const nameSchema = z.string().trim().min(1).max(120);
+
+// Updates the signed-in client's own display name (used to personalize their
+// emails). Identity is re-derived from the session cookie.
+export async function updateMyName(nameRaw: string, locale: string): Promise<AccountActionResult> {
+  const t = await getTranslations({ locale: asAccountLocale(locale), namespace: "account.security.errors" });
+  const clientProfileId = await requireClientProfileId();
+  if (!clientProfileId) return { ok: false, error: t("notAuthenticated") };
+
+  const parsed = nameSchema.safeParse(nameRaw);
+  if (!parsed.success) return { ok: false, error: t("invalidName") };
+
+  try {
+    await prisma.clientProfile.update({ where: { id: clientProfileId }, data: { fullName: parsed.data } });
+  } catch {
+    return { ok: false, error: t("generic") };
+  }
+  return { ok: true };
+}
+
+// Sets (or replaces) the signed-in client's login password. Identity is
+// re-derived from the session cookie — a client can only set their own.
+export async function setMyPassword(newPassword: string, locale: string): Promise<AccountActionResult> {
+  const t = await getTranslations({ locale: asAccountLocale(locale), namespace: "account.security.errors" });
+  const userId = await requireClientUserId();
+  if (!userId) return { ok: false, error: t("notAuthenticated") };
+
+  if (typeof newPassword !== "string" || newPassword.length < MIN_CLIENT_PASSWORD_LENGTH) {
+    return { ok: false, error: t("passwordTooShort", { min: MIN_CLIENT_PASSWORD_LENGTH }) };
+  }
+
+  try {
+    await setClientPassword(userId, newPassword);
+  } catch {
+    return { ok: false, error: t("generic") };
+  }
   return { ok: true };
 }
