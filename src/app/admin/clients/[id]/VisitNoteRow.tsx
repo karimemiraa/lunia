@@ -67,7 +67,7 @@ export function VisitNoteRow({ note, clientProfileId, currentUserId, canManage, 
               <button
                 type="submit"
                 disabled={pinPending}
-                className="inline-flex items-center gap-1 rounded border border-[var(--color-ink)]/15 px-2 py-1 text-xs font-medium text-[var(--color-ink)]/70 hover:bg-[var(--color-ink)]/5 disabled:opacity-60"
+                className="lunia-btn lunia-btn-ghost lunia-btn-sm disabled:opacity-60"
               >
                 <PinIcon /> {note.pinned ? "Unpin" : "Pin"}
               </button>
@@ -87,7 +87,7 @@ export function VisitNoteRow({ note, clientProfileId, currentUserId, canManage, 
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded border border-red-600/30 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+                className="lunia-btn lunia-btn-danger lunia-btn-sm disabled:opacity-60"
               >
                 {deletePending ? "Deleting…" : "Delete"}
               </button>
