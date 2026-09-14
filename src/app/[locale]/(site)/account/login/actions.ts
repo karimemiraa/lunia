@@ -24,26 +24,31 @@ function messageOf(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const phoneSchema = z.string().trim().min(6).max(20);
+// A login identifier is a phone number OR an email address; requestOtp/verifyOtp
+// classify and validate the exact format (see clientAuth.ts), so this only
+// bounds the raw length (emails run longer than phones).
+const identifierSchema = z.string().trim().min(3).max(120);
 
 export type StartLoginOtpResult = { ok: true; devCode?: string } | { ok: false; error: string };
 
-export async function startLoginOtp(phone: string, locale: string): Promise<StartLoginOtpResult> {
+export async function startLoginOtp(identifier: string, locale: string): Promise<StartLoginOtpResult> {
   const t = await errorTranslator(locale);
   try {
-    const normalized = phoneSchema.parse(phone);
+    const normalized = identifierSchema.parse(identifier);
     const result = await requestOtp(normalized);
     return { ok: true, devCode: result.devCode };
   } catch (err) {
     const message = messageOf(err);
-    if (message.includes("Invalid phone")) return { ok: false, error: t("invalidPhone") };
+    if (message.includes("Invalid phone") || message.includes("Invalid email")) {
+      return { ok: false, error: t("invalidIdentifier") };
+    }
     if (message.includes("Too many OTP")) return { ok: false, error: t("rateLimited") };
     return { ok: false, error: t("generic") };
   }
 }
 
 const verifyLoginSchema = z.object({
-  phone: z.string().trim().min(6).max(20),
+  identifier: z.string().trim().min(3).max(120),
   code: z.string().trim().regex(/^\d{6}$/, "Invalid code"),
   locale: z.enum(["en", "ar"]),
 });
@@ -59,7 +64,7 @@ export async function verifyLogin(input: VerifyLoginInput): Promise<VerifyLoginR
   const data = verifyLoginSchema.parse(input);
   const t = await errorTranslator(data.locale);
 
-  const verified = await verifyOtp(data.phone, data.code);
+  const verified = await verifyOtp(data.identifier, data.code);
   if (!verified) {
     return { ok: false, error: t("invalidCode") };
   }

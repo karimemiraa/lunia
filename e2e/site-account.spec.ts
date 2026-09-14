@@ -113,7 +113,7 @@ async function bookFarOutAppointment(page: Page, phone: string, preferredWeekday
 // the page rather than a real SMS. Ends on /account.
 async function loginAtAccountPage(page: Page, locale: "en" | "ar", phone: string) {
   await page.goto(`/${locale}/account/login`);
-  await page.getByLabel(locale === "ar" ? "رقم الجوال" : "Phone number").fill(phone);
+  await page.getByLabel(locale === "ar" ? "الجوال أو البريد الإلكتروني" : "Phone or email").fill(phone);
   await page.getByRole("button", { name: locale === "ar" ? "إرسال رمز التأكيد" : "Send verification code" }).click();
 
   const devCodeEl = page.getByTestId("dev-otp-code");

@@ -11,16 +11,6 @@ interface MediaFrameProps {
   rounded?: boolean;
 }
 
-// A small four-point "glow" mark, reused here (and in SectionHeading) as
-// the one recurring brand motif — kept subtle, never a full illustration.
-function GlowMark({ className = "" }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className={`fill-[var(--color-teal)]/70 ${className}`}>
-      <path d="M12 0c.6 4.8 2.6 8.2 6 9.6L24 12l-6 2.4c-3.4 1.4-5.4 4.8-6 9.6-.6-4.8-2.6-8.2-6-9.6L0 12l6-2.4C9.4 8.2 11.4 4.8 12 0Z" />
-    </svg>
-  );
-}
-
 // Renders an image or video sourced from the media API by storage key, with
 // focal-point positioning so a crop stays sensible across aspect ratios. If
 // no media is provided (content not uploaded yet), falls back to a quiet,
@@ -43,10 +33,8 @@ export function MediaFrame({
       <div
         role="img"
         aria-label={alt}
-        className={`${shapeClass} flex items-center justify-center bg-gradient-to-br from-[var(--color-cream)] to-[var(--color-teal)]/25`}
-      >
-        <GlowMark className="h-10 w-10" />
-      </div>
+        className={`${shapeClass} bg-gradient-to-br from-[var(--color-cream)] to-[var(--color-teal)]/30`}
+      />
     );
   }
 

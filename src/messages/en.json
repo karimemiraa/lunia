@@ -21,7 +21,7 @@
     "brandName": "Lunia"
   },
   "footer": {
-    "tagline": "Not facials — skin quality.",
+    "tagline": "Not facials, skin quality.",
     "navHeading": "Explore",
     "navLabel": "Footer navigation",
     "contactHeading": "Get in Touch",
@@ -32,21 +32,21 @@
   "home": {
     "heroStatement": "Where natural beauty begins",
     "hero": {
-      "eyebrow": "Skin Quality Center · Riyadh"
+      "eyebrow": "Skin Quality Center"
     },
     "meta": {
       "title": "Lunia | Riyadh's Skin Quality Center",
-      "description": "Diagnostic-led skin, hair & scalp, and post-surgery recovery care in Riyadh, built on a Korean-inspired philosophy. Not facials — skin quality, sustained."
+      "description": "Diagnostic-led skin, hair & scalp, and post-surgery recovery care in Riyadh, built on a Korean-inspired philosophy. Not facials, skin quality, sustained."
     },
     "positioning": {
       "eyebrow": "The Lunia Philosophy",
       "heading": "Not a spa. A Skin Quality Center.",
-      "body": "A facial fades by the weekend. Skin quality is something you build — layer by layer, session by session — until it holds its own glow. At Lunia, every visit begins with a real diagnostic read of your skin, not a menu of treatments, so what we do next is calibrated to what your skin actually needs, and sustained long enough to show."
+      "body": "A facial fades by the weekend. Skin quality is something you build, layer by layer, session by session, until it holds its own glow. At Lunia, every visit begins with a real diagnostic read of your skin, not a menu of treatments, so what we do next is calibrated to what your skin actually needs, and sustained long enough to show."
     },
     "services": {
       "eyebrow": "What We Do",
       "heading": "Three departments, one philosophy",
-      "intro": "Skin, hair & scalp, and post-surgery recovery — each built on the same diagnostic-first approach to lasting quality."
+      "intro": "Skin, hair & scalp, and post-surgery recovery, each built on the same diagnostic-first approach to lasting quality."
     },
     "journey": {
       "eyebrow": "The Client Journey",
@@ -54,7 +54,7 @@
       "steps": [
         {
           "title": "Analyze",
-          "body": "We start by reading your skin, or scalp, closely — diagnostic imaging and a real conversation, not guesswork."
+          "body": "We start by reading your skin, or scalp, closely, diagnostic imaging and a real conversation, not guesswork."
         },
         {
           "title": "Personalize",
@@ -66,7 +66,7 @@
         },
         {
           "title": "Relax",
-          "body": "Recovery matters as much as treatment — time to let the work settle."
+          "body": "Recovery matters as much as treatment, time to let the work settle."
         },
         {
           "title": "Maintain",
@@ -74,14 +74,14 @@
         },
         {
           "title": "Return",
-          "body": "Skin quality is sustained, not a one-time result — we track it with you, visit after visit."
+          "body": "Skin quality is sustained, not a one-time result, we track it with you, visit after visit."
         }
       ]
     },
     "brands": {
       "eyebrow": "Trusted Partners",
       "heading": "Clinical-grade brands we stand behind",
-      "intro": "We only bring in names we'd recommend to our own families — chosen for results, not trends."
+      "intro": "We only bring in names we'd recommend to our own families, chosen for results, not trends."
     },
     "testimonials": {
       "eyebrow": "In Their Words",
@@ -92,7 +92,7 @@
           "author": "N., Riyadh"
         },
         {
-          "quote": "Six months in and my skin genuinely looks different — not just after a treatment, but every day.",
+          "quote": "Six months in and my skin genuinely looks different, not just after a treatment, but every day.",
           "author": "L., Riyadh"
         },
         {
@@ -112,15 +112,15 @@
       "items": [
         {
           "q": "What's the difference between a facial and skin quality treatment?",
-          "a": "A facial is a one-off treatment that fades within days. Skin quality care at Lunia starts with a real diagnostic read of your skin, then builds a sustained plan session by session — so results compound instead of fading. That's our positioning: not facials, skin quality."
+          "a": "A facial is a one-off treatment that fades within days. Skin quality care at Lunia starts with a real diagnostic read of your skin, then builds a sustained plan session by session, so results compound instead of fading. That's our positioning: not facials, skin quality."
         },
         {
           "q": "Are your treatments injectable?",
-          "a": "No — every protocol at Lunia is non-injectable. We use diagnostic-led, clinical-grade topical and device-based treatments (LED therapy, microdermabrasion, lymphatic drainage, and more) to build lasting skin, hair & scalp, and post-surgery recovery quality without needles."
+          "a": "No, every protocol at Lunia is non-injectable. We use diagnostic-led, clinical-grade topical and device-based treatments (LED therapy, microdermabrasion, lymphatic drainage, and more) to build lasting skin, hair & scalp, and post-surgery recovery quality without needles."
         },
         {
           "q": "What does \"Korean-inspired\" mean for your approach?",
-          "a": "Our philosophy borrows from the Korean skincare tradition of diagnostic-first, layered, long-term skin quality — rather than chasing a quick fix. Every visit begins with analysis, not a treatment menu."
+          "a": "Our philosophy borrows from the Korean skincare tradition of diagnostic-first, layered, long-term skin quality, rather than chasing a quick fix. Every visit begins with analysis, not a treatment menu."
         },
         {
           "q": "Where is Lunia located?",
@@ -132,12 +132,12 @@
   "about": {
     "meta": {
       "title": "About Lunia | Riyadh's Skin Quality Center",
-      "description": "Lunia is a Skin Quality Center in Riyadh built on a Korean-inspired, diagnostic-first philosophy — not a facial menu. Our story, our approach, and the journey behind every visit."
+      "description": "Lunia is a Skin Quality Center in Riyadh built on a Korean-inspired, diagnostic-first philosophy, not a facial menu. Our story, our approach, and the journey behind every visit."
     },
     "hero": {
       "eyebrow": "About Lunia",
       "heading": "Skin quality is our whole philosophy",
-      "intro": "We didn't set out to build another spa. Lunia exists because Riyadh needed a place that treats skin, hair, and recovery with the seriousness of a real diagnosis — not a menu of quick fixes."
+      "intro": "We didn't set out to build another spa. Lunia exists because Riyadh needed a place that treats skin, hair, and recovery with the seriousness of a real diagnosis, not a menu of quick fixes."
     },
     "story": {
       "eyebrow": "Our Story",
@@ -145,13 +145,13 @@
       "paragraphs": [
         "Lunia began with a simple frustration: too many facials, too few real results. Clients would leave glowing for a weekend and be back where they started within a week, because nothing about the treatment was calibrated to what their skin actually needed.",
         "We looked instead to the Korean approach to skin care, where diagnosis comes before treatment and consistency matters more than any single session. That became our founding idea: read the skin first, personalize everything after, and measure quality over months, not days.",
-        "Today Lunia is three departments working from the same philosophy — Skin Quality, Hair & Scalp, and Post-Surgery Recovery — each diagnostic-led, each built to sustain a result rather than chase a moment."
+        "Today Lunia is three departments working from the same philosophy, Skin Quality, Hair & Scalp, and Post-Surgery Recovery, each diagnostic-led, each built to sustain a result rather than chase a moment."
       ]
     },
     "positioning": {
-      "eyebrow": "Not Facials — Skin Quality",
+      "eyebrow": "Not Facials, Skin Quality",
       "heading": "A facial is a moment. Skin quality is a practice.",
-      "body": "A facial can make skin glow for a weekend. Skin quality is what holds after that — built through an accurate diagnosis, a personalized plan, and a rhythm of visits that compounds instead of resetting. That distinction shapes every protocol at Lunia, across skin, hair and scalp, and post-surgery recovery."
+      "body": "A facial can make skin glow for a weekend. Skin quality is what holds after that, built through an accurate diagnosis, a personalized plan, and a rhythm of visits that compounds instead of resetting. That distinction shapes every protocol at Lunia, across skin, hair and scalp, and post-surgery recovery."
     },
     "team": {
       "eyebrow": "Our Specialists",
@@ -163,7 +163,7 @@
         "Post-Surgery Recovery Therapist",
         "Client Care Lead"
       ],
-      "note": "Full specialist profiles are coming soon — check back shortly, or ask about your care team when you book."
+      "note": "Full specialist profiles are coming soon, check back shortly, or ask about your care team when you book."
     },
     "cta": {
       "eyebrow": "Ready When You Are",
@@ -173,7 +173,7 @@
   "servicesIndex": {
     "meta": {
       "title": "Services | Lunia Skin Quality Center",
-      "description": "Explore Lunia's three departments — Skin Quality, Hair & Scalp, and Post-Surgery Recovery — each built on a diagnostic-first approach to lasting results."
+      "description": "Explore Lunia's three departments, Skin Quality, Hair & Scalp, and Post-Surgery Recovery, each built on a diagnostic-first approach to lasting results."
     },
     "hero": {
       "eyebrow": "What We Do",
@@ -190,12 +190,12 @@
   "brandsIndex": {
     "meta": {
       "title": "Brands We Trust | Lunia Skin Quality Center",
-      "description": "The clinical-grade brands behind every Lunia protocol — chosen for results, not trends, and used across our skin, hair & scalp, and recovery treatments."
+      "description": "The clinical-grade brands behind every Lunia protocol, chosen for results, not trends, and used across our skin, hair & scalp, and recovery treatments."
     },
     "hero": {
       "eyebrow": "Trusted Partners",
       "heading": "The brands behind every protocol",
-      "intro": "We only bring in names we'd recommend to our own families. Each brand below earned its place through results, not marketing — explore what each one is, and why we chose it."
+      "intro": "We only bring in names we'd recommend to our own families. Each brand below earned its place through results, not marketing, explore what each one is, and why we chose it."
     },
     "cta": {
       "eyebrow": "Ready When You Are",
@@ -204,7 +204,7 @@
   },
   "brandDetail": {
     "whyChosenLabel": "Why Lunia chose it",
-    "treatmentsNote": "This brand is woven into our diagnostic-led protocols wherever it's the right fit for your skin or scalp — your specialist will tell you exactly where it shows up in your plan.",
+    "treatmentsNote": "This brand is woven into our diagnostic-led protocols wherever it's the right fit for your skin or scalp, your specialist will tell you exactly where it shows up in your plan.",
     "visitWebsite": "Visit official website",
     "cta": {
       "eyebrow": "Ready When You Are",
@@ -214,12 +214,12 @@
   "resultsIndex": {
     "meta": {
       "title": "Results | Lunia Skin Quality Center",
-      "description": "A look at the quality Lunia clients build over time, across skin, hair & scalp, and post-surgery recovery — shared with consent, session by session."
+      "description": "A look at the quality Lunia clients build over time, across skin, hair & scalp, and post-surgery recovery, shared with consent, session by session."
     },
     "hero": {
       "eyebrow": "Real Progress",
       "heading": "Quality you can see, built session by session",
-      "intro": "Every result here reflects a real diagnostic plan, sustained over time — not a single dramatic transformation. Photography is shared only with client consent."
+      "intro": "Every result here reflects a real diagnostic plan, sustained over time, not a single dramatic transformation. Photography is shared only with client consent."
     },
     "categories": [
       "Skin Quality",
@@ -229,7 +229,7 @@
     "allLabel": "All results",
     "beforeAfterLabel": "Before & after",
     "consentNote": "Real client photography is added with explicit consent as it becomes available. Every placeholder above reflects a treatment category, not a specific client.",
-    "emptyLabel": "Results are being gathered with client consent — check back soon.",
+    "emptyLabel": "Results are being gathered with client consent, check back soon.",
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Start building your own results"
@@ -238,15 +238,15 @@
   "journalIndex": {
     "meta": {
       "title": "Journal | Lunia Skin Quality Center",
-      "description": "Notes on skin quality, diagnostic care, and the philosophy behind every Lunia treatment — from our specialists in Riyadh."
+      "description": "Notes on skin quality, diagnostic care, and the philosophy behind every Lunia treatment, from our specialists in Riyadh."
     },
     "hero": {
       "eyebrow": "The Lunia Journal",
       "heading": "Notes on skin quality, from us to you",
-      "intro": "Stories, guides, and the thinking behind our diagnostic-first approach — written by the specialists who deliver it."
+      "intro": "Stories, guides, and the thinking behind our diagnostic-first approach, written by the specialists who deliver it."
     },
     "readMoreLabel": "Read the story",
-    "emptyLabel": "New stories are on their way — check back soon.",
+    "emptyLabel": "New stories are on their way, check back soon.",
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Book a diagnostic consultation to begin"
@@ -263,7 +263,7 @@
   "contact": {
     "meta": {
       "title": "Contact | Lunia Skin Quality Center, Riyadh",
-      "description": "Reach Lunia in Riyadh by phone, WhatsApp, or Instagram, or send a diagnostic consultation inquiry — we'll get back to you shortly."
+      "description": "Reach Lunia in Riyadh by phone, WhatsApp, or Instagram, or send a diagnostic consultation inquiry, we'll get back to you shortly."
     },
     "hero": {
       "eyebrow": "Get in Touch",
@@ -275,9 +275,9 @@
     "phoneLabel": "Phone",
     "whatsappLabel": "WhatsApp",
     "instagramLabel": "Instagram",
-    "mapPlaceholderLabel": "Find us in Riyadh — an interactive map is coming soon",
+    "mapPlaceholderLabel": "Find us in Riyadh, an interactive map is coming soon",
     "mapLinkLabel": "Open in Google Maps",
-    "napFallback": "Contact details are being updated — check back soon, or message us using the form.",
+    "napFallback": "Contact details are being updated, check back soon, or message us using the form.",
     "form": {
       "heading": "Send an inquiry",
       "intro": "Tell us a little about what you're looking for, and a specialist will follow up with you directly.",
@@ -287,8 +287,8 @@
       "messageLabel": "How can we help?",
       "submitLabel": "Send inquiry",
       "submittingLabel": "Sending…",
-      "successMessage": "Thank you — we've received your message and will reach out shortly.",
-      "errorMessage": "Something went wrong — please check your details and try again.",
+      "successMessage": "Thank you, we've received your message and will reach out shortly.",
+      "errorMessage": "Something went wrong, please check your details and try again.",
       "requiredNote": "* Required"
     }
   },
@@ -296,7 +296,7 @@
     "servicesHeading": "Treatments in this department",
     "servicesIntro": "Every treatment below is delivered after a diagnostic read of your skin or scalp, so what you receive is calibrated to you, not a fixed package.",
     "benefitsLabel": "What you can expect",
-    "emptyServices": "Services for this department are being updated — check back soon.",
+    "emptyServices": "Services for this department are being updated, check back soon.",
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Book your diagnostic consultation"
@@ -306,7 +306,7 @@
       "items": [
         {
           "q": "Do I need to know which treatment I need before booking?",
-          "a": "No — every visit starts with a diagnostic read of your skin or scalp. We recommend the right treatment from that, not the other way around."
+          "a": "No, every visit starts with a diagnostic read of your skin or scalp. We recommend the right treatment from that, not the other way around."
         },
         {
           "q": "How many sessions will I need?",
@@ -314,7 +314,7 @@
         },
         {
           "q": "Is this only for concerns, or is it preventative too?",
-          "a": "Both. Many clients come in for maintenance once their skin or scalp quality is where they want it — consistency is what keeps results from fading."
+          "a": "Both. Many clients come in for maintenance once their skin or scalp quality is where they want it, consistency is what keeps results from fading."
         }
       ]
     }
@@ -327,7 +327,7 @@
     "hero": {
       "eyebrow": "Book a Visit",
       "heading": "Reserve your time at Lunia",
-      "intro": "Choose a service, pick a time that works for you, and confirm with a quick phone verification — no account needed to get started."
+      "intro": "Choose a service, pick a time that works for you, and confirm with a quick phone verification, no account needed to get started."
     },
     "steps": {
       "service": "Service",
@@ -343,13 +343,13 @@
       "durationValue": "{minutes} min",
       "tierNote": "Available to {tier} members and above",
       "continueLabel": "Continue",
-      "emptyState": "No bookable services are available online right now — please contact us to book."
+      "emptyState": "No bookable services are available online right now, please contact us to book."
     },
     "date": {
       "heading": "Choose a date and time",
       "dateLabel": "Date",
       "loadingSlots": "Loading available times…",
-      "noSlots": "No times are available on this date — try another day.",
+      "noSlots": "No times are available on this date, try another day.",
       "timeHeading": "Available times",
       "continueLabel": "Continue",
       "selectServicePrompt": "Select a service to see available times."
@@ -359,7 +359,7 @@
       "intro": "We'll let you know the moment a spot opens up on this day.",
       "joinLabel": "Join the waitlist",
       "joiningLabel": "Joining…",
-      "joinedMessage": "You're on the waitlist — we'll reach out the moment a spot opens up."
+      "joinedMessage": "You're on the waitlist, we'll reach out the moment a spot opens up."
     },
     "contact": {
       "heading": "Your details",
@@ -396,15 +396,15 @@
       "bookAnotherLabel": "Book another visit"
     },
     "errors": {
-      "generic": "Something went wrong — please try again.",
+      "generic": "Something went wrong, please try again.",
       "missingContact": "Please enter your name and a phone number or email address.",
       "invalidPhone": "Please enter a valid phone number.",
       "invalidIdentifier": "Please enter a valid phone number or email address.",
-      "rateLimited": "Too many attempts — please try again in a little while.",
-      "invalidCode": "That code is incorrect or has expired — please try again.",
+      "rateLimited": "Too many attempts, please try again in a little while.",
+      "invalidCode": "That code is incorrect or has expired, please try again.",
       "serviceUnavailable": "This service isn't available for online booking right now.",
       "tierGated": "This service is available to {tier} members and above.",
-      "slotTaken": "That time was just taken — please choose another.",
+      "slotTaken": "That time was just taken, please choose another.",
       "noService": "Please choose a service first.",
       "noSlot": "Please choose a time first."
     }
@@ -417,14 +417,14 @@
     "login": {
       "meta": {
         "title": "Sign In | Lunia Skin Quality Center, Riyadh",
-        "description": "Sign in with your phone number to view and manage your Lunia bookings."
+        "description": "Sign in with your phone or email to view and manage your Lunia bookings."
       },
       "heading": "Sign in to your account",
-      "intro": "Enter your phone number and we'll text you a 6-digit code to sign in.",
+      "intro": "Enter your phone or email and we will send you a 6-digit code to sign in.",
       "phoneLabel": "Phone number",
       "sendCodeLabel": "Send verification code",
       "sendingLabel": "Sending…",
-      "codeIntro": "Enter the 6-digit code sent to {phone}.",
+      "codeIntro": "Enter the 6-digit code sent to {contact}.",
       "codeLabel": "Verification code",
       "verifyLabel": "Sign in",
       "verifyingLabel": "Signing in…",
@@ -433,10 +433,14 @@
       "errors": {
         "missingPhone": "Please enter your phone number.",
         "invalidPhone": "Please enter a valid phone number.",
-        "rateLimited": "Too many attempts — please try again in a little while.",
-        "invalidCode": "That code is incorrect or has expired — please try again.",
-        "generic": "Something went wrong — please try again."
-      }
+        "rateLimited": "Too many attempts, please try again in a little while.",
+        "invalidCode": "That code is incorrect or has expired, please try again.",
+        "generic": "Something went wrong, please try again.",
+        "missingIdentifier": "Please enter your phone or email.",
+        "invalidIdentifier": "Please enter a valid phone number or email."
+      },
+      "identifierLabel": "Phone or email",
+      "changeContactLabel": "Use a different phone or email"
     },
     "heading": "My account",
     "signedInAs": "Signed in as {name}",
@@ -460,8 +464,8 @@
     "errors": {
       "notAuthenticated": "Please sign in to manage your bookings.",
       "notFound": "We couldn't find that booking.",
-      "tooLateToCancel": "This booking can no longer be cancelled online — please contact us.",
-      "generic": "Something went wrong — please try again."
+      "tooLateToCancel": "This booking can no longer be cancelled online, please contact us.",
+      "generic": "Something went wrong, please try again."
     },
     "notifications": {
       "heading": "Notifications",
@@ -484,7 +488,7 @@
       "savedLabel": "Saved.",
       "errors": {
         "notAuthenticated": "Please sign in to manage your notification preferences.",
-        "generic": "Something went wrong — please try again."
+        "generic": "Something went wrong, please try again."
       }
     },
     "loyalty": {
@@ -497,7 +501,7 @@
       "pointsRemaining": "{count} points to go",
       "topTierReached": "You've reached our top tier",
       "historyHeading": "Recent activity",
-      "emptyHistory": "No points activity yet — it starts with your first completed visit.",
+      "emptyHistory": "No points activity yet, it starts with your first completed visit.",
       "reasons": {
         "EARN": "Points earned",
         "REDEEM": "Points redeemed",
@@ -518,7 +522,7 @@
   },
   "review": {
     "meta": {
-      "title": "Share your review — Lunia",
+      "title": "Share your review, Lunia",
       "description": "Tell us about your visit to Lunia."
     },
     "heading": "How was your visit?",
@@ -540,7 +544,7 @@
     "invalidHeading": "Link not found",
     "invalidBody": "This review link is invalid or has expired.",
     "errors": {
-      "generic": "Something went wrong — please try again."
+      "generic": "Something went wrong, please try again."
     }
   }
 }
