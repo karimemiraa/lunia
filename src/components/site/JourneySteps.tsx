@@ -11,18 +11,6 @@ interface JourneyStepsProps {
   steps: JourneyStep[];
 }
 
-// The brand's quiet moon/star "glow" mark.
-function GlowMark({ className = "" }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className={className}>
-      <path
-        fill="currentColor"
-        d="M12 0c.6 4.8 2.6 8.2 6 9.6L24 12l-6 2.4c-3.4 1.4-5.4 4.8-6 9.6-.6-4.8-2.6-8.2-6-9.6L0 12l6-2.4C9.4 8.2 11.4 4.8 12 0Z"
-      />
-    </svg>
-  );
-}
-
 // The client journey rendered as an editorial, scroll-told sequence rather than
 // a flat grid: on large screens the heading pins (sticky) in the inline-start
 // column while the numbered steps scroll past in the inline-end column, each
@@ -37,7 +25,6 @@ export function JourneySteps({ eyebrow, heading, steps }: JourneyStepsProps) {
         <div className="flex flex-col gap-5 text-start">
           {eyebrow && (
             <span className="inline-flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.4em] text-[var(--color-teal-ink)]">
-              <GlowMark className="h-3.5 w-3.5 shrink-0 text-[var(--color-gold)]" />
               {eyebrow}
             </span>
           )}

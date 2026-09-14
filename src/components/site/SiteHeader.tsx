@@ -50,16 +50,9 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-6 py-5">
         <Link
           href={home}
-          className={`group inline-flex items-center gap-2.5 font-[family-name:var(--font-display)] text-2xl font-medium tracking-[0.3em] text-[var(--color-ink)] ${focusRingClass}`}
+          className={`font-[family-name:var(--font-display)] text-2xl font-medium tracking-[0.35em] text-[var(--color-ink)] ${focusRingClass}`}
           aria-label={tNav("home")}
         >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="h-4 w-4 fill-[var(--color-teal-ink)] transition-transform duration-500 group-hover:rotate-90"
-          >
-            <path d="M12 0c.6 4.8 2.6 8.2 6 9.6L24 12l-6 2.4c-3.4 1.4-5.4 4.8-6 9.6-.6-4.8-2.6-8.2-6-9.6L0 12l6-2.4C9.4 8.2 11.4 4.8 12 0Z" />
-          </svg>
           LUNIA
         </Link>
 

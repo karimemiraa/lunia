@@ -26,23 +26,23 @@ export function LoginForm({ locale }: LoginFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const [phone, setPhone] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [devCode, setDevCode] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const phoneId = useId();
+  const identifierId = useId();
   const codeId = useId();
 
   function handleSendCode() {
     setError(null);
-    if (!phone.trim()) {
-      setError(t("errors.missingPhone"));
+    if (!identifier.trim()) {
+      setError(t("errors.missingIdentifier"));
       return;
     }
     startTransition(async () => {
-      const result = await startLoginOtp(phone, locale);
+      const result = await startLoginOtp(identifier, locale);
       if (result.ok) {
         setOtpSent(true);
         setDevCode(result.devCode ?? null);
@@ -55,7 +55,7 @@ export function LoginForm({ locale }: LoginFormProps) {
   function handleVerify() {
     setError(null);
     startTransition(async () => {
-      const result = await verifyLogin({ phone, code, locale });
+      const result = await verifyLogin({ identifier, code, locale });
       if (result.ok) {
         router.push(`/${locale}/account`);
         router.refresh();
@@ -72,18 +72,19 @@ export function LoginForm({ locale }: LoginFormProps) {
       className="flex flex-col gap-6"
     >
       <div className="flex flex-col gap-2">
-        <label htmlFor={phoneId} className={labelClass}>
-          {t("phoneLabel")}
+        <label htmlFor={identifierId} className={labelClass}>
+          {t("identifierLabel")}
         </label>
         <input
-          id={phoneId}
-          type="tel"
+          id={identifierId}
+          type="text"
           required
-          maxLength={20}
-          autoComplete="tel"
-          value={phone}
+          maxLength={120}
+          autoComplete="username"
+          inputMode="email"
+          value={identifier}
           disabled={otpSent}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => setIdentifier(e.target.value)}
           className={inputClass}
         />
       </div>
@@ -99,7 +100,7 @@ export function LoginForm({ locale }: LoginFormProps) {
         </button>
       ) : (
         <>
-          <p className="text-sm text-[var(--color-ink)]/65">{t("codeIntro", { phone })}</p>
+          <p className="text-sm text-[var(--color-ink)]/65">{t("codeIntro", { contact: identifier })}</p>
           {devCode && (
             <p data-testid="dev-otp-code" className="text-sm font-medium text-[var(--color-canopy)]">
               {t("devCodeHint", { code: devCode })}
@@ -141,7 +142,7 @@ export function LoginForm({ locale }: LoginFormProps) {
               }}
               className="text-sm font-medium text-[var(--color-ink)] underline decoration-[var(--color-gold)] decoration-2 underline-offset-4"
             >
-              {t("changeNumberLabel")}
+              {t("changeContactLabel")}
             </button>
           </div>
         </>

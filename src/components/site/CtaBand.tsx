@@ -10,18 +10,6 @@ interface CtaBandProps {
 const focusRingClass =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-teal)]";
 
-// The brand's quiet moon/star "glow" mark, used here as the eyebrow accent.
-function GlowMark({ className = "" }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className={className}>
-      <path
-        fill="currentColor"
-        d="M12 0c.6 4.8 2.6 8.2 6 9.6L24 12l-6 2.4c-3.4 1.4-5.4 4.8-6 9.6-.6-4.8-2.6-8.2-6-9.6L0 12l6-2.4C9.4 8.2 11.4 4.8 12 0Z"
-      />
-    </svg>
-  );
-}
-
 // The recurring "Start your journey" booking band that closes most public
 // pages: a warm teal field, a serif headline, and a single ink-colored CTA
 // — no imagery, no clutter, just an unmissable, elegant call to book.
@@ -31,7 +19,6 @@ export function CtaBand({ eyebrow, headline, ctaLabel, ctaHref }: CtaBandProps) 
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-6">
         {eyebrow && (
           <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-ink)]/70">
-            <GlowMark className="h-3 w-3 shrink-0 text-[var(--color-ink)]/70" />
             {eyebrow}
           </span>
         )}

@@ -33,11 +33,8 @@ export function StickyBookCta({ href, label }: StickyBookCtaProps) {
     >
       <Link
         href={href}
-        className="lunia-btn lunia-btn-primary flex items-center gap-2 px-6 py-3 text-sm shadow-[var(--shadow-lg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2"
+        className="lunia-btn lunia-btn-primary px-6 py-3 text-sm shadow-[var(--shadow-lg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2"
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-          <path d="M12 0c.6 4.8 2.6 8.2 6 9.6L24 12l-6 2.4c-3.4 1.4-5.4 4.8-6 9.6-.6-4.8-2.6-8.2-6-9.6L0 12l6-2.4C9.4 8.2 11.4 4.8 12 0Z" />
-        </svg>
         {label}
       </Link>
     </div>

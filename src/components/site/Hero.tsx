@@ -72,10 +72,7 @@ export function Hero({
       <div className="relative mx-auto flex min-h-[34rem] w-full max-w-6xl flex-col justify-center gap-8 px-6 py-24 sm:min-h-[42rem] lg:min-h-[46rem]">
         <div className="flex max-w-xl flex-col gap-6 text-start">
           {eyebrow && (
-            <span className="lunia-animate-fade-up lunia-delay-1 inline-flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.4em] text-[var(--color-teal-ink)]">
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="lunia-glow-pulse h-3.5 w-3.5 shrink-0 fill-[var(--color-gold)]">
-                <path d="M12 0c.6 4.8 2.6 8.2 6 9.6L24 12l-6 2.4c-3.4 1.4-5.4 4.8-6 9.6-.6-4.8-2.6-8.2-6-9.6L0 12l6-2.4C9.4 8.2 11.4 4.8 12 0Z" />
-              </svg>
+            <span className="lunia-animate-fade-up lunia-delay-1 text-xs font-semibold uppercase tracking-[0.4em] text-[var(--color-teal-ink)]">
               {eyebrow}
             </span>
           )}
