@@ -15,7 +15,7 @@ describe("AdminNav", () => {
     expect(screen.getByRole("link", { name: "Inquiries" })).toBeInTheDocument();
 
     expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Tiers" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Loyalty tiers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Roles" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Rooms" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Schedules" })).not.toBeInTheDocument();
@@ -25,7 +25,7 @@ describe("AdminNav", () => {
     render(<AdminNav permissions={new Set([PERMISSIONS.SETTINGS_MANAGE])} />);
 
     expect(screen.getByRole("link", { name: "Settings" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Tiers" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Loyalty tiers" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Media" })).not.toBeInTheDocument();
   });
 
@@ -43,11 +43,11 @@ describe("AdminNav", () => {
     expect(screen.getByRole("link", { name: "Calendar" })).toBeInTheDocument();
   });
 
-  it("shows Business/Marketing/Reports for a user with ANALYTICS_VIEW", () => {
+  it("shows Business/Campaigns/Reports for a user with ANALYTICS_VIEW", () => {
     render(<AdminNav permissions={new Set([PERMISSIONS.ANALYTICS_VIEW])} />);
 
     expect(screen.getByRole("link", { name: "Business" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Marketing" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Campaigns" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Reports" })).toHaveAttribute("href", "/admin/reports");
   });
 

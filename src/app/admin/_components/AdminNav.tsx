@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { PERMISSIONS, type PermissionKey } from "@/modules/iam/permissions";
 
 interface AdminNavProps {
@@ -123,18 +123,37 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: "/admin", label: "Dashboard", icon: I.dashboard },
       { href: "/admin/dashboard", label: "Business", perm: PERMISSIONS.ANALYTICS_VIEW, icon: I.chart },
-      { href: "/admin/marketing", label: "Marketing", perm: PERMISSIONS.ANALYTICS_VIEW, icon: I.megaphone },
       { href: "/admin/reports", label: "Reports", perm: PERMISSIONS.ANALYTICS_VIEW, icon: I.report },
     ],
   },
   {
-    label: "Operations",
+    label: "Clients",
+    items: [
+      { href: "/admin/clients", label: "Clients", perm: PERMISSIONS.CLIENT_VIEW, icon: I.users },
+    ],
+  },
+  {
+    label: "Scheduling",
     items: [
       { href: "/admin/calendar", label: "Calendar", perm: PERMISSIONS.BOOKING_VIEW, icon: I.calendar },
       { href: "/admin/waitlist", label: "Waitlist", perm: PERMISSIONS.BOOKING_VIEW, icon: I.inbox },
-      { href: "/admin/clients", label: "Clients", perm: PERMISSIONS.CLIENT_VIEW, icon: I.users },
       { href: "/admin/booking/rooms", label: "Rooms", perm: PERMISSIONS.STAFF_MANAGE, icon: I.book },
       { href: "/admin/booking/schedules", label: "Schedules", perm: PERMISSIONS.STAFF_MANAGE, icon: I.calendar },
+    ],
+  },
+  {
+    label: "Commerce",
+    items: [
+      { href: "/admin/commerce", label: "Gift cards & packages", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.giftcard },
+      { href: "/admin/tiers", label: "Loyalty tiers", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.tag },
+    ],
+  },
+  {
+    label: "Marketing",
+    items: [
+      { href: "/admin/marketing", label: "Campaigns", perm: PERMISSIONS.ANALYTICS_VIEW, icon: I.megaphone },
+      { href: "/admin/inquiries", label: "Inquiries", perm: PERMISSIONS.CMS_MANAGE, icon: I.inbox },
+      { href: "/admin/reviews", label: "Reviews", perm: PERMISSIONS.CMS_MANAGE, icon: I.star },
     ],
   },
   {
@@ -143,19 +162,15 @@ const GROUPS: NavGroup[] = [
       { href: "/admin/media", label: "Media", perm: PERMISSIONS.CMS_MANAGE, icon: I.image },
       { href: "/admin/content", label: "Content", perm: PERMISSIONS.CMS_MANAGE, icon: I.content },
       { href: "/admin/catalog", label: "Catalog", perm: PERMISSIONS.CMS_MANAGE, icon: I.layers },
-      { href: "/admin/inquiries", label: "Inquiries", perm: PERMISSIONS.CMS_MANAGE, icon: I.inbox },
-      { href: "/admin/reviews", label: "Reviews", perm: PERMISSIONS.CMS_MANAGE, icon: I.star },
     ],
   },
   {
-    label: "Configuration",
+    label: "System",
     items: [
       { href: "/admin/settings", label: "Settings", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.gear },
-      { href: "/admin/tiers", label: "Tiers", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.tag },
-      { href: "/admin/commerce", label: "Gift cards & packages", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.giftcard },
       { href: "/admin/comms", label: "Communications", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.message },
-      { href: "/admin/audit", label: "Audit Log", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.shield },
       { href: "/admin/roles", label: "Roles", perm: PERMISSIONS.STAFF_MANAGE, icon: I.users },
+      { href: "/admin/audit", label: "Audit log", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.shield },
     ],
   },
 ];
@@ -165,74 +180,157 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={`h-3 w-3 shrink-0 transition-transform duration-200 ${open ? "" : "-rotate-90"}`}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+const RailIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-[1.15rem] w-[1.15rem]">
+    <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+    <path strokeLinecap="round" d="M9.5 4.5v15" />
+  </svg>
+);
+
 export function AdminNav({ permissions }: AdminNavProps) {
   // usePathname can be null (e.g. outside a router context in unit tests);
   // fall back to "" so isActive never dereferences null.
   const pathname = usePathname() ?? "";
-  let order = 0;
+  const [collapsed, setCollapsed] = useState(false);
+  const [closed, setClosed] = useState<Record<string, boolean>>({});
+
+  // Hydrate persisted UI state after mount (avoids SSR/client mismatch).
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem("lunia-nav-collapsed") === "1");
+      const raw = localStorage.getItem("lunia-nav-closed");
+      if (raw) setClosed(JSON.parse(raw) as Record<string, boolean>);
+    } catch {
+      /* localStorage unavailable — use defaults */
+    }
+  }, []);
+
+  const toggleCollapsed = () =>
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem("lunia-nav-collapsed", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+
+  const toggleGroup = (label: string) =>
+    setClosed((prev) => {
+      const next = { ...prev, [label]: !prev[label] };
+      try {
+        localStorage.setItem("lunia-nav-closed", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
 
   return (
     <nav
       aria-label="Admin navigation"
-      className="sticky top-0 flex h-screen w-64 shrink-0 flex-col gap-2 overflow-y-auto border-e border-[var(--line)] bg-[var(--color-ink)] px-4 py-6 text-[var(--color-cream)]"
+      className={`sticky top-0 flex h-screen shrink-0 flex-col gap-0.5 overflow-y-auto overflow-x-hidden border-e border-[var(--line)] bg-[var(--color-ink)] py-4 text-[var(--color-cream)] transition-[width] duration-300 ${
+        collapsed ? "w-[4.25rem] items-center px-2" : "w-60 px-3"
+      }`}
     >
-      {/* Brand lockup */}
-      <div className="mb-4 flex items-center gap-2.5 px-2">
-        <span className="font-[family-name:var(--font-display)] text-xl tracking-[0.3em]">LUNIA</span>
-        <span className="ms-auto rounded-full bg-[var(--color-teal)]/15 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-widest text-[var(--color-teal)]">
-          Admin
-        </span>
+      {/* Brand + collapse toggle */}
+      <div className={`mb-3 flex items-center ${collapsed ? "justify-center" : "gap-2 px-2"}`}>
+        {!collapsed && (
+          <>
+            <span className="font-[family-name:var(--font-display)] text-lg tracking-[0.3em]">LUNIA</span>
+            <span className="ms-auto rounded-full bg-[var(--color-teal)]/15 px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-widest text-[var(--color-teal)]">
+              Admin
+            </span>
+          </>
+        )}
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={`rounded-md p-1.5 text-[var(--color-cream)]/55 transition-colors hover:bg-white/10 hover:text-[var(--color-cream)] ${collapsed ? "" : "ms-1"}`}
+        >
+          {RailIcon}
+        </button>
       </div>
 
       {GROUPS.map((group) => {
         const items = group.items.filter((item) => !item.perm || permissions.has(item.perm));
         if (items.length === 0) return null;
+        const open = collapsed ? true : !closed[group.label];
         return (
-          <div key={group.label} className="mt-2">
-            <p className="px-3 pb-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-[var(--color-cream)]/35">
-              {group.label}
-            </p>
-            <ul className="flex flex-col gap-0.5">
-              {items.map((item) => {
-                const active = isActive(pathname, item.href);
-                order += 1;
-                return (
-                  <li key={item.href} className="lunia-animate-fade-in" style={{ animationDelay: `${order * 25}ms` }}>
-                    <Link
-                      href={item.href}
-                      aria-current={active ? "page" : undefined}
-                      className={`group relative flex items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-sm transition-all duration-200 ${
-                        active
-                          ? "bg-[var(--color-teal)]/15 font-medium text-[var(--color-cream)]"
-                          : "text-[var(--color-cream)]/70 hover:bg-white/5 hover:text-[var(--color-cream)]"
-                      }`}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={`absolute inset-y-1 -start-4 w-1 rounded-e-full bg-[var(--color-teal)] transition-transform duration-300 ${
-                          active ? "scale-y-100" : "scale-y-0"
+          <div key={group.label} className="w-full">
+            {collapsed ? (
+              <div aria-hidden="true" className="mx-auto my-2 h-px w-6 bg-white/10" />
+            ) : (
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.label)}
+                aria-expanded={open}
+                className="mt-2 flex w-full items-center justify-between rounded px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[var(--color-cream)]/35 transition-colors hover:text-[var(--color-cream)]/70"
+              >
+                {group.label}
+                <Chevron open={open} />
+              </button>
+            )}
+            {open && (
+              <ul className="flex flex-col gap-0.5">
+                {items.map((item) => {
+                  const active = isActive(pathname, item.href);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        title={collapsed ? item.label : undefined}
+                        className={`group flex items-center rounded-[var(--radius-sm)] text-sm transition-colors duration-200 ${
+                          collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-1.5"
+                        } ${
+                          active
+                            ? "bg-[var(--color-teal)]/15 font-medium text-[var(--color-cream)]"
+                            : "text-[var(--color-cream)]/70 hover:bg-white/5 hover:text-[var(--color-cream)]"
                         }`}
-                      />
-                      <span className={active ? "text-[var(--color-teal)]" : "text-[var(--color-cream)]/55 transition-colors group-hover:text-[var(--color-teal)]"}>
-                        {item.icon}
-                      </span>
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+                      >
+                        <span
+                          className={
+                            active
+                              ? "text-[var(--color-teal)]"
+                              : "text-[var(--color-cream)]/55 transition-colors group-hover:text-[var(--color-teal)]"
+                          }
+                        >
+                          {item.icon}
+                        </span>
+                        {!collapsed && item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         );
       })}
 
-      <form action="/admin/logout" method="post" className="mt-auto pt-4">
+      <form action="/admin/logout" method="post" className="mt-auto w-full pt-3">
         <button
           type="submit"
-          className="flex w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-sm text-[var(--color-cream)]/60 transition-colors hover:bg-white/5 hover:text-[var(--color-cream)]"
+          title={collapsed ? "Sign out" : undefined}
+          className={`flex w-full items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-cream)]/60 transition-colors hover:bg-white/5 hover:text-[var(--color-cream)] ${
+            collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2"
+          }`}
         >
           <span className="text-[var(--color-cream)]/50">{I.door}</span>
-          Sign out
+          {!collapsed && "Sign out"}
         </button>
       </form>
     </nav>
