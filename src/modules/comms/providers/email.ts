@@ -5,6 +5,7 @@
 
 import nodemailer from "nodemailer";
 import type { CommsSender } from "@/modules/booking/outbox";
+import { renderEmailHtml } from "@/modules/comms/emailLayout";
 
 export interface EmailSenderConfig {
   host: string;
@@ -32,11 +33,14 @@ export function makeEmailSender(cfg: EmailSenderConfig): CommsSender {
     async send(msg) {
       if (!msg.toEmail) return { ok: false };
       try {
+        const subject = msg.subject && msg.subject.trim() ? msg.subject : "Lunia";
         const info = await transport.sendMail({
           from: cfg.from,
           to: msg.toEmail,
-          subject: msg.subject && msg.subject.trim() ? msg.subject : "Lunia",
+          subject,
           text: msg.body,
+          // Branded HTML alongside the plain-text fallback.
+          html: renderEmailHtml({ subject, body: msg.body }),
         });
         // A real send always yields a messageId; treat its absence as failure
         // so "SENT" always means the SMTP server accepted the message.

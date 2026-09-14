@@ -35,6 +35,9 @@ describe("makeEmailSender", () => {
     expect(call.subject).toBe("Your Lunia code");
     expect(call.from).toBe(cfg.from);
     expect(call.text).toBe("Code: 123456");
+    // Branded HTML part is sent alongside the plain-text fallback.
+    expect(String(call.html)).toContain("LUNIA");
+    expect(String(call.html)).toContain("123456");
   });
 
   it("uses a default subject when none is provided", async () => {
