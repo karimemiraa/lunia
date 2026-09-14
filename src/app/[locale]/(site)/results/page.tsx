@@ -91,6 +91,13 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         ctaHref={bookHref}
       />
 
+      <CinematicImage
+        src="/brand/experience-brush.jpg"
+        alt={tResults("moment.headline")}
+        eyebrow={tResults("moment.eyebrow")}
+        headline={tResults("moment.headline")}
+      />
+
       <Section tone="plain">
         <ResultsGallery
           items={items}
@@ -100,8 +107,6 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
           emptyLabel={tResults("emptyLabel")}
         />
       </Section>
-
-      <CinematicImage src="/brand/experience-brush.jpg" alt={tCommon("brandName")} />
 
       <Section tone="tinted">
         <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={bookHref} />

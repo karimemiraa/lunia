@@ -22,13 +22,13 @@ test.describe("brands overview page", () => {
 });
 
 test.describe("brand page", () => {
-  test("en: /brands/zo-skin-health shows the brand h1 and a Book CTA", async ({ page }) => {
-    await page.goto("/en/brands/zo-skin-health");
+  test("en: /brands/pca-skin shows the brand h1 and a Book CTA", async ({ page }) => {
+    await page.goto("/en/brands/pca-skin");
 
     const h1 = page.getByRole("heading", { level: 1 });
     await expect(h1).toBeVisible();
     await expect(h1).toHaveCount(1);
-    await expect(h1).toContainText(/zo skin health/i);
+    await expect(h1).toContainText(/pca skin/i);
 
     await expect(page).toHaveTitle(/.+/);
 
@@ -36,8 +36,8 @@ test.describe("brand page", () => {
     expect(await bookLinks.count()).toBeGreaterThanOrEqual(1);
   });
 
-  test("ar: /brands/zo-skin-health renders rtl with the brand h1", async ({ page }) => {
-    await page.goto("/ar/brands/zo-skin-health");
+  test("ar: /brands/pca-skin renders rtl with the brand h1", async ({ page }) => {
+    await page.goto("/ar/brands/pca-skin");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   });

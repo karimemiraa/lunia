@@ -100,6 +100,13 @@ export default async function ServicesPage({ params }: ServicesPageProps) {
         ctaHref={bookHref}
       />
 
+      <CinematicImage
+        src="/brand/experience-brush.jpg"
+        alt={tIndex("moment.headline")}
+        eyebrow={tIndex("moment.eyebrow")}
+        headline={tIndex("moment.headline")}
+      />
+
       <Section tone="plain">
         <div className="flex flex-col gap-20">
           {departments.map((department: Department, index: number) => {
@@ -153,8 +160,6 @@ export default async function ServicesPage({ params }: ServicesPageProps) {
           })}
         </div>
       </Section>
-
-      <CinematicImage src="/brand/experience-serum.jpg" alt={tCommon("brandName")} />
 
       <Section tone="tinted">
         <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={bookHref} />

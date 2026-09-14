@@ -16,9 +16,9 @@ describe("catalog models (post-seed)", () => {
   });
 
   it("has a Brand seeded by slug", async () => {
-    const brand = await prisma.brand.findUnique({ where: { slug: "zo-skin-health" } });
+    const brand = await prisma.brand.findUnique({ where: { slug: "pca-skin" } });
     expect(brand).not.toBeNull();
-    expect(brand?.name).toBe("ZO Skin Health");
+    expect(brand?.name).toBe("PCA Skin");
   });
 
   it("has at least one published BlogPost", async () => {

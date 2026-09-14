@@ -482,72 +482,82 @@ async function main() {
 
   const brandSeeds = [
     {
-      slug: "zo-skin-health",
-      name: "ZO Skin Health",
-      descEn:
-        "A physician-developed skincare line founded by Dr. Zein Obagi, built on therapeutic, results-driven formulations for long-term skin health.",
-      descAr:
-        "خط عناية بالبشرة طوره أطباء بقيادة الدكتور زين عبقري، ويعتمد على تركيبات علاجية تركز على النتائج لصحة بشرة طويلة الأمد.",
-      whyChosenEn:
-        "Lunia chose ZO Skin Health for its clinically backed, physician-grade approach that complements our diagnostic-first philosophy.",
-      whyChosenAr:
-        "اختارت لونيا ZO Skin Health لنهجها الطبي المدعوم سريرياً الذي يكمل فلسفتنا القائمة على التشخيص أولاً.",
+      slug: "72",
+      name: "72",
+      descEn: "Targeted hair and scalp care that supports scalp balance and healthier-looking hair.",
+      descAr: "عناية مركّزة بالشعر وفروة الرأس تدعم توازن فروة الرأس ومظهر شعر أكثر صحة.",
+      whyChosenEn: "72 aligns with our scalp-as-skin philosophy, extending in-clinic results at home.",
+      whyChosenAr: "تتماشى 72 مع فلسفتنا في التعامل مع فروة الرأس كامتداد للبشرة، وتمدّ نتائج العيادة إلى المنزل.",
       order: 0,
     },
     {
-      slug: "pca",
-      name: "PCA",
-      descEn:
-        "A trusted professional skincare and peel brand known for science-based formulations that address a wide range of skin concerns.",
-      descAr:
-        "علامة موثوقة في العناية بالبشرة والتقشير المهني، معروفة بتركيباتها العلمية التي تعالج مجموعة واسعة من مشكلات البشرة.",
-      whyChosenEn:
-        "We chose PCA for its versatile, well-tolerated peel systems that pair naturally with our resurfacing treatments.",
-      whyChosenAr:
-        "اخترنا PCA لأنظمة التقشير المتعددة الاستخدامات والمتحملة جيداً والتي تتكامل بشكل طبيعي مع علاجات التجديد لدينا.",
+      slug: "revitalash",
+      name: "RevitaLash Cosmetics",
+      descEn: "Science-led lash and brow conditioning trusted by professionals.",
+      descAr: "عناية بالرموش والحواجب قائمة على العلم وموثوقة من المختصين.",
+      whyChosenEn: "RevitaLash complements our results-driven approach with proven lash and brow care.",
+      whyChosenAr: "تكمّل RevitaLash نهجنا الموجّه للنتائج بعناية مثبتة للرموش والحواجب.",
       order: 1,
     },
     {
-      slug: "image-skincare",
-      name: "Image Skincare",
-      descEn:
-        "A comprehensive skincare range offering targeted solutions for hydration, brightening, and anti-aging concerns.",
-      descAr:
-        "مجموعة شاملة من منتجات العناية بالبشرة تقدم حلولاً مستهدفة للترطيب والتفتيح ومكافحة علامات التقدم في السن.",
-      whyChosenEn:
-        "Image Skincare rounds out our protocols with accessible, effective formulations suited to a wide range of skin types.",
-      whyChosenAr:
-        "تكمّل Image Skincare بروتوكولاتنا بتركيبات فعالة وسهلة الاستخدام تناسب مجموعة واسعة من أنواع البشرة.",
+      slug: "pca-skin",
+      name: "PCA Skin",
+      descEn: "A trusted professional skincare and peel brand known for science-based formulations.",
+      descAr: "علامة احترافية موثوقة في العناية بالبشرة والتقشير، معروفة بتركيباتها العلمية.",
+      whyChosenEn: "We chose PCA Skin for versatile, well-tolerated systems that pair with our treatments.",
+      whyChosenAr: "اخترنا PCA Skin لأنظمتها المتعددة والمتحمَّلة جيداً التي تتكامل مع علاجاتنا.",
       order: 2,
     },
     {
       slug: "eltamd",
       name: "EltaMD",
-      descEn:
-        "A dermatologist-recommended sun care brand known for lightweight, broad-spectrum sunscreens suited to sensitive and treated skin.",
-      descAr:
-        "علامة موصى بها من أطباء الجلدية للعناية بالشمس، معروفة بواقيات شمس خفيفة وواسعة الطيف تناسب البشرة الحساسة والمعالَجة.",
-      whyChosenEn:
-        "Sun protection is central to skin quality, and EltaMD gives our clients a comfortable daily option after in-clinic treatments.",
-      whyChosenAr:
-        "الحماية من الشمس أساسية لجودة البشرة، وتمنح EltaMD عميلاتنا خياراً يومياً مريحاً بعد العلاجات داخل العيادة.",
+      descEn: "A dermatologist-recommended sun care brand known for lightweight, broad-spectrum sunscreens.",
+      descAr: "علامة موصى بها من أطباء الجلدية، معروفة بواقيات شمس خفيفة وواسعة الطيف.",
+      whyChosenEn: "Sun protection is central to skin quality, and EltaMD suits sensitive, treated skin.",
+      whyChosenAr: "الحماية من الشمس أساس جودة البشرة، وEltaMD تناسب البشرة الحساسة والمعالَجة.",
       order: 3,
     },
     {
-      slug: "72-hair",
-      name: "72 Hair",
-      descEn:
-        "A specialized hair and scalp care brand offering targeted formulations that support scalp balance and healthier-looking hair.",
-      descAr:
-        "علامة متخصصة في العناية بالشعر وفروة الرأس تقدم تركيبات مستهدفة تدعم توازن فروة الرأس ومظهر شعر أكثر صحة.",
-      whyChosenEn:
-        "72 Hair aligns with our scalp-as-skin philosophy, extending in-clinic results with at-home scalp care.",
-      whyChosenAr:
-        "تتماشى 72 Hair مع فلسفتنا في التعامل مع فروة الرأس كامتداد للبشرة، وتمد نتائج العيادة بعناية منزلية لفروة الرأس.",
+      slug: "image-skincare",
+      name: "IMAGE Skincare",
+      descEn: "Clinical skincare offering targeted solutions for hydration, brightening, and anti-aging.",
+      descAr: "عناية إكلينيكية تقدّم حلولاً مستهدفة للترطيب والتفتيح ومكافحة علامات التقدّم.",
+      whyChosenEn: "IMAGE Skincare rounds out our protocols with effective, widely-suited formulations.",
+      whyChosenAr: "تكمّل IMAGE Skincare بروتوكولاتنا بتركيبات فعّالة تناسب معظم أنواع البشرة.",
       order: 4,
+    },
+    {
+      slug: "edit-b",
+      name: "EDIT.B",
+      descEn: "Modern, targeted skin solutions built for visible, everyday results.",
+      descAr: "حلول حديثة وموجّهة للبشرة لنتائج ملحوظة كل يوم.",
+      whyChosenEn: "EDIT.B brings a modern edit of focused actives that fit our layered approach.",
+      whyChosenAr: "تقدّم EDIT.B مجموعة حديثة من المكوّنات الفعّالة التي تناسب نهجنا المتدرّج.",
+      order: 5,
+    },
+    {
+      slug: "dr-melaxin",
+      name: "Dr.Melaxin",
+      descEn: "Slow-aging derma skincare focused on long-term skin resilience.",
+      descAr: "عناية جلدية لإبطاء علامات التقدّم تركّز على متانة البشرة على المدى الطويل.",
+      whyChosenEn: "Dr.Melaxin supports our sustained, quality-over-quick-fix philosophy.",
+      whyChosenAr: "تدعم Dr.Melaxin فلسفتنا القائمة على الجودة المستدامة بدل الحلول السريعة.",
+      order: 6,
+    },
+    {
+      slug: "sungboon-editor",
+      name: "SUNGBOON EDITOR",
+      descEn: "Advanced Korean skin science for gentle, effective daily care.",
+      descAr: "علم كوري متقدّم للعناية بالبشرة بلطف وفعالية يومياً.",
+      whyChosenEn: "SUNGBOON EDITOR reflects the Korean, diagnostic-first heritage behind Lunia.",
+      whyChosenAr: "تعكس SUNGBOON EDITOR الإرث الكوري القائم على التشخيص أولاً خلف لونيا.",
+      order: 7,
     },
   ];
 
+  const brandSlugs = brandSeeds.map((b) => b.slug);
+  // Prune brands no longer in the partner list (e.g. earlier seed set).
+  await prisma.brand.deleteMany({ where: { slug: { notIn: brandSlugs } } });
   for (const brand of brandSeeds) {
     const { slug, ...brandData } = brand;
     await prisma.brand.upsert({
