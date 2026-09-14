@@ -185,6 +185,10 @@
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Book a diagnostic consultation to begin"
+    },
+    "moment": {
+      "eyebrow": "Clinical-grade care",
+      "headline": "Every treatment, matched to your skin."
     }
   },
   "brandsIndex": {
@@ -233,6 +237,10 @@
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Start building your own results"
+    },
+    "moment": {
+      "eyebrow": "Real, lasting results",
+      "headline": "Skin quality you can see and keep."
     }
   },
   "journalIndex": {

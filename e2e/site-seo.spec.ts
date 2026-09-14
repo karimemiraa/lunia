@@ -10,7 +10,7 @@ const ROUTES = [
   "/services",
   "/services/skin",
   "/brands",
-  "/brands/zo-skin-health",
+  "/brands/pca-skin",
   "/results",
   "/journal",
   "/contact",

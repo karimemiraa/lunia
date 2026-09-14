@@ -62,8 +62,8 @@ describe("brands", () => {
   });
 
   it("getBrandBySlug returns a brand by slug", async () => {
-    const brand = await getBrandBySlug("zo-skin-health");
-    expect(brand?.name).toBe("ZO Skin Health");
+    const brand = await getBrandBySlug("pca-skin");
+    expect(brand?.name).toBe("PCA Skin");
   });
 
   it("getBrandBySlug returns null for an unknown slug", async () => {

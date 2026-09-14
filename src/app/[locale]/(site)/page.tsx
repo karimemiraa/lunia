@@ -9,7 +9,7 @@ import { Section } from "@/components/site/Section";
 import { SectionHeading } from "@/components/site/SectionHeading";
 import { JourneySteps } from "@/components/site/JourneySteps";
 import { ServiceCard } from "@/components/site/ServiceCard";
-import { BrandCard } from "@/components/site/BrandCard";
+import { BrandLogos } from "@/components/site/BrandLogos";
 import { Testimonials } from "@/components/site/Testimonials";
 import { CtaBand } from "@/components/site/CtaBand";
 import { Faq } from "@/components/site/Faq";
@@ -253,17 +253,13 @@ export default async function Home({ params }: HomePageProps) {
       <Section tone="tinted">
         <div className="flex flex-col gap-14">
           <SectionHeading eyebrow={tBrands("eyebrow")} heading={tBrands("heading")} intro={tBrands("intro")} />
-          <div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {brands.map((brand: Brand, index: number) => (
-              <BrandCard
-                key={brand.id}
-                name={brand.name}
-                blurb={localized(locale, brand.descEn, brand.descAr)}
-                href={`/${locale}/brands/${brand.slug}`}
-                logo={brandMedia[index]}
-              />
-            ))}
-          </div>
+          <BrandLogos
+            brands={brands.map((brand: Brand, index: number) => ({
+              name: brand.name,
+              href: `/${locale}/brands/${brand.slug}`,
+              logoKey: brandMedia[index]?.key ?? null,
+            }))}
+          />
         </div>
       </Section>
 

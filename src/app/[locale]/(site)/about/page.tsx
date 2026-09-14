@@ -100,6 +100,14 @@ export default async function AboutPage({ params }: AboutPageProps) {
         ctaHref={bookHref}
       />
 
+      <CinematicImage
+        src="/brand/experience-serum.jpg"
+        alt={tPositioning("heading")}
+        eyebrow={tPositioning("eyebrow")}
+        headline={tPositioning("heading")}
+        intro={tPositioning("body")}
+      />
+
       <Section tone="plain">
         <div className="flex flex-col gap-10">
           <SectionHeading eyebrow={tStory("eyebrow")} heading={tStory("heading")} align="center" className="mx-auto" />
@@ -110,14 +118,6 @@ export default async function AboutPage({ params }: AboutPageProps) {
           </Prose>
         </div>
       </Section>
-
-      <CinematicImage
-        src="/brand/experience-serum.jpg"
-        alt={tPositioning("heading")}
-        eyebrow={tPositioning("eyebrow")}
-        headline={tPositioning("heading")}
-        intro={tPositioning("body")}
-      />
 
       <Section tone="plain">
         <JourneySteps eyebrow={tJourney("eyebrow")} heading={tJourney("heading")} steps={journeySteps} />
