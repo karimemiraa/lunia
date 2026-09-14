@@ -4,9 +4,10 @@ import type { Department, Brand } from "@prisma/client";
 
 import { Hero } from "@/components/site/Hero";
 import { HeroRatingCard } from "@/components/site/HeroRatingCard";
+import { CinematicImage } from "@/components/site/CinematicImage";
 import { Section } from "@/components/site/Section";
 import { SectionHeading } from "@/components/site/SectionHeading";
-import { ScrollJourney } from "@/components/site/ScrollJourney";
+import { JourneySteps } from "@/components/site/JourneySteps";
 import { ServiceCard } from "@/components/site/ServiceCard";
 import { BrandCard } from "@/components/site/BrandCard";
 import { Testimonials } from "@/components/site/Testimonials";
@@ -220,15 +221,13 @@ export default async function Home({ params }: HomePageProps) {
         }
       />
 
-      <Section tone="plain">
-        <SectionHeading
-          eyebrow={tPositioning("eyebrow")}
-          heading={tPositioning("heading")}
-          intro={tPositioning("body")}
-          align="center"
-          className="mx-auto"
-        />
-      </Section>
+      <CinematicImage
+        src="/brand/experience-brush.jpg"
+        alt={tPositioning("heading")}
+        eyebrow={tPositioning("eyebrow")}
+        headline={tPositioning("heading")}
+        intro={tPositioning("body")}
+      />
 
       <Section tone="tinted">
         <div className="flex flex-col gap-14">
@@ -247,7 +246,9 @@ export default async function Home({ params }: HomePageProps) {
         </div>
       </Section>
 
-      <ScrollJourney eyebrow={tJourney("eyebrow")} heading={tJourney("heading")} steps={journeySteps} />
+      <Section tone="plain">
+        <JourneySteps eyebrow={tJourney("eyebrow")} heading={tJourney("heading")} steps={journeySteps} />
+      </Section>
 
       <Section tone="tinted">
         <div className="flex flex-col gap-14">
