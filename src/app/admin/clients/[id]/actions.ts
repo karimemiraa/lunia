@@ -194,3 +194,65 @@ export async function adjustLoyaltyPointsAction(
   revalidateClient(clientProfileId);
   return { success: true };
 }
+
+// --- Clinical profile, tags & consent ---------------------------------------
+
+function csvToList(raw: FormDataEntryValue | null): string[] {
+  return String(raw ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 40);
+}
+
+// Saves the skin/clinical profile, CRM tags, and PDPL consent for a client.
+// Consent timestamps are set when the box is ticked and cleared when unticked,
+// so the stored time is when consent was (last) granted.
+export async function saveClinicalAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+
+  const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
+  if (!clientProfileId) return { error: "Missing client." };
+
+  const skinTypeRaw = String(formData.get("skinType") ?? "").trim();
+  const allergiesRaw = String(formData.get("allergies") ?? "").trim();
+  const clinicalNotesRaw = String(formData.get("clinicalNotes") ?? "").trim();
+  const consentTreatment = formData.get("consentTreatment") === "on";
+  const consentData = formData.get("consentData") === "on";
+
+  const existing = await prisma.clientProfile.findUnique({
+    where: { id: clientProfileId },
+    select: { consentTreatmentAt: true, consentDataAt: true },
+  });
+  if (!existing) return { error: "Client not found." };
+
+  try {
+    await prisma.clientProfile.update({
+      where: { id: clientProfileId },
+      data: {
+        tags: csvToList(formData.get("tags")),
+        skinType: skinTypeRaw || null,
+        skinConcerns: csvToList(formData.get("skinConcerns")),
+        allergies: allergiesRaw || null,
+        clinicalNotes: clinicalNotesRaw || null,
+        // Preserve the original grant time if still consented; set now on a new
+        // grant; clear when consent is withdrawn.
+        consentTreatmentAt: consentTreatment ? (existing.consentTreatmentAt ?? new Date()) : null,
+        consentDataAt: consentData ? (existing.consentDataAt ?? new Date()) : null,
+      },
+    });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save clinical profile." };
+  }
+
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "CLIENT_CLINICAL_UPDATE",
+    entityType: "ClientProfile",
+    entityId: clientProfileId,
+    summary: `Updated clinical profile, tags & consent for client "${clientProfileId}"`,
+  });
+
+  revalidateClient(clientProfileId);
+  return { success: true };
+}

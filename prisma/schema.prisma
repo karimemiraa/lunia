@@ -109,6 +109,15 @@ model ClientProfile {
   sourceChannel String?
   ltvCacheMinor Int               @default(0)
   createdAt     DateTime          @default(now())
+  // CRM segmentation + clinical (skin center) profile
+  tags          String[]          @default([])
+  skinType      String?
+  skinConcerns  String[]          @default([])
+  allergies     String?
+  clinicalNotes String?
+  // Consent (PDPL): timestamps record when consent was last given (null = not given)
+  consentTreatmentAt DateTime?
+  consentDataAt      DateTime?
   membership    ClientMembership?
   bookings      Booking[]
   visitNotes    VisitNote[]
@@ -119,6 +128,16 @@ model ClientProfile {
   packagePurchases    PackagePurchase[]
   waitlistEntries     WaitlistEntry[]
   reviews             Review[]
+}
+
+// A saved client segment: a named filter over the roster for targeted
+// marketing / re-engagement (stored as the same filter shape the roster uses).
+model Segment {
+  id        String   @id @default(cuid())
+  name      String
+  filter    Json
+  createdAt DateTime @default(now())
+  createdById String?
 }
 
 model ClientMembership {
