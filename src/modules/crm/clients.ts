@@ -15,15 +15,29 @@ export interface ListClientsFilter {
   source?: string;
 }
 
+// Lifecycle status derived from visit history:
+// - "new":    has never completed a visit yet
+// - "active": completed a visit within the last ACTIVE_WINDOW_DAYS
+// - "lapsed": completed a visit, but not within that window
+export type ClientLifecycle = "new" | "active" | "lapsed";
+
+// A client is "active" if their most recent completed visit is within this
+// many days; older than that and they are "lapsed" (a re-engagement target).
+export const ACTIVE_WINDOW_DAYS = 90;
+
 export interface ClientListRow {
   clientProfileId: string;
   fullName: string;
   phone: string | null;
+  email: string | null;
   tierName?: string;
   source?: string;
   ltvMinor: number;
   lastVisitAt?: Date;
+  nextAppointmentAt?: Date;
   bookingCount: number;
+  status: ClientLifecycle;
+  createdAt: Date;
 }
 
 /**
@@ -61,29 +75,51 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
     include: { appointments: true },
   });
 
+  const now = new Date();
+  const activeCutoff = new Date(now.getTime() - ACTIVE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const bookingCountByClient = new Map<string, number>();
   const lastVisitByClient = new Map<string, Date>();
+  const nextApptByClient = new Map<string, Date>();
   for (const booking of bookings) {
     bookingCountByClient.set(booking.clientProfileId, (bookingCountByClient.get(booking.clientProfileId) ?? 0) + 1);
-    if (booking.status !== "COMPLETED") continue;
     for (const appointment of booking.appointments) {
-      const current = lastVisitByClient.get(booking.clientProfileId);
-      if (!current || appointment.startAt > current) {
-        lastVisitByClient.set(booking.clientProfileId, appointment.startAt);
+      if (booking.status === "COMPLETED") {
+        const current = lastVisitByClient.get(booking.clientProfileId);
+        if (!current || appointment.startAt > current) {
+          lastVisitByClient.set(booking.clientProfileId, appointment.startAt);
+        }
+      }
+      // Upcoming appointment: earliest future start among live (non-terminal) bookings.
+      if (
+        (booking.status === "REQUESTED" || booking.status === "CONFIRMED" || booking.status === "CHECKED_IN") &&
+        appointment.startAt > now
+      ) {
+        const current = nextApptByClient.get(booking.clientProfileId);
+        if (!current || appointment.startAt < current) {
+          nextApptByClient.set(booking.clientProfileId, appointment.startAt);
+        }
       }
     }
   }
 
-  return profiles.map((profile) => ({
-    clientProfileId: profile.id,
-    fullName: profile.fullName,
-    phone: profile.user.phone,
-    tierName: profile.membership?.tier.name,
-    source: profile.sourceChannel ?? undefined,
-    ltvMinor: profile.ltvCacheMinor,
-    lastVisitAt: lastVisitByClient.get(profile.id),
-    bookingCount: bookingCountByClient.get(profile.id) ?? 0,
-  }));
+  return profiles.map((profile) => {
+    const lastVisitAt = lastVisitByClient.get(profile.id);
+    const status: ClientLifecycle = !lastVisitAt ? "new" : lastVisitAt >= activeCutoff ? "active" : "lapsed";
+    return {
+      clientProfileId: profile.id,
+      fullName: profile.fullName,
+      phone: profile.user.phone,
+      email: profile.user.email,
+      tierName: profile.membership?.tier.name,
+      source: profile.sourceChannel ?? undefined,
+      ltvMinor: profile.ltvCacheMinor,
+      lastVisitAt,
+      nextAppointmentAt: nextApptByClient.get(profile.id),
+      bookingCount: bookingCountByClient.get(profile.id) ?? 0,
+      status,
+      createdAt: profile.createdAt,
+    };
+  });
 }
 
 export interface ClientDetailBooking {
