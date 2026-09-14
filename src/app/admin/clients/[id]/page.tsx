@@ -94,9 +94,32 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
 
   const contact = [detail.phone, detail.email].filter(Boolean).join("  ·  ") || "No contact on file";
 
-  // --- Tab: Overview (staff-editable: tier, preferences, visit notes) --------
+  const pinnedNotes = detail.visitNotes.filter((n) => n.pinned);
+
+  // --- Tab: Overview (staff-editable: comments, tier, preferences) -----------
   const overview = (
     <div className="flex flex-col gap-8">
+      <SectionCard title="Comments">
+        {canWriteNotes && <VisitNoteForm clientProfileId={detail.profile.id} />}
+        {detail.visitNotes.length === 0 ? (
+          <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">
+            No comments yet.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3" data-testid="visit-notes-list">
+            {detail.visitNotes.map((note) => (
+              <VisitNoteRow
+                key={note.id}
+                note={note}
+                clientProfileId={detail.profile.id}
+                currentUserId={user.id}
+                canManage={canManage}
+                canWrite={canWriteNotes}
+              />
+            ))}
+          </ul>
+        )}
+      </SectionCard>
       {canManage && (
         <SectionCard title="Membership tier">
           <TierEditor clientProfileId={detail.profile.id} currentTierId={detail.tier?.id ?? null} tiers={tiers} />
@@ -107,20 +130,6 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
           <NotificationPreferenceEditor clientProfileId={detail.profile.id} preference={preference} />
         </SectionCard>
       )}
-      <SectionCard title="Visit notes">
-        {canWriteNotes && <VisitNoteForm clientProfileId={detail.profile.id} />}
-        {detail.visitNotes.length === 0 ? (
-          <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">
-            No visit notes yet.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-3" data-testid="visit-notes-list">
-            {detail.visitNotes.map((note) => (
-              <VisitNoteRow key={note.id} note={note} clientProfileId={detail.profile.id} currentUserId={user.id} canManage={canManage} />
-            ))}
-          </ul>
-        )}
-      </SectionCard>
     </div>
   );
 
@@ -281,7 +290,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   type Entry = { at: Date; kind: "appointment" | "note" | "loyalty"; text: string };
   const timeline: Entry[] = [
     ...detail.bookings.map((b): Entry => ({ at: b.startAt, kind: "appointment", text: `${b.serviceName} — ${b.status.replace("_", " ").toLowerCase()}` })),
-    ...detail.visitNotes.map((n): Entry => ({ at: n.createdAt, kind: "note", text: `Note${n.authorName ? ` by ${n.authorName}` : ""}: ${n.body.slice(0, 120)}` })),
+    ...detail.visitNotes.map((n): Entry => ({ at: n.createdAt, kind: "note", text: `Comment${n.authorName ? ` by ${n.authorName}` : ""}: ${n.body.slice(0, 120)}` })),
     ...loyalty.transactions.map((t): Entry => ({ at: t.createdAt, kind: "loyalty", text: `Loyalty ${t.reason.toLowerCase()} ${t.deltaPoints > 0 ? "+" : ""}${t.deltaPoints} pts` })),
   ].sort((a, b) => b.at.getTime() - a.at.getTime());
 
@@ -354,6 +363,23 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             </Link>
           </div>
         </div>
+
+        {/* Pinned comments: front-desk-critical flags (allergies, preferences) */}
+        {pinnedNotes.length > 0 && (
+          <ul className="flex flex-col gap-2" data-testid="pinned-comments">
+            {pinnedNotes.map((note) => (
+              <li
+                key={note.id}
+                className="flex items-start gap-2.5 rounded-[var(--radius-sm)] border border-[var(--color-gold)]/45 bg-[var(--color-gold)]/8 px-4 py-2.5 text-sm text-[var(--color-ink)]"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="mt-0.5 shrink-0 text-[#7c6a2f]">
+                  <path d="M16 3l5 5-2 2-1-1-4 4v5l-2 2-3-3-4 4-1-1 4-4-3-3 2-2h5l4-4-1-1 2-2z" />
+                </svg>
+                <span className="whitespace-pre-wrap">{note.body}</span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {/* Metrics row */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">

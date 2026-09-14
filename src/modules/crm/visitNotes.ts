@@ -34,11 +34,11 @@ export async function addVisitNote(input: AddVisitNoteInput): Promise<VisitNote>
 
 export type VisitNoteWithAuthor = VisitNote & { authorName?: string };
 
-/** Newest-first notes for a client, with authorName resolved via a single batched User lookup. */
+/** Pinned-first, then newest-first notes for a client, with authorName resolved via a single batched User lookup. */
 export async function listVisitNotes(clientProfileId: string): Promise<VisitNoteWithAuthor[]> {
   const notes = await prisma.visitNote.findMany({
     where: { clientProfileId },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
   });
   if (notes.length === 0) return [];
 
@@ -50,6 +50,11 @@ export async function listVisitNotes(clientProfileId: string): Promise<VisitNote
   const nameById = new Map(authors.map((u) => [u.id, u.staffProfile?.fullName ?? u.clientProfile?.fullName]));
 
   return notes.map((note) => ({ ...note, authorName: nameById.get(note.authorUserId) ?? undefined }));
+}
+
+/** Pins or unpins a note so it surfaces (or stops surfacing) at the top of the profile. */
+export async function setNotePinned(id: string, pinned: boolean): Promise<void> {
+  await prisma.visitNote.update({ where: { id }, data: { pinned } });
 }
 
 /**

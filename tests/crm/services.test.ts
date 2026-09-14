@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import type { Room, Service, User } from "@prisma/client";
 import { complete } from "@/modules/booking/bookings";
 import { listClients, getClientDetail, updateClientTier } from "@/modules/crm/clients";
-import { addVisitNote, listVisitNotes, deleteVisitNote } from "@/modules/crm/visitNotes";
+import { addVisitNote, listVisitNotes, deleteVisitNote, setNotePinned } from "@/modules/crm/visitNotes";
 import { computeClientLtvMinor, refreshClientLtv, topClientsByLtv } from "@/modules/crm/ltv";
 import { listCampaignSpend, upsertCampaignSpend, spendByChannel } from "@/modules/crm/campaigns";
 
@@ -181,6 +181,26 @@ describe("visitNotes", () => {
     expect(notes[0]!.id).toBe(second.id);
     expect(notes[1]!.id).toBe(first.id);
     expect(notes[0]!.authorName).toBeTruthy();
+  });
+
+  it("setNotePinned surfaces a pinned comment first, regardless of recency", async () => {
+    const { clientProfileId } = await createTestClient("Pinned Comment Client");
+
+    const older = await addVisitNote({ clientProfileId, authorUserId: owner.id, body: "Older note" });
+    await new Promise((r) => setTimeout(r, 5));
+    await addVisitNote({ clientProfileId, authorUserId: owner.id, body: "Newer note" });
+
+    // Pin the older note — it should now jump to the top.
+    await setNotePinned(older.id, true);
+    let notes = await listVisitNotes(clientProfileId);
+    expect(notes[0]!.id).toBe(older.id);
+    expect(notes[0]!.pinned).toBe(true);
+    expect(notes[1]!.pinned).toBe(false);
+
+    // Unpin — recency ordering is restored (newer first).
+    await setNotePinned(older.id, false);
+    notes = await listVisitNotes(clientProfileId);
+    expect(notes[0]!.body).toBe("Newer note");
   });
 
   it("deleteVisitNote allows the author to delete their own note", async () => {

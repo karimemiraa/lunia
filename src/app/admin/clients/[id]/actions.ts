@@ -13,7 +13,7 @@ import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { recordAudit } from "@/modules/iam/audit";
 import { prisma } from "@/lib/db";
-import { addVisitNote, deleteVisitNote } from "@/modules/crm/visitNotes";
+import { addVisitNote, deleteVisitNote, setNotePinned } from "@/modules/crm/visitNotes";
 import { updateClientTier } from "@/modules/crm/clients";
 import { upsertPreference } from "@/modules/comms/preferences";
 import { adjustPoints } from "@/modules/crm/loyalty";
@@ -78,6 +78,29 @@ export async function deleteNoteAction(_prev: ClientActionState | null, formData
     }
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to delete visit note." };
+  }
+
+  revalidateClient(clientProfileId);
+  return { success: true };
+}
+
+// Pins/unpins a comment so it surfaces at the top of the profile and as a
+// header flag. Guarded by VISITNOTE_WRITE (same as adding a comment) — pinning
+// is a curation action over the same content.
+export async function toggleNotePinAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
+  await requireAdmin(PERMISSIONS.VISITNOTE_WRITE);
+
+  const noteId = String(formData.get("noteId") ?? "").trim();
+  const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
+  const pinned = formData.get("pinned") === "true";
+  if (!noteId || !clientProfileId) {
+    return { error: "Missing comment." };
+  }
+
+  try {
+    await setNotePinned(noteId, pinned);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update comment." };
   }
 
   revalidateClient(clientProfileId);

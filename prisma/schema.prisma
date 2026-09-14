@@ -696,6 +696,9 @@ model VisitNote {
   bookingId       String?
   authorUserId    String
   body            String        @db.Text
+  // Pinned comments surface at the top of the profile and as header flags
+  // (e.g. "Allergic to X", "Prefers afternoons") — front-desk critical info.
+  pinned          Boolean       @default(false)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @default(now()) @updatedAt
 

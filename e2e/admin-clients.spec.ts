@@ -113,12 +113,12 @@ test("clients: search creates client appears, add visit note, and edit tier pers
   await row.getByRole("link", { name }).click();
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
 
-  // Add a visit note.
-  const noteBody = `E2E visit note ${Date.now()}`;
+  // Add a comment.
+  const noteBody = `E2E comment ${Date.now()}`;
   const noteForm = page.getByTestId("visit-note-form");
-  await noteForm.getByLabel("Add visit note").fill(noteBody);
-  await noteForm.getByRole("button", { name: "Add note" }).click();
-  await expect(noteForm.getByText("Note added.")).toBeVisible();
+  await noteForm.getByLabel("Add comment").fill(noteBody);
+  await noteForm.getByRole("button", { name: "Add comment" }).click();
+  await expect(noteForm.getByText("Comment added.")).toBeVisible();
 
   const noteItem = page.locator('[data-testid="visit-note"]', { hasText: noteBody });
   await expect(noteItem).toBeVisible();

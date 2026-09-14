@@ -32,8 +32,8 @@ export function VisitNoteForm({ clientProfileId }: VisitNoteFormProps) {
     >
       <input type="hidden" name="clientProfileId" value={clientProfileId} />
       <label htmlFor={bodyId} className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-[var(--color-ink)]">Add visit note</span>
-        <textarea id={bodyId} name="body" required rows={3} className={textareaClass} placeholder="Clinical notes, observations, follow-up..." />
+        <span className="font-medium text-[var(--color-ink)]">Add comment</span>
+        <textarea id={bodyId} name="body" required rows={3} className={textareaClass} placeholder="Observations, preferences, follow-up, front-desk notes..." />
       </label>
       <div className="flex items-center gap-3">
         <button
@@ -41,9 +41,9 @@ export function VisitNoteForm({ clientProfileId }: VisitNoteFormProps) {
           disabled={pending}
           className="w-fit lunia-btn lunia-btn-primary disabled:opacity-60"
         >
-          {pending ? "Saving…" : "Add note"}
+          {pending ? "Saving…" : "Add comment"}
         </button>
-        {state.success && <p className="text-sm text-[var(--color-teal)]">Note added.</p>}
+        {state.success && <p className="text-sm text-[var(--color-teal)]">Comment added.</p>}
         {state.error && (
           <p role="alert" className="text-sm text-red-600">
             {state.error}
