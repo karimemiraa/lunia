@@ -22,7 +22,7 @@ export function PackagesTable({ packages }: { packages: PackageRowDTO[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+    <div className="overflow-x-auto lunia-card">
       <table className="w-full text-left text-sm" data-testid="packages-table">
         <thead className="bg-[var(--color-cream)]/60">
           <tr>

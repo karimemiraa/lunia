@@ -25,7 +25,7 @@ export function InquiriesTable({ inquiries }: { inquiries: ContactInquiry[] }) {
             className={
               i.handled
                 ? "rounded border border-[var(--color-ink)]/20 px-3 py-1.5 text-xs font-medium text-[var(--color-ink)]/70 hover:bg-[var(--color-cream)]/40"
-                : "rounded bg-[var(--color-teal)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                : "lunia-btn lunia-btn-primary lunia-btn-sm"
             }
           >
             {i.handled ? "Mark unhandled" : "Mark handled"}

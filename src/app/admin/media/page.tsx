@@ -76,7 +76,7 @@ export default async function MediaLibraryPage() {
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <button
                     type="submit"
-                    className="rounded bg-[var(--color-teal)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                    className="lunia-btn lunia-btn-primary lunia-btn-sm"
                   >
                     Save alt text
                   </button>

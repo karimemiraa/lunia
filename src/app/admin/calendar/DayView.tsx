@@ -36,7 +36,7 @@ export function DayView({ rows, date, canManage }: DayViewProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+    <div className="overflow-x-auto lunia-card">
       <table className="w-full text-left text-sm">
         <thead className="bg-[var(--color-cream)]/60">
           <tr>

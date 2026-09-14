@@ -49,7 +49,7 @@ function VoidButton({ giftCardId }: { giftCardId: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded border border-red-600/30 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+        className="lunia-btn lunia-btn-danger lunia-btn-sm disabled:opacity-60"
       >
         {pending ? "Voiding…" : "Void"}
       </button>
@@ -68,7 +68,7 @@ export function GiftCardsTable({ cards }: { cards: GiftCardRowDTO[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+    <div className="overflow-x-auto lunia-card">
       <table className="w-full text-left text-sm" data-testid="giftcards-table">
         <thead className="bg-[var(--color-cream)]/60">
           <tr>

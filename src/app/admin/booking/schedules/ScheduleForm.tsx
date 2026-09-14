@@ -31,7 +31,7 @@ export function ScheduleForm({ staffUserId, schedule }: ScheduleFormProps) {
     <form action={action} data-testid="schedule-form" className="flex max-w-2xl flex-col gap-4">
       <input type="hidden" name="staffUserId" value={staffUserId} />
 
-      <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+      <div className="overflow-x-auto lunia-card">
         <table className="w-full text-left text-sm">
           <thead className="bg-[var(--color-cream)]/60">
             <tr>
@@ -90,7 +90,7 @@ export function ScheduleForm({ staffUserId, schedule }: ScheduleFormProps) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+          className="lunia-btn lunia-btn-primary disabled:opacity-60"
         >
           {pending ? "Saving…" : "Save schedule"}
         </button>

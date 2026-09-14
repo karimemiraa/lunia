@@ -26,7 +26,7 @@ export function CreateServiceForm({ departments, media }: CreateServiceFormProps
     <form
       action={action}
       data-testid="create-service-form"
-      className="flex flex-col gap-4 rounded border border-[var(--color-ink)]/10 p-5"
+      className="flex flex-col gap-4 lunia-card p-5"
     >
       <h2 className="text-lg font-semibold text-[var(--color-ink)]">Create service</h2>
 
@@ -74,7 +74,7 @@ export function CreateServiceForm({ departments, media }: CreateServiceFormProps
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+          className="lunia-btn lunia-btn-primary disabled:opacity-60"
         >
           {pending ? "Creating…" : "Create service"}
         </button>

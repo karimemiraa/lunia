@@ -66,7 +66,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         <a
           href={`/admin/reports/export?${exportParams.toString()}`}
           data-testid="export-csv-link"
-          className="rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          className="lunia-btn lunia-btn-primary"
         >
           Export CSV
         </a>
@@ -106,7 +106,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           </select>
         </label>
 
-        <button type="submit" className="rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+        <button type="submit" className="lunia-btn lunia-btn-primary">
           Run report
         </button>
       </form>

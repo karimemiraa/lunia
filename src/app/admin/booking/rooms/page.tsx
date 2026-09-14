@@ -15,7 +15,7 @@ export default async function RoomsPage() {
         <CreateRoomForm />
       </div>
 
-      <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+      <div className="overflow-x-auto lunia-card">
         <table className="w-full text-left text-sm" data-testid="rooms-table">
           <thead className="bg-[var(--color-cream)]/60">
             <tr>

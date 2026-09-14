@@ -22,7 +22,7 @@ export function ConfirmDeleteButton({ action, confirmMessage, label = "Delete" }
           event.preventDefault();
         }
       }}
-      className="rounded border border-red-600/30 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+      className="lunia-btn lunia-btn-danger lunia-btn-sm"
     >
       {label}
     </button>
