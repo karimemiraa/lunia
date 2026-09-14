@@ -30,7 +30,7 @@ function isStatus(value: string): boolean {
 
 const inputClass =
   "w-full rounded border border-[var(--color-ink)]/20 px-3 py-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-teal)] focus:outline-none";
-const sectionClass = "flex flex-col gap-4 rounded border border-[var(--color-ink)]/10 p-5";
+const sectionClass = "flex flex-col gap-4 lunia-card p-5";
 
 // A "which credential is present" boolean row. Values are NEVER rendered —
 // only whether the underlying env var resolved to a non-empty string, per
@@ -75,7 +75,7 @@ export default async function CommsPage({ searchParams }: CommsPageProps) {
       actions={
         <Link
           href="/admin/comms/templates"
-          className="rounded border border-[var(--color-ink)]/20 px-4 py-2 text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-cream)]"
+          className="lunia-btn lunia-btn-ghost"
         >
           Message templates
         </Link>
@@ -156,7 +156,7 @@ export default async function CommsPage({ searchParams }: CommsPageProps) {
               </select>
             </label>
 
-            <button type="submit" className="rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+            <button type="submit" className="lunia-btn lunia-btn-primary">
               Filter
             </button>
           </form>

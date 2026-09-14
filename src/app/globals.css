@@ -275,11 +275,20 @@ body {
 }
 .lunia-btn-ink:hover { background: #24423f; transform: translateY(-1px); box-shadow: var(--shadow-md); }
 .lunia-btn-ghost {
-  background: transparent;
+  background: var(--surface);
   color: var(--color-ink);
   border: 1px solid var(--line-strong);
 }
-.lunia-btn-ghost:hover { background: var(--surface-2); }
+.lunia-btn-ghost:hover { background: var(--surface-2); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+/* Compact size for in-row / table actions. */
+.lunia-btn-sm { padding: 0.42rem 0.95rem; font-size: 0.8rem; gap: 0.35rem; }
+/* Destructive action — quiet outline that warms on hover. */
+.lunia-btn-danger {
+  background: var(--surface);
+  color: #b42318;
+  border: 1px solid color-mix(in srgb, #d92d20 40%, transparent);
+}
+.lunia-btn-danger:hover { background: color-mix(in srgb, #d92d20 9%, transparent); transform: translateY(-1px); }
 
 /* Animated underline for nav links. */
 .lunia-underline {

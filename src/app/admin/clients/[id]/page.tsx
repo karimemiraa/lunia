@@ -115,7 +115,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
           {canManage && <LoyaltyAdjustForm clientProfileId={detail.profile.id} />}
 
           {loyalty.transactions.length > 0 && (
-            <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+            <div className="overflow-x-auto lunia-card">
               <table className="w-full text-left text-sm" data-testid="loyalty-transactions-table">
                 <thead className="bg-[var(--color-cream)]/60">
                   <tr>
@@ -150,7 +150,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
               No bookings yet.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+            <div className="overflow-x-auto lunia-card">
               <table className="w-full text-left text-sm" data-testid="treatment-history-table">
                 <thead className="bg-[var(--color-cream)]/60">
                   <tr>

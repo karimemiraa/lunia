@@ -3,18 +3,6 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { login } from "./actions";
-import { Starfield } from "@/components/site/Starfield";
-
-function GlowMark({ className = "" }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className={className}>
-      <path
-        fill="currentColor"
-        d="M12 0c.6 4.8 2.6 8.2 6 9.6L24 12l-6 2.4c-3.4 1.4-5.4 4.8-6 9.6-.6-4.8-2.6-8.2-6-9.6L0 12l6-2.4C9.4 8.2 11.4 4.8 12 0Z"
-      />
-    </svg>
-  );
-}
 
 function MailIcon() {
   return (
@@ -66,9 +54,7 @@ export default function LoginPage() {
     <main className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* Brand panel */}
       <section className="lunia-aurora lunia-grain relative hidden flex-col justify-between p-12 text-[var(--color-cream)] lg:flex">
-        <Starfield tone="cream" />
         <div className="lunia-animate-fade-in relative z-10 flex items-center gap-3">
-          <GlowMark className="lunia-glow-pulse h-5 w-5 text-[var(--color-teal)]" />
           <span className="font-[family-name:var(--font-display)] text-2xl tracking-[0.32em]">LUNIA</span>
         </div>
 
@@ -80,13 +66,12 @@ export default function LoginPage() {
             Where natural beauty begins.
           </h1>
           <p className="mt-5 text-sm leading-relaxed text-[var(--color-cream)]/75">
-            The Lunia management suite — bookings, clients, catalog, and communications, in one calm,
-            considered place.
+            The Lunia management suite for bookings, clients, catalog, and communications, in one calm, considered place.
           </p>
         </div>
 
         <p className="lunia-animate-fade-in lunia-delay-4 relative z-10 text-xs tracking-wide text-[var(--color-cream)]/55">
-          Riyadh, Saudi Arabia — 2026
+          Riyadh, Saudi Arabia
         </p>
       </section>
 
@@ -95,7 +80,6 @@ export default function LoginPage() {
         <div className="lunia-animate-fade-up w-full max-w-sm">
           {/* Compact brand lockup for small screens */}
           <div className="mb-10 flex items-center gap-2.5 lg:hidden">
-            <GlowMark className="h-5 w-5 text-[var(--color-teal-ink)]" />
             <span className="font-[family-name:var(--font-display)] text-xl tracking-[0.3em] text-[var(--color-ink)]">
               LUNIA
             </span>

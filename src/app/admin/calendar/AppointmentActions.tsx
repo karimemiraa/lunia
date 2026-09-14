@@ -19,7 +19,7 @@ const buttonClass =
 const dangerButtonClass =
   "rounded border border-red-600/30 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50";
 const primaryButtonClass =
-  "rounded bg-[var(--color-teal)] px-2.5 py-1 text-xs font-medium text-[var(--color-ink)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
+  "lunia-btn lunia-btn-primary lunia-btn-sm disabled:cursor-not-allowed disabled:opacity-50";
 
 const TERMINAL_STATUSES: BookingStatus[] = ["COMPLETED", "CANCELLED", "NO_SHOW"];
 

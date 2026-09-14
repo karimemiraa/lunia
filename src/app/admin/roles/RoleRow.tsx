@@ -45,7 +45,7 @@ export function RoleRow({ role, permissionKeys }: RoleRowProps) {
           <button
             type="submit"
             disabled={savePending}
-            className="rounded bg-[var(--color-teal)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-60"
+            className="lunia-btn lunia-btn-primary lunia-btn-sm disabled:opacity-60"
           >
             {savePending ? "Saving…" : "Save"}
           </button>
@@ -81,7 +81,7 @@ export function RoleRow({ role, permissionKeys }: RoleRowProps) {
             <button
               type="submit"
               disabled={deletePending}
-              className="rounded border border-red-600/30 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+              className="lunia-btn lunia-btn-danger lunia-btn-sm disabled:opacity-60"
             >
               {deletePending ? "Deleting…" : "Delete"}
             </button>

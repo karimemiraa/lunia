@@ -10,7 +10,7 @@ export function UploadForm() {
   return (
     <form
       action={action}
-      className="flex flex-wrap items-end gap-3 rounded border border-[var(--color-ink)]/10 p-4"
+      className="flex flex-wrap items-end gap-3 lunia-card p-5"
     >
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium text-[var(--color-ink)]">Upload media</span>
@@ -19,7 +19,7 @@ export function UploadForm() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+        className="lunia-btn lunia-btn-primary disabled:opacity-60"
       >
         {pending ? "Uploading…" : "Upload"}
       </button>

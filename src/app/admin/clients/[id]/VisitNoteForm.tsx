@@ -28,7 +28,7 @@ export function VisitNoteForm({ clientProfileId }: VisitNoteFormProps) {
         formRef.current?.reset();
       }}
       data-testid="visit-note-form"
-      className="flex flex-col gap-3 rounded border border-[var(--color-ink)]/10 p-4"
+      className="flex flex-col gap-3 lunia-card p-5"
     >
       <input type="hidden" name="clientProfileId" value={clientProfileId} />
       <label htmlFor={bodyId} className="flex flex-col gap-1 text-sm">
@@ -39,7 +39,7 @@ export function VisitNoteForm({ clientProfileId }: VisitNoteFormProps) {
         <button
           type="submit"
           disabled={pending}
-          className="w-fit rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+          className="w-fit lunia-btn lunia-btn-primary disabled:opacity-60"
         >
           {pending ? "Saving…" : "Add note"}
         </button>

@@ -69,7 +69,7 @@ export default async function MarketingDashboardPage() {
         canManageCampaigns ? (
           <Link
             href="/admin/marketing/campaigns"
-            className="rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            className="lunia-btn lunia-btn-primary"
           >
             Manage campaign spend
           </Link>
@@ -82,7 +82,7 @@ export default async function MarketingDashboardPage() {
             CAC by Channel
           </h2>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+            <div className="overflow-x-auto lunia-card">
               <table className="w-full text-left text-sm" data-testid="cac-table">
                 <thead className="bg-[var(--color-cream)]/60">
                   <tr>
@@ -163,7 +163,7 @@ export default async function MarketingDashboardPage() {
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
               Traffic Sources
             </h2>
-            <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+            <div className="overflow-x-auto lunia-card">
               <table className="w-full text-left text-sm" data-testid="traffic-sources-table">
                 <thead className="bg-[var(--color-cream)]/60">
                   <tr>
@@ -197,7 +197,7 @@ export default async function MarketingDashboardPage() {
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">Top Pages</h2>
-          <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+          <div className="overflow-x-auto lunia-card">
             <table className="w-full text-left text-sm" data-testid="top-pages-table">
               <thead className="bg-[var(--color-cream)]/60">
                 <tr>
@@ -229,7 +229,7 @@ export default async function MarketingDashboardPage() {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
             Top Clients by Lifetime Value
           </h2>
-          <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+          <div className="overflow-x-auto lunia-card">
             <table className="w-full text-left text-sm" data-testid="top-clients-table">
               <thead className="bg-[var(--color-cream)]/60">
                 <tr>

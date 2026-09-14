@@ -12,7 +12,7 @@ import { PackagesTable, type PackageRowDTO } from "./PackagesTable";
 import { AssignPackageForm } from "./AssignPackageForm";
 import { PackagePurchasesTable, type PackagePurchaseRowDTO } from "./PackagePurchasesTable";
 
-const sectionClass = "flex flex-col gap-4 rounded border border-[var(--color-ink)]/10 p-5";
+const sectionClass = "flex flex-col gap-4 lunia-card p-5";
 
 export default async function CommercePage() {
   const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);

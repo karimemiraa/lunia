@@ -27,7 +27,7 @@ export function TemplateCard({ template, placeholders }: TemplateCardProps) {
     <form
       action={action}
       data-testid={`template-${template.kind}-${template.locale}-${template.channel}`}
-      className="flex flex-col gap-3 rounded border border-[var(--color-ink)]/10 p-4"
+      className="flex flex-col gap-3 lunia-card p-5"
     >
       <input type="hidden" name="kind" value={template.kind} />
       <input type="hidden" name="locale" value={template.locale} />
@@ -74,7 +74,7 @@ export function TemplateCard({ template, placeholders }: TemplateCardProps) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-[var(--color-teal)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-60"
+          className="lunia-btn lunia-btn-primary lunia-btn-sm disabled:opacity-60"
         >
           {pending ? "Saving…" : "Save"}
         </button>

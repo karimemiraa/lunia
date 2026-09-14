@@ -44,7 +44,7 @@ const OTP_CHANNEL_OPTIONS: { value: "AUTO" | "WHATSAPP" | "SMS" | "EMAIL"; label
 
 const initialState: SaveSettingsState = {};
 
-const sectionClass = "flex flex-col gap-4 rounded border border-[var(--color-ink)]/10 p-5";
+const sectionClass = "flex flex-col gap-4 lunia-card p-5";
 const inputClass =
   "w-full rounded border border-[var(--color-ink)]/20 px-3 py-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-teal)] focus:outline-none";
 
@@ -166,7 +166,7 @@ export function SettingsForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+          className="lunia-btn lunia-btn-primary disabled:opacity-60"
         >
           {pending ? "Saving…" : "Save"}
         </button>

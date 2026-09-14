@@ -48,7 +48,7 @@ function NotifyNowButton({ serviceId, desiredDateISO }: { serviceId: string; des
           await notifyWaitlistNowAction(serviceId, desiredDateISO);
         })
       }
-      className="rounded border border-[var(--color-ink)]/20 px-3 py-1.5 text-xs font-medium text-[var(--color-ink)] hover:bg-[var(--color-ink)]/5 disabled:cursor-not-allowed disabled:opacity-60"
+      className="lunia-btn lunia-btn-ghost lunia-btn-sm disabled:cursor-not-allowed disabled:opacity-60"
     >
       {isPending ? "Notifying…" : "Notify now"}
     </button>
@@ -68,7 +68,7 @@ export function WaitlistTable({ rows, canManage }: WaitlistTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+    <div className="overflow-x-auto lunia-card">
       <table className="w-full text-left text-sm">
         <thead className="bg-[var(--color-cream)]/60">
           <tr>

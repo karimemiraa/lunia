@@ -74,14 +74,14 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            className="lunia-btn lunia-btn-primary"
           >
             Filter
           </button>
           {hasFilters && (
             <Link
               href="/admin/clients"
-              className="rounded border border-[var(--color-ink)]/20 px-4 py-2 text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-cream)]"
+              className="lunia-btn lunia-btn-ghost"
             >
               Clear
             </Link>
@@ -89,7 +89,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         </div>
       </form>
 
-      <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+      <div className="overflow-x-auto lunia-card">
         <table className="w-full text-left text-sm" data-testid="clients-table">
           <thead className="bg-[var(--color-cream)]/60">
             <tr>

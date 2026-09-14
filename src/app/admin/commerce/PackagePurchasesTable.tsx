@@ -26,7 +26,7 @@ export function PackagePurchasesTable({ purchases }: { purchases: PackagePurchas
   }
 
   return (
-    <div className="overflow-x-auto rounded border border-[var(--color-ink)]/10">
+    <div className="overflow-x-auto lunia-card">
       <table className="w-full text-left text-sm" data-testid="package-purchases-table">
         <thead className="bg-[var(--color-cream)]/60">
           <tr>

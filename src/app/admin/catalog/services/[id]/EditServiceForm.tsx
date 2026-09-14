@@ -136,7 +136,7 @@ export function EditServiceForm({ service, departments, media, tiers, currentMin
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+          className="lunia-btn lunia-btn-primary disabled:opacity-60"
         >
           {pending ? "Saving…" : "Save"}
         </button>

@@ -97,7 +97,7 @@ export function WalkInForm({ services, defaultDate }: WalkInFormProps) {
     <form
       onSubmit={handleSubmit}
       data-testid="walk-in-form"
-      className="flex flex-col gap-4 rounded border border-[var(--color-ink)]/10 bg-[var(--color-cream)]/30 p-4"
+      className="flex flex-col gap-4 lunia-card p-5"
     >
       <div className="flex flex-col gap-1">
         <h2 className="text-base font-semibold text-[var(--color-ink)]">Walk-in / front-desk booking</h2>
@@ -177,7 +177,7 @@ export function WalkInForm({ services, defaultDate }: WalkInFormProps) {
           <button
             type="submit"
             disabled={isPending || !selectedSlot}
-            className="w-fit rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-[var(--color-ink)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-fit lunia-btn lunia-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? "Booking…" : "Book walk-in"}
           </button>

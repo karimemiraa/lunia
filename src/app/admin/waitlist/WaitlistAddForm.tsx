@@ -94,7 +94,7 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
     <form
       onSubmit={handleSubmit}
       data-testid="waitlist-add-form"
-      className="flex flex-col gap-4 rounded border border-[var(--color-ink)]/10 bg-[var(--color-cream)]/30 p-4"
+      className="flex flex-col gap-4 lunia-card p-5"
     >
       <div className="flex flex-col gap-1">
         <h2 className="text-base font-semibold text-[var(--color-ink)]">Add a walk-up to the waitlist</h2>
@@ -192,7 +192,7 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
           <button
             type="submit"
             disabled={isPending}
-            className="w-fit rounded bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-[var(--color-ink)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-fit lunia-btn lunia-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? "Adding…" : "Add to waitlist"}
           </button>
