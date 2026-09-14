@@ -14,6 +14,7 @@ import { VisitNoteForm } from "./VisitNoteForm";
 import { VisitNoteRow } from "./VisitNoteRow";
 import { NotificationPreferenceEditor } from "./NotificationPreferenceEditor";
 import { LoyaltyAdjustForm } from "./LoyaltyAdjustForm";
+import { ClinicalForm } from "./ClinicalForm";
 
 interface ClientDetailPageProps {
   params: Promise<{ id: string }>;
@@ -247,9 +248,71 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
     </div>
   );
 
+  // --- Tab: Clinical (skin profile, tags, consent) ---------------------------
+  const clinicalTab = canManage ? (
+    <ClinicalForm
+      clientProfileId={detail.profile.id}
+      tags={detail.profile.tags}
+      skinType={detail.profile.skinType}
+      skinConcerns={detail.profile.skinConcerns}
+      allergies={detail.profile.allergies}
+      clinicalNotes={detail.profile.clinicalNotes}
+      consentTreatment={detail.profile.consentTreatmentAt != null}
+      consentData={detail.profile.consentDataAt != null}
+    />
+  ) : (
+    <dl className="grid gap-4 lunia-card p-5 sm:grid-cols-2">
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Skin type</dt>
+        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.skinType ?? "—"}</dd>
+      </div>
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Concerns</dt>
+        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.skinConcerns.join(", ") || "—"}</dd>
+      </div>
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Allergies</dt>
+        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.allergies ?? "—"}</dd>
+      </div>
+    </dl>
+  );
+
+  // --- Tab: Timeline (unified activity feed, newest first) -------------------
+  type Entry = { at: Date; kind: "appointment" | "note" | "loyalty"; text: string };
+  const timeline: Entry[] = [
+    ...detail.bookings.map((b): Entry => ({ at: b.startAt, kind: "appointment", text: `${b.serviceName} — ${b.status.replace("_", " ").toLowerCase()}` })),
+    ...detail.visitNotes.map((n): Entry => ({ at: n.createdAt, kind: "note", text: `Note${n.authorName ? ` by ${n.authorName}` : ""}: ${n.body.slice(0, 120)}` })),
+    ...loyalty.transactions.map((t): Entry => ({ at: t.createdAt, kind: "loyalty", text: `Loyalty ${t.reason.toLowerCase()} ${t.deltaPoints > 0 ? "+" : ""}${t.deltaPoints} pts` })),
+  ].sort((a, b) => b.at.getTime() - a.at.getTime());
+
+  const TIMELINE_DOT: Record<Entry["kind"], string> = {
+    appointment: "bg-[var(--color-teal)]",
+    note: "bg-[var(--color-gold)]",
+    loyalty: "bg-[var(--color-canopy)]",
+  };
+
+  const timelineTab =
+    timeline.length === 0 ? (
+      <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">
+        No activity yet.
+      </p>
+    ) : (
+      <ol className="flex flex-col gap-4 border-s border-[var(--line)] ps-5">
+        {timeline.map((e, i) => (
+          <li key={i} className="relative">
+            <span className={`absolute -start-[1.42rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-[var(--surface-2)] ${TIMELINE_DOT[e.kind]}`} />
+            <p className="text-sm text-[var(--color-ink)]">{e.text}</p>
+            <p className="text-xs text-[var(--color-ink)]/45">{formatDateTime(e.at)}</p>
+          </li>
+        ))}
+      </ol>
+    );
+
   const tabs: TabDef[] = [
     { id: "overview", label: "Overview", content: overview },
     { id: "appointments", label: "Appointments", content: appointments, badge: detail.bookings.length },
+    { id: "clinical", label: "Clinical", content: clinicalTab },
+    { id: "timeline", label: "Timeline", content: timelineTab, badge: timeline.length },
     { id: "loyalty", label: "Loyalty", content: loyaltyTab },
     { id: "credits", label: "Credits", content: creditsTab, badge: credits.giftCards.length + credits.packages.length },
   ];
@@ -275,6 +338,15 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
               )}
               <span className="text-xs text-[var(--color-ink)]/45">Client since {formatDate(detail.profile.createdAt)}</span>
             </div>
+            {detail.profile.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {detail.profile.tags.map((tag) => (
+                  <span key={tag} className="inline-flex rounded-full bg-[var(--color-teal)]/15 px-2.5 py-0.5 text-xs font-medium text-[var(--color-teal-ink)]">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex shrink-0 gap-2">
             <Link href="/admin/calendar" className="lunia-btn lunia-btn-primary">

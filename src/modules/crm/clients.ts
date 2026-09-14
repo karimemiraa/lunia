@@ -13,6 +13,15 @@ export interface ListClientsFilter {
   search?: string;
   tierKey?: string;
   source?: string;
+  tag?: string;
+}
+
+/** Distinct client tags across the roster (for the roster filter + segments). */
+export async function listClientTags(): Promise<string[]> {
+  const rows = await prisma.clientProfile.findMany({ select: { tags: true } });
+  const set = new Set<string>();
+  for (const row of rows) for (const tag of row.tags) set.add(tag);
+  return [...set].sort((a, b) => a.localeCompare(b));
 }
 
 // Lifecycle status derived from visit history:
@@ -60,6 +69,9 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
   }
   if (filter.tierKey) {
     where.membership = { tier: { key: filter.tierKey } };
+  }
+  if (filter.tag) {
+    where.tags = { has: filter.tag };
   }
 
   const profiles = await prisma.clientProfile.findMany({
