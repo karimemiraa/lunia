@@ -132,6 +132,7 @@ export interface ClientDetailBooking {
 export interface ClientDetail {
   profile: ClientProfile;
   phone: string | null;
+  email: string | null;
   tier?: MembershipTier;
   source?: string;
   ltvMinor: number;
@@ -173,6 +174,7 @@ export async function getClientDetail(clientProfileId: string): Promise<ClientDe
   return {
     profile,
     phone: profile.user.phone,
+    email: profile.user.email,
     tier: profile.membership?.tier,
     source: profile.sourceChannel ?? undefined,
     ltvMinor: profile.ltvCacheMinor,
