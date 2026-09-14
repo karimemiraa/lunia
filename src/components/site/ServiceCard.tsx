@@ -24,7 +24,7 @@ export function ServiceCard({ name, summary, href, media }: ServiceCardProps) {
   return (
     <Link
       href={href}
-      className={`group flex flex-col gap-5 rounded-sm text-start transition-transform duration-300 ease-out hover:-translate-y-1 ${focusRingClass}`}
+      className={`lunia-scroll-fade group flex flex-col gap-5 rounded-sm text-start transition-transform duration-300 ease-out hover:-translate-y-1 ${focusRingClass}`}
     >
       <MediaFrame mediaKey={media?.key} kind={media?.kind} alt={name} aspectClassName="aspect-[4/5]" />
       <div className="flex flex-col gap-2">

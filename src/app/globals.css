@@ -305,6 +305,95 @@ body {
 img { max-width: 100%; }
 
 /* ---------------------------------------------------------------------------
+   Scroll-driven animation (native, no JS / no library — CSP-safe).
+   Motion is scrubbed to scroll position via animation-timeline, so elements
+   move *with* the scroll (parallax, progressive reveal) rather than firing
+   once. Everything is wrapped in @supports + no-preference so browsers without
+   scroll-timeline (or users who ask for reduced motion) simply see the fully
+   settled, static layout — content is never hidden behind an unsupported
+   animation.
+   --------------------------------------------------------------------------- */
+@keyframes lunia-scroll-in {
+  from { opacity: 0; transform: translate3d(0, 3rem, 0) scale(0.97); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes lunia-scroll-fade-kf {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes lunia-scroll-parallax {
+  from { transform: translate3d(0, -6%, 0) scale(1.2); }
+  to { transform: translate3d(0, 6%, 0) scale(1.2); }
+}
+@keyframes lunia-scroll-rise {
+  from { transform: translate3d(0, 14%, 0); }
+  to { transform: translate3d(0, -14%, 0); }
+}
+@keyframes lunia-scroll-word {
+  from { transform: translate3d(0, 8rem, 0); opacity: 0.03; }
+  to { transform: translate3d(0, -8rem, 0); opacity: 0.12; }
+}
+@keyframes lunia-scroll-hero-fade {
+  /* Hero content lifts and fades as the hero scrolls away. */
+  0%, 55% { opacity: 1; transform: translate3d(0, 0, 0); }
+  100% { opacity: 0; transform: translate3d(0, -3rem, 0); }
+}
+@keyframes lunia-scroll-progress {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Progressive reveal as an element scrolls into view. */
+    .lunia-scroll {
+      animation: lunia-scroll-in linear both;
+      animation-timeline: view();
+      animation-range: entry 2% cover 32%;
+    }
+    /* Opacity-only reveal for interactive elements (cards) — the animation's
+       forwards fill must not lock `transform`, or it would override hover lifts. */
+    .lunia-scroll-fade {
+      animation: lunia-scroll-fade-kf linear both;
+      animation-timeline: view();
+      animation-range: entry 2% cover 30%;
+    }
+    /* Parallax layers, scrubbed while their host scrolls through the viewport. */
+    .lunia-parallax {
+      animation: lunia-scroll-parallax linear both;
+      animation-timeline: view();
+      animation-range: cover;
+      will-change: transform;
+    }
+    .lunia-parallax-rise {
+      animation: lunia-scroll-rise linear both;
+      animation-timeline: view();
+      animation-range: cover;
+      will-change: transform;
+    }
+    .lunia-wordmark {
+      animation: lunia-scroll-word linear both;
+      animation-timeline: view();
+      animation-range: cover;
+      will-change: transform, opacity;
+    }
+    /* Hero content fade tied to the hero's own scroll-out. */
+    .lunia-hero-fade {
+      animation: lunia-scroll-hero-fade linear both;
+      animation-timeline: view();
+      animation-range: exit-crossing 0% exit 100%;
+    }
+    /* A scroll-length progress rail (transform-origin set inline per writing dir). */
+    .lunia-scroll-rail {
+      animation: lunia-scroll-progress linear both;
+      animation-timeline: scroll(root block);
+      transform: scaleY(0);
+      transform-origin: top;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Respect reduced-motion: keep everything static and fully visible.
    --------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {

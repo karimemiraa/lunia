@@ -24,7 +24,7 @@ export function BrandCard({ name, blurb, href, logo }: BrandCardProps) {
   return (
     <Link
       href={href}
-      className={`group flex items-start gap-5 rounded-sm p-2 text-start transition-colors duration-300 ${focusRingClass}`}
+      className={`lunia-scroll-fade group flex items-start gap-5 rounded-sm p-2 text-start transition-colors duration-300 ${focusRingClass}`}
     >
       <MediaFrame
         mediaKey={logo?.key}

@@ -6,7 +6,7 @@ import { Hero } from "@/components/site/Hero";
 import { HeroRatingCard } from "@/components/site/HeroRatingCard";
 import { Section } from "@/components/site/Section";
 import { SectionHeading } from "@/components/site/SectionHeading";
-import { JourneySteps } from "@/components/site/JourneySteps";
+import { ScrollJourney } from "@/components/site/ScrollJourney";
 import { ServiceCard } from "@/components/site/ServiceCard";
 import { BrandCard } from "@/components/site/BrandCard";
 import { Testimonials } from "@/components/site/Testimonials";
@@ -247,9 +247,7 @@ export default async function Home({ params }: HomePageProps) {
         </div>
       </Section>
 
-      <Section tone="plain">
-        <JourneySteps eyebrow={tJourney("eyebrow")} heading={tJourney("heading")} steps={journeySteps} />
-      </Section>
+      <ScrollJourney eyebrow={tJourney("eyebrow")} heading={tJourney("heading")} steps={journeySteps} />
 
       <Section tone="tinted">
         <div className="flex flex-col gap-14">

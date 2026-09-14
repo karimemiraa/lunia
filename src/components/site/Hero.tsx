@@ -60,28 +60,32 @@ export function Hero({
 }: HeroProps) {
   return (
     <section className="relative isolate overflow-hidden bg-[var(--color-ink)]">
-      {/* Background */}
+      {/* Background — the media sits on its own layer that parallaxes (scrubbed
+          to scroll) while the scrims stay put, so it drifts slower than the
+          page as the hero scrolls away. */}
       <div className="absolute inset-0">
-        {media?.key ? (
-          <MediaFrame
-            mediaKey={media.key}
-            kind={media.kind}
-            alt=""
-            aspectClassName="h-full"
-            rounded={false}
-            className="h-full w-full"
-          />
-        ) : (
-          <div className="h-full w-full overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static, pre-optimized brand SVG backdrop */}
-            <img
-              src={FALLBACK_IMAGE}
+        <div className="lunia-parallax absolute inset-0">
+          {media?.key ? (
+            <MediaFrame
+              mediaKey={media.key}
+              kind={media.kind}
               alt=""
-              aria-hidden="true"
-              className="h-full w-full object-cover [animation:lunia-ken-burns_24s_ease-in-out_infinite_alternate]"
+              aspectClassName="h-full"
+              rounded={false}
+              className="h-full w-full"
             />
-          </div>
-        )}
+          ) : (
+            <div className="h-full w-full overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element -- static, pre-optimized brand SVG backdrop */}
+              <img
+                src={FALLBACK_IMAGE}
+                alt=""
+                aria-hidden="true"
+                className="h-full w-full object-cover [animation:lunia-ken-burns_24s_ease-in-out_infinite_alternate]"
+              />
+            </div>
+          )}
+        </div>
         {/* Legibility scrims — stronger toward the block-end where text sits. */}
         <div
           aria-hidden="true"
@@ -92,11 +96,18 @@ export function Hero({
           className="absolute inset-0 bg-[radial-gradient(120%_90%_at_15%_100%,color-mix(in_srgb,var(--color-ink)_60%,transparent),transparent_60%)]"
         />
         <Starfield tone="cream" className="opacity-70" />
+        {/* Oversized brand wordmark, drifting with scroll for depth. */}
+        <span
+          aria-hidden="true"
+          className="lunia-wordmark pointer-events-none absolute inset-x-0 bottom-[-2vw] select-none text-center font-[family-name:var(--font-display)] text-[26vw] font-medium leading-none tracking-tight text-[var(--color-cream)]"
+        >
+          LUNIA
+        </span>
       </div>
 
       {/* Content */}
       <div className="relative mx-auto flex min-h-[38rem] w-full max-w-6xl flex-col justify-end gap-8 px-6 py-24 sm:min-h-[46rem] sm:py-32">
-        <div className="flex max-w-2xl flex-col gap-6 text-start">
+        <div className="lunia-hero-fade flex max-w-2xl flex-col gap-6 text-start">
           {eyebrow && (
             <span className="lunia-animate-fade-up lunia-delay-1 inline-flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.4em] text-[var(--color-teal)]">
               <GlowMark className="lunia-glow-pulse h-3.5 w-3.5 shrink-0" />
