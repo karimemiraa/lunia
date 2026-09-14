@@ -5,6 +5,7 @@ import { Hero } from "@/components/site/Hero";
 import { Section } from "@/components/site/Section";
 import { ResultsGallery } from "@/components/site/ResultsGallery";
 import { CtaBand } from "@/components/site/CtaBand";
+import { CinematicImage } from "@/components/site/CinematicImage";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 import type { PublicLocale } from "@/modules/cms/publicContent";
@@ -99,6 +100,8 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
           emptyLabel={tResults("emptyLabel")}
         />
       </Section>
+
+      <CinematicImage src="/brand/experience-brush.jpg" alt={tCommon("brandName")} />
 
       <Section tone="tinted">
         <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={bookHref} />

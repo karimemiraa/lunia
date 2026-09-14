@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { Hero } from "@/components/site/Hero";
 import { Section } from "@/components/site/Section";
 import { SectionHeading } from "@/components/site/SectionHeading";
+import { CinematicImage } from "@/components/site/CinematicImage";
 import { JourneySteps } from "@/components/site/JourneySteps";
 import { Prose } from "@/components/site/Prose";
 import { CtaBand } from "@/components/site/CtaBand";
@@ -110,15 +111,13 @@ export default async function AboutPage({ params }: AboutPageProps) {
         </div>
       </Section>
 
-      <Section tone="tinted">
-        <SectionHeading
-          eyebrow={tPositioning("eyebrow")}
-          heading={tPositioning("heading")}
-          intro={tPositioning("body")}
-          align="center"
-          className="mx-auto max-w-3xl"
-        />
-      </Section>
+      <CinematicImage
+        src="/brand/experience-serum.jpg"
+        alt={tPositioning("heading")}
+        eyebrow={tPositioning("eyebrow")}
+        headline={tPositioning("heading")}
+        intro={tPositioning("body")}
+      />
 
       <Section tone="plain">
         <JourneySteps eyebrow={tJourney("eyebrow")} heading={tJourney("heading")} steps={journeySteps} />
