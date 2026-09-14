@@ -189,13 +189,15 @@ body {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
 }
 
-/* Subtle recurring "mosaic" grid the guidelines describe — used at very low
-   opacity behind authoritative surfaces (admin). */
-.lunia-mosaic {
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--color-ink) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--color-ink) 4%, transparent) 1px, transparent 1px);
-  background-size: 32px 32px;
+/* Calm, premium admin backdrop: a smooth vertical wash with two soft brand
+   glows in opposite corners. Replaces the old 32px mosaic grid, which read as
+   busy/dated behind dense CRM screens. */
+.lunia-admin-bg {
+  background:
+    radial-gradient(62% 55% at 100% 0%, color-mix(in srgb, var(--color-teal) 12%, transparent), transparent 62%),
+    radial-gradient(55% 55% at 0% 100%, color-mix(in srgb, var(--color-canopy) 9%, transparent), transparent 58%),
+    linear-gradient(180deg, var(--color-page) 0%, var(--surface-2) 100%);
+  background-attachment: fixed;
 }
 
 /* Animated hairline shimmer used on skeletons / dividers. */
