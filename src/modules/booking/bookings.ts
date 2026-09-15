@@ -604,6 +604,74 @@ export async function listDayAppointments(dateISO: string, staffUserId?: string)
   return rows;
 }
 
+// One appointment as it appears in a month-calendar day cell: just enough to
+// render a compact chip (time + who), plus status for color.
+export interface MonthAppointmentItem {
+  time: string;
+  clientName: string;
+  status: BookingStatus;
+}
+export interface MonthDayCell {
+  count: number;
+  items: MonthAppointmentItem[];
+}
+
+const MONTH_TZ = "Asia/Riyadh";
+const monthChipTimeFmt = new Intl.DateTimeFormat("en-US", { timeZone: MONTH_TZ, hour: "numeric", minute: "2-digit" });
+
+/**
+ * Summarizes a whole center-local month of appointments for the calendar grid,
+ * keyed by "YYYY-MM-DD". `monthISO` is "YYYY-MM". One batched query for the
+ * month (like listDayAppointments, but over the month's range), then grouped by
+ * center-local day. Cancelled/no-show bookings are included so the grid matches
+ * the day view.
+ */
+export async function listMonthAppointments(
+  monthISO: string,
+  staffUserId?: string,
+): Promise<Record<string, MonthDayCell>> {
+  const [yearStr, monthStr] = monthISO.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  if (!year || !month || month < 1 || month > 12) return {};
+
+  const firstISO = `${monthISO}-01`;
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextFirstISO = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  const from = centerLocalToUtc(firstISO, 0);
+  const to = centerLocalToUtc(nextFirstISO, 0);
+
+  const bookings = await listBookings({ from, to, staffUserId });
+  const entries = bookings.flatMap((booking) =>
+    booking.appointments
+      .filter((a) => a.startAt >= from && a.startAt < to && (!staffUserId || a.staffUserId === staffUserId))
+      .map((appointment) => ({ booking, appointment })),
+  );
+  if (entries.length === 0) return {};
+
+  const clientProfileIds = [...new Set(entries.map((e) => e.booking.clientProfileId))];
+  const clients = await prisma.clientProfile.findMany({ where: { id: { in: clientProfileIds } } });
+  const clientNameById = new Map(clients.map((c) => [c.id, c.fullName]));
+
+  entries.sort((a, b) => a.appointment.startAt.getTime() - b.appointment.startAt.getTime());
+
+  const byDay: Record<string, MonthDayCell> = {};
+  for (const { booking, appointment } of entries) {
+    const dateISO = utcToCenterLocal(appointment.startAt).dateISO;
+    const cell = (byDay[dateISO] ??= { count: 0, items: [] });
+    cell.count += 1;
+    if (cell.items.length < 3) {
+      cell.items.push({
+        time: monthChipTimeFmt.format(appointment.startAt),
+        clientName: clientNameById.get(booking.clientProfileId)?.trim() || "Client",
+        status: booking.status,
+      });
+    }
+  }
+  return byDay;
+}
+
 export interface StaffOption {
   id: string;
   name: string;
