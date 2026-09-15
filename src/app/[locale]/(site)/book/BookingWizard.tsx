@@ -384,32 +384,51 @@ export function BookingWizard({
     <div className="flex flex-col gap-10" data-testid="booking-wizard">
       <ol
         aria-label={t("progressLabel", { step, total: TOTAL_STEPS })}
-        className="flex flex-wrap items-center gap-x-6 gap-y-2"
+        className="flex items-center"
       >
         {stepLabels.map((label, index) => {
           const stepNumber = (index + 1) as Step;
           const isCurrent = stepNumber === step;
           const isDone = stepNumber < step;
+          const isLast = index === stepLabels.length - 1;
           return (
             <li
               key={label}
               aria-current={isCurrent ? "step" : undefined}
-              className={`flex items-center gap-2 text-sm font-medium tracking-wide ${
-                isCurrent || isDone ? "text-[var(--color-ink)]" : "text-[var(--color-ink)]/40"
-              }`}
+              className={`flex items-center ${isLast ? "" : "flex-1"}`}
             >
               <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
-                  isCurrent
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                  isDone
                     ? "bg-[var(--color-teal)] text-[var(--color-ink)]"
-                    : isDone
-                      ? "bg-[var(--color-canopy)] text-[var(--color-cream)]"
-                      : "border border-[var(--color-ink)]/20"
+                    : isCurrent
+                      ? "bg-[var(--color-ink)] text-[var(--color-cream)] ring-2 ring-[var(--color-teal)] ring-offset-2 ring-offset-[var(--color-page)]"
+                      : "border border-[var(--color-ink)]/25 text-[var(--color-ink)]/45"
                 }`}
               >
-                {stepNumber}
+                {isDone ? (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-3.5 w-3.5" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+                  </svg>
+                ) : (
+                  stepNumber
+                )}
               </span>
-              {label}
+              <span
+                className={`ms-2 hidden text-sm font-medium tracking-wide sm:inline ${
+                  isCurrent || isDone ? "text-[var(--color-ink)]" : "text-[var(--color-ink)]/40"
+                }`}
+              >
+                {label}
+              </span>
+              {!isLast && (
+                <span
+                  aria-hidden="true"
+                  className={`mx-3 h-0.5 flex-1 rounded-full transition-colors ${
+                    isDone ? "bg-[var(--color-teal)]" : "bg-[var(--color-ink)]/12"
+                  }`}
+                />
+              )}
             </li>
           );
         })}
