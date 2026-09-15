@@ -122,17 +122,6 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
         )}
       </SectionCard>
       {canManage && (
-        <SectionCard title="Customer details">
-          <CustomerEditor
-            clientProfileId={detail.profile.id}
-            fullName={detail.profile.fullName}
-            phone={detail.phone}
-            email={detail.email}
-            source={detail.source ?? null}
-          />
-        </SectionCard>
-      )}
-      {canManage && (
         <SectionCard title="Membership tier">
           <TierEditor clientProfileId={detail.profile.id} currentTierId={detail.tier?.id ?? null} tiers={tiers} />
         </SectionCard>
@@ -369,7 +358,16 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
               </div>
             )}
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {canManage && (
+              <CustomerEditor
+                clientProfileId={detail.profile.id}
+                fullName={detail.profile.fullName}
+                phone={detail.phone}
+                email={detail.email}
+                source={detail.source ?? null}
+              />
+            )}
             <Link
               href={`/admin/calendar?${new URLSearchParams({
                 name: detail.profile.fullName,
