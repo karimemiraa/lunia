@@ -36,9 +36,12 @@ async function main() {
 
   const roleNames: Record<string, string> = {
     owner: "Owner",
+    admin: "Admin",
     manager: "Manager",
     reception: "Reception",
     specialist: "Specialist",
+    sales: "Sales",
+    telesales: "Telesales",
     marketing: "Marketing",
     client: "Client",
   };

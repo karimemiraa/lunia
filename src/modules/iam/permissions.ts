@@ -34,4 +34,23 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
   specialist: [PERMISSIONS.BOOKING_VIEW, PERMISSIONS.CLIENT_VIEW, PERMISSIONS.VISITNOTE_WRITE],
   marketing: [PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.MARKETING_MANAGE, PERMISSIONS.CMS_MANAGE],
+  // Full administrative access (distinct from the singular Owner account).
+  admin: ALL_PERMISSION_KEYS,
+  // Sales: books and manages customers, sees performance.
+  sales: [
+    PERMISSIONS.BOOKING_MANAGE,
+    PERMISSIONS.BOOKING_VIEW,
+    PERMISSIONS.CLIENT_MANAGE,
+    PERMISSIONS.CLIENT_VIEW,
+    PERMISSIONS.ANALYTICS_VIEW,
+  ],
+  // Telesales: phone outreach — manages customers and bookings, runs campaigns.
+  telesales: [
+    PERMISSIONS.CLIENT_MANAGE,
+    PERMISSIONS.CLIENT_VIEW,
+    PERMISSIONS.BOOKING_MANAGE,
+    PERMISSIONS.BOOKING_VIEW,
+    PERMISSIONS.MARKETING_MANAGE,
+    PERMISSIONS.ANALYTICS_VIEW,
+  ],
 };
