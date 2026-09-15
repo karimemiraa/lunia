@@ -82,11 +82,9 @@ export function WalkInForm({ services, defaultDate }: WalkInFormProps) {
         setName("");
         setPhone("");
         setSelectedSlot(null);
-        // Jump the calendar's date filter to the day just booked (it may
-        // differ from whatever day the page was already showing) so the new
-        // appointment is visible immediately, without the staff member
-        // having to also change the date picker above.
-        router.push(`/admin/calendar?date=${date}`);
+        // Keep the day modal open on the booked day so the new appointment
+        // appears in the list immediately (server re-render via the day param).
+        router.push(`/admin/calendar?day=${date}`);
       } else {
         setError(result.error);
       }
@@ -100,9 +98,9 @@ export function WalkInForm({ services, defaultDate }: WalkInFormProps) {
       className="flex flex-col gap-4 lunia-card p-5"
     >
       <div className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold text-[var(--color-ink)]">Walk-in / front-desk booking</h2>
+        <h2 className="text-base font-semibold text-[var(--color-ink)]">Add a booking</h2>
         <p className="text-sm text-[var(--color-ink)]/60">
-          Book an in-center visit on the spot. This works even for services that aren&rsquo;t available for online booking.
+          Book an in-center visit on the spot, even for services that aren&rsquo;t available for online booking.
         </p>
       </div>
 
@@ -177,9 +175,9 @@ export function WalkInForm({ services, defaultDate }: WalkInFormProps) {
           <button
             type="submit"
             disabled={isPending || !selectedSlot}
-            className="w-fit lunia-btn lunia-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-fit lunia-btn lunia-btn-forest disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isPending ? "Booking…" : "Book walk-in"}
+            {isPending ? "Booking…" : "Confirm walk-in"}
           </button>
         </>
       )}

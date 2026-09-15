@@ -1,16 +1,17 @@
+import Link from "next/link";
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { listDayAppointments, listMonthAppointments, listStaffOptions } from "@/modules/booking/bookings";
 import { getFrontDeskServices } from "@/modules/booking/serviceSettings";
 import { utcToCenterLocal } from "@/modules/booking/availability";
-import { CalendarFilters } from "./CalendarFilters";
 import { MonthView } from "./MonthView";
 import { DayView } from "./DayView";
+import { DayModal } from "./DayModal";
 import { WalkInForm, type FrontDeskServiceDTO } from "./WalkInForm";
 
 interface CalendarPageProps {
-  searchParams: Promise<{ date?: string; staffUserId?: string; month?: string }>;
+  searchParams: Promise<{ day?: string; staffUserId?: string; month?: string }>;
 }
 
 const DATE_ISO_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -19,21 +20,28 @@ const MONTH_ISO_PATTERN = /^\d{4}-\d{2}$/;
 const CENTER_TZ = "Asia/Riyadh";
 const longDateFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
+function qs(params: Record<string, string | undefined>): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) sp.set(k, v);
+  const s = sp.toString();
+  return s ? `?${s}` : "";
+}
+
 export default async function CalendarPage({ searchParams }: CalendarPageProps) {
   const user = await requireAdmin(PERMISSIONS.BOOKING_VIEW);
   const canManage = user.permissions.has(PERMISSIONS.BOOKING_MANAGE);
 
   const params = await searchParams;
   const todayISO = utcToCenterLocal(new Date()).dateISO;
-  const date = params.date && DATE_ISO_PATTERN.test(params.date) ? params.date : todayISO;
-  const month = params.month && MONTH_ISO_PATTERN.test(params.month) ? params.month : date.slice(0, 7);
+  const dayOpen = params.day && DATE_ISO_PATTERN.test(params.day) ? params.day : null;
+  const month = params.month && MONTH_ISO_PATTERN.test(params.month) ? params.month : (dayOpen ?? todayISO).slice(0, 7);
   const staffUserId = params.staffUserId ?? "";
 
-  const [rows, monthDays, staffOptions, frontDeskServices] = await Promise.all([
-    listDayAppointments(date, staffUserId || undefined),
+  const [monthDays, staffOptions, frontDeskServices, rows] = await Promise.all([
     listMonthAppointments(month, staffUserId || undefined),
     listStaffOptions(),
     canManage ? getFrontDeskServices() : Promise.resolve([]),
+    dayOpen ? listDayAppointments(dayOpen, staffUserId || undefined) : Promise.resolve([]),
   ]);
 
   const walkInServices: FrontDeskServiceDTO[] = frontDeskServices.map((service) => ({
@@ -43,22 +51,47 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     durationMin: service.durationMin,
   }));
 
+  const closeHref = qs({ month, staffUserId: staffUserId || undefined });
+
   return (
-    <AdminShell user={user} title="Calendar" description="The month at a glance, with every booked appointment. Pick a day to see its full schedule.">
-      <CalendarFilters date={date} staffUserId={staffUserId} staffOptions={staffOptions} todayISO={todayISO} />
+    <AdminShell user={user} title="Calendar" description="The month at a glance, with every booked appointment. Pick a day to view or add bookings.">
+      {/* Toolbar: staff filter + walk-in booking */}
+      <form method="get" className="mb-5 flex flex-wrap items-center gap-3">
+        <input type="hidden" name="month" value={month} />
+        <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]/70">
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Staff</span>
+          <select name="staffUserId" defaultValue={staffUserId} className="lunia-input w-auto">
+            <option value="">All staff</option>
+            {staffOptions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" className="lunia-btn lunia-btn-ghost lunia-btn-sm">
+          Filter
+        </button>
+        {canManage && (
+          <Link href={qs({ month, day: todayISO, staffUserId: staffUserId || undefined })} className="lunia-btn lunia-btn-forest lunia-btn-sm ms-auto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
+              <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+            </svg>
+            Book walk-in
+          </Link>
+        )}
+      </form>
 
-      <MonthView monthISO={month} selectedDateISO={date} todayISO={todayISO} days={monthDays} staffUserId={staffUserId || undefined} />
+      <MonthView monthISO={month} selectedDateISO={dayOpen ?? ""} todayISO={todayISO} days={monthDays} staffUserId={staffUserId || undefined} />
 
-      {canManage && (
-        <div className="mb-8 max-w-2xl">
-          <WalkInForm services={walkInServices} defaultDate={date} />
-        </div>
+      {dayOpen && (
+        <DayModal closeHref={closeHref} title={`Schedule for ${longDateFmt.format(new Date(`${dayOpen}T12:00:00Z`))}`}>
+          <div className="flex flex-col gap-8">
+            <DayView rows={rows} date={dayOpen} canManage={canManage} />
+            {canManage && <WalkInForm services={walkInServices} defaultDate={dayOpen} />}
+          </div>
+        </DayModal>
       )}
-
-      <h2 className="mb-3 font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)]">
-        Schedule for {longDateFmt.format(new Date(`${date}T12:00:00Z`))}
-      </h2>
-      <DayView rows={rows} date={date} canManage={canManage} />
     </AdminShell>
   );
 }

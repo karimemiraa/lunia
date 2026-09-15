@@ -59,6 +59,7 @@ async function pickOpenWalkInSlot(walkInForm: Locator): Promise<string> {
  * it. */
 async function createReportFixtureBooking(page: Page): Promise<{ name: string; dateISO: string }> {
   await page.goto("/admin/calendar");
+  await page.getByRole("link", { name: "Book walk-in" }).click();
   const walkInForm = page.getByTestId("walk-in-form");
   await expect(walkInForm).toBeVisible();
 
@@ -71,8 +72,8 @@ async function createReportFixtureBooking(page: Page): Promise<{ name: string; d
 
   await walkInForm.getByLabel("Customer name").fill(name);
   await walkInForm.getByLabel("Customer phone").fill(phone);
-  await walkInForm.getByRole("button", { name: "Book walk-in" }).click();
-  await expect(walkInForm.getByText("Booking created.")).toBeVisible({ timeout: 10_000 });
+  await walkInForm.getByRole("button", { name: "Confirm walk-in" }).click();
+  await expect(page.locator('[data-testid="appointment-row"]', { hasText: name })).toBeVisible({ timeout: 10_000 });
 
   return { name, dateISO };
 }

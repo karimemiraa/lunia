@@ -32,10 +32,10 @@ function shiftMonth(monthISO: string, delta: number): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-function hrefFor(params: { month?: string; date?: string; staffUserId?: string }): string {
+function hrefFor(params: { month?: string; day?: string; staffUserId?: string }): string {
   const sp = new URLSearchParams();
   if (params.month) sp.set("month", params.month);
-  if (params.date) sp.set("date", params.date);
+  if (params.day) sp.set("day", params.day);
   if (params.staffUserId) sp.set("staffUserId", params.staffUserId);
   return `?${sp.toString()}`;
 }
@@ -62,20 +62,20 @@ export function MonthView({ monthISO, selectedDateISO, todayISO, days, staffUser
         <h2 className="font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)]">{monthLabel}</h2>
         <div className="flex items-center gap-1.5">
           <Link
-            href={hrefFor({ month: shiftMonth(monthISO, -1), date: selectedDateISO, staffUserId })}
+            href={hrefFor({ month: shiftMonth(monthISO, -1), staffUserId })}
             className="lunia-btn lunia-btn-ghost lunia-btn-sm"
             aria-label="Previous month"
           >
             ‹
           </Link>
           <Link
-            href={hrefFor({ month: todayISO.slice(0, 7), date: todayISO, staffUserId })}
+            href={hrefFor({ month: todayISO.slice(0, 7), day: todayISO, staffUserId })}
             className="lunia-btn lunia-btn-ghost lunia-btn-sm"
           >
             Today
           </Link>
           <Link
-            href={hrefFor({ month: shiftMonth(monthISO, 1), date: selectedDateISO, staffUserId })}
+            href={hrefFor({ month: shiftMonth(monthISO, 1), staffUserId })}
             className="lunia-btn lunia-btn-ghost lunia-btn-sm"
             aria-label="Next month"
           >
@@ -101,7 +101,7 @@ export function MonthView({ monthISO, selectedDateISO, todayISO, days, staffUser
           return (
             <Link
               key={dateISO}
-              href={hrefFor({ month: monthISO, date: dateISO, staffUserId })}
+              href={hrefFor({ month: monthISO, day: dateISO, staffUserId })}
               data-testid="calendar-day"
               data-date={dateISO}
               className={`flex min-h-[84px] flex-col gap-1 rounded-[var(--radius-sm)] border p-1.5 text-start transition-colors hover:bg-[var(--color-teal)]/[0.06] ${

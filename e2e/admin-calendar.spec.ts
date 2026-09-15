@@ -89,6 +89,8 @@ test("staff calendar: front-desk walk-in booking, check-in, and complete", async
   await page.goto("/admin/calendar");
   await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
 
+  // Walk-in booking now lives in a day modal opened from the toolbar button.
+  await page.getByRole("link", { name: "Book walk-in" }).click();
   const walkInForm = page.getByTestId("walk-in-form");
   await expect(walkInForm).toBeVisible();
 
@@ -104,14 +106,11 @@ test("staff calendar: front-desk walk-in booking, check-in, and complete", async
 
   await walkInForm.getByLabel("Customer name").fill(clientName);
   await walkInForm.getByLabel("Customer phone").fill(uniquePhone);
-  await walkInForm.getByRole("button", { name: "Book walk-in" }).click();
+  await walkInForm.getByRole("button", { name: "Confirm walk-in" }).click();
 
-  await expect(walkInForm.getByText("Booking created.")).toBeVisible({ timeout: 10_000 });
-
-  // Booking a walk-in on a date other than the one the calendar was showing
-  // jumps the page's date filter to that day (see WalkInForm.tsx), so the
-  // new appointment should now be visible without any further navigation.
-  await expect(page).toHaveURL(new RegExp(`date=${bookedDate}`));
+  // Confirming keeps the day modal open on the booked day (see WalkInForm.tsx),
+  // so the new appointment is visible without any further navigation.
+  await expect(page).toHaveURL(new RegExp(`day=${bookedDate}`));
 
   const row = page.locator('[data-testid="appointment-row"]', { hasText: clientName });
   await expect(row).toBeVisible();

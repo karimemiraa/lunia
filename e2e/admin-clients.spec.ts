@@ -76,6 +76,7 @@ async function pickFirstOpenWalkInSlot(walkInForm: Locator): Promise<void> {
 // so the clients spec can search for exactly this client.
 async function createClientViaWalkIn(page: Page): Promise<{ name: string; phone: string }> {
   await page.goto("/admin/calendar");
+  await page.getByRole("link", { name: "Book walk-in" }).click();
   const walkInForm = page.getByTestId("walk-in-form");
   await expect(walkInForm).toBeVisible();
 
@@ -88,8 +89,9 @@ async function createClientViaWalkIn(page: Page): Promise<{ name: string; phone:
 
   await walkInForm.getByLabel("Customer name").fill(name);
   await walkInForm.getByLabel("Customer phone").fill(phone);
-  await walkInForm.getByRole("button", { name: "Book walk-in" }).click();
-  await expect(walkInForm.getByText("Booking created.")).toBeVisible({ timeout: 10_000 });
+  await walkInForm.getByRole("button", { name: "Confirm walk-in" }).click();
+  // The day modal stays open on the booked day and lists the new appointment.
+  await expect(page.locator('[data-testid="appointment-row"]', { hasText: name })).toBeVisible({ timeout: 10_000 });
 
   return { name, phone };
 }
