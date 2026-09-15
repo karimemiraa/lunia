@@ -13,6 +13,9 @@
   /* Ink + page */
   --color-ink: #1c2b2a;
   --color-page: #fbfaf7;
+  /* Forest — a deep teal-green used as a rich accent on authoritative
+     surfaces (admin banners, primary actions, inquiry headers). */
+  --color-forest: #283d3c;
 
   --font-display: "Cormorant Garamond", "The Seasons", serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -331,6 +334,22 @@ body {
   color: var(--color-page);
 }
 .lunia-btn-ink:hover { background: #24423f; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+/* Forest — the primary "confirm/advance" action on admin surfaces. */
+.lunia-btn-forest {
+  background: var(--color-forest);
+  color: var(--color-cream);
+}
+.lunia-btn-forest:hover { background: #32504e; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+/* Quiet forest outline — secondary admin actions that still read as a set. */
+.lunia-btn-forest-outline {
+  background: var(--surface);
+  color: var(--color-forest);
+  border: 1px solid color-mix(in srgb, var(--color-forest) 35%, transparent);
+}
+.lunia-btn-forest-outline:hover {
+  background: color-mix(in srgb, var(--color-forest) 8%, transparent);
+  transform: translateY(-1px);
+}
 .lunia-btn-ghost {
   background: var(--surface);
   color: var(--color-ink);

@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 import { requireAdmin } from "./_components/requireAdmin";
 import { AdminShell } from "./_components/AdminShell";
 import { PERMISSIONS, type PermissionKey } from "@/modules/iam/permissions";
+import { prisma } from "@/lib/db";
+import { utcToCenterLocal } from "@/modules/booking/availability";
+import { listDayAppointments } from "@/modules/booking/bookings";
 
 interface QuickLink {
   href: string;
@@ -29,24 +32,43 @@ const ICONS: Record<QuickLink["icon"], ReactNode> = {
   gear: <path strokeLinecap="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" />,
 };
 
+const CENTER_TZ = "Asia/Riyadh";
+const fullDateFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
 export default async function AdminHome() {
   const user = await requireAdmin();
   const links = QUICK_LINKS.filter((link) => user.permissions.has(link.permission));
 
+  // Personalize: greet the signed-in staff member by name + time of day, and
+  // surface today's real schedule at a glance.
+  const todayISO = utcToCenterLocal(new Date()).dateISO;
+  const [staff, todaysAppointments] = await Promise.all([
+    prisma.staffProfile.findUnique({ where: { userId: user.id }, select: { fullName: true } }),
+    user.permissions.has(PERMISSIONS.BOOKING_VIEW) ? listDayAppointments(todayISO) : Promise.resolve([]),
+  ]);
+  const firstName = staff?.fullName?.trim().split(/\s+/)[0] ?? "";
+  const riyadhHour = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, hour: "numeric", hour12: false }).format(new Date()),
+  );
+  const greeting = riyadhHour < 12 ? "Good morning" : riyadhHour < 18 ? "Good afternoon" : "Good evening";
+  const heading = firstName ? `${greeting}, ${firstName}` : greeting;
+
+  const liveCount = todaysAppointments.filter((a) => a.status !== "CANCELLED" && a.status !== "NO_SHOW").length;
+  const scheduleLine =
+    liveCount === 0
+      ? "No appointments booked for today yet."
+      : `You have ${liveCount} appointment${liveCount === 1 ? "" : "s"} booked today.`;
+
   return (
-    <AdminShell user={user} title="Dashboard" description="Welcome back to the Lunia management suite.">
-      <div className="lunia-card relative overflow-hidden p-8">
+    <AdminShell user={user} title="Dashboard" description="Your center at a glance.">
+      <div className="relative overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-forest)] p-8 text-[var(--color-cream)] shadow-[var(--shadow-md)]">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-teal)_35%,transparent),transparent_70%)]"
+          className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-teal)_45%,transparent),transparent_70%)]"
         />
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-teal-ink)]">Overview</p>
-        <h2 className="mt-3 max-w-xl font-[family-name:var(--font-display)] text-3xl leading-snug text-[var(--color-ink)]">
-          Everything Lunia needs: bookings, clients, and content, in one calm place.
-        </h2>
-        <p className="mt-3 text-sm text-[var(--color-ink)]/60">
-          You have access to {user.permissions.size} area{user.permissions.size === 1 ? "" : "s"}. Jump back in below.
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-teal)]">{fullDateFmt.format(new Date())}</p>
+        <h2 className="mt-3 font-[family-name:var(--font-display)] text-4xl leading-snug">{heading}</h2>
+        <p className="mt-2 text-sm text-[var(--color-cream)]/80">{scheduleLine}</p>
       </div>
 
       {links.length > 0 && (
