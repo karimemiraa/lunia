@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { Department, Brand } from "@prisma/client";
 
 import { Hero } from "@/components/site/Hero";
+import { MediaFrame } from "@/components/site/MediaFrame";
 import { HeroRatingCard } from "@/components/site/HeroRatingCard";
 import { CinematicImage } from "@/components/site/CinematicImage";
 import { Section } from "@/components/site/Section";
 import { SectionHeading } from "@/components/site/SectionHeading";
 import { JourneySteps } from "@/components/site/JourneySteps";
-import { ServiceCard } from "@/components/site/ServiceCard";
 import { BrandLogos } from "@/components/site/BrandLogos";
 import { Reveal } from "@/components/site/Reveal";
 import { Testimonials } from "@/components/site/Testimonials";
@@ -231,22 +232,49 @@ export default async function Home({ params }: HomePageProps) {
       />
 
       <Section tone="tinted">
-        <div className="flex flex-col gap-14">
+        <div className="flex flex-col gap-16 lg:gap-28">
           <SectionHeading eyebrow={tServices("eyebrow")} heading={tServices("heading")} intro={tServices("intro")} />
-          <div className="grid gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
-            {departments.map((department: Department, index: number) => (
-              // Each card falls in from above, staggered per column so the row
-              // reveals one after another as it scrolls into view.
-              <Reveal key={department.id} delay={(index % 3) * 130} className="lunia-reveal-fall">
-                <ServiceCard
-                  name={localized(locale, department.nameEn, department.nameAr)}
-                  summary={localized(locale, department.taglineEn, department.taglineAr)}
+          {/* One department per row (image + text), alternating sides. Each row
+              reveals as it scrolls into view, so you scroll to meet the next. */}
+          {departments.map((department: Department, index: number) => {
+            const total = String(departments.length).padStart(2, "0");
+            const num = String(index + 1).padStart(2, "0");
+            const flip = index % 2 === 1;
+            return (
+              <Reveal key={department.id} className="lunia-reveal-fall">
+                <Link
                   href={`/${locale}/services/${department.slug}`}
-                  media={departmentMedia[index]}
-                />
+                  className="group grid items-center gap-8 lg:grid-cols-2 lg:gap-16"
+                >
+                  <div className={flip ? "lg:order-2" : ""}>
+                    <MediaFrame
+                      mediaKey={departmentMedia[index]?.key}
+                      kind={departmentMedia[index]?.kind}
+                      alt={localized(locale, department.nameEn, department.nameAr)}
+                      aspectClassName="aspect-[16/11]"
+                    />
+                  </div>
+                  <div className={`flex flex-col gap-4 ${flip ? "lg:order-1" : ""}`}>
+                    <span className="text-sm font-medium tracking-[0.2em] text-[var(--color-teal-ink)]">
+                      {num} / {total}
+                    </span>
+                    <h3 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)] sm:text-4xl">
+                      {localized(locale, department.nameEn, department.nameAr)}
+                    </h3>
+                    <p className="max-w-md text-base leading-relaxed text-[var(--color-ink)]/70">
+                      {localized(locale, department.taglineEn, department.taglineAr)}
+                    </p>
+                    <span className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-[var(--color-ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors group-hover:decoration-[var(--color-gold)]">
+                      {locale === "ar" ? "اكتشفي القسم" : "Explore the department"}
+                      <span aria-hidden="true" className="transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
+                        {locale === "ar" ? "←" : "→"}
+                      </span>
+                    </span>
+                  </div>
+                </Link>
               </Reveal>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </Section>
 
