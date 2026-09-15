@@ -15,6 +15,7 @@ import { VisitNoteRow } from "./VisitNoteRow";
 import { NotificationPreferenceEditor } from "./NotificationPreferenceEditor";
 import { LoyaltyAdjustForm } from "./LoyaltyAdjustForm";
 import { ClinicalForm } from "./ClinicalForm";
+import { CustomerEditor } from "./CustomerEditor";
 
 interface ClientDetailPageProps {
   params: Promise<{ id: string }>;
@@ -120,6 +121,17 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
           </ul>
         )}
       </SectionCard>
+      {canManage && (
+        <SectionCard title="Customer details">
+          <CustomerEditor
+            clientProfileId={detail.profile.id}
+            fullName={detail.profile.fullName}
+            phone={detail.phone}
+            email={detail.email}
+            source={detail.source ?? null}
+          />
+        </SectionCard>
+      )}
       {canManage && (
         <SectionCard title="Membership tier">
           <TierEditor clientProfileId={detail.profile.id} currentTierId={detail.tier?.id ?? null} tiers={tiers} />
@@ -358,7 +370,13 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             )}
           </div>
           <div className="flex shrink-0 gap-2">
-            <Link href="/admin/calendar" className="lunia-btn lunia-btn-primary">
+            <Link
+              href={`/admin/calendar?${new URLSearchParams({
+                name: detail.profile.fullName,
+                ...(detail.phone ? { phone: detail.phone } : {}),
+              }).toString()}`}
+              className="lunia-btn lunia-btn-forest"
+            >
               New booking
             </Link>
           </div>

@@ -14,7 +14,8 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { recordAudit } from "@/modules/iam/audit";
 import { prisma } from "@/lib/db";
 import { addVisitNote, deleteVisitNote, setNotePinned } from "@/modules/crm/visitNotes";
-import { updateClientTier } from "@/modules/crm/clients";
+import { updateClientTier, updateCustomer, deleteCustomer } from "@/modules/crm/clients";
+import { redirect } from "next/navigation";
 import { upsertPreference } from "@/modules/comms/preferences";
 import { adjustPoints } from "@/modules/crm/loyalty";
 import type { CommsChannelPref } from "@prisma/client";
@@ -105,6 +106,60 @@ export async function toggleNotePinAction(_prev: ClientActionState | null, formD
 
   revalidateClient(clientProfileId);
   return { success: true };
+}
+
+// Edits a customer's name, contact, and source. Guarded by CLIENT_MANAGE and
+// audited (contact details are sensitive).
+export async function updateCustomerAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+
+  const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
+  if (!clientProfileId) return { error: "Missing customer." };
+
+  try {
+    await updateCustomer(clientProfileId, {
+      fullName: String(formData.get("fullName") ?? ""),
+      phone: String(formData.get("phone") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      source: String(formData.get("source") ?? ""),
+    });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update customer." };
+  }
+
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "CLIENT_UPDATE",
+    entityType: "ClientProfile",
+    entityId: clientProfileId,
+    summary: `Updated customer details for "${clientProfileId}"`,
+  });
+  revalidateClient(clientProfileId);
+  return { success: true };
+}
+
+// Permanently deletes a customer (and their bookings/history). Guarded by
+// CLIENT_MANAGE, audited, then redirects to the roster.
+export async function deleteCustomerAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+
+  const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
+  if (!clientProfileId) return { error: "Missing customer." };
+
+  try {
+    await deleteCustomer(clientProfileId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to delete customer." };
+  }
+
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "CLIENT_DELETE",
+    entityType: "ClientProfile",
+    entityId: clientProfileId,
+    summary: `Deleted customer "${clientProfileId}"`,
+  });
+  redirect("/admin/clients");
 }
 
 export async function updateTierAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {

@@ -15,6 +15,9 @@ export interface FrontDeskServiceDTO {
 interface WalkInFormProps {
   services: FrontDeskServiceDTO[];
   defaultDate: string;
+  /** Prefill customer details (e.g. from a customer page "New booking" link). */
+  defaultName?: string;
+  defaultPhone?: string;
 }
 
 const inputClass =
@@ -28,15 +31,15 @@ const labelClass = "flex flex-col gap-1 text-sm";
 // FRONT_DESK, which bypasses the online-only onlineBookable/inCenterOnly
 // gate in createBooking while still going through its normal
 // find-or-create-client and double-booking checks.
-export function WalkInForm({ services, defaultDate }: WalkInFormProps) {
+export function WalkInForm({ services, defaultDate, defaultName = "", defaultPhone = "" }: WalkInFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const [serviceId, setServiceId] = useState<string>(services[0]?.id ?? "");
   const [date, setDate] = useState(defaultDate);
   const [selectedSlot, setSelectedSlot] = useState<CalendarSlotDTO | null>(null);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(defaultName);
+  const [phone, setPhone] = useState(defaultPhone);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 

@@ -11,7 +11,7 @@ import { DayModal } from "./DayModal";
 import { WalkInForm, type FrontDeskServiceDTO } from "./WalkInForm";
 
 interface CalendarPageProps {
-  searchParams: Promise<{ day?: string; staffUserId?: string; month?: string }>;
+  searchParams: Promise<{ day?: string; staffUserId?: string; month?: string; name?: string; phone?: string }>;
 }
 
 const DATE_ISO_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -33,7 +33,12 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
   const params = await searchParams;
   const todayISO = utcToCenterLocal(new Date()).dateISO;
-  const dayOpen = params.day && DATE_ISO_PATTERN.test(params.day) ? params.day : null;
+  // A prefilled "new booking" deep-link (name/phone from a customer page) opens
+  // today's modal even without an explicit day param.
+  const prefillName = (params.name ?? "").slice(0, 120);
+  const prefillPhone = (params.phone ?? "").slice(0, 40);
+  const hasPrefill = Boolean(prefillName || prefillPhone);
+  const dayOpen = params.day && DATE_ISO_PATTERN.test(params.day) ? params.day : hasPrefill ? todayISO : null;
   const month = params.month && MONTH_ISO_PATTERN.test(params.month) ? params.month : (dayOpen ?? todayISO).slice(0, 7);
   const staffUserId = params.staffUserId ?? "";
 
@@ -88,7 +93,9 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         <DayModal closeHref={closeHref} title={`Schedule for ${longDateFmt.format(new Date(`${dayOpen}T12:00:00Z`))}`}>
           <div className="flex flex-col gap-8">
             <DayView rows={rows} date={dayOpen} canManage={canManage} />
-            {canManage && <WalkInForm services={walkInServices} defaultDate={dayOpen} />}
+            {canManage && (
+              <WalkInForm services={walkInServices} defaultDate={dayOpen} defaultName={prefillName} defaultPhone={prefillPhone} />
+            )}
           </div>
         </DayModal>
       )}

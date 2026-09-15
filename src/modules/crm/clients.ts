@@ -195,6 +195,57 @@ export async function getClientDetail(clientProfileId: string): Promise<ClientDe
   };
 }
 
+export interface UpdateCustomerInput {
+  fullName: string;
+  phone?: string | null;
+  email?: string | null;
+  source?: string | null;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Updates a customer's editable details: display name + source (on the
+ * ClientProfile) and phone/email (on the linked User). Enforces the User
+ * phone/email uniqueness so an edit can't collide with another account.
+ */
+export async function updateCustomer(clientProfileId: string, input: UpdateCustomerInput): Promise<void> {
+  const profile = await prisma.clientProfile.findUnique({ where: { id: clientProfileId }, include: { user: true } });
+  if (!profile) throw new Error("Customer not found");
+
+  const fullName = input.fullName.trim();
+  if (!fullName) throw new Error("A name is required");
+
+  const phone = input.phone?.trim() || null;
+  const email = input.email?.trim().toLowerCase() || null;
+  if (email && !EMAIL_RE.test(email)) throw new Error("Please enter a valid email address");
+
+  if (phone) {
+    const other = await prisma.user.findUnique({ where: { phone } });
+    if (other && other.id !== profile.userId) throw new Error("That phone number is already used by another customer");
+  }
+  if (email) {
+    const other = await prisma.user.findUnique({ where: { email } });
+    if (other && other.id !== profile.userId) throw new Error("That email is already used by another customer");
+  }
+
+  await prisma.$transaction([
+    prisma.clientProfile.update({ where: { id: clientProfileId }, data: { fullName, sourceChannel: input.source?.trim() || null } }),
+    prisma.user.update({ where: { id: profile.userId }, data: { phone, email } }),
+  ]);
+}
+
+/**
+ * Permanently deletes a customer and everything attached to them (profile,
+ * bookings, notes, loyalty, credits) by removing the underlying User, which
+ * cascades. Irreversible — the caller must confirm + hold CLIENT_MANAGE.
+ */
+export async function deleteCustomer(clientProfileId: string): Promise<void> {
+  const profile = await prisma.clientProfile.findUnique({ where: { id: clientProfileId } });
+  if (!profile) throw new Error("Customer not found");
+  await prisma.user.delete({ where: { id: profile.userId } });
+}
+
 /**
  * Sets (tierId non-null) or removes (tierId null) a client's
  * ClientMembership. Removing membership reverts the client to the base
