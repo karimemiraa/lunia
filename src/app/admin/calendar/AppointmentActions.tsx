@@ -15,11 +15,11 @@ interface AppointmentActionsProps {
 }
 
 const buttonClass =
-  "rounded border border-[var(--color-ink)]/20 px-2.5 py-1 text-xs font-medium text-[var(--color-ink)] hover:bg-[var(--color-cream)] disabled:cursor-not-allowed disabled:opacity-50";
+  "lunia-btn lunia-btn-forest-outline lunia-btn-sm disabled:cursor-not-allowed disabled:opacity-50";
 const dangerButtonClass =
-  "rounded border border-red-600/30 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50";
+  "lunia-btn lunia-btn-danger lunia-btn-sm disabled:cursor-not-allowed disabled:opacity-50";
 const primaryButtonClass =
-  "lunia-btn lunia-btn-primary lunia-btn-sm disabled:cursor-not-allowed disabled:opacity-50";
+  "lunia-btn lunia-btn-forest lunia-btn-sm disabled:cursor-not-allowed disabled:opacity-50";
 
 const TERMINAL_STATUSES: BookingStatus[] = ["COMPLETED", "CANCELLED", "NO_SHOW"];
 
@@ -65,7 +65,7 @@ export function AppointmentActions({ bookingId, appointmentId, serviceId, status
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {canCheckIn && (
           <button
             type="button"
