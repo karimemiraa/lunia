@@ -143,6 +143,44 @@ body {
 .lunia-animate-fade-up { animation: lunia-fade-up 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .lunia-animate-fade-in { animation: lunia-fade-in 1.1s ease both; }
 .lunia-animate-scale-in { animation: lunia-scale-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Sign-in split panel: a dark brand stage with two slow drifting brand glows,
+   holding the animated Lunia wordmark. */
+.lunia-authpanel {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(115% 115% at 18% 12%, color-mix(in srgb, var(--color-teal) 26%, transparent), transparent 55%),
+    radial-gradient(120% 120% at 88% 92%, color-mix(in srgb, var(--color-canopy) 22%, transparent), transparent 58%),
+    var(--color-ink);
+}
+.lunia-authpanel::before {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  background: radial-gradient(42% 42% at 50% 50%, color-mix(in srgb, var(--color-teal) 34%, transparent), transparent 70%);
+  filter: blur(46px);
+  animation: lunia-aurora-shift 20s ease-in-out infinite;
+  pointer-events: none;
+}
+/* Animated wordmark: each letter fades and rises in sequence, then the whole
+   mark breathes with a slow float (delay set inline per letter). */
+.lunia-wordmark-anim {
+  animation: lunia-float 7s ease-in-out infinite;
+  animation-delay: 1.6s;
+}
+.lunia-wordmark-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translate3d(0, 0.6em, 0);
+  animation: lunia-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* "Fall down" scroll reveal: content drops in from above (paired with the
+   Reveal component's staggered per-item delay). */
+.lunia-reveal-fall {
+  transform: translate3d(0, -2.25rem, 0);
+}
 .lunia-delay-1 { animation-delay: 0.12s; }
 .lunia-delay-2 { animation-delay: 0.24s; }
 .lunia-delay-3 { animation-delay: 0.36s; }
@@ -464,4 +502,5 @@ img { max-width: 100%; }
     transition-duration: 0.001ms !important;
   }
   .lunia-reveal { opacity: 1 !important; transform: none !important; }
+  .lunia-wordmark-char { opacity: 1 !important; transform: none !important; }
 }

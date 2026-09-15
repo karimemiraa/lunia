@@ -144,6 +144,15 @@ export default async function AccountPage({ params }: AccountPageProps) {
   const t = await getTranslations({ locale, namespace: "account" });
   const logoutAction = logout.bind(null, locale);
 
+  // Time-of-day greeting in the center's timezone (Asia/Riyadh), personalized
+  // with the client's first name when we have one.
+  const firstName = user.clientProfile.fullName.trim().split(/\s+/)[0] ?? "";
+  const riyadhHour = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", hour: "numeric", hour12: false }).format(new Date()),
+  );
+  const period = riyadhHour < 12 ? "morning" : riyadhHour < 18 ? "afternoon" : "evening";
+  const greeting = firstName ? t(`greeting.${period}`, { name: firstName }) : t("heading");
+
   return (
     <main className="flex flex-col">
       <Section tone="plain">
@@ -151,12 +160,10 @@ export default async function AccountPage({ params }: AccountPageProps) {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-col gap-2 text-start">
               <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)] sm:text-4xl">
-                {t("heading")}
+                {greeting}
               </h1>
-              {user.clientProfile.fullName ? (
-                <p className="text-sm text-[var(--color-ink)]/65">
-                  {t("signedInAs", { name: user.clientProfile.fullName })}
-                </p>
+              {firstName ? (
+                <p className="text-sm text-[var(--color-ink)]/65">{t("heading")}</p>
               ) : null}
             </div>
             <form action={logoutAction}>
