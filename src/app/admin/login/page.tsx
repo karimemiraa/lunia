@@ -61,7 +61,7 @@ function LuniaEmblem() {
         </g>
       </svg>
       <div className="lunia-emblem-core absolute inset-0 flex items-center justify-center">
-        <span className="font-[family-name:var(--font-display)] text-5xl tracking-[0.14em] text-[var(--color-cream)] sm:text-6xl">
+        <span dir="ltr" className="font-[family-name:var(--font-display)] text-5xl tracking-[0.14em] text-[var(--color-cream)] sm:text-6xl">
           {letters.map((char, i) => (
             <span key={i} className="lunia-drop-char" style={{ animationDelay: `${0.35 + i * 0.13}s` }}>
               {char}
