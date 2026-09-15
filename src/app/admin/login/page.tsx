@@ -30,7 +30,7 @@ function LuniaEmblem() {
   const teal = "color-mix(in srgb, var(--color-teal) 55%, transparent)";
   const cream = "color-mix(in srgb, var(--color-cream) 22%, transparent)";
   return (
-    <div className="relative h-60 w-60">
+    <div className="relative h-80 w-80 sm:h-[22rem] sm:w-[22rem]">
       <svg viewBox="0 0 240 240" className="absolute inset-0 h-full w-full" aria-hidden="true">
         <circle cx="120" cy="120" r="90" fill="none" style={{ stroke: cream }} strokeWidth="1" />
         <g className="lunia-ring-spin" style={{ transformBox: "fill-box" }}>
@@ -61,7 +61,7 @@ function LuniaEmblem() {
         </g>
       </svg>
       <div className="lunia-emblem-core absolute inset-0 flex items-center justify-center">
-        <span className="font-[family-name:var(--font-display)] text-4xl tracking-[0.14em] text-[var(--color-cream)]">
+        <span className="font-[family-name:var(--font-display)] text-5xl tracking-[0.14em] text-[var(--color-cream)] sm:text-6xl">
           {letters.map((char, i) => (
             <span key={i} className="lunia-drop-char" style={{ animationDelay: `${0.35 + i * 0.13}s` }}>
               {char}
@@ -106,15 +106,6 @@ export default function LoginPage() {
       {/* Brand panel */}
       <section className="lunia-aurora lunia-grain relative hidden flex-col items-center justify-center gap-10 p-12 text-[var(--color-cream)] lg:flex">
         <LuniaEmblem />
-
-        <div className="lunia-animate-fade-up lunia-delay-4 relative z-10 max-w-sm text-center">
-          <h1 className="font-[family-name:var(--font-display)] text-3xl leading-[1.15] xl:text-4xl">
-            Where natural beauty begins.
-          </h1>
-          <p className="mt-4 text-sm leading-relaxed text-[var(--color-cream)]/75">
-            The Lunia management suite for bookings, clients, catalog, and communications, in one calm, considered place.
-          </p>
-        </div>
 
         <p className="lunia-animate-fade-in lunia-delay-4 absolute bottom-8 left-1/2 -translate-x-1/2 text-xs tracking-wide text-[var(--color-cream)]/55">
           Riyadh, Saudi Arabia

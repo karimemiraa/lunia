@@ -10,6 +10,7 @@ import { SectionHeading } from "@/components/site/SectionHeading";
 import { JourneySteps } from "@/components/site/JourneySteps";
 import { ServiceCard } from "@/components/site/ServiceCard";
 import { BrandLogos } from "@/components/site/BrandLogos";
+import { Reveal } from "@/components/site/Reveal";
 import { Testimonials } from "@/components/site/Testimonials";
 import { CtaBand } from "@/components/site/CtaBand";
 import { Faq } from "@/components/site/Faq";
@@ -234,13 +235,16 @@ export default async function Home({ params }: HomePageProps) {
           <SectionHeading eyebrow={tServices("eyebrow")} heading={tServices("heading")} intro={tServices("intro")} />
           <div className="grid gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
             {departments.map((department: Department, index: number) => (
-              <ServiceCard
-                key={department.id}
-                name={localized(locale, department.nameEn, department.nameAr)}
-                summary={localized(locale, department.taglineEn, department.taglineAr)}
-                href={`/${locale}/services/${department.slug}`}
-                media={departmentMedia[index]}
-              />
+              // Each card falls in from above, staggered per column so the row
+              // reveals one after another as it scrolls into view.
+              <Reveal key={department.id} delay={(index % 3) * 130} className="lunia-reveal-fall">
+                <ServiceCard
+                  name={localized(locale, department.nameEn, department.nameAr)}
+                  summary={localized(locale, department.taglineEn, department.taglineAr)}
+                  href={`/${locale}/services/${department.slug}`}
+                  media={departmentMedia[index]}
+                />
+              </Reveal>
             ))}
           </div>
         </div>
