@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface DayModalProps {
   /** Where the close button / backdrop / Escape navigates to (drops the day param). */
@@ -17,6 +18,8 @@ interface DayModalProps {
 // the modal in place. Backdrop click and Escape close it by navigating.
 export function DayModal({ closeHref, title, children }: DayModalProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -30,7 +33,9 @@ export function DayModal({ closeHref, title, children }: DayModalProps) {
     };
   }, [closeHref, router]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-ink)]/45 p-4 backdrop-blur-sm sm:p-6"
       onClick={(e) => {
@@ -55,6 +60,7 @@ export function DayModal({ closeHref, title, children }: DayModalProps) {
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

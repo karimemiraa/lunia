@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   title: string;
@@ -13,7 +14,15 @@ interface ModalProps {
 // Generic centered admin dialog with a forest header. Open state is owned by
 // the caller (a trigger button), so it's reusable for edit/confirm popups that
 // keep people out of long inline forms. Closes on backdrop click and Escape.
+//
+// Rendered through a portal into <body>: the admin content wrapper keeps a
+// lingering transform (the fade-up entrance), which would otherwise make this
+// `position: fixed` overlay anchor to that container instead of the viewport
+// (sitting low / uncentered, page unscrollable). The portal escapes it.
 export function Modal({ title, onClose, children, widthClass = "max-w-xl" }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -26,7 +35,9 @@ export function Modal({ title, onClose, children, widthClass = "max-w-xl" }: Mod
     };
   }, [onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-ink)]/45 p-4 backdrop-blur-sm sm:p-6"
       onClick={(e) => {
@@ -52,6 +63,7 @@ export function Modal({ title, onClose, children, widthClass = "max-w-xl" }: Mod
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
