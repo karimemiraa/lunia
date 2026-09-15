@@ -22,6 +22,57 @@ function LockIcon() {
   );
 }
 
+// Animated circular Lunia emblem: a faint static ring, a slowly rotating
+// dashed accent ring, circular text turning the other way, and a centered
+// "Lunia" wordmark whose letters fall in one after another (then float).
+function LuniaEmblem() {
+  const letters = "Lunia".split("");
+  const teal = "color-mix(in srgb, var(--color-teal) 55%, transparent)";
+  const cream = "color-mix(in srgb, var(--color-cream) 22%, transparent)";
+  return (
+    <div className="relative h-60 w-60">
+      <svg viewBox="0 0 240 240" className="absolute inset-0 h-full w-full" aria-hidden="true">
+        <circle cx="120" cy="120" r="90" fill="none" style={{ stroke: cream }} strokeWidth="1" />
+        <g className="lunia-ring-spin" style={{ transformBox: "fill-box" }}>
+          <circle
+            cx="120"
+            cy="120"
+            r="112"
+            fill="none"
+            style={{ stroke: teal }}
+            strokeWidth="1.5"
+            strokeDasharray="1.5 11"
+            strokeLinecap="round"
+          />
+        </g>
+        <g className="lunia-ring-spin-rev" style={{ transformBox: "fill-box" }}>
+          <defs>
+            <path id="lunia-emblem-path" d="M120,120 m-70,0 a70,70 0 1,1 140,0 a70,70 0 1,1 -140,0" />
+          </defs>
+          <text
+            style={{ fill: "color-mix(in srgb, var(--color-cream) 55%, transparent)", letterSpacing: "3px" }}
+            fontSize="8.5"
+            fontFamily="Arial, Helvetica, sans-serif"
+          >
+            <textPath href="#lunia-emblem-path" startOffset="0" textLength={430} lengthAdjust="spacing">
+              SKIN QUALITY CENTER    RIYADH    SKIN QUALITY CENTER    RIYADH
+            </textPath>
+          </text>
+        </g>
+      </svg>
+      <div className="lunia-emblem-core absolute inset-0 flex items-center justify-center">
+        <span className="font-[family-name:var(--font-display)] text-4xl tracking-[0.14em] text-[var(--color-cream)]">
+          {letters.map((char, i) => (
+            <span key={i} className="lunia-drop-char" style={{ animationDelay: `${0.35 + i * 0.13}s` }}>
+              {char}
+            </span>
+          ))}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -53,24 +104,19 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* Brand panel */}
-      <section className="lunia-aurora lunia-grain relative hidden flex-col justify-between p-12 text-[var(--color-cream)] lg:flex">
-        <div className="lunia-animate-fade-in relative z-10 flex items-center gap-3">
-          <span className="font-[family-name:var(--font-display)] text-2xl tracking-[0.32em]">LUNIA</span>
-        </div>
+      <section className="lunia-aurora lunia-grain relative hidden flex-col items-center justify-center gap-10 p-12 text-[var(--color-cream)] lg:flex">
+        <LuniaEmblem />
 
-        <div className="lunia-animate-fade-up lunia-delay-2 relative z-10 max-w-md">
-          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[var(--color-teal)]">
-            Skin Quality Center
-          </p>
-          <h1 className="mt-5 font-[family-name:var(--font-display)] text-4xl leading-[1.1] xl:text-5xl">
+        <div className="lunia-animate-fade-up lunia-delay-4 relative z-10 max-w-sm text-center">
+          <h1 className="font-[family-name:var(--font-display)] text-3xl leading-[1.15] xl:text-4xl">
             Where natural beauty begins.
           </h1>
-          <p className="mt-5 text-sm leading-relaxed text-[var(--color-cream)]/75">
+          <p className="mt-4 text-sm leading-relaxed text-[var(--color-cream)]/75">
             The Lunia management suite for bookings, clients, catalog, and communications, in one calm, considered place.
           </p>
         </div>
 
-        <p className="lunia-animate-fade-in lunia-delay-4 relative z-10 text-xs tracking-wide text-[var(--color-cream)]/55">
+        <p className="lunia-animate-fade-in lunia-delay-4 absolute bottom-8 left-1/2 -translate-x-1/2 text-xs tracking-wide text-[var(--color-cream)]/55">
           Riyadh, Saudi Arabia
         </p>
       </section>

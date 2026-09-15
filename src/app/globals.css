@@ -181,6 +181,23 @@ body {
 .lunia-reveal-fall {
   transform: translate3d(0, -2.25rem, 0);
 }
+
+/* Circular Lunia emblem (admin sign-in): a slowly rotating ring with circular
+   text, and a centered wordmark whose letters fall in one after another. */
+@keyframes lunia-letter-drop {
+  0% { opacity: 0; transform: translate3d(0, -0.9em, 0); }
+  62% { opacity: 1; transform: translate3d(0, 0.09em, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes lunia-ring-rotate { to { transform: rotate(360deg); } }
+.lunia-drop-char {
+  display: inline-block;
+  opacity: 0;
+  animation: lunia-letter-drop 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lunia-ring-spin { transform-origin: center; animation: lunia-ring-rotate 44s linear infinite; }
+.lunia-ring-spin-rev { transform-origin: center; animation: lunia-ring-rotate 68s linear infinite reverse; }
+.lunia-emblem-core { animation: lunia-float 7s ease-in-out infinite; animation-delay: 1.4s; }
 .lunia-delay-1 { animation-delay: 0.12s; }
 .lunia-delay-2 { animation-delay: 0.24s; }
 .lunia-delay-3 { animation-delay: 0.36s; }
@@ -503,4 +520,5 @@ img { max-width: 100%; }
   }
   .lunia-reveal { opacity: 1 !important; transform: none !important; }
   .lunia-wordmark-char { opacity: 1 !important; transform: none !important; }
+  .lunia-drop-char { opacity: 1 !important; transform: none !important; }
 }
