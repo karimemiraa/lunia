@@ -50,7 +50,7 @@ export function ClinicalForm({
           <select name="skinType" defaultValue={skinType ?? ""} className={inputClass}>
             {SKIN_TYPES.map((t) => (
               <option key={t} value={t}>
-                {t || "—"}
+                {t || "None"}
               </option>
             ))}
           </select>

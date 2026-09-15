@@ -97,7 +97,7 @@ export default async function CommercePage() {
         <section className={sectionClass} data-testid="assign-package-section">
           <h2 className="text-lg font-semibold text-[var(--color-ink)]">Record a package purchase</h2>
           <p className="text-sm text-[var(--color-ink)]/65">
-            Payments are off in this system — use this after a client pays at the front desk to credit their sessions.
+            Payments are off in this system. Use this after a client pays at the front desk to credit their sessions.
           </p>
           <AssignPackageForm clients={clientOptions} packages={activePackageOptions} />
         </section>

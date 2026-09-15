@@ -13,7 +13,7 @@ interface ServicesTableProps {
 export function ServicesTable({ services, departmentsById }: ServicesTableProps) {
   const columns: DataTableColumn<Service>[] = [
     { key: "nameEn", header: "Name", render: (s) => s.nameEn },
-    { key: "department", header: "Department", render: (s) => departmentsById[s.departmentId]?.nameEn ?? "—" },
+    { key: "department", header: "Department", render: (s) => departmentsById[s.departmentId]?.nameEn ?? "None" },
     { key: "slug", header: "Slug" },
     { key: "order", header: "Order" },
     { key: "isPublished", header: "Published", render: (s) => (s.isPublished ? "Yes" : "No") },

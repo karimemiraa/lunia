@@ -44,7 +44,7 @@ export function IssueGiftCardForm({ clients }: { clients: ClientOption[] }) {
             {clients.map((client) => (
               <option key={client.clientProfileId} value={client.clientProfileId}>
                 {client.fullName}
-                {client.phone ? ` — ${client.phone}` : ""}
+                {client.phone ? ` (${client.phone})` : ""}
               </option>
             ))}
           </select>
@@ -73,7 +73,7 @@ export function IssueGiftCardForm({ clients }: { clients: ClientOption[] }) {
 
       {state.success && state.issuedCode && (
         <p className="rounded border border-[var(--color-teal)]/30 bg-[var(--color-teal)]/10 px-4 py-3 text-sm text-[var(--color-ink)]" data-testid="issued-giftcard-code">
-          Gift card issued: <span className="font-mono font-semibold">{state.issuedCode}</span> — share this code with the recipient.
+          Gift card issued: <span className="font-mono font-semibold">{state.issuedCode}</span>. Share this code with the recipient.
         </p>
       )}
     </form>

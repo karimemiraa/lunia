@@ -54,7 +54,7 @@ export function AssignPackageForm({ clients, packages }: { clients: ClientOption
           {clients.map((client) => (
             <option key={client.clientProfileId} value={client.clientProfileId}>
               {client.fullName}
-              {client.phone ? ` — ${client.phone}` : ""}
+              {client.phone ? ` (${client.phone})` : ""}
             </option>
           ))}
         </select>

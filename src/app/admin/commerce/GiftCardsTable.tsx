@@ -89,7 +89,7 @@ export function GiftCardsTable({ cards }: { cards: GiftCardRowDTO[] }) {
               <td className="whitespace-nowrap px-4 py-2 text-[var(--color-ink)]">
                 {formatMinor(card.balanceMinor, card.currency)} / {formatMinor(card.initialMinor, card.currency)}
               </td>
-              <td className="px-4 py-2 text-[var(--color-ink)]">{card.issuedToClientName ?? "—"}</td>
+              <td className="px-4 py-2 text-[var(--color-ink)]">{card.issuedToClientName ?? "None"}</td>
               <td className="px-4 py-2">
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[card.status]}`}>
                   {card.status}
@@ -97,10 +97,10 @@ export function GiftCardsTable({ cards }: { cards: GiftCardRowDTO[] }) {
               </td>
               <td className="px-4 py-2 text-[var(--color-ink)]">{card.redemptionCount}</td>
               <td className="whitespace-nowrap px-4 py-2 text-[var(--color-ink)]/70">
-                {card.expiresAtIso ? formatDate(card.expiresAtIso) : "—"}
+                {card.expiresAtIso ? formatDate(card.expiresAtIso) : "None"}
               </td>
               <td className="whitespace-nowrap px-4 py-2 text-[var(--color-ink)]/70">{formatDate(card.createdAtIso)}</td>
-              <td className="px-4 py-2">{card.status === "ACTIVE" ? <VoidButton giftCardId={card.id} /> : <span className="text-xs text-[var(--color-ink)]/30">—</span>}</td>
+              <td className="px-4 py-2">{card.status === "ACTIVE" ? <VoidButton giftCardId={card.id} /> : <span className="text-xs text-[var(--color-ink)]/30"></span>}</td>
             </tr>
           ))}
         </tbody>

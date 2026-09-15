@@ -86,7 +86,7 @@ export default async function CommsPage({ searchParams }: CommsPageProps) {
           <h2 className="text-lg font-semibold text-[var(--color-ink)]">Provider status</h2>
           {config.provider === "none" ? (
             <p className="text-sm text-[var(--color-ink)]/70" data-testid="comms-provider-none">
-              No provider configured — messages are logged only (dev/stub).
+              No provider configured. Messages are logged only (dev/stub).
             </p>
           ) : (
             <div className="flex flex-col gap-3">

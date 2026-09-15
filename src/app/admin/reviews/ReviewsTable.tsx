@@ -29,7 +29,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 function formatDateTime(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "None";
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 }
 
@@ -113,7 +113,7 @@ export function ReviewsTable({ rows, canModerate }: ReviewsTableProps) {
                   )}
                 </div>
               </td>
-              <td className="px-4 py-3 text-[var(--color-ink)]">{row.serviceName ?? "—"}</td>
+              <td className="px-4 py-3 text-[var(--color-ink)]">{row.serviceName ?? "None"}</td>
               <td className="px-4 py-3">
                 <Stars rating={row.rating} />
               </td>

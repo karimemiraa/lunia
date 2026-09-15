@@ -65,7 +65,7 @@ export default async function CampaignSpendPage() {
                   <td className="px-4 py-2 text-[var(--color-ink)]">{row.channel}</td>
                   <td className="px-4 py-2 text-[var(--color-ink)]">{row.periodMonth}</td>
                   <td className="px-4 py-2 text-[var(--color-ink)]">{formatSar(row.amountMinor)}</td>
-                  <td className="px-4 py-2 text-[var(--color-ink)]/70">{row.note ?? "—"}</td>
+                  <td className="px-4 py-2 text-[var(--color-ink)]/70">{row.note ?? "None"}</td>
                 </tr>
               ))
             )}

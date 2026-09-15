@@ -20,7 +20,7 @@ function formatSar(minor: number): string {
 const CENTER_TZ = "Asia/Riyadh";
 const dateFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, day: "numeric", month: "short", year: "numeric" });
 function formatDate(date: Date | undefined): string {
-  return date ? dateFmt.format(date) : "—";
+  return date ? dateFmt.format(date) : "None";
 }
 
 const inputClass =
@@ -83,7 +83,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     <AdminShell
       user={user}
       title="Clients"
-      description="The client roster — lifetime value, visit history, upcoming appointments, and lifecycle at a glance."
+      description="The client roster: lifetime value, visit history, upcoming appointments, and lifecycle at a glance."
     >
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Total clients" value={stats.total} />
@@ -238,10 +238,10 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
                     >
                       {client.fullName || "Unnamed client"}
                     </Link>
-                    <div className="text-xs text-[var(--color-ink)]/50">{client.phone ?? client.email ?? "—"}</div>
+                    <div className="text-xs text-[var(--color-ink)]/50">{client.phone ?? client.email ?? "None"}</div>
                   </td>
-                  <td className="px-4 py-3 text-[var(--color-ink)]/80">{client.tierName ?? "—"}</td>
-                  <td className="px-4 py-3 text-[var(--color-ink)]/70">{client.source ?? "—"}</td>
+                  <td className="px-4 py-3 text-[var(--color-ink)]/80">{client.tierName ?? "None"}</td>
+                  <td className="px-4 py-3 text-[var(--color-ink)]/70">{client.source ?? "None"}</td>
                   <td className="px-4 py-3 text-right font-medium text-[var(--color-ink)]">{formatSar(client.ltvMinor)}</td>
                   <td className="px-4 py-3 text-right text-[var(--color-ink)]/80">{client.bookingCount}</td>
                   <td className="px-4 py-3 text-[var(--color-ink)]/70">{formatDate(client.lastVisitAt)}</td>

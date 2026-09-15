@@ -156,7 +156,7 @@ export function SettingsForm({
               {bookingChannel}
             </p>
             <span className="text-xs text-[var(--color-ink)]/60">
-              Set via the COMMS_BOOKING_CHANNEL / COMMS_PROVIDER environment variables — read-only here.
+              Set via the COMMS_BOOKING_CHANNEL / COMMS_PROVIDER environment variables. Read only here.
             </span>
           </div>
         </div>

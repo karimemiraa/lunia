@@ -100,7 +100,7 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
       <div className="border-t border-[var(--color-ink)]/10">
         <div className="mx-auto flex w-full max-w-6xl flex-col-reverse items-center justify-between gap-4 px-6 py-6 text-xs text-[var(--color-ink)]/60 sm:flex-row">
           <p>
-            © {year} LUNIA — {tFooter("rights")}
+            © {year} LUNIA. {tFooter("rights")}
           </p>
           <LocaleSwitcher locale={locale} />
         </div>

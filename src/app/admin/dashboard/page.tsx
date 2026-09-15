@@ -125,7 +125,7 @@ export default async function BusinessDashboardPage() {
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <BarChart title="Top Services (This Month)" data={topServices} valueFormatter={formatSar} emptyMessage="No bookings yet this month." />
           <LineChart
-            title={`Revenue — Last ${LAST_N_DAYS} Days`}
+            title={`Revenue over the last ${LAST_N_DAYS} days`}
             data={dailyRevenue}
             valueFormatter={formatSar}
             emptyMessage="No revenue data yet."

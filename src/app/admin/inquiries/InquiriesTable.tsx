@@ -10,7 +10,7 @@ export function InquiriesTable({ inquiries }: { inquiries: ContactInquiry[] }) {
     { key: "phone", header: "Phone" },
     { key: "message", header: "Message", render: (i) => <span className="line-clamp-2 max-w-sm">{i.message}</span> },
     { key: "locale", header: "Locale", render: (i) => i.locale.toUpperCase() },
-    { key: "sourcePage", header: "Source page", render: (i) => i.sourcePage ?? "—" },
+    { key: "sourcePage", header: "Source page", render: (i) => i.sourcePage ?? "None" },
     { key: "createdAt", header: "Received", render: (i) => new Date(i.createdAt).toLocaleString() },
     {
       key: "handled",

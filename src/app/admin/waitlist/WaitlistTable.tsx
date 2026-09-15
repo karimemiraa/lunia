@@ -116,7 +116,7 @@ export function WaitlistTable({ rows, canManage }: WaitlistTableProps) {
                 {formatDateTime(row.createdAtIso)}
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--color-ink)]/70">
-                {row.notifiedAtIso ? formatDateTime(row.notifiedAtIso) : "—"}
+                {row.notifiedAtIso ? formatDateTime(row.notifiedAtIso) : "None"}
               </td>
               {canManage && (
                 <td className="px-4 py-3">

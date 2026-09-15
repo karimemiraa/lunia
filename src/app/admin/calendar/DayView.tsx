@@ -59,7 +59,7 @@ export function DayView({ rows, date, canManage }: DayViewProps) {
               data-booking-status={row.status}
             >
               <td className="whitespace-nowrap px-4 py-3 font-medium text-[var(--color-ink)]">
-                {formatTime(row.startAt)}&ndash;{formatTime(row.endAt)}
+                {formatTime(row.startAt)} to {formatTime(row.endAt)}
               </td>
               <td className="px-4 py-3 text-[var(--color-ink)]">
                 <div className="flex flex-col">

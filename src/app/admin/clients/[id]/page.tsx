@@ -29,7 +29,7 @@ function formatSar(minor: number): string {
 const dtFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" });
 const dFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, dateStyle: "medium" });
 const formatDateTime = (d: Date) => dtFmt.format(d);
-const formatDate = (d: Date | undefined | null) => (d ? dFmt.format(d) : "—");
+const formatDate = (d: Date | undefined | null) => (d ? dFmt.format(d) : "None");
 
 const STATUS_STYLES: Record<string, string> = {
   REQUESTED: "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/70",
@@ -273,15 +273,15 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
     <dl className="grid gap-4 lunia-card p-5 sm:grid-cols-2">
       <div>
         <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Skin type</dt>
-        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.skinType ?? "—"}</dd>
+        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.skinType ?? "None"}</dd>
       </div>
       <div>
         <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Concerns</dt>
-        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.skinConcerns.join(", ") || "—"}</dd>
+        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.skinConcerns.join(", ") || "None"}</dd>
       </div>
       <div>
         <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Allergies</dt>
-        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.allergies ?? "—"}</dd>
+        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.allergies ?? "None"}</dd>
       </div>
     </dl>
   );
@@ -289,7 +289,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   // --- Tab: Timeline (unified activity feed, newest first) -------------------
   type Entry = { at: Date; kind: "appointment" | "note" | "loyalty"; text: string };
   const timeline: Entry[] = [
-    ...detail.bookings.map((b): Entry => ({ at: b.startAt, kind: "appointment", text: `${b.serviceName} — ${b.status.replace("_", " ").toLowerCase()}` })),
+    ...detail.bookings.map((b): Entry => ({ at: b.startAt, kind: "appointment", text: `${b.serviceName}: ${b.status.replace("_", " ").toLowerCase()}` })),
     ...detail.visitNotes.map((n): Entry => ({ at: n.createdAt, kind: "note", text: `Comment${n.authorName ? ` by ${n.authorName}` : ""}: ${n.body.slice(0, 120)}` })),
     ...loyalty.transactions.map((t): Entry => ({ at: t.createdAt, kind: "loyalty", text: `Loyalty ${t.reason.toLowerCase()} ${t.deltaPoints > 0 ? "+" : ""}${t.deltaPoints} pts` })),
   ].sort((a, b) => b.at.getTime() - a.at.getTime());
@@ -327,7 +327,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   ];
 
   return (
-    <AdminShell user={user} title={detail.profile.fullName || "Client"} description="Full customer view — contact, value, history, loyalty, and credits.">
+    <AdminShell user={user} title={detail.profile.fullName || "Client"} description="Full customer view: contact, value, history, loyalty, and credits.">
       <div className="flex flex-col gap-6">
         {/* Header: contact + badges + quick action */}
         <div className="lunia-card flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

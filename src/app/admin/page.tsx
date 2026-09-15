@@ -42,7 +42,7 @@ export default async function AdminHome() {
         />
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-teal-ink)]">Overview</p>
         <h2 className="mt-3 max-w-xl font-[family-name:var(--font-display)] text-3xl leading-snug text-[var(--color-ink)]">
-          Everything Lunia needs — bookings, clients, and content — in one calm place.
+          Everything Lunia needs: bookings, clients, and content, in one calm place.
         </h2>
         <p className="mt-3 text-sm text-[var(--color-ink)]/60">
           You have access to {user.permissions.size} area{user.permissions.size === 1 ? "" : "s"}. Jump back in below.

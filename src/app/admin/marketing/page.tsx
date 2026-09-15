@@ -19,7 +19,7 @@ function formatSar(minor: number): string {
 }
 
 function formatSarOrDash(minor: number | null): string {
-  return minor === null ? "—" : formatSar(minor);
+  return minor === null ? "None" : formatSar(minor);
 }
 
 function formatCount(value: number): string {
@@ -125,12 +125,12 @@ export default async function MarketingDashboardPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <StatCard
               label="Lowest CAC"
-              value={best.lowestCac ? `${best.lowestCac.channel} — ${formatSar(best.lowestCac.cacMinor)}` : "—"}
+              value={best.lowestCac ? `${best.lowestCac.channel}: ${formatSar(best.lowestCac.cacMinor)}` : "None"}
               subNote="Cheapest channel that acquired a client this month"
             />
             <StatCard
               label="Highest Avg LTV"
-              value={best.highestAvgLtv ? `${best.highestAvgLtv.channel} — ${formatSar(best.highestAvgLtv.avgLtvMinor)}` : "—"}
+              value={best.highestAvgLtv ? `${best.highestAvgLtv.channel}: ${formatSar(best.highestAvgLtv.avgLtvMinor)}` : "None"}
               subNote="Channel whose acquired clients spend the most, lifetime"
             />
           </div>

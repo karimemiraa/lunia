@@ -34,7 +34,7 @@ export function JourneySteps({ eyebrow, heading, steps }: JourneyStepsProps) {
             </h2>
           )}
           <span className="mt-2 inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.3em] text-[var(--color-ink)]/35">
-            01 — {String(steps.length).padStart(2, "0")}
+            01 / {String(steps.length).padStart(2, "0")}
           </span>
         </div>
       </div>
