@@ -118,6 +118,9 @@ test("staff calendar: front-desk walk-in booking, check-in, and complete", async
   await expect(row.getByText(clientName)).toBeVisible();
   await expect(row.getByText(uniquePhone)).toBeVisible();
 
+  // Rows are compact — expand this one to reveal its actions.
+  await row.getByRole("button").first().click();
+
   await row.getByRole("button", { name: "Check in" }).click();
   await expect(row).toHaveAttribute("data-booking-status", "CHECKED_IN", { timeout: 10_000 });
 

@@ -32,7 +32,7 @@ export function DayModal({ closeHref, title, children }: DayModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[var(--color-ink)]/45 p-4 backdrop-blur-sm sm:p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-ink)]/45 p-4 backdrop-blur-sm sm:p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) router.push(closeHref);
       }}
@@ -40,8 +40,8 @@ export function DayModal({ closeHref, title, children }: DayModalProps) {
       aria-modal="true"
       aria-label={title}
     >
-      <div className="my-auto w-full max-w-3xl overflow-hidden rounded-[var(--radius-lg)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
-        <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] bg-[var(--color-forest)] px-6 py-4 text-[var(--color-cream)]">
+      <div className="flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--line)] bg-[var(--color-forest)] px-6 py-4 text-[var(--color-cream)]">
           <h2 className="font-[family-name:var(--font-display)] text-xl">{title}</h2>
           <Link
             href={closeHref}
@@ -53,7 +53,7 @@ export function DayModal({ closeHref, title, children }: DayModalProps) {
             </svg>
           </Link>
         </div>
-        <div className="max-h-[75vh] overflow-y-auto p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto p-5">{children}</div>
       </div>
     </div>
   );

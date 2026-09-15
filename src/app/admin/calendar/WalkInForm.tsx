@@ -95,18 +95,7 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      data-testid="walk-in-form"
-      className="flex flex-col gap-4 lunia-card p-5"
-    >
-      <div className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold text-[var(--color-ink)]">Add a booking</h2>
-        <p className="text-sm text-[var(--color-ink)]/60">
-          Book an in-center visit on the spot, even for services that aren&rsquo;t available for online booking.
-        </p>
-      </div>
-
+    <form onSubmit={handleSubmit} data-testid="walk-in-form" className="flex flex-col gap-4">
       {services.length === 0 ? (
         <p className="text-sm text-[var(--color-ink)]/60">No published services to book.</p>
       ) : (
