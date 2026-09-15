@@ -38,7 +38,7 @@ export function IssueGiftCardForm({ clients }: { clients: ClientOption[] }) {
         </label>
 
         <label htmlFor={clientId} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Client (optional)</span>
+          <span className="font-medium text-[var(--color-ink)]">Customer (optional)</span>
           <select id={clientId} name="clientProfileId" defaultValue="" className={inputClass}>
             <option value="">Unassigned</option>
             {clients.map((client) => (

@@ -595,7 +595,7 @@ export async function listDayAppointments(dateISO: string, staffUserId?: string)
       roomId: appointment.roomId,
       roomName: roomById.get(appointment.roomId)?.name ?? "Unknown room",
       clientProfileId: booking.clientProfileId,
-      clientName: client?.fullName ?? "Unknown client",
+      clientName: client?.fullName ?? "Unknown customer",
       clientPhone: client?.user.phone ?? null,
     };
   });
@@ -664,7 +664,7 @@ export async function listMonthAppointments(
     if (cell.items.length < 3) {
       cell.items.push({
         time: monthChipTimeFmt.format(appointment.startAt),
-        clientName: clientNameById.get(booking.clientProfileId)?.trim() || "Client",
+        clientName: clientNameById.get(booking.clientProfileId)?.trim() || "Customer",
         status: booking.status,
       });
     }

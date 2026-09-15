@@ -122,7 +122,7 @@ export function EditServiceForm({ service, departments, media, tiers, currentMin
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-[var(--color-ink)]">Minimum tier</span>
           <select name="minTierId" defaultValue={currentMinTierId ?? ""} className={selectClass}>
-            <option value="">Open to all clients</option>
+            <option value="">Open to all customers</option>
             {tiers.map((tier) => (
               <option key={tier.id} value={tier.id}>
                 {tier.name}

@@ -41,7 +41,7 @@ export function DayView({ rows, date, canManage }: DayViewProps) {
         <thead className="bg-[var(--color-cream)]/60">
           <tr>
             <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Time</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Client</th>
+            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Customer</th>
             <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Service</th>
             <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Staff</th>
             <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Room</th>

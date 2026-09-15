@@ -35,7 +35,7 @@ export default async function CommercePage() {
     currency: card.currency,
     status: card.status,
     issuedToClientName: card.issuedToClientId
-      ? (clients.find((c) => c.clientProfileId === card.issuedToClientId)?.fullName ?? "Unknown client")
+      ? (clients.find((c) => c.clientProfileId === card.issuedToClientId)?.fullName ?? "Unknown customer")
       : null,
     expiresAtIso: card.expiresAt ? card.expiresAt.toISOString() : null,
     redemptionCount: card.redemptions.length,

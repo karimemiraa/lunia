@@ -64,7 +64,7 @@ export function WalkInForm({ services, defaultDate }: WalkInFormProps) {
       return;
     }
     if (!name.trim() || !phone.trim()) {
-      setError("Client name and phone are required.");
+      setError("Customer name and phone are required.");
       return;
     }
 
@@ -144,7 +144,7 @@ export function WalkInForm({ services, defaultDate }: WalkInFormProps) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass} htmlFor={nameId}>
-              <span className="font-medium text-[var(--color-ink)]">Client name</span>
+              <span className="font-medium text-[var(--color-ink)]">Customer name</span>
               <input
                 id={nameId}
                 type="text"
@@ -155,7 +155,7 @@ export function WalkInForm({ services, defaultDate }: WalkInFormProps) {
               />
             </label>
             <label className={labelClass} htmlFor={phoneId}>
-              <span className="font-medium text-[var(--color-ink)]">Client phone</span>
+              <span className="font-medium text-[var(--color-ink)]">Customer phone</span>
               <input
                 id={phoneId}
                 type="tel"

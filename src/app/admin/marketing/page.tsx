@@ -126,12 +126,12 @@ export default async function MarketingDashboardPage() {
             <StatCard
               label="Lowest CAC"
               value={best.lowestCac ? `${best.lowestCac.channel}: ${formatSar(best.lowestCac.cacMinor)}` : "None"}
-              subNote="Cheapest channel that acquired a client this month"
+              subNote="Cheapest channel that acquired a customer this month"
             />
             <StatCard
               label="Highest Avg LTV"
               value={best.highestAvgLtv ? `${best.highestAvgLtv.channel}: ${formatSar(best.highestAvgLtv.avgLtvMinor)}` : "None"}
-              subNote="Channel whose acquired clients spend the most, lifetime"
+              subNote="Channel whose acquired customers spend the most, lifetime"
             />
           </div>
         </section>
@@ -141,9 +141,9 @@ export default async function MarketingDashboardPage() {
             New vs Returning
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard label="New Clients" value={formatCount(newVsReturningStats.newClients)} />
+            <StatCard label="New Customers" value={formatCount(newVsReturningStats.newClients)} />
             <StatCard label="Returning Bookings" value={formatCount(newVsReturningStats.returningBookings)} />
-            <StatCard label="New Client Share" value={formatPercent(newShare)} subNote="Of new + returning bookings this month" />
+            <StatCard label="New Customer Share" value={formatPercent(newShare)} subNote="Of new + returning bookings this month" />
           </div>
         </section>
 
@@ -233,7 +233,7 @@ export default async function MarketingDashboardPage() {
             <table className="w-full text-left text-sm" data-testid="top-clients-table">
               <thead className="bg-[var(--color-cream)]/60">
                 <tr>
-                  <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Client</th>
+                  <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Customer</th>
                   <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Lifetime Value</th>
                 </tr>
               </thead>

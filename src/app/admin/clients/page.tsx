@@ -82,11 +82,11 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   return (
     <AdminShell
       user={user}
-      title="Clients"
-      description="The client roster: lifetime value, visit history, upcoming appointments, and lifecycle at a glance."
+      title="Customers"
+      description="The customer roster: lifetime value, visit history, upcoming appointments, and lifecycle at a glance."
     >
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Total clients" value={stats.total} />
+        <StatCard label="Total customers" value={stats.total} />
         <StatCard label="New this month" value={stats.newThisMonth} />
         <StatCard label="Active" value={stats.active} hint={`visited in last 90 days`} />
         <StatCard label="Lapsed" value={stats.lapsed} hint="due for re-engagement" />
@@ -198,7 +198,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
       </form>
 
       <p className="mb-3 text-sm text-[var(--color-ink)]/55">
-        Showing {clients.length} {clients.length === 1 ? "client" : "clients"}
+        Showing {clients.length} {clients.length === 1 ? "customer" : "customers"}
         {hasFilters ? " (filtered)" : ""}.
       </p>
 
@@ -206,7 +206,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         <table className="w-full text-left text-sm" data-testid="clients-table">
           <thead>
             <tr className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
-              <th className="px-4 py-3 font-semibold">Client</th>
+              <th className="px-4 py-3 font-semibold">Customer</th>
               <th className="px-4 py-3 font-semibold">Tier</th>
               <th className="px-4 py-3 font-semibold">Source</th>
               <th className="px-4 py-3 text-right font-semibold">LTV</th>
@@ -236,7 +236,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
                       href={`/admin/clients/${client.clientProfileId}`}
                       className="font-medium text-[var(--color-ink)] hover:text-[var(--color-teal-ink)] hover:underline"
                     >
-                      {client.fullName || "Unnamed client"}
+                      {client.fullName || "Unnamed customer"}
                     </Link>
                     <div className="text-xs text-[var(--color-ink)]/50">{client.phone ?? client.email ?? "None"}</div>
                   </td>

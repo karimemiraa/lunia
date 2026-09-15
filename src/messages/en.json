@@ -49,7 +49,7 @@
       "intro": "Skin, hair & scalp, and post-surgery recovery, each built on the same diagnostic-first approach to lasting quality."
     },
     "journey": {
-      "eyebrow": "The Client Journey",
+      "eyebrow": "The Customer Journey",
       "heading": "Six moments, one rhythm",
       "steps": [
         {
@@ -85,7 +85,7 @@
     },
     "testimonials": {
       "eyebrow": "In Their Words",
-      "heading": "What our clients say",
+      "heading": "What our customers say",
       "items": [
         {
           "quote": "For the first time, someone actually explained what my skin needed instead of just selling me a facial.",
@@ -100,7 +100,7 @@
           "author": "H., Riyadh"
         }
       ],
-      "ratingSummary": "from {count} client reviews"
+      "ratingSummary": "from {count} customer reviews"
     },
     "cta": {
       "eyebrow": "Ready When You Are",
@@ -124,7 +124,7 @@
         },
         {
           "q": "Where is Lunia located?",
-          "a": "Lunia is a Skin Quality Center in Riyadh, Saudi Arabia, serving clients across the city with diagnostic-led skin, hair & scalp, and post-surgery recovery care."
+          "a": "Lunia is a Skin Quality Center in Riyadh, Saudi Arabia, serving customers across the city with diagnostic-led skin, hair & scalp, and post-surgery recovery care."
         }
       ]
     }
@@ -143,7 +143,7 @@
       "eyebrow": "Our Story",
       "heading": "Why we started Lunia",
       "paragraphs": [
-        "Lunia began with a simple frustration: too many facials, too few real results. Clients would leave glowing for a weekend and be back where they started within a week, because nothing about the treatment was calibrated to what their skin actually needed.",
+        "Lunia began with a simple frustration: too many facials, too few real results. Customers would leave glowing for a weekend and be back where they started within a week, because nothing about the treatment was calibrated to what their skin actually needed.",
         "We looked instead to the Korean approach to skin care, where diagnosis comes before treatment and consistency matters more than any single session. That became our founding idea: read the skin first, personalize everything after, and measure quality over months, not days.",
         "Today Lunia is three departments working from the same philosophy, Skin Quality, Hair & Scalp, and Post-Surgery Recovery, each diagnostic-led, each built to sustain a result rather than chase a moment."
       ]
@@ -161,7 +161,7 @@
         "Skin Diagnostic Specialist",
         "Hair & Scalp Specialist",
         "Post-Surgery Recovery Therapist",
-        "Client Care Lead"
+        "Customer Care Lead"
       ],
       "note": "Full specialist profiles are coming soon, check back shortly, or ask about your care team when you book."
     },
@@ -218,12 +218,12 @@
   "resultsIndex": {
     "meta": {
       "title": "Results | Lunia Skin Quality Center",
-      "description": "A look at the quality Lunia clients build over time, across skin, hair & scalp, and post-surgery recovery, shared with consent, session by session."
+      "description": "A look at the quality Lunia customers build over time, across skin, hair & scalp, and post-surgery recovery, shared with consent, session by session."
     },
     "hero": {
       "eyebrow": "Real Progress",
       "heading": "Quality you can see, built session by session",
-      "intro": "Every result here reflects a real diagnostic plan, sustained over time, not a single dramatic transformation. Photography is shared only with client consent."
+      "intro": "Every result here reflects a real diagnostic plan, sustained over time, not a single dramatic transformation. Photography is shared only with customer consent."
     },
     "categories": [
       "Skin Quality",
@@ -232,8 +232,8 @@
     ],
     "allLabel": "All results",
     "beforeAfterLabel": "Before & after",
-    "consentNote": "Real client photography is added with explicit consent as it becomes available. Every placeholder above reflects a treatment category, not a specific client.",
-    "emptyLabel": "Results are being gathered with client consent, check back soon.",
+    "consentNote": "Real customer photography is added with explicit consent as it becomes available. Every placeholder above reflects a treatment category, not a specific customer.",
+    "emptyLabel": "Results are being gathered with customer consent, check back soon.",
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Start building your own results"
@@ -322,7 +322,7 @@
         },
         {
           "q": "Is this only for concerns, or is it preventative too?",
-          "a": "Both. Many clients come in for maintenance once their skin or scalp quality is where they want it, consistency is what keeps results from fading."
+          "a": "Both. Many customers come in for maintenance once their skin or scalp quality is where they want it, consistency is what keeps results from fading."
         }
       ]
     }
@@ -569,7 +569,7 @@
       "description": "Tell us about your visit to Lunia."
     },
     "heading": "How was your visit?",
-    "intro": "Your feedback helps other clients and helps us improve. This only takes a minute.",
+    "intro": "Your feedback helps other customers and helps us improve. This only takes a minute.",
     "ratingLabel": "Your rating",
     "titleLabel": "Title (optional)",
     "bodyLabel": "Tell us more (optional)",

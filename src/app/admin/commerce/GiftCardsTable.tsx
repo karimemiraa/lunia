@@ -74,7 +74,7 @@ export function GiftCardsTable({ cards }: { cards: GiftCardRowDTO[] }) {
           <tr>
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Code</th>
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Balance / Initial</th>
-            <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Client</th>
+            <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Customer</th>
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Status</th>
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Redemptions</th>
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Expires</th>

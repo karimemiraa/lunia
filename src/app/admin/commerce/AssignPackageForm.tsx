@@ -46,7 +46,7 @@ export function AssignPackageForm({ clients, packages }: { clients: ClientOption
       className="flex flex-wrap items-end gap-3"
     >
       <label htmlFor={clientId} className="flex flex-1 min-w-[12rem] flex-col gap-1 text-sm">
-        <span className="font-medium text-[var(--color-ink)]">Client</span>
+        <span className="font-medium text-[var(--color-ink)]">Customer</span>
         <select id={clientId} name="clientProfileId" required defaultValue="" className={inputClass}>
           <option value="" disabled>
             Select a client

@@ -60,7 +60,7 @@ export default async function WaitlistPage({ searchParams }: WaitlistPageProps) 
     <AdminShell
       user={user}
       title="Waitlist"
-      description="Clients waiting for a service+day to open up, notified automatically the moment a slot frees."
+      description="Customers waiting for a service+day to open up, notified automatically the moment a slot frees."
     >
       <div className="mb-6 flex flex-wrap gap-2">
         {(["", ...STATUS_VALUES] as const).map((status) => {

@@ -14,7 +14,7 @@ interface ReportsPageProps {
 const REPORT_LABELS: Record<ReportType, string> = {
   bookings: "Bookings",
   revenue: "Revenue",
-  clients: "Clients",
+  clients: "Customers",
   marketing: "Marketing",
 };
 

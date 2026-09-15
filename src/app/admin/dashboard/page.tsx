@@ -114,10 +114,10 @@ export default async function BusinessDashboardPage() {
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
-            New vs Returning Clients (This Month)
+            New vs Returning Customers (This Month)
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <StatCard label="New Clients" value={formatCount(monthStats.newClients)} />
+            <StatCard label="New Customers" value={formatCount(monthStats.newClients)} />
             <StatCard label="Returning Bookings" value={formatCount(monthStats.returningBookings)} />
           </div>
         </section>

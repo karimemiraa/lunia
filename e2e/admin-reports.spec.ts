@@ -69,8 +69,8 @@ async function createReportFixtureBooking(page: Page): Promise<{ name: string; d
   const name = `E2E Report Client ${stamp}`;
   const phone = `+9663${stamp.toString().slice(-8)}${rand}`;
 
-  await walkInForm.getByLabel("Client name").fill(name);
-  await walkInForm.getByLabel("Client phone").fill(phone);
+  await walkInForm.getByLabel("Customer name").fill(name);
+  await walkInForm.getByLabel("Customer phone").fill(phone);
   await walkInForm.getByRole("button", { name: "Book walk-in" }).click();
   await expect(walkInForm.getByText("Booking created.")).toBeVisible({ timeout: 10_000 });
 
@@ -107,7 +107,7 @@ test("report center: owner runs a bookings report and exports a matching CSV", a
 
   const body = await response.text();
   const [headerLine, ...dataLines] = body.split("\r\n");
-  expect(headerLine).toBe("Date,Client,Service,Staff,Status,Price (SAR)");
+  expect(headerLine).toBe("Date,Customer,Service,Staff,Status,Price (SAR)");
   expect(dataLines.some((line) => line.includes(name))).toBe(true);
 });
 
@@ -126,7 +126,7 @@ test("report export route: a malformed from/to falls back to the default range i
   expect(response.headers()["content-disposition"]).toContain("attachment");
 
   const body = await response.text();
-  expect(body.split("\r\n")[0]).toBe("Date,Client,Service,Staff,Status,Price (SAR)");
+  expect(body.split("\r\n")[0]).toBe("Date,Customer,Service,Staff,Status,Price (SAR)");
 });
 
 test("report center page: a malformed from/to falls back to the default range instead of 500ing", async ({ page }) => {

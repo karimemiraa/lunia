@@ -102,8 +102,8 @@ test("staff calendar: front-desk walk-in booking, check-in, and complete", async
   // to generate the identical phone number.
   const uniquePhone = `+9665${stamp.toString().slice(-8)}${rand}`;
 
-  await walkInForm.getByLabel("Client name").fill(clientName);
-  await walkInForm.getByLabel("Client phone").fill(uniquePhone);
+  await walkInForm.getByLabel("Customer name").fill(clientName);
+  await walkInForm.getByLabel("Customer phone").fill(uniquePhone);
   await walkInForm.getByRole("button", { name: "Book walk-in" }).click();
 
   await expect(walkInForm.getByText("Booking created.")).toBeVisible({ timeout: 10_000 });

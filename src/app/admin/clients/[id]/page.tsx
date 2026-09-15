@@ -327,7 +327,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   ];
 
   return (
-    <AdminShell user={user} title={detail.profile.fullName || "Client"} description="Full customer view: contact, value, history, loyalty, and credits.">
+    <AdminShell user={user} title={detail.profile.fullName || "Customer"} description="Full customer view: contact, value, history, loyalty, and credits.">
       <div className="flex flex-col gap-6">
         {/* Header: contact + badges + quick action */}
         <div className="lunia-card flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -345,7 +345,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
                   via {detail.source}
                 </span>
               )}
-              <span className="text-xs text-[var(--color-ink)]/45">Client since {formatDate(detail.profile.createdAt)}</span>
+              <span className="text-xs text-[var(--color-ink)]/45">Customer since {formatDate(detail.profile.createdAt)}</span>
             </div>
             {detail.profile.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">

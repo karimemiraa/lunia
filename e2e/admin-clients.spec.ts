@@ -86,8 +86,8 @@ async function createClientViaWalkIn(page: Page): Promise<{ name: string; phone:
   const name = `E2E CRM Client ${stamp}`;
   const phone = `+9664${stamp.toString().slice(-8)}${rand}`;
 
-  await walkInForm.getByLabel("Client name").fill(name);
-  await walkInForm.getByLabel("Client phone").fill(phone);
+  await walkInForm.getByLabel("Customer name").fill(name);
+  await walkInForm.getByLabel("Customer phone").fill(phone);
   await walkInForm.getByRole("button", { name: "Book walk-in" }).click();
   await expect(walkInForm.getByText("Booking created.")).toBeVisible({ timeout: 10_000 });
 
@@ -100,7 +100,7 @@ test("clients: search creates client appears, add visit note, and edit tier pers
   const { name, phone } = await createClientViaWalkIn(page);
 
   await page.goto("/admin/clients");
-  await expect(page.getByRole("heading", { name: "Clients", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Customers", level: 1 })).toBeVisible();
 
   const filterForm = page.getByTestId("clients-filter-form");
   await filterForm.getByLabel("Search").fill(phone);

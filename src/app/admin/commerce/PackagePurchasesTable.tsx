@@ -30,7 +30,7 @@ export function PackagePurchasesTable({ purchases }: { purchases: PackagePurchas
       <table className="w-full text-left text-sm" data-testid="package-purchases-table">
         <thead className="bg-[var(--color-cream)]/60">
           <tr>
-            <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Client</th>
+            <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Customer</th>
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Package</th>
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Sessions left</th>
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Status</th>

@@ -16,7 +16,7 @@ interface QuickLink {
 
 const QUICK_LINKS: QuickLink[] = [
   { href: "/admin/calendar", label: "Calendar", description: "Bookings, walk-ins & check-ins", permission: PERMISSIONS.BOOKING_VIEW, icon: "calendar" },
-  { href: "/admin/clients", label: "Clients", description: "Profiles, history & membership", permission: PERMISSIONS.CLIENT_VIEW, icon: "users" },
+  { href: "/admin/clients", label: "Customers", description: "Profiles, history & membership", permission: PERMISSIONS.CLIENT_VIEW, icon: "users" },
   { href: "/admin/dashboard", label: "Business", description: "Revenue, LTV & performance", permission: PERMISSIONS.ANALYTICS_VIEW, icon: "chart" },
   { href: "/admin/media", label: "Media library", description: "Hero images & photography", permission: PERMISSIONS.CMS_MANAGE, icon: "image" },
   { href: "/admin/content", label: "Page content", description: "Editable site copy & sections", permission: PERMISSIONS.CMS_MANAGE, icon: "layers" },

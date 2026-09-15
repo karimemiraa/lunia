@@ -27,8 +27,8 @@ test("business dashboard: owner sees revenue, top services, and new/returning br
   await expect(page.getByText("Upcoming Appointments")).toBeVisible();
 
   // New vs returning section.
-  await expect(page.getByRole("heading", { name: "New vs Returning Clients (This Month)" })).toBeVisible();
-  await expect(page.getByText("New Clients", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "New vs Returning Customers (This Month)" })).toBeVisible();
+  await expect(page.getByText("New Customers", { exact: true })).toBeVisible();
   await expect(page.getByText("Returning Bookings", { exact: true })).toBeVisible();
 
   // Top services chart section (accessible region carries the data summary

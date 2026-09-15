@@ -52,7 +52,7 @@ export interface BookingsReportRow {
 
 export const BOOKINGS_REPORT_COLUMNS: ReportColumn[] = [
   { key: "date", label: "Date" },
-  { key: "client", label: "Client" },
+  { key: "client", label: "Customer" },
   { key: "service", label: "Service" },
   { key: "staff", label: "Staff" },
   { key: "status", label: "Status" },
@@ -99,7 +99,7 @@ export async function bookingsReport(filter: BookingsReportFilter): Promise<Repo
     .flatMap((booking) =>
       booking.appointments.map((appointment) => ({
         date: utcToCenterLocal(appointment.startAt).dateISO,
-        client: clientNameById.get(booking.clientProfileId) ?? "Unknown client",
+        client: clientNameById.get(booking.clientProfileId) ?? "Unknown customer",
         service: serviceNameById.get(appointment.serviceId) ?? "Unknown service",
         staff: staffNameById.get(appointment.staffUserId) ?? "Unknown staff",
         status: booking.status,

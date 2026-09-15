@@ -43,7 +43,7 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
     <AdminShell
       user={user}
       title="Reviews"
-      description="Moderate client reviews collected after their visits. Approved + public-consent reviews feed the site's Testimonials and AggregateRating SEO data."
+      description="Moderate customer reviews collected after their visits. Approved + public-consent reviews feed the site's Testimonials and AggregateRating SEO data."
     >
       <p className="mb-6 text-sm text-[var(--color-ink)]/70">
         Public aggregate rating:{" "}

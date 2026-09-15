@@ -64,7 +64,7 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
       return;
     }
     if (!name.trim() || (!phone.trim() && !email.trim())) {
-      setError("Client name and a phone or email are required.");
+      setError("Customer name and a phone or email are required.");
       return;
     }
 
@@ -150,7 +150,7 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
 
           <div className="grid gap-4 sm:grid-cols-3">
             <label className={labelClass} htmlFor={nameId}>
-              <span className="font-medium text-[var(--color-ink)]">Client name</span>
+              <span className="font-medium text-[var(--color-ink)]">Customer name</span>
               <input
                 id={nameId}
                 type="text"
