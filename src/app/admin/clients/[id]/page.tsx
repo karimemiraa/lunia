@@ -9,10 +9,8 @@ import { listTiers } from "@/modules/iam/tiers";
 import { getPreference } from "@/modules/comms/preferences";
 import { getLoyalty } from "@/modules/crm/loyalty";
 import { listClientCredits } from "@/modules/commerce/packages";
-import { TierEditor } from "./TierEditor";
 import { VisitNoteForm } from "./VisitNoteForm";
 import { VisitNoteRow } from "./VisitNoteRow";
-import { NotificationPreferenceEditor } from "./NotificationPreferenceEditor";
 import { LoyaltyAdjustForm } from "./LoyaltyAdjustForm";
 import { ClinicalForm } from "./ClinicalForm";
 import { CustomerEditor } from "./CustomerEditor";
@@ -127,14 +125,9 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
         )}
       </SectionCard>
       {canManage && (
-        <SectionCard title="Membership tier">
-          <TierEditor clientProfileId={detail.profile.id} currentTierId={detail.tier?.id ?? null} tiers={tiers} />
-        </SectionCard>
-      )}
-      {canManage && preference && (
-        <SectionCard title="Notification preferences">
-          <NotificationPreferenceEditor clientProfileId={detail.profile.id} preference={preference} />
-        </SectionCard>
+        <p className="text-xs text-[var(--color-ink)]/45">
+          Membership tier and notification preferences are in <span className="font-medium text-[var(--color-ink)]/60">Edit details</span> (top right).
+        </p>
       )}
     </div>
   );
@@ -389,13 +382,16 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             )}
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            {canManage && (
+            {canManage && preference && (
               <CustomerEditor
                 clientProfileId={detail.profile.id}
                 fullName={detail.profile.fullName}
                 phone={detail.phone}
                 email={detail.email}
                 source={detail.source ?? null}
+                currentTierId={detail.tier?.id ?? null}
+                tiers={tiers}
+                preference={preference}
               />
             )}
             <Link

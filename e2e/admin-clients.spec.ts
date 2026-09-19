@@ -127,14 +127,13 @@ test("clients: search creates client appears, add visit note, and edit tier pers
   // The seeded owner's staff profile is named "Karim Emira" (prisma/seed.ts).
   await expect(noteItem.getByText("Karim Emira")).toBeVisible();
 
-  // Edit the tier and confirm it persists across a reload.
-  const tierEditor = page.getByTestId("tier-editor");
+  // Tier + notification preferences now live in the "Edit details" popup.
+  await page.getByTestId("edit-customer-trigger").click();
+  const dialog = page.getByRole("dialog");
+  const tierEditor = dialog.getByTestId("tier-editor");
   await expect(tierEditor).toBeVisible();
   const tierSelect = tierEditor.locator("select[name='tierId']");
   const options = await tierSelect.locator("option").allTextContents();
-  // Prefer a tier that is neither the "no membership" placeholder nor the
-  // base Guest tier, so the assertion below is unambiguous evidence that a
-  // real membership was assigned and persisted (not just left at baseline).
   const targetTierName =
     options.find((label) => label !== "No tier (guest)" && label !== "Guest") ??
     options.find((label) => label !== "No tier (guest)");
@@ -144,25 +143,21 @@ test("clients: search creates client appears, add visit note, and edit tier pers
   await tierEditor.getByRole("button", { name: "Save tier" }).click();
   await expect(tierEditor.getByText("Saved.")).toBeVisible();
 
-  await page.reload();
-  await expect(page.getByTestId("current-tier")).toHaveText(targetTierName!);
-  await expect(page.getByTestId("tier-editor").locator("select[name='tierId'] option:checked")).toHaveText(targetTierName!);
-
-  // Edit this client's notification preferences and confirm they persist
-  // across a reload (A4: admin-side NotificationPreference editor).
-  const prefEditor = page.getByTestId("notification-preference-editor");
-  await expect(prefEditor).toBeVisible();
+  // Notification preferences (same popup).
+  const prefEditor = dialog.getByTestId("notification-preference-editor");
   await prefEditor.locator("select[name='channel']").selectOption("EMAIL");
-  const marketingCheckbox = prefEditor.locator("input[name='marketingOptIn']");
-  await marketingCheckbox.uncheck();
+  await prefEditor.locator("input[name='marketingOptIn']").uncheck();
   await prefEditor.getByRole("button", { name: "Save preferences" }).click();
   await expect(prefEditor.getByText("Saved.")).toBeVisible();
 
+  // Reload: header tier badge reflects the change; reopen the popup to confirm prefs persisted.
   await page.reload();
-  await expect(page.getByTestId("notification-preference-editor").locator("select[name='channel']")).toHaveValue(
-    "EMAIL",
-  );
-  await expect(page.getByTestId("notification-preference-editor").locator("input[name='marketingOptIn']")).not.toBeChecked();
+  await expect(page.getByTestId("current-tier")).toHaveText(targetTierName!);
+  await page.getByTestId("edit-customer-trigger").click();
+  const dialog2 = page.getByRole("dialog");
+  await expect(dialog2.getByTestId("notification-preference-editor").locator("select[name='channel']")).toHaveValue("EMAIL");
+  await expect(dialog2.getByTestId("notification-preference-editor").locator("input[name='marketingOptIn']")).not.toBeChecked();
+  await dialog2.getByRole("button", { name: "Close" }).click();
 
   // Deleting the note we just added exercises the delete-own path (owner is
   // both the author and holds CLIENT_MANAGE here, but the button reflects

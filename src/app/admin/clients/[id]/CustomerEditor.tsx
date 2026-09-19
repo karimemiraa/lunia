@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { Modal } from "../../_components/Modal";
 import { updateCustomerAction, deleteCustomerAction, type ClientActionState } from "./actions";
 import { useActionState } from "react";
+import { TierEditor } from "./TierEditor";
+import { NotificationPreferenceEditor } from "./NotificationPreferenceEditor";
+import type { MembershipTier, CommsChannelPref } from "@prisma/client";
 
 interface CustomerEditorProps {
   clientProfileId: string;
@@ -12,13 +15,16 @@ interface CustomerEditorProps {
   phone: string | null;
   email: string | null;
   source: string | null;
+  currentTierId: string | null;
+  tiers: MembershipTier[];
+  preference: { channel: CommsChannelPref; remindersOptIn: boolean; postVisitOptIn: boolean; marketingOptIn: boolean };
 }
 
 const initialState: ClientActionState = {};
 
 // "Edit details" opens a popup with the edit form + delete, so staff aren't
 // scrolling past a big inline form on the profile.
-export function CustomerEditor({ clientProfileId, fullName, phone, email, source }: CustomerEditorProps) {
+export function CustomerEditor({ clientProfileId, fullName, phone, email, source, currentTierId, tiers, preference }: CustomerEditorProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saveState, saveAction, savePending] = useActionState(updateCustomerAction, initialState);
@@ -68,6 +74,20 @@ export function CustomerEditor({ clientProfileId, fullName, phone, email, source
                 {saveState.error && <span role="alert" className="text-sm font-medium text-red-700">{saveState.error}</span>}
               </div>
             </form>
+
+            <hr className="border-[var(--line)]" />
+
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Membership tier</span>
+              <TierEditor clientProfileId={clientProfileId} currentTierId={currentTierId} tiers={tiers} />
+            </div>
+
+            <hr className="border-[var(--line)]" />
+
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Notification preferences</span>
+              <NotificationPreferenceEditor clientProfileId={clientProfileId} preference={preference} />
+            </div>
 
             <hr className="border-[var(--line)]" />
 
