@@ -3,7 +3,9 @@ import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { listConversations, getConversation } from "@/modules/crm/whatsapp";
+import { listStaffOwners } from "@/modules/crm/clients";
 import { ReplyBox } from "./ReplyBox";
+import { AssigneeSelect } from "./AssigneeSelect";
 
 interface WhatsappPageProps {
   searchParams: Promise<{ c?: string }>;
@@ -16,7 +18,7 @@ export default async function WhatsappPage({ searchParams }: WhatsappPageProps) 
   const user = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
   const params = await searchParams;
 
-  const conversations = await listConversations();
+  const [conversations, staff] = await Promise.all([listConversations(), listStaffOwners()]);
   const activeId = params.c && conversations.some((c) => c.id === params.c) ? params.c : conversations[0]?.id ?? null;
   const active = activeId ? await getConversation(activeId) : null;
 
@@ -46,6 +48,11 @@ export default async function WhatsappPage({ searchParams }: WhatsappPageProps) 
                     </span>
                     {c.clientName && <span className="truncate text-xs text-[var(--color-ink)]/45">{c.phone}</span>}
                     {c.lastMessagePreview && <span className="truncate text-xs text-[var(--color-ink)]/55">{c.lastMessagePreview}</span>}
+                    {c.ownerName && (
+                      <span className="mt-0.5 w-fit rounded-full bg-[var(--color-forest)]/10 px-2 py-0.5 text-[0.65rem] text-[var(--color-forest)]">
+                        {c.ownerName}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
@@ -60,11 +67,14 @@ export default async function WhatsappPage({ searchParams }: WhatsappPageProps) 
                   <p className="truncate font-medium text-[var(--color-ink)]">{active.conversation.clientName || active.conversation.phone}</p>
                   <p className="truncate text-xs text-[var(--color-ink)]/50">{active.conversation.phone}</p>
                 </div>
-                {active.conversation.clientProfileId && (
-                  <Link href={`/admin/clients/${active.conversation.clientProfileId}`} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">
-                    Open profile
-                  </Link>
-                )}
+                <div className="flex shrink-0 items-center gap-3">
+                  <AssigneeSelect conversationId={active.conversation.id} ownerId={active.conversation.ownerId} staff={staff} />
+                  {active.conversation.clientProfileId && (
+                    <Link href={`/admin/clients/${active.conversation.clientProfileId}`} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">
+                      Open profile
+                    </Link>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">

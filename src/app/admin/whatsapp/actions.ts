@@ -3,11 +3,26 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
-import { sendWhatsappMessage } from "@/modules/crm/whatsapp";
+import { sendWhatsappMessage, assignConversation } from "@/modules/crm/whatsapp";
 
 export interface WhatsappActionState {
   error?: string;
   success?: boolean;
+}
+
+export type AssignResult = { ok: true } | { ok: false; error: string };
+
+// Assigns a WhatsApp conversation to a staff member (empty = unassign).
+export async function assignConversationAction(conversationId: string, ownerId: string): Promise<AssignResult> {
+  await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  if (!conversationId) return { ok: false, error: "Missing conversation." };
+  try {
+    await assignConversation(conversationId, ownerId || null);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to assign." };
+  }
+  revalidatePath("/admin/whatsapp");
+  return { ok: true };
 }
 
 export async function sendReplyAction(_prev: WhatsappActionState | null, formData: FormData): Promise<WhatsappActionState> {

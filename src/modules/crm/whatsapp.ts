@@ -11,6 +11,8 @@ export interface ConversationRow {
   phone: string;
   clientProfileId: string | null;
   clientName: string | null;
+  ownerId: string | null;
+  ownerName: string | null;
   lastMessageAt: Date;
   lastMessagePreview: string | null;
   unread: boolean;
@@ -36,15 +38,25 @@ export async function listConversations(): Promise<ConversationRow[]> {
     orderBy: { lastMessageAt: "desc" },
     include: { client: { select: { fullName: true } } },
   });
+  const ownerIds = [...new Set(convos.map((c) => c.ownerId).filter((x): x is string => !!x))];
+  const owners = ownerIds.length ? await prisma.user.findMany({ where: { id: { in: ownerIds } }, include: { staffProfile: true } }) : [];
+  const ownerNameById = new Map(owners.map((u) => [u.id, u.staffProfile?.fullName ?? u.email ?? u.id]));
   return convos.map((c) => ({
     id: c.id,
     phone: c.phone,
     clientProfileId: c.clientProfileId,
     clientName: c.client?.fullName ?? null,
+    ownerId: c.ownerId,
+    ownerName: c.ownerId ? ownerNameById.get(c.ownerId) ?? null : null,
     lastMessageAt: c.lastMessageAt,
     lastMessagePreview: c.lastMessagePreview,
     unread: c.unread,
   }));
+}
+
+/** Assigns (or unassigns, with null) a conversation to a staff member. */
+export async function assignConversation(conversationId: string, ownerId: string | null): Promise<void> {
+  await prisma.whatsappConversation.update({ where: { id: conversationId }, data: { ownerId } });
 }
 
 /** One conversation + its messages (author names resolved); marks it read. */
@@ -54,8 +66,9 @@ export async function getConversation(id: string): Promise<{ conversation: Conve
 
   const msgs = await prisma.whatsappMessage.findMany({ where: { conversationId: id }, orderBy: { createdAt: "asc" } });
   const authorIds = [...new Set(msgs.map((m) => m.authorUserId).filter((x): x is string => !!x))];
-  const authors = authorIds.length ? await prisma.user.findMany({ where: { id: { in: authorIds } }, include: { staffProfile: true } }) : [];
-  const nameById = new Map(authors.map((u) => [u.id, u.staffProfile?.fullName]));
+  const lookupIds = [...new Set([...authorIds, ...(convo.ownerId ? [convo.ownerId] : [])])];
+  const authors = lookupIds.length ? await prisma.user.findMany({ where: { id: { in: lookupIds } }, include: { staffProfile: true } }) : [];
+  const nameById = new Map(authors.map((u) => [u.id, u.staffProfile?.fullName ?? u.email ?? u.id]));
 
   if (convo.unread) await prisma.whatsappConversation.update({ where: { id }, data: { unread: false } });
 
@@ -65,6 +78,8 @@ export async function getConversation(id: string): Promise<{ conversation: Conve
       phone: convo.phone,
       clientProfileId: convo.clientProfileId,
       clientName: convo.client?.fullName ?? null,
+      ownerId: convo.ownerId,
+      ownerName: convo.ownerId ? nameById.get(convo.ownerId) ?? null : null,
       lastMessageAt: convo.lastMessageAt,
       lastMessagePreview: convo.lastMessagePreview,
       unread: false,

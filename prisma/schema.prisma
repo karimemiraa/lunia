@@ -46,6 +46,9 @@ model WhatsappConversation {
   phone              String            @unique
   clientProfileId    String?
   client             ClientProfile?    @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
+  // Staff member this conversation is assigned to (soft ref, no FK, so a
+  // deactivated user doesn't block the thread). Null = unassigned.
+  ownerId            String?
   lastMessageAt      DateTime          @default(now())
   lastMessagePreview String?
   unread             Boolean           @default(false)
