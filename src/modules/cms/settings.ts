@@ -59,6 +59,16 @@ const commsSettingsSchema = z.object({
 });
 export type CommsSettings = z.infer<typeof commsSettingsSchema>;
 
+// Loyalty economics — how spend converts to points and back. Stored in minor
+// currency units (halalas) to match priceMinorSnapshot everywhere.
+//   earnMinorPerPoint   = halalas of spend that earn 1 point (100 = 1 SAR).
+//   redeemMinorPerPoint = halalas of discount granted per redeemed point (1 = 0.01 SAR).
+const loyaltySettingsSchema = z.object({
+  earnMinorPerPoint: z.number().int().positive().default(100),
+  redeemMinorPerPoint: z.number().int().positive().default(1),
+});
+export type LoyaltySettings = z.infer<typeof loyaltySettingsSchema>;
+
 export const settingsRegistry = {
   business: businessSettingsSchema,
   hours: hoursSettingsSchema,
@@ -66,6 +76,7 @@ export const settingsRegistry = {
   seo: seoSettingsSchema,
   hero: heroSettingsSchema,
   comms: commsSettingsSchema,
+  loyalty: loyaltySettingsSchema,
 } as const;
 
 export type SettingKey = keyof typeof settingsRegistry;

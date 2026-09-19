@@ -34,6 +34,8 @@ export async function recordAudit(input: AuditInput): Promise<void> {
 export interface AuditLogRow {
   id: string;
   actorUserId: string;
+  /** Human name of the actor (staff full name, else email), else the id. */
+  actorName: string;
   action: string;
   entityType: string;
   entityId: string | null;
@@ -56,5 +58,17 @@ export async function listAuditLogs(options: { limit?: number; search?: string }
         ],
       }
     : {};
-  return prisma.auditLog.findMany({ where, orderBy: { createdAt: "desc" }, take: limit });
+  const rows = await prisma.auditLog.findMany({ where, orderBy: { createdAt: "desc" }, take: limit });
+
+  // Resolve actor names in one batched lookup (actorUserId is a soft ref, no
+  // FK). Falls back to email, then the raw id, so an unknown/deleted actor
+  // still renders something meaningful.
+  const actorIds = [...new Set(rows.map((r) => r.actorUserId))];
+  const users = await prisma.user.findMany({
+    where: { id: { in: actorIds } },
+    select: { id: true, email: true, staffProfile: { select: { fullName: true } } },
+  });
+  const nameById = new Map(users.map((u) => [u.id, u.staffProfile?.fullName || u.email || u.id]));
+
+  return rows.map((r) => ({ ...r, actorName: nameById.get(r.actorUserId) ?? r.actorUserId }));
 }

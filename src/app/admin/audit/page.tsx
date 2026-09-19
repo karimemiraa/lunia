@@ -85,7 +85,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
               rows.map((row) => (
                 <tr key={row.id} className="border-t border-[var(--color-ink)]/10">
                   <td className="whitespace-nowrap px-4 py-2 text-[var(--color-ink)]/80">{fmt.format(row.createdAt)}</td>
-                  <td className="whitespace-nowrap px-4 py-2 font-mono text-xs text-[var(--color-ink)]/70">{row.actorUserId}</td>
+                  <td className="whitespace-nowrap px-4 py-2 text-[var(--color-ink)]/80" title={row.actorUserId}>{row.actorName}</td>
                   <td className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">{row.action}</td>
                   <td className="whitespace-nowrap px-4 py-2 text-[var(--color-ink)]/80">
                     {row.entityType}

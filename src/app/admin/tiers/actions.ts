@@ -5,10 +5,46 @@ import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { createTier, updateTier, deleteTier } from "@/modules/iam/tiers";
 import { recordAudit } from "@/modules/iam/audit";
+import { setSetting } from "@/modules/cms/settings";
 
 export interface TierActionState {
   error?: string;
   success?: boolean;
+}
+
+// Saves the loyalty earn/redeem economics (the "how much money per point"
+// setup). Inputs are entered in SAR-friendly terms and converted to the
+// minor-unit values the loyalty service reads via getLoyaltyConfig().
+export async function saveLoyaltyRatesAction(_prev: TierActionState | null, formData: FormData): Promise<TierActionState> {
+  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+
+  const sarPerPoint = Number(formData.get("sarPerPoint"));
+  const pointsPerSar = Number(formData.get("pointsPerSar"));
+  if (!Number.isFinite(sarPerPoint) || sarPerPoint <= 0) {
+    return { error: "Enter how many SAR earn 1 point (greater than 0)." };
+  }
+  if (!Number.isFinite(pointsPerSar) || pointsPerSar < 1) {
+    return { error: "Enter how many points equal 1 SAR discount (at least 1)." };
+  }
+
+  const earnMinorPerPoint = Math.round(sarPerPoint * 100);
+  const redeemMinorPerPoint = Math.max(1, Math.round(100 / pointsPerSar));
+
+  try {
+    await setSetting("loyalty", { earnMinorPerPoint, redeemMinorPerPoint });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save loyalty rates." };
+  }
+
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "LOYALTY_RATES_UPDATE",
+    entityType: "SiteSetting",
+    entityId: "loyalty",
+    summary: `Set loyalty rates: 1 point per ${sarPerPoint} SAR, ${pointsPerSar} points per 1 SAR off`,
+  });
+  revalidatePath("/admin/tiers");
+  return { success: true };
 }
 
 function numberOrUndefined(formData: FormData, name: string): number | undefined {

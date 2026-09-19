@@ -79,5 +79,11 @@ export async function deleteTier(id: string): Promise<void> {
     throw new Error(`Cannot delete system tier "${tier.key}"`);
   }
 
-  await prisma.membershipTier.delete({ where: { id } });
+  // ClientMembership.tierId has no cascade, so clear any customers currently
+  // on this tier first (they simply revert to no tier / guest) — otherwise the
+  // delete fails with a FK restriction and the tier can never be removed.
+  await prisma.$transaction([
+    prisma.clientMembership.deleteMany({ where: { tierId: id } }),
+    prisma.membershipTier.delete({ where: { id } }),
+  ]);
 }

@@ -8,6 +8,7 @@
 import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import type { LoyaltyTransaction, MembershipTier } from "@prisma/client";
+import { getSetting } from "@/modules/cms/settings";
 
 // 1 point per 100 minor currency units spent (e.g. 1 point per 1 SAR, since
 // amounts are stored in halalas). Kept as a named constant since both
@@ -18,6 +19,17 @@ export const EARN_DIVISOR = 100;
 // Kept deliberately simple/consistent with EARN_DIVISOR's "1 point ~= 1
 // halala of spend" framing -- a future revision could decouple these.
 export const REDEEM_VALUE_MINOR_PER_POINT = 1;
+
+// Resolves the live loyalty economics from the `loyalty` SiteSetting, falling
+// back to the historical constants when no row exists yet. Both earnForBooking
+// and redeemPoints read this so the admin's configured ratio always applies.
+export async function getLoyaltyConfig(): Promise<{ earnMinorPerPoint: number; redeemMinorPerPoint: number }> {
+  const s = await getSetting("loyalty");
+  return {
+    earnMinorPerPoint: s?.earnMinorPerPoint ?? EARN_DIVISOR,
+    redeemMinorPerPoint: s?.redeemMinorPerPoint ?? REDEEM_VALUE_MINOR_PER_POINT,
+  };
+}
 
 const EARN_REASON = "EARN";
 const REDEEM_REASON = "REDEEM";
@@ -139,9 +151,10 @@ export async function earnForBooking(bookingId: string): Promise<number> {
     throw new Error(`Booking "${bookingId}" not found`);
   }
 
+  const { earnMinorPerPoint } = await getLoyaltyConfig();
   const grossMinor = booking.appointments.reduce((sum, a) => sum + a.priceMinorSnapshot, 0);
   const netMinor = Math.max(0, grossMinor - booking.discountMinor);
-  const points = Math.floor(netMinor / EARN_DIVISOR);
+  const points = Math.floor(netMinor / earnMinorPerPoint);
   if (points <= 0) return 0;
 
   const existing = await prisma.loyaltyTransaction.findUnique({
@@ -248,6 +261,7 @@ export async function redeemPoints(clientProfileId: string, points: number, book
     return { pointsRedeemed: 0, discountMinor: 0 };
   }
   const requestedPoints = Math.floor(points);
+  const { redeemMinorPerPoint } = await getLoyaltyConfig();
 
   return runSerializableTransaction(async (tx) => {
     const [account, booking] = await Promise.all([
@@ -271,13 +285,13 @@ export async function redeemPoints(clientProfileId: string, points: number, book
     const balance = account?.pointsBalance ?? 0;
     const grossMinor = booking.appointments.reduce((sum, a) => sum + a.priceMinorSnapshot, 0);
     const remainingPriceMinor = Math.max(0, grossMinor - booking.discountMinor);
-    const maxPointsByPrice = Math.floor(remainingPriceMinor / REDEEM_VALUE_MINOR_PER_POINT);
+    const maxPointsByPrice = Math.floor(remainingPriceMinor / redeemMinorPerPoint);
 
     const cappedPoints = Math.max(0, Math.min(requestedPoints, balance, maxPointsByPrice));
     if (cappedPoints <= 0) {
       return { pointsRedeemed: 0, discountMinor: 0 };
     }
-    const discountMinor = cappedPoints * REDEEM_VALUE_MINOR_PER_POINT;
+    const discountMinor = cappedPoints * redeemMinorPerPoint;
 
     await tx.loyaltyAccount.update({
       where: { clientProfileId },

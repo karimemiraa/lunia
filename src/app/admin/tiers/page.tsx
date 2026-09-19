@@ -2,12 +2,16 @@ import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { listTiers } from "@/modules/iam/tiers";
+import { getLoyaltyConfig } from "@/modules/crm/loyalty";
 import { TierRow } from "./TierRow";
 import { CreateTierForm } from "./CreateTierForm";
+import { LoyaltyRatesForm } from "./LoyaltyRatesForm";
 
 export default async function TiersPage() {
   const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
-  const tiers = await listTiers();
+  const [tiers, loyalty] = await Promise.all([listTiers(), getLoyaltyConfig()]);
+  const sarPerPoint = loyalty.earnMinorPerPoint / 100;
+  const pointsPerSar = Math.round(100 / loyalty.redeemMinorPerPoint);
 
   return (
     <AdminShell
@@ -15,6 +19,10 @@ export default async function TiersPage() {
       title="Membership Tiers"
       description="Manage membership tiers, ordering priority, and discounts."
     >
+      <div className="mb-8 max-w-3xl">
+        <LoyaltyRatesForm sarPerPoint={sarPerPoint} pointsPerSar={pointsPerSar} />
+      </div>
+
       <div className="mb-8 max-w-2xl">
         <CreateTierForm />
       </div>
