@@ -37,6 +37,37 @@ enum LeadDirection {
   OUTBOUND
 }
 
+// A WhatsApp conversation with a lead/customer (one per phone number). Inbound
+// messages arrive via a provider webhook (pluggable) and outbound replies are
+// sent through the same adapter; both are stored here so the whole thread is
+// answerable from the System.
+model WhatsappConversation {
+  id                 String            @id @default(cuid())
+  phone              String            @unique
+  clientProfileId    String?
+  client             ClientProfile?    @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
+  lastMessageAt      DateTime          @default(now())
+  lastMessagePreview String?
+  unread             Boolean           @default(false)
+  createdAt          DateTime          @default(now())
+  messages           WhatsappMessage[]
+
+  @@index([lastMessageAt])
+}
+
+model WhatsappMessage {
+  id             String               @id @default(cuid())
+  conversationId String
+  conversation   WhatsappConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction      String // IN | OUT
+  body           String               @db.Text
+  authorUserId   String? // staff who sent an OUT message
+  providerRef    String?
+  createdAt      DateTime             @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
 // A logged outreach touch or pipeline event on a lead/customer.
 model LeadActivity {
   id              String        @id @default(cuid())
@@ -157,6 +188,7 @@ model ClientProfile {
   direction      LeadDirection?
   nextFollowUpAt DateTime?
   leadActivities LeadActivity[]
+  whatsappConversations WhatsappConversation[]
   membership    ClientMembership?
   bookings      Booking[]
   visitNotes    VisitNote[]
