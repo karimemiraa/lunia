@@ -328,15 +328,21 @@ model BlogPost {
 }
 
 model ContactInquiry {
-  id         String   @id @default(cuid())
-  name       String
-  phone      String
-  email      String?
-  message    String   @db.Text
-  locale     String
-  sourcePage String?
-  handled    Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id              String    @id @default(cuid())
+  name            String
+  phone           String
+  email           String?
+  message         String    @db.Text
+  locale          String
+  sourcePage      String?
+  handled         Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  // Ownership + linkage (CRM): who's handling it, the linked customer, and the
+  // emailed reply (so the whole exchange lives on the inquiry).
+  assignedToId    String?
+  clientProfileId String?
+  repliedAt       DateTime?
+  replyBody       String?   @db.Text
 }
 
 enum BookingStatus {
