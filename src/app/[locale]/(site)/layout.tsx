@@ -5,6 +5,7 @@ import { fontVariables } from "@/app/fonts";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { StickyBookCta } from "@/components/site/StickyBookCta";
+import { WhatsAppFab } from "@/components/site/WhatsAppFab";
 import { Tracker } from "@/components/analytics/Tracker";
 import "@/app/globals.css";
 
@@ -29,6 +30,7 @@ export default async function SiteLayout({
           <div className="flex-1">{children}</div>
           <SiteFooter locale={locale} />
           <StickyBookCta href={`/${locale}/book`} label={tCommon("bookNow")} />
+          <WhatsAppFab />
         </NextIntlClientProvider>
         <Tracker />
       </body>
