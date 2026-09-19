@@ -130,6 +130,7 @@ const GROUPS: NavGroup[] = [
     label: "Customers",
     items: [
       { href: "/admin/clients", label: "Customers", perm: PERMISSIONS.CLIENT_VIEW, icon: I.users },
+      { href: "/admin/leads", label: "Leads", perm: PERMISSIONS.CLIENT_VIEW, icon: I.inbox },
     ],
   },
   {

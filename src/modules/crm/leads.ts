@@ -5,6 +5,7 @@
 // won customer without a separate model.
 
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import type { LeadStage, LeadDirection, ClientProfile } from "@prisma/client";
 
 export const LEAD_STAGES: LeadStage[] = ["LEAD", "ATTEMPTED", "CONTACTED", "FOLLOW_UP", "BOOKED", "WON", "LOST"];
@@ -90,6 +91,79 @@ export async function assignOwner(clientProfileId: string, ownerId: string | nul
 /** Sets or clears the next follow-up date for a non-responder. */
 export async function setFollowUp(clientProfileId: string, date: Date | null): Promise<void> {
   await prisma.clientProfile.update({ where: { id: clientProfileId }, data: { nextFollowUpAt: date } });
+}
+
+export interface PipelineCard {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  stage: LeadStage;
+  direction: LeadDirection | null;
+  ownerId: string | null;
+  ownerName: string | null;
+  source: string | null;
+  nextFollowUpAt: Date | null;
+  createdAt: Date;
+}
+
+// The whole pipeline grouped by stage, for the Leads board. Optional filters
+// by direction (inbound/outbound) and source channel. Each column is capped
+// so a large customer base can't render thousands of cards.
+const PIPELINE_COLUMN_CAP = 100;
+
+export async function listPipeline(filter?: {
+  direction?: LeadDirection;
+  source?: string;
+}): Promise<{ columns: Record<LeadStage, PipelineCard[]>; counts: Record<LeadStage, number> }> {
+  const where: Prisma.ClientProfileWhereInput = {};
+  if (filter?.direction) where.direction = filter.direction;
+  if (filter?.source) where.sourceChannel = filter.source;
+
+  const profiles = await prisma.clientProfile.findMany({
+    where,
+    include: { user: { select: { phone: true, email: true } } },
+    orderBy: [{ nextFollowUpAt: "asc" }, { createdAt: "desc" }],
+  });
+
+  const ownerIds = [...new Set(profiles.map((p) => p.ownerId).filter((x): x is string => !!x))];
+  const owners = ownerIds.length
+    ? await prisma.user.findMany({ where: { id: { in: ownerIds } }, include: { staffProfile: true } })
+    : [];
+  const ownerNameById = new Map(owners.map((u) => [u.id, u.staffProfile?.fullName ?? u.email ?? u.id]));
+
+  const columns = Object.fromEntries(LEAD_STAGES.map((s) => [s, [] as PipelineCard[]])) as Record<LeadStage, PipelineCard[]>;
+  const counts = Object.fromEntries(LEAD_STAGES.map((s) => [s, 0])) as Record<LeadStage, number>;
+
+  for (const p of profiles) {
+    counts[p.stage] += 1;
+    if (columns[p.stage].length >= PIPELINE_COLUMN_CAP) continue;
+    columns[p.stage].push({
+      id: p.id,
+      name: p.fullName,
+      phone: p.user.phone,
+      email: p.user.email,
+      stage: p.stage,
+      direction: p.direction,
+      ownerId: p.ownerId,
+      ownerName: p.ownerId ? ownerNameById.get(p.ownerId) ?? null : null,
+      source: p.sourceChannel,
+      nextFollowUpAt: p.nextFollowUpAt,
+      createdAt: p.createdAt,
+    });
+  }
+
+  return { columns, counts };
+}
+
+// Distinct source channels present on customers/leads, for the board filter.
+export async function listLeadSources(): Promise<string[]> {
+  const rows = await prisma.clientProfile.findMany({
+    where: { sourceChannel: { not: null } },
+    select: { sourceChannel: true },
+    distinct: ["sourceChannel"],
+  });
+  return rows.map((r) => r.sourceChannel).filter((x): x is string => !!x).sort();
 }
 
 export interface CreateLeadInput {
