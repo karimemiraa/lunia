@@ -84,8 +84,10 @@ export async function saveSettings(_prev: SaveSettingsState | null, formData: Fo
     defaultDescAr: str(formData, "defaultDesc.ar"),
   };
 
+  const bookingChannelRaw = str(formData, "comms.defaultBookingChannel");
   const comms: CommsSettings = {
     otpChannel: otpChannelFromForm(formData),
+    defaultBookingChannel: bookingChannelRaw === "whatsapp" || bookingChannelRaw === "sms" ? bookingChannelRaw : undefined,
   };
 
   try {

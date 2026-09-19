@@ -29,10 +29,10 @@ interface SettingsFormProps {
   x: string;
   defaultTitle: LocalizedValue;
   defaultDesc: LocalizedValue;
-  /** SiteSetting("comms").otpChannel -- fallback delivery channel for one-time codes. */
+  /** SiteSetting("comms").otpChannel -- also restricts the website login identifier. */
   otpChannel: "AUTO" | "WHATSAPP" | "SMS" | "EMAIL";
-  /** The provider-derived default channel for booking messages (read-only; see COMMS_BOOKING_CHANNEL). */
-  bookingChannel: string;
+  /** SiteSetting("comms").defaultBookingChannel -- editable default for booking messages. */
+  defaultBookingChannel: "whatsapp" | "sms";
 }
 
 const OTP_CHANNEL_OPTIONS: { value: "AUTO" | "WHATSAPP" | "SMS" | "EMAIL"; label: string }[] = [
@@ -62,7 +62,7 @@ export function SettingsForm({
   defaultTitle,
   defaultDesc,
   otpChannel,
-  bookingChannel,
+  defaultBookingChannel,
 }: SettingsFormProps) {
   const [state, action, pending] = useActionState(saveSettings, initialState);
 
@@ -146,19 +146,20 @@ export function SettingsForm({
               ))}
             </select>
             <span className="text-xs text-[var(--color-ink)]/60">
-              Used when a client has no personal preference set. An email identifier always delivers by email
-              regardless of this setting.
+              Also controls how customers sign in on the website: <strong>Email</strong> → email only,
+              <strong> WhatsApp/SMS</strong> → phone only, <strong>Automatic</strong> → phone or email.
             </span>
           </label>
-          <div className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-[var(--color-ink)]">Default booking channel</span>
-            <p className="rounded border border-[var(--color-ink)]/10 bg-[var(--color-cream)]/40 px-3 py-2 text-sm text-[var(--color-ink)]/80" data-testid="booking-channel-readonly">
-              {bookingChannel}
-            </p>
+            <select name="comms.defaultBookingChannel" defaultValue={defaultBookingChannel} className={inputClass} data-testid="booking-channel-select">
+              <option value="whatsapp">WhatsApp</option>
+              <option value="sms">SMS</option>
+            </select>
             <span className="text-xs text-[var(--color-ink)]/60">
-              Set via the COMMS_BOOKING_CHANNEL / COMMS_PROVIDER environment variables. Read only here.
+              Channel used for booking confirmations and reminders when a customer has no personal preference.
             </span>
-          </div>
+          </label>
         </div>
       </section>
 

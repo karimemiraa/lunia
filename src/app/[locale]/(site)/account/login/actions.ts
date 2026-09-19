@@ -15,6 +15,21 @@ import {
   createClientSession,
   CLIENT_SESSION_COOKIE,
 } from "@/modules/iam/clientAuth";
+import { getSetting, loginIdentifierMode } from "@/modules/cms/settings";
+
+const LOGIN_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Enforces the center's configured login mode (SiteSetting comms.otpChannel):
+// email-only rejects a phone, phone-only rejects an email. Returns an error
+// message string when disallowed, else null.
+async function identifierModeError(identifier: string, t: Awaited<ReturnType<typeof errorTranslator>>): Promise<string | null> {
+  const comms = await getSetting("comms").catch(() => null);
+  const mode = loginIdentifierMode(comms?.otpChannel ?? "AUTO");
+  const isEmail = LOGIN_EMAIL_RE.test(identifier.trim());
+  if (mode === "email" && !isEmail) return t("emailOnly");
+  if (mode === "phone" && isEmail) return t("phoneOnly");
+  return null;
+}
 
 const SESSION_COOKIE_OPTIONS = {
   httpOnly: true as const,
@@ -54,6 +69,8 @@ export async function startLoginOtp(identifier: string, locale: string): Promise
   const t = await errorTranslator(locale);
   try {
     const normalized = identifierSchema.parse(identifier);
+    const modeError = await identifierModeError(normalized, t);
+    if (modeError) return { ok: false, error: modeError };
     const result = await requestOtp(normalized);
     return { ok: true, devCode: result.devCode };
   } catch (err) {
@@ -108,6 +125,9 @@ export type PasswordLoginInput = z.input<typeof passwordLoginSchema>;
 export async function loginWithPassword(input: PasswordLoginInput): Promise<VerifyLoginResult> {
   const data = passwordLoginSchema.parse(input);
   const t = await errorTranslator(data.locale);
+
+  const modeError = await identifierModeError(data.identifier, t);
+  if (modeError) return { ok: false, error: modeError };
 
   const authed = await authenticateClient(data.identifier, data.password);
   if (!authed) {

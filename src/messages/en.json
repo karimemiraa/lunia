@@ -447,7 +447,9 @@
         "missingIdentifier": "Please enter your phone or email.",
         "invalidIdentifier": "Please enter a valid phone number or email.",
         "invalidCredentials": "Those sign-in details are incorrect, please try again.",
-        "missingPassword": "Please enter your password."
+        "missingPassword": "Please enter your password.",
+        "emailOnly": "Please sign in with your email address.",
+        "phoneOnly": "Please sign in with your phone number."
       },
       "identifierLabel": "Phone or email",
       "changeContactLabel": "Use a different phone or email",
@@ -456,7 +458,8 @@
       "passwordLabel": "Password",
       "signInWithPassword": "Sign in with a password instead",
       "signInWithCode": "Sign in with a verification code instead",
-      "verifyLabelPassword": "Sign in"
+      "verifyLabelPassword": "Sign in",
+      "emailLabel": "Email address"
     },
     "heading": "My account",
     "signedInAs": "Signed in as {name}",

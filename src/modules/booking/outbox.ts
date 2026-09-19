@@ -12,6 +12,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { Prisma, ScheduledMessage } from "@prisma/client";
 import { getCommsConfig } from "@/modules/comms/config";
+import { getSetting } from "@/modules/cms/settings";
 // NOTE: comms/templates.ts imports renderMessageBody from this file, so this
 // is a circular import. Safe: both bindings are only referenced inside
 // function bodies (never at module-eval time), a standard safe cycle under
@@ -177,6 +178,15 @@ export function resolveBookingChannel(config: ReturnType<typeof getCommsConfig>)
   }
 }
 
+// The effective default booking channel: the admin-configured
+// SiteSetting("comms").defaultBookingChannel wins, else the env/provider
+// default from resolveBookingChannel. Async because it reads the setting.
+export async function getEffectiveBookingChannel(): Promise<string> {
+  const comms = await getSetting("comms").catch(() => null);
+  if (comms?.defaultBookingChannel) return comms.defaultBookingChannel;
+  return resolveBookingChannel(getCommsConfig());
+}
+
 // Coerces a ScheduledMessage.payload (free-form JSON) into the
 // Record<string, string> shape renderTemplate's {{token}} interpolation
 // expects. Non-string values (numbers, booleans) are stringified; nullish
@@ -328,7 +338,7 @@ export async function processDueMessages(
   let sent = 0;
   let failed = 0;
   let skipped = 0;
-  const globalDefault = resolveBookingChannel(getCommsConfig());
+  const globalDefault = await getEffectiveBookingChannel();
 
   for (const message of due) {
     // Rendering does Prisma reads (template lookup), so keep it INSIDE the

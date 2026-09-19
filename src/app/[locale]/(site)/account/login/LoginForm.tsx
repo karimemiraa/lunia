@@ -7,6 +7,8 @@ import { startLoginOtp, verifyLogin, loginWithPassword } from "./actions";
 
 interface LoginFormProps {
   locale: "en" | "ar";
+  /** Which identifier the center accepts (from comms.otpChannel). */
+  identifierMode?: "email" | "phone" | "both";
 }
 
 const focusRingClass =
@@ -27,8 +29,13 @@ type Mode = "code" | "password";
 //   - "code":     identifier -> OTP -> session (also captures a name for new
 //                 accounts so emails can be personalized),
 //   - "password": identifier + password -> session (for clients who set one).
-export function LoginForm({ locale }: LoginFormProps) {
+export function LoginForm({ locale, identifierMode = "both" }: LoginFormProps) {
   const t = useTranslations("account.login");
+  const idLabel =
+    identifierMode === "email" ? t("emailLabel") : identifierMode === "phone" ? t("phoneLabel") : t("identifierLabel");
+  const idType = identifierMode === "email" ? "email" : "text";
+  const idInputMode = identifierMode === "phone" ? "tel" : "email";
+  const idAutoComplete = identifierMode === "email" ? "email" : identifierMode === "phone" ? "tel" : "username";
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -111,15 +118,15 @@ export function LoginForm({ locale }: LoginFormProps) {
     >
       <div className="flex flex-col gap-2">
         <label htmlFor={identifierId} className={labelClass}>
-          {t("identifierLabel")}
+          {idLabel}
         </label>
         <input
           id={identifierId}
-          type="text"
+          type={idType}
           required
           maxLength={120}
-          autoComplete="username"
-          inputMode="email"
+          autoComplete={idAutoComplete}
+          inputMode={idInputMode}
           value={identifier}
           disabled={otpSent}
           onChange={(e) => setIdentifier(e.target.value)}

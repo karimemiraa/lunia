@@ -45,7 +45,7 @@ export default async function SettingsPage() {
         defaultTitle={{ en: seo?.defaultTitleEn ?? "", ar: seo?.defaultTitleAr ?? "" }}
         defaultDesc={{ en: seo?.defaultDescEn ?? "", ar: seo?.defaultDescAr ?? "" }}
         otpChannel={comms?.otpChannel ?? "AUTO"}
-        bookingChannel={bookingChannel}
+        defaultBookingChannel={comms?.defaultBookingChannel ?? (bookingChannel === "sms" ? "sms" : "whatsapp")}
       />
     </AdminShell>
   );

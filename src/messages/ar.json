@@ -447,7 +447,9 @@
         "missingIdentifier": "فضلاً أدخلي رقم جوالك أو بريدك الإلكتروني.",
         "invalidIdentifier": "فضلاً أدخلي رقم جوال أو بريد إلكتروني صحيح.",
         "invalidCredentials": "بيانات الدخول غير صحيحة، حاولي مرة ثانية.",
-        "missingPassword": "فضلاً أدخلي كلمة المرور."
+        "missingPassword": "فضلاً أدخلي كلمة المرور.",
+        "emailOnly": "الرجاء تسجيل الدخول بالبريد الإلكتروني.",
+        "phoneOnly": "الرجاء تسجيل الدخول برقم جوالك."
       },
       "identifierLabel": "الجوال أو البريد الإلكتروني",
       "changeContactLabel": "استخدمي جوالاً أو بريداً آخر",
@@ -456,7 +458,8 @@
       "passwordLabel": "كلمة المرور",
       "signInWithPassword": "سجّلي الدخول بكلمة المرور بدلاً من الرمز",
       "signInWithCode": "سجّلي الدخول برمز التحقق بدلاً من كلمة المرور",
-      "verifyLabelPassword": "تسجيل الدخول"
+      "verifyLabelPassword": "تسجيل الدخول",
+      "emailLabel": "البريد الإلكتروني"
     },
     "heading": "حسابي",
     "signedInAs": "مسجّلة دخول باسم {name}",

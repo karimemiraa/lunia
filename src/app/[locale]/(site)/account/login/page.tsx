@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { Section } from "@/components/site/Section";
 import { buildMetadata } from "@/modules/seo/metadata";
 import { getClientSessionUser, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
+import { getSetting, loginIdentifierMode } from "@/modules/cms/settings";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { LoginForm } from "./LoginForm";
 
@@ -49,6 +50,11 @@ export default async function AccountLoginPage({ params }: AccountLoginPageProps
 
   const t = await getTranslations({ locale, namespace: "account.login" });
 
+  // The center's OTP-channel setting decides which identifier the login form
+  // accepts (email only / phone only / both).
+  const comms = await getSetting("comms").catch(() => null);
+  const identifierMode = loginIdentifierMode(comms?.otpChannel ?? "AUTO");
+
   const wordmark = "Lunia".split("");
 
   return (
@@ -83,7 +89,7 @@ export default async function AccountLoginPage({ params }: AccountLoginPageProps
               </h1>
               <p className="text-sm leading-relaxed text-[var(--color-ink)]/65">{t("intro")}</p>
             </div>
-            <LoginForm locale={locale} />
+            <LoginForm locale={locale} identifierMode={identifierMode} />
           </div>
         </div>
       </Section>

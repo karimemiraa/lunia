@@ -56,8 +56,22 @@ export type HeroSettings = z.infer<typeof heroSettingsSchema>;
 // booking channel).
 const commsSettingsSchema = z.object({
   otpChannel: z.enum(["AUTO", "WHATSAPP", "SMS", "EMAIL"]).default("AUTO"),
+  // Default channel for booking messages (confirmations/reminders) when a
+  // client has no personal preference. Overrides the env-derived default.
+  defaultBookingChannel: z.enum(["whatsapp", "sms"]).optional(),
 });
 export type CommsSettings = z.infer<typeof commsSettingsSchema>;
+
+// The login/registration identifier the website accepts, derived from the
+// OTP channel choice: EMAIL → email only, WHATSAPP/SMS → phone only, AUTO →
+// both. This is what "choosing email only means OTP only works through email"
+// maps to on the public login page.
+export type LoginIdentifierMode = "email" | "phone" | "both";
+export function loginIdentifierMode(otpChannel: CommsSettings["otpChannel"]): LoginIdentifierMode {
+  if (otpChannel === "EMAIL") return "email";
+  if (otpChannel === "WHATSAPP" || otpChannel === "SMS") return "phone";
+  return "both";
+}
 
 // Loyalty economics — how spend converts to points and back. Stored in minor
 // currency units (halalas) to match priceMinorSnapshot everywhere.
