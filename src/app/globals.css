@@ -47,10 +47,15 @@
   --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--color-teal) 40%, transparent),
     0 12px 40px -12px color-mix(in srgb, var(--color-teal) 55%, transparent);
 
-  --radius-sm: 0.5rem;
-  --radius: 0.875rem;
+  /* Unified corner radius: 20px on every boxy surface (inputs, buttons,
+     cards, panels). Genuinely circular elements use rounded-full instead.
+     All tokens resolve to 20px so existing var(--radius-*) consumers are
+     unified automatically. */
+  --radius-sm: 1.25rem;
+  --radius: 1.25rem;
+  --radius-md: 1.25rem;
   --radius-lg: 1.25rem;
-  --radius-xl: 1.75rem;
+  --radius-xl: 1.25rem;
 
   --ring: 0 0 0 2px var(--color-page), 0 0 0 4px color-mix(in srgb, var(--color-teal) 70%, transparent);
 
@@ -76,6 +81,22 @@ body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Unified 20px corner radius across every boxy surface. These plain
+   (unlayered) rules override Tailwind's all-corner rounded-* utilities
+   (which live in the utilities layer), so cards/inputs/buttons/panels share
+   one radius without editing hundreds of call sites. rounded-full and the
+   per-side utilities (rounded-t-*, rounded-s-*, …) are intentionally left
+   alone so pills, avatars, and single-side rounding keep working. */
+.rounded-sm,
+.rounded,
+.rounded-md,
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl {
+  border-radius: 1.25rem;
 }
 
 /* ---------------------------------------------------------------------------
@@ -293,6 +314,14 @@ body {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 .lunia-input::placeholder { color: color-mix(in srgb, var(--color-ink) 40%, transparent); }
+/* Icon-inset search fields: the base `padding` shorthand above (unlayered)
+   otherwise clobbers Tailwind's layered `ps-*` utilities, so the leading
+   search icon overlaps the text. These higher-specificity, unlayered rules
+   restore the inline-start inset so the icon and text never collide. Works
+   in both LTR and RTL because they set the logical inline-start. */
+.lunia-input.ps-9 { padding-inline-start: 2.25rem; }
+.lunia-input.ps-10 { padding-inline-start: 2.5rem; }
+.lunia-input.ps-11 { padding-inline-start: 2.75rem; }
 .lunia-input:focus {
   outline: none;
   border-color: var(--color-teal);
@@ -312,7 +341,7 @@ body {
   justify-content: center;
   gap: 0.5rem;
   white-space: nowrap;
-  border-radius: 9999px;
+  border-radius: var(--radius);
   padding: 0.6rem 1.4rem;
   font-size: 0.875rem;
   font-weight: 500;
