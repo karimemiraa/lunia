@@ -15,6 +15,8 @@ import { recordAudit } from "@/modules/iam/audit";
 import { prisma } from "@/lib/db";
 import { addVisitNote, deleteVisitNote, setNotePinned } from "@/modules/crm/visitNotes";
 import { updateClientTier, updateCustomer, deleteCustomer } from "@/modules/crm/clients";
+import { setLeadStage, assignOwner, setFollowUp, logActivity, LEAD_STAGES } from "@/modules/crm/leads";
+import type { LeadStage } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { upsertPreference } from "@/modules/comms/preferences";
 import { adjustPoints } from "@/modules/crm/loyalty";
@@ -160,6 +162,58 @@ export async function deleteCustomerAction(_prev: ClientActionState | null, form
     summary: `Deleted customer "${clientProfileId}"`,
   });
   redirect("/admin/clients");
+}
+
+// --- Sales pipeline (CRM) ---------------------------------------------------
+
+// One save for stage + owner + follow-up. Stage/owner changes are logged as
+// activities (setLeadStage/assignOwner); the follow-up date is set silently.
+export async function updateLeadAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
+  if (!clientProfileId) return { error: "Missing customer." };
+
+  const stage = String(formData.get("stage") ?? "").trim();
+  const ownerId = String(formData.get("ownerId") ?? "").trim() || null;
+  const raw = String(formData.get("nextFollowUpAt") ?? "").trim();
+  const date = raw ? new Date(raw) : null;
+  if (raw && Number.isNaN(date!.getTime())) return { error: "Invalid date." };
+
+  try {
+    const current = await prisma.clientProfile.findUnique({ where: { id: clientProfileId }, select: { stage: true, ownerId: true } });
+    if (!current) return { error: "Customer not found." };
+    if ((LEAD_STAGES as string[]).includes(stage) && stage !== current.stage) {
+      await setLeadStage(clientProfileId, stage as LeadStage, admin.id);
+    }
+    if (ownerId !== current.ownerId) {
+      await assignOwner(clientProfileId, ownerId, admin.id);
+    }
+    await setFollowUp(clientProfileId, date);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update pipeline." };
+  }
+  revalidateClient(clientProfileId);
+  return { success: true };
+}
+
+export async function logLeadActivityAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
+  const kind = String(formData.get("kind") ?? "").trim();
+  if (!clientProfileId || !kind) return { error: "Pick an activity type." };
+  try {
+    await logActivity({
+      clientProfileId,
+      authorUserId: admin.id,
+      kind,
+      outcome: String(formData.get("outcome") ?? "") || null,
+      body: String(formData.get("body") ?? "") || null,
+    });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to log activity." };
+  }
+  revalidateClient(clientProfileId);
+  return { success: true };
 }
 
 export async function updateTierAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {

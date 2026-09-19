@@ -16,6 +16,9 @@ import { NotificationPreferenceEditor } from "./NotificationPreferenceEditor";
 import { LoyaltyAdjustForm } from "./LoyaltyAdjustForm";
 import { ClinicalForm } from "./ClinicalForm";
 import { CustomerEditor } from "./CustomerEditor";
+import { LeadPanel } from "./LeadPanel";
+import { listLeadActivities } from "@/modules/crm/leads";
+import { listStaffUsers } from "@/modules/iam/users";
 
 interface ClientDetailPageProps {
   params: Promise<{ id: string }>;
@@ -75,10 +78,12 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   const [detail, tiers] = await Promise.all([getClientDetail(id), canManage ? listTiers() : Promise.resolve([])]);
   if (!detail) notFound();
 
-  const [preference, loyalty, credits] = await Promise.all([
+  const [preference, loyalty, credits, leadActivities, staffUsers] = await Promise.all([
     canManage ? getPreference(detail.profile.id) : Promise.resolve(null),
     getLoyalty(detail.profile.id),
     listClientCredits(detail.profile.id),
+    canManage ? listLeadActivities(detail.profile.id) : Promise.resolve([]),
+    canManage ? listStaffUsers() : Promise.resolve([]),
   ]);
 
   // Derived metrics from the booking history.
@@ -318,8 +323,33 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
       </ol>
     );
 
+  const pipelineTab = canManage ? (
+    <LeadPanel
+      clientProfileId={detail.profile.id}
+      stage={detail.profile.stage}
+      ownerId={detail.profile.ownerId}
+      direction={detail.profile.direction}
+      source={detail.profile.sourceChannel}
+      nextFollowUpIso={detail.profile.nextFollowUpAt ? detail.profile.nextFollowUpAt.toISOString() : null}
+      staff={staffUsers.map((s) => ({ id: s.id, name: s.fullName || s.email || "Staff" }))}
+      activities={leadActivities.map((a) => ({
+        id: a.id,
+        kind: a.kind,
+        outcome: a.outcome,
+        body: a.body,
+        authorName: a.authorName,
+        createdAtIso: a.createdAt.toISOString(),
+      }))}
+    />
+  ) : (
+    <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">
+      You do not have access to the sales pipeline.
+    </p>
+  );
+
   const tabs: TabDef[] = [
     { id: "overview", label: "Overview", content: overview },
+    { id: "pipeline", label: "Pipeline", content: pipelineTab, badge: leadActivities.length },
     { id: "appointments", label: "Appointments", content: appointments, badge: detail.bookings.length },
     { id: "clinical", label: "Clinical", content: clinicalTab },
     { id: "timeline", label: "Timeline", content: timelineTab, badge: timeline.length },
