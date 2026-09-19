@@ -10,7 +10,8 @@
     "book": "Book Now",
     "account": "My Account",
     "primaryLabel": "Primary navigation",
-    "mobileLabel": "Mobile navigation"
+    "mobileLabel": "Mobile navigation",
+    "giftCards": "Gift Cards"
   },
   "common": {
     "bookNow": "Book Now",
@@ -608,6 +609,40 @@
     "invalidBody": "This review link is invalid or has expired.",
     "errors": {
       "generic": "Something went wrong, please try again."
+    }
+  },
+  "giftCards": {
+    "meta": {
+      "title": "Gift Cards | Lunia Skin Quality Center, Riyadh",
+      "description": "Give the gift of great skin. Buy a Lunia gift card online and send it instantly."
+    },
+    "hero": {
+      "eyebrow": "Gift Cards",
+      "heading": "Give the gift of great skin",
+      "intro": "Choose an amount, add a personal note, and we'll send the gift card code by email — ready to use for any Lunia service."
+    },
+    "form": {
+      "amountLabel": "Amount",
+      "custom": "Other amount",
+      "purchaserName": "Your name",
+      "purchaserEmail": "Your email",
+      "recipientName": "Recipient name (optional)",
+      "recipientEmail": "Recipient email (optional)",
+      "recipientHint": "Leave blank to receive the code yourself.",
+      "messageLabel": "Personal message (optional)",
+      "submit": "Buy gift card",
+      "submitting": "Processing…",
+      "secure": "Secure checkout — no card details are stored by Lunia."
+    },
+    "success": {
+      "heading": "Your gift card is ready 🎁",
+      "intro": "We've emailed the code. Here it is too — keep it safe:",
+      "amountLabel": "Value",
+      "another": "Buy another"
+    },
+    "errors": {
+      "generic": "Something went wrong, please try again.",
+      "amount": "Please choose a valid amount."
     }
   }
 }

@@ -249,6 +249,27 @@ model Broadcast {
   @@index([createdAt])
 }
 
+// A website gift-card purchase. Payment runs through a pluggable gateway
+// (stub outside production). On successful payment a GiftCard is issued and
+// linked here. No card details are ever stored — a real gateway collects
+// those on its own hosted page.
+model GiftCardOrder {
+  id             String   @id @default(cuid())
+  amountMinor    Int
+  currency       String   @default("SAR")
+  purchaserName  String
+  purchaserEmail String
+  recipientName  String?
+  recipientEmail String?
+  message        String?  @db.Text
+  status         String   @default("PENDING") // PENDING | PAID | FAILED
+  giftCardId     String?
+  paymentRef     String?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model ClientMembership {
   id        String         @id @default(cuid())
   clientId  String         @unique

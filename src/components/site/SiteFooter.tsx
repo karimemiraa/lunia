@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { key: "brands", path: "brands" },
   { key: "results", path: "results" },
   { key: "journal", path: "journal" },
+  { key: "giftCards", path: "gift-cards" },
   { key: "contact", path: "contact" },
 ] as const;
 
