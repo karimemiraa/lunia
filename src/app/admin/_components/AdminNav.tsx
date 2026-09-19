@@ -175,6 +175,7 @@ const GROUPS: NavGroup[] = [
       { href: "/admin/users", label: "Users", perm: PERMISSIONS.STAFF_MANAGE, icon: I.users },
       { href: "/admin/roles", label: "Roles", perm: PERMISSIONS.STAFF_MANAGE, icon: I.shield },
       { href: "/admin/audit", label: "Audit log", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.shield },
+      { href: "/superadmin", label: "Superadmin", perm: PERMISSIONS.PLATFORM_MANAGE, icon: I.gear },
     ],
   },
 ];

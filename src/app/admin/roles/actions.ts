@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS, ALL_PERMISSION_KEYS, type PermissionKey } from "@/modules/iam/permissions";
-import { createRole, setRolePermissions, deleteRole } from "@/modules/iam/roles";
+import { createRole, setRolePermissions, deleteRole, listRolesWithPermissions } from "@/modules/iam/roles";
 import { recordAudit } from "@/modules/iam/audit";
 
 export interface RoleActionState {
@@ -25,6 +25,15 @@ export async function saveRolePermissions(_prev: RoleActionState | null, formDat
 
   const checked = formData.getAll("permissions").map(String);
   const keys = checked.filter((key): key is PermissionKey => (ALL_PERMISSION_KEYS as string[]).includes(key));
+
+  // The superadmin-only platform:manage grant is never shown in the editor, so
+  // it isn't in `checked`. Preserve it if the role already holds it — otherwise
+  // saving any role edit would silently strip the owner's superadmin access.
+  const roles = await listRolesWithPermissions();
+  const current = roles.find((r) => r.id === roleId);
+  if (current?.permissionKeys.includes(PERMISSIONS.PLATFORM_MANAGE) && !keys.includes(PERMISSIONS.PLATFORM_MANAGE)) {
+    keys.push(PERMISSIONS.PLATFORM_MANAGE);
+  }
 
   try {
     await setRolePermissions(roleId, keys);

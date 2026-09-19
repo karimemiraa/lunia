@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "../_components/Modal";
 import { saveRolePermissions, deleteRoleAction, type RoleActionState } from "./actions";
 import type { RoleWithPermissions } from "@/modules/iam/roles";
-import { PERMISSION_GROUPS, PERMISSION_LABELS } from "@/modules/iam/permissions";
+import { PERMISSION_GROUPS, PERMISSION_LABELS, ALL_PERMISSION_KEYS } from "@/modules/iam/permissions";
 
 const initial: RoleActionState = {};
 
@@ -23,8 +23,10 @@ export function RoleCard({ role }: { role: RoleWithPermissions }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveState.success]);
 
-  const count = role.permissionKeys.length;
-  const isFull = count === Object.keys(PERMISSION_LABELS).length;
+  // Count only assignable (editor-visible) permissions; the owner-only
+  // platform:manage grant is excluded from ALL_PERMISSION_KEYS.
+  const count = role.permissionKeys.filter((k) => (ALL_PERMISSION_KEYS as string[]).includes(k)).length;
+  const isFull = count >= ALL_PERMISSION_KEYS.length;
 
   return (
     <div className="flex flex-col gap-3 lunia-card p-5" data-testid="role-row" data-role-key={role.key}>

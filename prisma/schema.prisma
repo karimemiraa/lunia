@@ -20,6 +20,18 @@ model SiteSetting {
   value Json
 }
 
+// Superadmin-managed platform credentials (SMTP, WhatsApp, payment gateway,
+// AI, and custom API keys). Kept out of SiteSetting so secrets are never
+// returned to the client — the superadmin UI only ever shows a masked hint
+// and whether a value is set. Managed via src/modules/platform/secrets.ts.
+model PlatformSecret {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  updatedById String?
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
 // Sales pipeline stage for a lead/customer (outbound + inbound CRM).
 enum LeadStage {
   LEAD // new, not yet contacted

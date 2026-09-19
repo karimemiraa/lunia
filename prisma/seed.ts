@@ -30,7 +30,12 @@ async function main() {
     create: { id: "default", name: "Lunia Riyadh", isDefault: true },
   });
 
-  for (const key of ALL_PERMISSION_KEYS) {
+  // Include every assignable permission PLUS any extra keys referenced only by
+  // specific roles (e.g. the owner-only platform:manage, which is excluded from
+  // ALL_PERMISSION_KEYS on purpose).
+  const seededPermissionKeys = new Set<string>(ALL_PERMISSION_KEYS);
+  for (const keys of Object.values(ROLE_PERMISSIONS)) for (const k of keys) seededPermissionKeys.add(k);
+  for (const key of seededPermissionKeys) {
     await prisma.permission.upsert({ where: { key }, update: {}, create: { key } });
   }
 
