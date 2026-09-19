@@ -134,9 +134,9 @@ describe("getEmailSender / resolveSenderForChannel", () => {
   });
 
   it("routes channels: email->email sender, sms->stub(dev), other->stub(dev)", async () => {
-    const emailSender = resolveSenderForChannel("email", fullEnv, "development");
+    const emailSender = await resolveSenderForChannel("email", fullEnv, "development");
     expect((await emailSender.send(msg)).providerRef).toMatch(/^stub-/); // dev => stub
-    const smsSender = resolveSenderForChannel("sms", {}, "development");
+    const smsSender = await resolveSenderForChannel("sms", {}, "development");
     expect((await smsSender.send({ ...msg, channel: "sms", toPhone: "+966500000000" })).providerRef).toMatch(/^stub-/);
   });
 });

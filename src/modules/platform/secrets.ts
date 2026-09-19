@@ -148,3 +148,20 @@ export async function getSecret(key: string): Promise<string | null> {
   const row = await prisma.platformSecret.findUnique({ where: { key } });
   return row?.value ?? null;
 }
+
+// SMTP config assembled from the superadmin Email fields, or null if the
+// required ones aren't all set. Lets the email sender use panel-entered
+// credentials without any env vars or restart.
+export async function getSmtpConfigFromSecrets(): Promise<{ host: string; port: number; user: string; pass: string; from: string } | null> {
+  const rows = await prisma.platformSecret.findMany({
+    where: { key: { in: ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_FROM"] } },
+  });
+  const m = new Map(rows.map((r) => [r.key, r.value]));
+  const host = m.get("SMTP_HOST");
+  const user = m.get("SMTP_USER");
+  const pass = m.get("SMTP_PASS");
+  const from = m.get("SMTP_FROM");
+  if (!host || !user || !pass || !from) return null;
+  const port = Number(m.get("SMTP_PORT")) || 587;
+  return { host, port, user, pass, from };
+}

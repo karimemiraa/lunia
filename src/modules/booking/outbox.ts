@@ -381,7 +381,7 @@ export async function processDueMessages(
 
       // Use the injected sender when provided (tests); otherwise resolve the
       // real/stub sender for the resolved channel.
-      const activeSender = senderOverride ?? resolveSenderForChannel(channel);
+      const activeSender = senderOverride ?? (await resolveSenderForChannel(channel));
       const result = await activeSender.send({
         channel,
         toPhone: routed.toPhone,

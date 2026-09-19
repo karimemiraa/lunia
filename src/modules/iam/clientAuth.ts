@@ -167,7 +167,7 @@ async function sendOtp(
     return;
   }
 
-  const sender = injectedSender ?? resolveSenderForChannel(channel);
+  const sender = injectedSender ?? (await resolveSenderForChannel(channel));
   const toPhone = id.kind === "phone" ? id.value : undefined;
   const toEmail = id.kind === "email" ? id.value : undefined;
 

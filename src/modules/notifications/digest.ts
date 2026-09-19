@@ -60,7 +60,7 @@ export async function sendAssigneeDigests(): Promise<DigestSendResult> {
     where: { id: { in: [...byUser.keys()] } },
     include: { staffProfile: true },
   });
-  const sender = resolveSenderForChannel("email");
+  const sender = await resolveSenderForChannel("email");
 
   let emailsSent = 0;
   for (const user of users) {

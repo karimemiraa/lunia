@@ -80,7 +80,8 @@ export async function replyToInquiry(id: string, body: string, _byUserId: string
 
   const { resolveSenderForChannel } = await import("@/modules/comms/sender");
   const subject = inquiry.locale === "ar" ? "رد من لونيا" : "A reply from Lunia";
-  const result = await resolveSenderForChannel("email").send({
+  const emailSender = await resolveSenderForChannel("email");
+  const result = await emailSender.send({
     channel: "email",
     toEmail: inquiry.email,
     subject,

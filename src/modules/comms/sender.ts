@@ -65,12 +65,24 @@ export function getEmailSender(
 // Routes to the right sender for a delivery channel. "email" -> SMTP;
 // "sms" -> SMS-capable provider; anything else (whatsapp/none) -> the general
 // configured sender. Each returns the logging stub unless prod + configured.
-export function resolveSenderForChannel(
+//
+// Async because the email path also honours SMTP credentials entered in the
+// superadmin panel (PlatformSecret) — so email can be enabled at runtime
+// without env vars or a restart. Env SMTP still wins when present.
+export async function resolveSenderForChannel(
   channel: string,
   env: EnvSource = process.env,
   nodeEnv: string | undefined = process.env.NODE_ENV,
-): CommsSender {
-  if (channel === "email") return getEmailSender(env, nodeEnv);
+): Promise<CommsSender> {
   if (channel === "sms") return getSmsSender(env, nodeEnv);
-  return getConfiguredSender(env, nodeEnv);
+  if (channel !== "email") return getConfiguredSender(env, nodeEnv);
+
+  // Email: env SMTP first, then superadmin-panel SMTP, else the stub.
+  const config = getCommsConfig(env);
+  if (nodeEnv !== "production") return stubSender;
+  if (config.emailConfigured && config.email) return makeEmailSender(config.email);
+  const { getSmtpConfigFromSecrets } = await import("@/modules/platform/secrets");
+  const fromSecrets = await getSmtpConfigFromSecrets().catch(() => null);
+  if (fromSecrets) return makeEmailSender(fromSecrets);
+  return stubSender;
 }

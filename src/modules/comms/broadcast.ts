@@ -110,7 +110,7 @@ export interface SendBroadcastResult {
 // match every other Lunia email.
 export async function sendBroadcast(input: SendBroadcastInput): Promise<SendBroadcastResult> {
   const recipients = await resolveRecipients(input.audience);
-  const sender = resolveSenderForChannel(input.channel);
+  const sender = await resolveSenderForChannel(input.channel);
   const subject = input.subject?.trim() || "Lunia";
 
   let sentCount = 0;

@@ -85,7 +85,7 @@ export async function purchaseGiftCard(input: PurchaseGiftInput): Promise<Purcha
     : `You've received a Lunia gift card worth ${amountSar} SAR.\n\nGift card code: ${card.code}\n\n${data.message ? `Message from ${data.purchaserName}: ${data.message}\n\n` : ""}Use the code when booking or at the center.`;
   const subject = isAr ? "بطاقة هدية من لونيا" : "Your Lunia gift card";
   try {
-    const sender = resolveSenderForChannel("email");
+    const sender = await resolveSenderForChannel("email");
     const result = await sender.send({ channel: "email", toEmail: to, subject, body, kind: "GIFT_CARD", recipientName: toName, locale: data.locale });
     await prisma.communicationLog.create({
       data: {
