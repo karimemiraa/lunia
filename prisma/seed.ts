@@ -89,7 +89,7 @@ async function main() {
     });
   }
 
-  const ownerEmail = process.env.SEED_OWNER_EMAIL ?? "owner@lunia.local";
+  const ownerEmail = process.env.SEED_OWNER_EMAIL ?? "karim@zealmarketing.net";
   const ownerPass = process.env.SEED_OWNER_PASSWORD ?? "ChangeMe123!";
   const ownerRole = await prisma.role.findUniqueOrThrow({ where: { key: "owner" } });
   const user = await prisma.user.upsert({
@@ -100,7 +100,7 @@ async function main() {
       email: ownerEmail,
       passwordHash: await bcrypt.hash(ownerPass, 12),
       locale: "en",
-      staffProfile: { create: { fullName: "Lunia Owner", title: "Founder" } },
+      staffProfile: { create: { fullName: "Karim Emira", title: "Founder & Superadmin" } },
     },
   });
   await prisma.userRole.upsert({

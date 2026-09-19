@@ -20,6 +20,37 @@ model SiteSetting {
   value Json
 }
 
+// Sales pipeline stage for a lead/customer (outbound + inbound CRM).
+enum LeadStage {
+  LEAD // new, not yet contacted
+  ATTEMPTED // outreach tried, no answer yet
+  CONTACTED // reached / in conversation
+  FOLLOW_UP // awaiting a scheduled follow-up
+  BOOKED // has an upcoming appointment
+  WON // converted (visited / active customer)
+  LOST // not interested / unreachable
+}
+
+// Whether the lead came to us (inbound) or we reached out (outbound).
+enum LeadDirection {
+  INBOUND
+  OUTBOUND
+}
+
+// A logged outreach touch or pipeline event on a lead/customer.
+model LeadActivity {
+  id              String        @id @default(cuid())
+  clientProfileId String
+  client          ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  authorUserId    String
+  kind            String // CALL | WHATSAPP | EMAIL | SMS | NOTE | STAGE_CHANGE | ASSIGN
+  outcome         String? // e.g. NO_ANSWER | INTERESTED | NOT_INTERESTED | BOOKED
+  body            String?       @db.Text
+  createdAt       DateTime      @default(now())
+
+  @@index([clientProfileId])
+}
+
 enum UserType {
   STAFF
   CLIENT
@@ -118,6 +149,14 @@ model ClientProfile {
   // Consent (PDPL): timestamps record when consent was last given (null = not given)
   consentTreatmentAt DateTime?
   consentDataAt      DateTime?
+  // Outbound / sales CRM: pipeline stage, assigned owner (soft ref to a staff
+  // User, like authorUserId), inbound/outbound classification for channel
+  // reporting, and the next follow-up date for non-responders.
+  stage          LeadStage      @default(LEAD)
+  ownerId        String?
+  direction      LeadDirection?
+  nextFollowUpAt DateTime?
+  leadActivities LeadActivity[]
   membership    ClientMembership?
   bookings      Booking[]
   visitNotes    VisitNote[]

@@ -2,7 +2,7 @@ import { test, expect, type Page, type Locator } from "@playwright/test";
 
 async function signInAsOwner(page: Page) {
   await page.goto("/admin/login");
-  await page.fill('input[name="email"]', process.env.SEED_OWNER_EMAIL ?? "owner@lunia.local");
+  await page.fill('input[name="email"]', process.env.SEED_OWNER_EMAIL ?? "karim@zealmarketing.net");
   await page.fill('input[name="password"]', process.env.SEED_OWNER_PASSWORD ?? "ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/admin$/);
@@ -124,8 +124,8 @@ test("clients: search creates client appears, add visit note, and edit tier pers
 
   const noteItem = page.locator('[data-testid="visit-note"]', { hasText: noteBody });
   await expect(noteItem).toBeVisible();
-  // The seeded owner's staff profile is named "Lunia Owner" (prisma/seed.ts).
-  await expect(noteItem.getByText("Lunia Owner")).toBeVisible();
+  // The seeded owner's staff profile is named "Karim Emira" (prisma/seed.ts).
+  await expect(noteItem.getByText("Karim Emira")).toBeVisible();
 
   // Edit the tier and confirm it persists across a reload.
   const tierEditor = page.getByTestId("tier-editor");
