@@ -1,8 +1,8 @@
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
-import { PERMISSIONS, ALL_PERMISSION_KEYS } from "@/modules/iam/permissions";
+import { PERMISSIONS } from "@/modules/iam/permissions";
 import { listRolesWithPermissions } from "@/modules/iam/roles";
-import { RoleRow } from "./RoleRow";
+import { RoleCard } from "./RoleCard";
 import { CreateRoleForm } from "./CreateRoleForm";
 
 export default async function RolesPage() {
@@ -12,36 +12,23 @@ export default async function RolesPage() {
   return (
     <AdminShell
       user={user}
-      title="Roles & Permissions"
-      description="Manage staff roles and the permissions granted to each one."
+      title="Roles & permissions"
+      description="Define what each role can do. Assign roles to team members from the Users page."
     >
-      <div className="mb-8 max-w-xl">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-lg)] bg-[var(--color-forest)] px-6 py-5 text-[var(--color-cream)] shadow-[var(--shadow-sm)]">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-teal)]">Access control</p>
+          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">
+            {roles.length} role{roles.length === 1 ? "" : "s"}
+          </p>
+        </div>
         <CreateRoleForm />
       </div>
 
-      <div className="overflow-x-auto lunia-card">
-        <table className="w-full text-left text-sm" data-testid="roles-table">
-          <thead className="bg-[var(--color-cream)]/60">
-            <tr>
-              <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Role</th>
-              {ALL_PERMISSION_KEYS.map((key) => (
-                <th
-                  key={key}
-                  className="whitespace-nowrap px-2 py-2 text-center text-xs font-medium text-[var(--color-ink)]"
-                >
-                  {key}
-                </th>
-              ))}
-              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Save</th>
-              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {roles.map((role) => (
-              <RoleRow key={role.id} role={role} permissionKeys={ALL_PERMISSION_KEYS} />
-            ))}
-          </tbody>
-        </table>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="roles-list">
+        {roles.map((role) => (
+          <RoleCard key={role.id} role={role} />
+        ))}
       </div>
     </AdminShell>
   );

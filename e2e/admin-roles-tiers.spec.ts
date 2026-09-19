@@ -12,30 +12,25 @@ test("roles: toggle a permission on the marketing role and persist", async ({ pa
   await signInAsOwner(page);
 
   await page.goto("/admin/roles");
-  await expect(page.getByRole("heading", { name: "Roles & Permissions" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Roles & permissions" })).toBeVisible();
 
-  const row = page.locator('tr[data-testid="role-row"][data-role-key="marketing"]');
-  await expect(row).toBeVisible();
+  // Open the marketing role's edit popup and toggle a permission.
+  const card = page.locator('[data-testid="role-row"][data-role-key="marketing"]');
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: "Edit permissions" }).click();
 
-  // Read the current state first rather than assuming a fixed seed state, so
-  // the assertion below is deterministic regardless of prior test runs.
-  const checkbox = row.getByLabel("Marketing: booking:manage");
+  const dialog = page.getByRole("dialog");
+  const checkbox = dialog.getByRole("checkbox", { name: "Manage bookings (book, check-in, cancel)" });
   const wasChecked = await checkbox.isChecked();
+  if (wasChecked) await checkbox.uncheck();
+  else await checkbox.check();
+  await dialog.getByRole("button", { name: "Save permissions" }).click();
 
-  if (wasChecked) {
-    await checkbox.uncheck();
-  } else {
-    await checkbox.check();
-  }
-
-  await row.getByRole("button", { name: "Save" }).click();
-  await expect(row.getByText("Saved.")).toBeVisible();
-
-  await page.reload();
-
-  const reloadedRow = page.locator('tr[data-testid="role-row"][data-role-key="marketing"]');
-  const reloadedCheckbox = reloadedRow.getByLabel("Marketing: booking:manage");
-  await expect(reloadedCheckbox).toBeChecked({ checked: !wasChecked });
+  // The popup closes on save; reopen and confirm the change persisted.
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await card.getByRole("button", { name: "Edit permissions" }).click();
+  const reCheckbox = page.getByRole("dialog").getByRole("checkbox", { name: "Manage bookings (book, check-in, cancel)" });
+  await expect(reCheckbox).toBeChecked({ checked: !wasChecked });
 });
 
 test("tiers: create a tier, see it listed, then delete it", async ({ page }) => {

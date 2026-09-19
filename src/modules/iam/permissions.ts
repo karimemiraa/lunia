@@ -15,6 +15,30 @@ export const PERMISSIONS = {
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 export const ALL_PERMISSION_KEYS: PermissionKey[] = Object.values(PERMISSIONS);
 
+// Human-readable labels for the admin roles UI (client-safe: no server deps).
+export const PERMISSION_LABELS: Record<PermissionKey, string> = {
+  "booking:view": "View bookings & calendar",
+  "booking:manage": "Manage bookings (book, check-in, cancel)",
+  "client:view": "View customers",
+  "client:manage": "Manage customers & pipeline",
+  "visitnote:write": "Write comments & activities",
+  "catalog:manage": "Manage catalog (services, brands)",
+  "cms:manage": "Manage content, media & inquiries",
+  "analytics:view": "View reports & analytics",
+  "marketing:manage": "Manage marketing & campaigns",
+  "staff:manage": "Manage users & roles",
+  "settings:manage": "Manage settings & communications",
+};
+
+// Grouped for a compact, scannable permissions editor.
+export const PERMISSION_GROUPS: { label: string; keys: PermissionKey[] }[] = [
+  { label: "Scheduling", keys: ["booking:view", "booking:manage"] },
+  { label: "Customers", keys: ["client:view", "client:manage", "visitnote:write"] },
+  { label: "Growth", keys: ["analytics:view", "marketing:manage"] },
+  { label: "Content", keys: ["catalog:manage", "cms:manage"] },
+  { label: "System", keys: ["staff:manage", "settings:manage"] },
+];
+
 export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   owner: ALL_PERMISSION_KEYS,
   manager: [
