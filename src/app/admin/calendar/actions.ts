@@ -14,6 +14,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { checkIn, complete, cancel, markNoShow, reschedule, createBooking, getServiceSlots } from "@/modules/booking/bookings";
+import { prisma } from "@/lib/db";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -23,6 +24,23 @@ function messageOf(err: unknown): string {
 
 function revalidateCalendar(): void {
   revalidatePath("/admin/calendar");
+}
+
+// Saves the staff-authored note shown to the customer on their appointment
+// detail page (Booking.centerNote). Empty string clears it.
+export async function saveCenterNoteAction(bookingId: string, note: string): Promise<ActionResult> {
+  await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
+  const trimmed = typeof note === "string" ? note.trim().slice(0, 2000) : "";
+  try {
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { centerNote: trimmed.length > 0 ? trimmed : null },
+    });
+  } catch (err) {
+    return { ok: false, error: messageOf(err) };
+  }
+  revalidateCalendar();
+  return { ok: true };
 }
 
 export async function checkInAction(bookingId: string): Promise<ActionResult> {

@@ -561,6 +561,23 @@
       "morning": "صباح الخير، {name}",
       "afternoon": "مساء الخير، {name}",
       "evening": "مساء الخير، {name}"
+    },
+    "viewLabel": "عرض التفاصيل",
+    "detail": {
+      "back": "الرجوع إلى حسابي",
+      "service": "الخدمة",
+      "date": "التاريخ والوقت",
+      "staff": "الأخصائية",
+      "room": "الغرفة",
+      "status": "الحالة",
+      "price": "السعر",
+      "centerNoteHeading": "ملاحظة من لونيا",
+      "customerNoteHeading": "ملاحظاتك لنا",
+      "customerNoteHint": "شاركينا أي شيء يهمّنا قبل زيارتك — حساسية، تفضيلات، أو طلب خاص.",
+      "customerNotePlaceholder": "أضيفي ملاحظة لفريقنا…",
+      "save": "حفظ الملاحظة",
+      "saving": "جارٍ الحفظ…",
+      "saved": "تم الحفظ"
     }
   },
   "review": {

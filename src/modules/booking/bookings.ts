@@ -538,6 +538,10 @@ export interface DayAppointmentRow {
   clientProfileId: string;
   clientName: string;
   clientPhone: string | null;
+  // Customer-visible note streams (see Booking model): centerNote is written
+  // by staff for the customer; customerNote is written by the customer.
+  centerNote: string | null;
+  customerNote: string | null;
 }
 
 /**
@@ -597,6 +601,8 @@ export async function listDayAppointments(dateISO: string, staffUserId?: string)
       clientProfileId: booking.clientProfileId,
       clientName: client?.fullName ?? "Unknown customer",
       clientPhone: client?.user.phone ?? null,
+      centerNote: booking.centerNote,
+      customerNote: booking.customerNote,
     };
   });
 

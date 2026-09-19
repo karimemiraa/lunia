@@ -167,6 +167,37 @@ export async function updateMyName(nameRaw: string, locale: string): Promise<Acc
   return { ok: true };
 }
 
+const bookingNoteSchema = z.string().trim().max(1000);
+
+// Saves the signed-in client's own note on one of THEIR bookings
+// (Booking.customerNote — visible to staff in the day view). SECURITY: like
+// cancelMyBooking, it re-derives the client from the session cookie and
+// verifies the booking belongs to that client before writing; a bookingId
+// alone is never sufficient. An empty string clears the note.
+export async function updateMyBookingNote(bookingId: string, noteRaw: string, locale: string): Promise<AccountActionResult> {
+  const t = await getTranslations({ locale: asAccountLocale(locale), namespace: "account.errors" });
+  const clientProfileId = await requireClientProfileId();
+  if (!clientProfileId) return { ok: false, error: t("notAuthenticated") };
+
+  const booking = await getBooking(bookingId);
+  if (!booking || booking.clientProfileId !== clientProfileId) {
+    return { ok: false, error: t("notFound") };
+  }
+
+  const parsed = bookingNoteSchema.safeParse(noteRaw);
+  if (!parsed.success) return { ok: false, error: t("generic") };
+
+  try {
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { customerNote: parsed.data.length > 0 ? parsed.data : null },
+    });
+  } catch {
+    return { ok: false, error: t("generic") };
+  }
+  return { ok: true };
+}
+
 // Sets (or replaces) the signed-in client's login password. Identity is
 // re-derived from the session cookie — a client can only set their own.
 export async function setMyPassword(newPassword: string, locale: string): Promise<AccountActionResult> {

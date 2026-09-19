@@ -77,6 +77,13 @@ function BookingCard({
         </span>
       </div>
       <p className="text-sm text-[var(--color-ink)]/65">{formatDateTime(booking.startAtIso, locale)}</p>
+      <Link
+        href={`/${locale}/account/bookings/${booking.id}`}
+        data-testid="account-booking-details"
+        className="w-fit text-sm font-medium text-[var(--color-ink)] underline decoration-[var(--color-gold)] decoration-2 underline-offset-4"
+      >
+        {t("viewLabel")}
+      </Link>
       {booking.canCancel && onCancel && (
         <div className="mt-2">
           <button

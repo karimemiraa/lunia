@@ -38,6 +38,8 @@ export function DaySchedule({ rows, date, canManage }: DayScheduleProps) {
             serviceName={row.serviceName}
             staffName={row.staffName}
             roomName={row.roomName}
+            centerNote={row.centerNote}
+            customerNote={row.customerNote}
             defaultDate={date}
             canManage={canManage}
           />

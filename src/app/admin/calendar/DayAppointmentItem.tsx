@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { BookingStatus } from "@prisma/client";
 import { AppointmentActions } from "./AppointmentActions";
+import { saveCenterNoteAction } from "./actions";
 
 interface DayAppointmentItemProps {
   bookingId: string;
@@ -16,8 +18,89 @@ interface DayAppointmentItemProps {
   serviceName: string;
   staffName: string;
   roomName: string;
+  centerNote: string | null;
+  customerNote: string | null;
   defaultDate: string;
   canManage: boolean;
+}
+
+// Staff-authored note shown to the customer (Booking.centerNote) + read-only
+// display of the customer's own note (Booking.customerNote). Rendered inside
+// the expanded appointment panel.
+function NotesSection({
+  bookingId,
+  centerNote,
+  customerNote,
+  canManage,
+}: {
+  bookingId: string;
+  centerNote: string | null;
+  customerNote: string | null;
+  canManage: boolean;
+}) {
+  const router = useRouter();
+  const [note, setNote] = useState(centerNote ?? "");
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function save() {
+    setError(null);
+    setSaved(false);
+    startTransition(async () => {
+      const result = await saveCenterNoteAction(bookingId, note);
+      if (result.ok) {
+        setSaved(true);
+        router.refresh();
+      } else {
+        setError(result.error);
+      }
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--color-cream)]/40 p-3">
+      {customerNote && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[0.65rem] font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/45">
+            Customer&rsquo;s note
+          </span>
+          <p className="whitespace-pre-wrap text-sm text-[var(--color-ink)]/85">{customerNote}</p>
+        </div>
+      )}
+      {canManage ? (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[0.65rem] font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/45">
+            Note for customer (shown on their appointment page)
+          </span>
+          <textarea
+            value={note}
+            onChange={(e) => {
+              setNote(e.target.value);
+              setSaved(false);
+            }}
+            rows={2}
+            placeholder="e.g. Please arrive 10 minutes early and avoid retinol for 3 days before your visit."
+            className="lunia-input text-sm"
+          />
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={save} disabled={isPending} className="lunia-btn lunia-btn-forest lunia-btn-sm disabled:opacity-60">
+              {isPending ? "Saving…" : "Save note"}
+            </button>
+            {saved && <span className="text-xs font-medium text-[var(--color-teal-ink,#2f6d67)]">Saved ✓</span>}
+            {error && <span className="text-xs text-red-600">{error}</span>}
+          </div>
+        </div>
+      ) : (
+        centerNote && (
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.65rem] font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/45">Note for customer</span>
+            <p className="whitespace-pre-wrap text-sm text-[var(--color-ink)]/85">{centerNote}</p>
+          </div>
+        )
+      )}
+    </div>
+  );
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -83,6 +166,12 @@ export function DayAppointmentItem(props: DayAppointmentItemProps) {
             <Detail label="Staff" value={props.staffName} />
             <Detail label="Room" value={props.roomName} />
           </dl>
+          <NotesSection
+            bookingId={props.bookingId}
+            centerNote={props.centerNote}
+            customerNote={props.customerNote}
+            canManage={props.canManage}
+          />
           {props.canManage && (
             <AppointmentActions
               bookingId={props.bookingId}

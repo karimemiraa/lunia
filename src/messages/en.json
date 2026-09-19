@@ -561,6 +561,23 @@
       "morning": "Good morning, {name}",
       "afternoon": "Good afternoon, {name}",
       "evening": "Good evening, {name}"
+    },
+    "viewLabel": "View details",
+    "detail": {
+      "back": "Back to my account",
+      "service": "Service",
+      "date": "Date & time",
+      "staff": "Specialist",
+      "room": "Room",
+      "status": "Status",
+      "price": "Price",
+      "centerNoteHeading": "A note from Lunia",
+      "customerNoteHeading": "Your notes for us",
+      "customerNoteHint": "Share anything we should know before your visit — sensitivities, preferences, or a special request.",
+      "customerNotePlaceholder": "Add a note for our team…",
+      "save": "Save note",
+      "saving": "Saving…",
+      "saved": "Saved"
     }
   },
   "review": {

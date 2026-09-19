@@ -670,6 +670,15 @@ model Booking {
   channel         BookingChannel @default(ONLINE)
   sourceChannel   String?
   notes           String?
+  // Two customer-visible note streams (distinct from the internal `notes`
+  // above, which stays admin-only):
+  //   centerNote   — written by staff FOR the customer (prep/care
+  //                  instructions), shown read-only on the customer's
+  //                  appointment detail page.
+  //   customerNote — written by the customer (requests/context), shown
+  //                  read-only to staff in the day view.
+  centerNote      String?        @db.Text
+  customerNote    String?        @db.Text
   depositStatus   PayStatus      @default(NONE)
   createdById     String?
   createdAt       DateTime       @default(now())
