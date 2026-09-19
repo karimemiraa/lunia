@@ -41,6 +41,28 @@ Only `app` and `postgres` read `.env.prod` in `docker-compose.prod.yml`
 (`env_file: .env.prod`); make sure `DATABASE_URL`/`REDIS_URL` in it use the
 compose service hostnames (`postgres`, `redis`), not `localhost`.
 
+### 1a. Media storage (Backblaze B2)
+
+In production all uploaded media (hero images, brand logos, service photos,
+gallery, etc.) is stored in a private Backblaze B2 bucket over its
+S3-compatible API, rather than on the container's disk. The app still serves
+every asset through `/api/media/<key>` (it reads the bytes from B2 server-side),
+so the bucket stays **private** — no public bucket, presigned URLs, or CDN are
+required. Set these in `.env.prod`:
+
+| Variable | Example | Notes |
+|---|---|---|
+| `B2_BUCKET` | `Lunia-skin-Q` | The bucket name (not its ID). |
+| `B2_ENDPOINT` | `s3.eu-central-003.backblazeb2.com` | S3 endpoint from the bucket page; scheme optional. |
+| `B2_REGION` | `eu-central-003` | The region embedded in the endpoint. |
+| `B2_KEY_ID` | `00…` | Application **keyID** from B2 → App Keys. |
+| `B2_APP_KEY` | `K003…` | The application key secret (shown once at creation). |
+
+Create a B2 **Application Key** scoped to just this bucket (read + write) — do
+not use the master key. When these are set the app uses B2 automatically; unset
+(or `STORAGE_DRIVER=local`) it falls back to the on-disk `uploads/` volume. The
+`uploads:` volume in `docker-compose.prod.yml` is then unused but harmless.
+
 ## 2. First boot (new VPS)
 
 Run everything from the repo root on the VPS.
