@@ -8,6 +8,36 @@ import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { recordAudit } from "@/modules/iam/audit";
 import { createSegment, deleteSegment, type SegmentFilter } from "@/modules/crm/segments";
+import { createLead } from "@/modules/crm/leads";
+import type { LeadDirection } from "@prisma/client";
+
+export interface RosterActionState {
+  error?: string;
+  success?: boolean;
+}
+
+// Adds a lead from the roster (e.g. telesales logging someone they're reaching
+// out to). Reuses an existing person by phone/email. Guarded by CLIENT_MANAGE.
+export async function createLeadAction(_prev: RosterActionState | null, formData: FormData): Promise<RosterActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const source = String(formData.get("source") ?? "").trim();
+  const directionRaw = String(formData.get("direction") ?? "OUTBOUND").trim();
+  const direction: LeadDirection = directionRaw === "INBOUND" ? "INBOUND" : "OUTBOUND";
+  const ownerId = String(formData.get("ownerId") ?? "").trim() || admin.id;
+
+  try {
+    await createLead({ fullName, phone, email, source, direction, ownerId, byUserId: admin.id });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to add lead." };
+  }
+
+  await recordAudit({ actorUserId: admin.id, action: "LEAD_CREATE", entityType: "ClientProfile", summary: `Added lead "${fullName}" (${direction.toLowerCase()})` });
+  revalidatePath("/admin/clients");
+  return { success: true };
+}
 
 export async function saveSegmentAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
@@ -20,6 +50,9 @@ export async function saveSegmentAction(formData: FormData): Promise<void> {
     source: String(formData.get("source") ?? "").trim() || undefined,
     status: String(formData.get("status") ?? "").trim() || undefined,
     tag: String(formData.get("tag") ?? "").trim() || undefined,
+    stage: String(formData.get("stage") ?? "").trim() || undefined,
+    ownerId: String(formData.get("ownerId") ?? "").trim() || undefined,
+    direction: String(formData.get("direction") ?? "").trim() || undefined,
   };
 
   const segment = await createSegment(name, filter, admin.id);

@@ -12,6 +12,9 @@ export interface SegmentFilter {
   source?: string;
   status?: string;
   tag?: string;
+  stage?: string;
+  ownerId?: string;
+  direction?: string;
 }
 
 export interface SegmentRow {
@@ -21,7 +24,7 @@ export interface SegmentRow {
   createdAt: Date;
 }
 
-const FILTER_KEYS: (keyof SegmentFilter)[] = ["search", "tierKey", "source", "status", "tag"];
+const FILTER_KEYS: (keyof SegmentFilter)[] = ["search", "tierKey", "source", "status", "tag", "stage", "ownerId", "direction"];
 
 function coerceFilter(raw: unknown): SegmentFilter {
   const out: SegmentFilter = {};

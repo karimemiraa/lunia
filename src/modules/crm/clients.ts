@@ -14,6 +14,9 @@ export interface ListClientsFilter {
   tierKey?: string;
   source?: string;
   tag?: string;
+  stage?: string;
+  ownerId?: string;
+  direction?: string;
 }
 
 /** Distinct client tags across the roster (for the roster filter + segments). */
@@ -47,6 +50,18 @@ export interface ClientListRow {
   bookingCount: number;
   status: ClientLifecycle;
   createdAt: Date;
+  // Sales pipeline
+  stage: import("@prisma/client").LeadStage;
+  direction: import("@prisma/client").LeadDirection | null;
+  ownerId: string | null;
+  ownerName?: string;
+  nextFollowUpAt?: Date;
+}
+
+/** Staff (id + name) for the owner filter/assignment dropdowns. */
+export async function listStaffOwners(): Promise<{ id: string; name: string }[]> {
+  const staff = await prisma.user.findMany({ where: { type: "STAFF" }, include: { staffProfile: true }, orderBy: { createdAt: "asc" } });
+  return staff.map((s) => ({ id: s.id, name: s.staffProfile?.fullName ?? s.email ?? "Staff" }));
 }
 
 /**
@@ -73,6 +88,15 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
   if (filter.tag) {
     where.tags = { has: filter.tag };
   }
+  if (filter.stage) {
+    where.stage = filter.stage as Prisma.ClientProfileWhereInput["stage"];
+  }
+  if (filter.ownerId) {
+    where.ownerId = filter.ownerId === "unassigned" ? null : filter.ownerId;
+  }
+  if (filter.direction) {
+    where.direction = filter.direction as Prisma.ClientProfileWhereInput["direction"];
+  }
 
   const profiles = await prisma.clientProfile.findMany({
     where,
@@ -86,6 +110,11 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
     where: { clientProfileId: { in: clientProfileIds } },
     include: { appointments: true },
   });
+
+  // Resolve owner names in one batched lookup.
+  const ownerIds = [...new Set(profiles.map((p) => p.ownerId).filter((id): id is string => !!id))];
+  const owners = ownerIds.length > 0 ? await prisma.staffProfile.findMany({ where: { userId: { in: ownerIds } }, select: { userId: true, fullName: true } }) : [];
+  const ownerNameById = new Map(owners.map((o) => [o.userId, o.fullName]));
 
   const now = new Date();
   const activeCutoff = new Date(now.getTime() - ACTIVE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
@@ -130,6 +159,11 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
       bookingCount: bookingCountByClient.get(profile.id) ?? 0,
       status,
       createdAt: profile.createdAt,
+      stage: profile.stage,
+      direction: profile.direction,
+      ownerId: profile.ownerId,
+      ownerName: profile.ownerId ? ownerNameById.get(profile.ownerId) : undefined,
+      nextFollowUpAt: profile.nextFollowUpAt ?? undefined,
     };
   });
 }

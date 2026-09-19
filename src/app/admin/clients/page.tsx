@@ -2,14 +2,27 @@ import Link from "next/link";
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
-import { listClients, listClientTags, type ClientLifecycle } from "@/modules/crm/clients";
+import { listClients, listClientTags, listStaffOwners, type ClientLifecycle } from "@/modules/crm/clients";
 import { listSegments, segmentToQuery } from "@/modules/crm/segments";
 import { saveSegmentAction, deleteSegmentAction } from "./actions";
 import { listTiers } from "@/modules/iam/tiers";
+import { AddLeadForm } from "./AddLeadForm";
+import type { LeadStage } from "@prisma/client";
 
 interface ClientsPageProps {
-  searchParams: Promise<{ search?: string; tierKey?: string; source?: string; status?: string; tag?: string }>;
+  searchParams: Promise<{ search?: string; tierKey?: string; source?: string; status?: string; tag?: string; stage?: string; ownerId?: string; direction?: string }>;
 }
+
+const STAGE_META: Record<LeadStage, { label: string; className: string }> = {
+  LEAD: { label: "New lead", className: "bg-[var(--color-ink)]/8 text-[var(--color-ink)]/60" },
+  ATTEMPTED: { label: "Attempted", className: "bg-[var(--color-gold)]/25 text-[#7c6a2f]" },
+  CONTACTED: { label: "Contacted", className: "bg-[var(--color-teal)]/20 text-[var(--color-teal-ink)]" },
+  FOLLOW_UP: { label: "Follow up", className: "bg-[var(--color-gold)]/30 text-[#7c6a2f]" },
+  BOOKED: { label: "Booked", className: "bg-[var(--color-teal)]/25 text-[var(--color-teal-ink)]" },
+  WON: { label: "Won", className: "bg-[var(--color-canopy)]/30 text-[var(--color-ink)]" },
+  LOST: { label: "Lost", className: "bg-red-100 text-red-700" },
+};
+const STAGE_OPTIONS: LeadStage[] = ["LEAD", "ATTEMPTED", "CONTACTED", "FOLLOW_UP", "BOOKED", "WON", "LOST"];
 
 /** ltvCacheMinor is stored in halalas (1/100 SAR). */
 function formatSar(minor: number): string {
@@ -56,13 +69,17 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const source = params.source?.trim() ?? "";
   const status = (params.status?.trim() ?? "") as ClientLifecycle | "";
   const tag = params.tag?.trim() ?? "";
+  const stage = params.stage?.trim() ?? "";
+  const ownerId = params.ownerId?.trim() ?? "";
+  const direction = params.direction?.trim() ?? "";
 
   const canManage = user.permissions.has(PERMISSIONS.CLIENT_MANAGE);
-  const [allMatching, tiers, allTags, segments] = await Promise.all([
-    listClients({ search: search || undefined, tierKey: tierKey || undefined, source: source || undefined, tag: tag || undefined }),
+  const [allMatching, tiers, allTags, segments, owners] = await Promise.all([
+    listClients({ search: search || undefined, tierKey: tierKey || undefined, source: source || undefined, tag: tag || undefined, stage: stage || undefined, ownerId: ownerId || undefined, direction: direction || undefined }),
     listTiers(),
     listClientTags(),
     listSegments(),
+    listStaffOwners(),
   ]);
 
   // KPIs computed over the search/tier/source result (the whole roster when no
@@ -77,13 +94,14 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   };
 
   const clients = status ? allMatching.filter((c) => c.status === status) : allMatching;
-  const hasFilters = Boolean(search || tierKey || source || status || tag);
+  const hasFilters = Boolean(search || tierKey || source || status || tag || stage || ownerId || direction);
 
   return (
     <AdminShell
       user={user}
       title="Customers"
       description="The customer roster: lifetime value, visit history, upcoming appointments, and lifecycle at a glance."
+      actions={canManage ? <AddLeadForm staff={owners} /> : undefined}
     >
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Total customers" value={stats.total} />
@@ -124,6 +142,9 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
               <input type="hidden" name="source" value={source} />
               <input type="hidden" name="status" value={status} />
               <input type="hidden" name="tag" value={tag} />
+              <input type="hidden" name="stage" value={stage} />
+              <input type="hidden" name="ownerId" value={ownerId} />
+              <input type="hidden" name="direction" value={direction} />
               <input
                 name="name"
                 required
@@ -153,6 +174,40 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
                 {tier.name}
               </option>
             ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Stage</span>
+          <select name="stage" defaultValue={stage} className={inputClass}>
+            <option value="">All stages</option>
+            {STAGE_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {STAGE_META[s].label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Owner</span>
+          <select name="ownerId" defaultValue={ownerId} className={inputClass}>
+            <option value="">All owners</option>
+            <option value="unassigned">Unassigned</option>
+            {owners.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Channel</span>
+          <select name="direction" defaultValue={direction} className={inputClass}>
+            <option value="">All</option>
+            <option value="INBOUND">Inbound</option>
+            <option value="OUTBOUND">Outbound</option>
           </select>
         </label>
 
@@ -207,11 +262,10 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
           <thead>
             <tr className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
               <th className="px-4 py-3 font-semibold">Customer</th>
-              <th className="px-4 py-3 font-semibold">Tier</th>
+              <th className="px-4 py-3 font-semibold">Stage</th>
+              <th className="px-4 py-3 font-semibold">Owner</th>
               <th className="px-4 py-3 font-semibold">Source</th>
               <th className="px-4 py-3 text-right font-semibold">LTV</th>
-              <th className="px-4 py-3 text-right font-semibold">Visits</th>
-              <th className="px-4 py-3 font-semibold">Last visit</th>
               <th className="px-4 py-3 font-semibold">Next appt</th>
               <th className="px-4 py-3 font-semibold">Status</th>
             </tr>
@@ -219,8 +273,8 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
           <tbody>
             {clients.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-[var(--color-ink)]/55">
-                  No clients match these filters.
+                <td colSpan={7} className="px-4 py-10 text-center text-[var(--color-ink)]/55">
+                  No customers match these filters.
                 </td>
               </tr>
             ) : (
@@ -240,11 +294,17 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
                     </Link>
                     <div className="text-xs text-[var(--color-ink)]/50">{client.phone ?? client.email ?? "None"}</div>
                   </td>
-                  <td className="px-4 py-3 text-[var(--color-ink)]/80">{client.tierName ?? "None"}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STAGE_META[client.stage].className}`}>
+                      {STAGE_META[client.stage].label}
+                    </span>
+                    {client.nextFollowUpAt && (
+                      <div className="mt-0.5 text-[0.7rem] text-[var(--color-ink)]/45">Follow up {formatDate(client.nextFollowUpAt)}</div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-[var(--color-ink)]/70">{client.ownerName ?? "Unassigned"}</td>
                   <td className="px-4 py-3 text-[var(--color-ink)]/70">{client.source ?? "None"}</td>
                   <td className="px-4 py-3 text-right font-medium text-[var(--color-ink)]">{formatSar(client.ltvMinor)}</td>
-                  <td className="px-4 py-3 text-right text-[var(--color-ink)]/80">{client.bookingCount}</td>
-                  <td className="px-4 py-3 text-[var(--color-ink)]/70">{formatDate(client.lastVisitAt)}</td>
                   <td className="px-4 py-3 text-[var(--color-ink)]/70">{formatDate(client.nextAppointmentAt)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={client.status} />
