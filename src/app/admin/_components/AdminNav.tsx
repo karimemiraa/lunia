@@ -278,7 +278,7 @@ export function AdminNav({ permissions }: AdminNavProps) {
                 type="button"
                 onClick={() => toggleGroup(group.label)}
                 aria-expanded={open}
-                className="mt-2 flex w-full items-center justify-between rounded px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[var(--color-cream)]/35 transition-colors hover:text-[var(--color-cream)]/70"
+                className="mt-3 flex w-full items-center justify-between rounded px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-cream)]/55 transition-colors hover:text-[var(--color-cream)]/80"
               >
                 {group.label}
                 <Chevron open={open} />

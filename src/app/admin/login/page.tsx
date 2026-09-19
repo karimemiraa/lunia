@@ -104,12 +104,8 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* Brand panel */}
-      <section className="lunia-aurora lunia-grain relative hidden flex-col items-center justify-center gap-10 p-12 text-[var(--color-cream)] lg:flex">
+      <section className="lunia-aurora lunia-grain relative hidden flex-col items-center justify-center p-12 text-[var(--color-cream)] lg:flex">
         <LuniaEmblem />
-
-        <p className="lunia-animate-fade-in lunia-delay-4 absolute bottom-8 left-1/2 -translate-x-1/2 text-xs tracking-wide text-[var(--color-cream)]/55">
-          Riyadh, Saudi Arabia
-        </p>
       </section>
 
       {/* Form panel */}

@@ -6,7 +6,7 @@ const CATALOG_SECTIONS = [
   { href: "/admin/catalog/departments", label: "Departments", description: "Service departments shown on the public site." },
   { href: "/admin/catalog/services", label: "Services", description: "Individual services, grouped under a department." },
   { href: "/admin/catalog/brands", label: "Brands", description: "Partner and product brands featured on the site." },
-  { href: "/admin/catalog/journal", label: "Journal", description: "Blog / journal posts." },
+  { href: "/admin/catalog/journal", label: "Blog", description: "Blog posts." },
 ];
 
 export default async function CatalogHubPage() {

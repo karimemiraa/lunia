@@ -5,7 +5,7 @@
     "services": "Services",
     "brands": "Brands",
     "results": "Results",
-    "journal": "Journal",
+    "journal": "Blog",
     "contact": "Contact",
     "book": "Book Now",
     "account": "My Account",
@@ -245,11 +245,11 @@
   },
   "journalIndex": {
     "meta": {
-      "title": "Journal | Lunia Skin Quality Center",
+      "title": "Blog | Lunia Skin Quality Center",
       "description": "Notes on skin quality, diagnostic care, and the philosophy behind every Lunia treatment, from our specialists in Riyadh."
     },
     "hero": {
-      "eyebrow": "The Lunia Journal",
+      "eyebrow": "The Lunia Blog",
       "heading": "Notes on skin quality, from us to you",
       "intro": "Stories, guides, and the thinking behind our diagnostic-first approach, written by the specialists who deliver it."
     },
@@ -262,7 +262,7 @@
   },
   "journalPost": {
     "byLabel": "By",
-    "backLabel": "Back to the Journal",
+    "backLabel": "Back to the Blog",
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Book a diagnostic consultation to begin"

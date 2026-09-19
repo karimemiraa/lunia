@@ -50,18 +50,17 @@ export function CustomerEditor({ clientProfileId, fullName, phone, email, source
                   <input name="fullName" type="text" required maxLength={120} defaultValue={fullName} className="lunia-input" />
                 </label>
                 <label className="flex flex-col gap-1.5 text-sm">
-                  <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Source</span>
-                  <input name="source" type="text" maxLength={80} defaultValue={source ?? ""} placeholder="e.g. instagram" className="lunia-input" />
-                </label>
-                <label className="flex flex-col gap-1.5 text-sm">
                   <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Phone</span>
                   <input name="phone" type="tel" maxLength={40} defaultValue={phone ?? ""} className="lunia-input" />
                 </label>
-                <label className="flex flex-col gap-1.5 text-sm">
+                <label className="flex flex-col gap-1.5 text-sm sm:col-span-2">
                   <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Email</span>
                   <input name="email" type="email" maxLength={200} defaultValue={email ?? ""} className="lunia-input" />
                 </label>
               </div>
+              <p className="text-xs text-[var(--color-ink)]/45">
+                Source: <span className="font-medium text-[var(--color-ink)]/70">{source || "Not set"}</span> (set automatically)
+              </p>
               <div className="flex flex-wrap items-center gap-3">
                 <button type="submit" disabled={savePending} className="lunia-btn lunia-btn-forest w-fit disabled:opacity-60">
                   {savePending ? "Saving…" : "Save details"}

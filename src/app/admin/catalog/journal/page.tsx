@@ -11,7 +11,7 @@ export default async function JournalPage() {
   const [posts, media] = await Promise.all([listPosts({ publishedOnly: false }), listMedia()]);
 
   return (
-    <AdminShell user={user} title="Journal" description="Manage journal / blog posts.">
+    <AdminShell user={user} title="Blog" description="Manage blog posts.">
       <div className="mb-8 max-w-2xl">
         <CreatePostForm
           media={media.map((item) => ({ id: item.id, filename: item.filename, storageKey: item.storageKey, kind: item.kind }))}

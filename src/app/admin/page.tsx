@@ -3,8 +3,14 @@ import { requireAdmin } from "./_components/requireAdmin";
 import { AdminShell } from "./_components/AdminShell";
 import { PERMISSIONS, type PermissionKey } from "@/modules/iam/permissions";
 import { prisma } from "@/lib/db";
-import { utcToCenterLocal } from "@/modules/booking/availability";
+import { centerLocalToUtc, utcToCenterLocal } from "@/modules/booking/availability";
 import { listDayAppointments } from "@/modules/booking/bookings";
+import { bookingStats, upcomingAppointmentsCount } from "@/modules/booking/stats";
+import { StatCard } from "@/components/admin/charts/StatCard";
+
+function formatSar(minor: number): string {
+  return `${(minor / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} SAR`;
+}
 
 interface QuickLink {
   href: string;
@@ -41,10 +47,15 @@ export default async function AdminHome() {
 
   // Personalize: greet the signed-in staff member by name + time of day, and
   // surface today's real schedule at a glance.
-  const todayISO = utcToCenterLocal(new Date()).dateISO;
-  const [staff, todaysAppointments] = await Promise.all([
+  const now = new Date();
+  const todayISO = utcToCenterLocal(now).dateISO;
+  const monthStartISO = `${todayISO.slice(0, 7)}-01`;
+  const canSeeAnalytics = user.permissions.has(PERMISSIONS.ANALYTICS_VIEW);
+  const [staff, todaysAppointments, monthStats, upcoming] = await Promise.all([
     prisma.staffProfile.findUnique({ where: { userId: user.id }, select: { fullName: true } }),
     user.permissions.has(PERMISSIONS.BOOKING_VIEW) ? listDayAppointments(todayISO) : Promise.resolve([]),
+    canSeeAnalytics ? bookingStats({ from: centerLocalToUtc(monthStartISO, 0), to: centerLocalToUtc(todayISO, 1440) }) : Promise.resolve(null),
+    user.permissions.has(PERMISSIONS.BOOKING_VIEW) ? upcomingAppointmentsCount(now) : Promise.resolve(0),
   ]);
   const firstName = staff?.fullName?.trim().split(/\s+/)[0] ?? "";
   const riyadhHour = Number(
@@ -69,6 +80,14 @@ export default async function AdminHome() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-teal)]">{fullDateFmt.format(new Date())}</p>
         <h2 className="mt-3 font-[family-name:var(--font-display)] text-4xl leading-snug">{heading}</h2>
         <p className="mt-2 text-sm text-[var(--color-cream)]/80">{scheduleLine}</p>
+      </div>
+
+      {/* KPI snapshot — real numbers so the dashboard reads as a dashboard. */}
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Appointments today" value={String(liveCount)} />
+        <StatCard label="Upcoming appointments" value={String(upcoming)} subNote="Confirmed or checked-in" />
+        {monthStats && <StatCard label="Revenue this month" value={formatSar(monthStats.revenueMinor)} subNote={`${monthStats.totalBookings} bookings`} />}
+        {monthStats && <StatCard label="New customers this month" value={String(monthStats.newClients)} />}
       </div>
 
       {links.length > 0 && (

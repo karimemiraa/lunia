@@ -229,8 +229,9 @@ export async function updateCustomer(clientProfileId: string, input: UpdateCusto
     if (other && other.id !== profile.userId) throw new Error("That email is already used by another customer");
   }
 
+  // Source is set automatically at acquisition and is not edited here.
   await prisma.$transaction([
-    prisma.clientProfile.update({ where: { id: clientProfileId }, data: { fullName, sourceChannel: input.source?.trim() || null } }),
+    prisma.clientProfile.update({ where: { id: clientProfileId }, data: { fullName } }),
     prisma.user.update({ where: { id: profile.userId }, data: { phone, email } }),
   ]);
 }
