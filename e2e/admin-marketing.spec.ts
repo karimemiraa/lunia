@@ -32,7 +32,7 @@ test("marketing dashboard: owner sees CAC by channel, conversion, and traffic so
 
   // New vs returning.
   await expect(page.getByRole("heading", { name: "New vs Returning" })).toBeVisible();
-  await expect(page.getByText("New Clients", { exact: true })).toBeVisible();
+  await expect(page.getByText("New Customers", { exact: true })).toBeVisible();
   await expect(page.getByText("Returning Bookings", { exact: true })).toBeVisible();
 
   // Booking conversion.
