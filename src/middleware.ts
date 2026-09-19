@@ -41,12 +41,15 @@ function withSecurityHeaders(res: NextResponse): NextResponse {
 }
 
 export default function middleware(request: NextRequest): NextResponse {
-  // Admin routes are not localized — pass them straight through (auth is
-  // enforced in-page by requireAdmin). Everything else is a public localized
-  // route handled by next-intl. api/_next/static are excluded by the matcher.
-  const res = request.nextUrl.pathname.startsWith("/admin")
-    ? NextResponse.next()
-    : (intlMiddleware(request) as NextResponse);
+  // Admin + superadmin routes are not localized — pass them straight through
+  // (auth is enforced in-page by requireAdmin). Everything else is a public
+  // localized route handled by next-intl. Without this, next-intl would
+  // prepend a locale (e.g. /superadmin -> /ar/superadmin) and 404, since
+  // those routes live outside the [locale] segment. api/_next/static are
+  // excluded by the matcher.
+  const { pathname } = request.nextUrl;
+  const isNonLocalized = pathname.startsWith("/admin") || pathname.startsWith("/superadmin");
+  const res = isNonLocalized ? NextResponse.next() : (intlMiddleware(request) as NextResponse);
   return withSecurityHeaders(res);
 }
 
