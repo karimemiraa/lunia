@@ -211,6 +211,29 @@ model Segment {
   createdById String?
 }
 
+// A one-off announcement/campaign message sent to a segment of customers
+// (email/WhatsApp/SMS). One row per send, recording the audience, the exact
+// content, and delivery counts. Actual delivery goes through the same
+// CommsSender pipeline as booking messages (stub in non-production).
+model Broadcast {
+  id             String   @id @default(cuid())
+  channel        String
+  locale         String
+  subject        String?
+  body           String   @db.Text
+  // Machine audience key ("all" | "marketing" | "tier:<id>" | "stage:<STAGE>")
+  // plus a human label snapshot for the history list.
+  audience       String
+  audienceLabel  String
+  recipientCount Int      @default(0)
+  sentCount      Int      @default(0)
+  failedCount    Int      @default(0)
+  createdById    String?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model ClientMembership {
   id        String         @id @default(cuid())
   clientId  String         @unique
