@@ -138,35 +138,8 @@ export default async function ContactPage({ params }: ContactPageProps) {
                       </dd>
                     </div>
                   )}
-                  {business.whatsapp && (
-                    <div>
-                      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-ink)]/40">
-                        {tContact("whatsappLabel")}
-                      </dt>
-                      <dd>
-                        <a
-                          href={`https://wa.me/${digitsOnly(business.whatsapp)}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={linkClass}
-                        >
-                          {business.whatsapp}
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                  {social?.instagram && (
-                    <div>
-                      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-ink)]/40">
-                        {tContact("instagramLabel")}
-                      </dt>
-                      <dd>
-                        <a href={instagramHref(social.instagram)} target="_blank" rel="noreferrer" className={linkClass}>
-                          {social.instagram}
-                        </a>
-                      </dd>
-                    </div>
-                  )}
+                  {/* WhatsApp + Instagram intentionally omitted here — they live
+                      as icons in the footer + the floating WhatsApp button. */}
                 </dl>
               ) : (
                 <p className="text-sm text-[var(--color-ink)]/60">{tContact("napFallback")}</p>

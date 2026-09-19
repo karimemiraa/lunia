@@ -16,7 +16,6 @@ const REPORT_LABELS: Record<ReportType, string> = {
   revenue: "Revenue",
   clients: "Customers",
   marketing: "Marketing",
-  channels: "Channels",
 };
 
 const BOOKING_STATUSES: BookingStatus[] = ["REQUESTED", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED", "NO_SHOW"];

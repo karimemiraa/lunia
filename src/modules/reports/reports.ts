@@ -239,67 +239,7 @@ export async function marketingReport(filter: MarketingReportFilter): Promise<Re
 
 // ---- Shared entry point (admin page + CSV export route) --------------------
 
-// ---- Channels report (inbound vs outbound + source performance) -----------
-
-export interface ChannelsReportRow {
-  channel: string;
-  source: string;
-  leads: number;
-  won: number;
-  winRate: string;
-  ltvSAR: string;
-}
-
-export const CHANNELS_REPORT_COLUMNS: ReportColumn[] = [
-  { key: "channel", label: "Channel" },
-  { key: "source", label: "Source" },
-  { key: "leads", label: "Leads" },
-  { key: "won", label: "Won" },
-  { key: "winRate", label: "Win rate" },
-  { key: "ltvSAR", label: "Lifetime value (SAR)" },
-];
-
-export interface ChannelsReportFilter {
-  from: Date;
-  to: Date;
-}
-
-// Groups leads/customers acquired in the range by direction (inbound/outbound)
-// + source, so you can see which channel converts best. "Won" counts stage=WON;
-// win rate is won / leads.
-export async function channelsReport(filter: ChannelsReportFilter): Promise<ReportResult<ChannelsReportRow>> {
-  const profiles = await prisma.clientProfile.findMany({
-    where: { createdAt: { gte: filter.from, lt: filter.to } },
-    select: { direction: true, sourceChannel: true, stage: true, ltvCacheMinor: true },
-  });
-
-  const groups = new Map<string, { channel: string; source: string; leads: number; won: number; ltvMinor: number }>();
-  for (const p of profiles) {
-    const channel = p.direction ? (p.direction === "INBOUND" ? "Inbound" : "Outbound") : "Unspecified";
-    const source = p.sourceChannel?.trim() || "Unknown";
-    const key = `${channel}|${source}`;
-    const g = groups.get(key) ?? { channel, source, leads: 0, won: 0, ltvMinor: 0 };
-    g.leads += 1;
-    if (p.stage === "WON") g.won += 1;
-    g.ltvMinor += p.ltvCacheMinor;
-    groups.set(key, g);
-  }
-
-  const rows: ChannelsReportRow[] = [...groups.values()]
-    .sort((a, b) => b.leads - a.leads)
-    .map((g) => ({
-      channel: g.channel,
-      source: g.source,
-      leads: g.leads,
-      won: g.won,
-      winRate: g.leads > 0 ? `${Math.round((g.won / g.leads) * 100)}%` : "0%",
-      ltvSAR: toSarString(g.ltvMinor),
-    }));
-
-  return { columns: CHANNELS_REPORT_COLUMNS, rows };
-}
-
-export const REPORT_TYPES = ["bookings", "revenue", "clients", "marketing", "channels"] as const;
+export const REPORT_TYPES = ["bookings", "revenue", "clients", "marketing"] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
 
 export interface RunReportParams {
@@ -333,7 +273,5 @@ export async function runReport({ type, from, to, status }: RunReportParams): Pr
       return asRecordResult(await clientsReport({ from, to }));
     case "marketing":
       return asRecordResult(await marketingReport({ from, to }));
-    case "channels":
-      return asRecordResult(await channelsReport({ from, to }));
   }
 }
