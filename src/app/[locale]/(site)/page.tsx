@@ -9,9 +9,9 @@ import { HeroRatingCard } from "@/components/site/HeroRatingCard";
 import { CinematicImage } from "@/components/site/CinematicImage";
 import { Section } from "@/components/site/Section";
 import { SectionHeading } from "@/components/site/SectionHeading";
-import { JourneySteps } from "@/components/site/JourneySteps";
+import { JourneyRail } from "@/components/site/JourneyRail";
+import { StatsBand } from "@/components/site/StatsBand";
 import { BrandLogos } from "@/components/site/BrandLogos";
-import { Reveal } from "@/components/site/Reveal";
 import { Testimonials } from "@/components/site/Testimonials";
 import { CtaBand } from "@/components/site/CtaBand";
 import { Faq } from "@/components/site/Faq";
@@ -231,6 +231,17 @@ export default async function Home({ params }: HomePageProps) {
         intro={tPositioning("body")}
       />
 
+      <Section tone="plain">
+        <StatsBand
+          stats={[
+            { value: departments.length, label: locale === "ar" ? "أقسام متخصصة" : "Specialised departments" },
+            { value: journeySteps.length, label: locale === "ar" ? "خطوات في كل رحلة" : "Steps in every journey" },
+            { value: brands.length, label: locale === "ar" ? "علامات طبية موثوقة" : "Clinical-grade partners" },
+            { value: 100, suffix: "%", label: locale === "ar" ? "قائم على التشخيص أولاً" : "Diagnostic-first, always" },
+          ]}
+        />
+      </Section>
+
       <Section tone="tinted">
         <div className="flex flex-col gap-16 lg:gap-28">
           <SectionHeading eyebrow={tServices("eyebrow")} heading={tServices("heading")} intro={tServices("intro")} />
@@ -241,12 +252,12 @@ export default async function Home({ params }: HomePageProps) {
             const num = String(index + 1).padStart(2, "0");
             const flip = index % 2 === 1;
             return (
-              <Reveal key={department.id} className="lunia-reveal-fall">
+              <div key={department.id} data-reveal="card">
                 <Link
                   href={`/${locale}/services/${department.slug}`}
                   className="group grid items-center gap-8 lg:grid-cols-2 lg:gap-16"
                 >
-                  <div className={flip ? "lg:order-2" : ""}>
+                  <div className={`lunia-clip ${flip ? "lg:order-2" : ""}`}>
                     <MediaFrame
                       mediaKey={departmentMedia[index]?.key}
                       kind={departmentMedia[index]?.kind}
@@ -272,15 +283,13 @@ export default async function Home({ params }: HomePageProps) {
                     </span>
                   </div>
                 </Link>
-              </Reveal>
+              </div>
             );
           })}
         </div>
       </Section>
 
-      <Section tone="plain">
-        <JourneySteps eyebrow={tJourney("eyebrow")} heading={tJourney("heading")} steps={journeySteps} />
-      </Section>
+      <JourneyRail eyebrow={tJourney("eyebrow")} heading={tJourney("heading")} steps={journeySteps} />
 
       <Section tone="tinted">
         <div className="flex flex-col gap-14">

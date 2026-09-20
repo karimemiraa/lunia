@@ -1,21 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  /* Primary — Luminous Teal family */
-  --color-teal: #9ed5d0;
-  --color-canopy: #93ccc6;
-  --color-ice: #86bfb8;
-  /* Secondary — warm golds / neutrals */
-  --color-gold: #c0ad73;
-  --color-marigold: #cdbb85;
-  --color-cream: #ebe5d3;
-  --color-dragonfruit: #d9cca3;
-  /* Ink + page */
-  --color-ink: #1c2b2a;
-  --color-page: #fbfaf7;
-  /* Forest — a deep teal-green used as a rich accent on authoritative
+  /* Primary — warm "sunshine" amber/gold family (rivive-inspired). The token
+     names are kept (teal/canopy/ice) so every component recolors from here
+     without edits; the values are now a warm luxury palette. */
+  --color-teal: #e89833;
+  --color-canopy: #f2b45e;
+  --color-ice: #f0c98a;
+  /* Secondary — golds / warm neutrals */
+  --color-gold: #c99a3e;
+  --color-marigold: #e0b566;
+  --color-cream: #f1e5d3;
+  --color-dragonfruit: #e6cfa6;
+  /* Ink + page — warm espresso ink on a soft warm off-white */
+  --color-ink: #2b241d;
+  --color-page: #faf5ec;
+  /* Forest — a deep warm espresso used as a rich accent on authoritative
      surfaces (admin banners, primary actions, inquiry headers). */
-  --color-forest: #283d3c;
+  --color-forest: #39312a;
 
   --font-display: "Cormorant Garamond", "The Seasons", serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -26,16 +28,15 @@
 :root {
   color-scheme: light;
 
-  /* Deeper + softer members of the teal family, derived for surfaces and
-     legible text tints (guideline: shades are used on text over bright
-     grounds). */
-  --color-teal-deep: #4f8f89;
-  --color-teal-ink: #2f6d67;
+  /* Deeper amber/brown accents for legible text tints over warm grounds
+     (eyebrows, links). Named -teal-* for compatibility; values are warm. */
+  --color-teal-deep: #a86a1c;
+  --color-teal-ink: #8f5e17;
 
-  /* Layered surfaces + hairlines for a calm, premium hierarchy. */
-  --surface: #ffffff;
-  --surface-2: #f5f1e8;
-  --surface-3: #efe9db;
+  /* Layered warm surfaces + hairlines for a calm, luxurious hierarchy. */
+  --surface: #fffaf3;
+  --surface-2: #f5ecdd;
+  --surface-3: #eee2cf;
   --line: color-mix(in srgb, var(--color-ink) 10%, transparent);
   --line-strong: color-mix(in srgb, var(--color-ink) 18%, transparent);
 
@@ -588,8 +589,16 @@ html.lenis, html.lenis body { height: auto; }
 html[dir="rtl"] .lunia-progress-bar { transform-origin: right center; }
 
 /* Split-text headline: each word rises out of an overflow mask */
-.lunia-split-word { display: inline-block; overflow: hidden; vertical-align: top; }
+.lunia-split-word { display: inline-block; overflow: hidden; vertical-align: top; padding-block: 0.08em; }
 .lunia-split-inner { display: inline-block; will-change: transform; }
+
+/* Horizontal rail: a swipeable card track by default (mobile + no-JS), which
+   GSAP upgrades to a pinned sideways-scrub on desktop once html.gsap-ready. */
+.lunia-hrail { overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+.lunia-hrail::-webkit-scrollbar { display: none; }
+@media (min-width: 1024px) {
+  html.gsap-ready .lunia-hrail { overflow: hidden; scroll-snap-type: none; }
+}
 
 /* Custom cursor (desktop pointer only; JS adds the elements + the class) */
 .lunia-cursor-dot, .lunia-cursor-ring {
