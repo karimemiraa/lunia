@@ -18,7 +18,7 @@ export function JourneyRail({ eyebrow, heading, steps }: JourneyRailProps) {
   return (
     <section
       data-horizontal
-      className="lunia-hrail relative bg-[var(--color-forest)] py-20 text-[var(--color-cream)] lg:flex lg:h-screen lg:flex-col lg:justify-center lg:py-0"
+      className="lunia-hrail relative bg-[var(--color-forest)] py-20 text-[var(--color-cream)] lg:py-28"
     >
       <div className="mx-auto mb-10 w-full max-w-6xl px-6 lg:mb-14 lg:px-10">
         <div className="flex max-w-2xl flex-col gap-4">

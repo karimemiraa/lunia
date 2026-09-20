@@ -200,27 +200,26 @@ export function CinematicScroll() {
             });
           }
 
-          // 10) Pinned horizontal-scroll section (desktop only). The section
-          // pins and its track slides sideways as you scroll down.
+          // 10) Horizontal-scroll section (desktop only). NOT pinned — the card
+          // track slides sideways as the section transits the viewport, so it
+          // stays in normal document flow and can never overlap its neighbours.
+          // (Pinning inside the flex <main> + page-transition wrapper caused the
+          // sections above/below to overlap.) Mobile keeps a native swipe rail.
           const mm = gsap.matchMedia();
           mm.add("(min-width: 1024px)", () => {
             gsap.utils.toArray<HTMLElement>("[data-horizontal]").forEach((section) => {
               const track = section.querySelector<HTMLElement>("[data-horizontal-track]");
               if (!track) return;
-              const distance = () => track.scrollWidth - section.clientWidth;
-              gsap.to(track, {
-                x: () => -distance(),
-                ease: "none",
-                scrollTrigger: {
-                  trigger: section,
-                  start: "top top",
-                  end: () => `+=${distance()}`,
-                  pin: true,
-                  scrub: 0.6,
-                  invalidateOnRefresh: true,
-                  anticipatePin: 1,
+              const distance = () => Math.max(0, track.scrollWidth - section.clientWidth + 48);
+              gsap.fromTo(
+                track,
+                { x: 0 },
+                {
+                  x: () => -distance(),
+                  ease: "none",
+                  scrollTrigger: { trigger: section, start: "top 72%", end: "bottom top", scrub: 0.6, invalidateOnRefresh: true },
                 },
-              });
+              );
             });
           });
 

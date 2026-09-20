@@ -165,15 +165,55 @@ function makeS3Storage(config: S3Config): Storage {
   };
 }
 
+// A read-through cached storage: B2 is the source of truth, but every object is
+// mirrored to the local disk on read/write so it's only ever fetched from B2
+// ONCE. Serving media then never touches B2 again — critical because proxying
+// every image request straight to B2 racks up Class B transactions and blows
+// the free-tier download cap (which is exactly what broke media rendering). A
+// B2 read error (e.g. cap exceeded) still serves from the local mirror when
+// present, so a temporary cap never breaks already-seen media.
+function makeCachedStorage(remote: Storage, cache: Storage): Storage {
+  return {
+    async put(key, data, contentType) {
+      await remote.put(key, data, contentType);
+      try {
+        await cache.put(key, data, contentType);
+      } catch {
+        // caching is best-effort; never fail an upload because the mirror write failed
+      }
+    },
+    async get(key) {
+      try {
+        const cached = await cache.get(key);
+        if (cached) return cached;
+      } catch {
+        // fall through to remote on any cache read error
+      }
+      const fromRemote = await remote.get(key);
+      if (fromRemote) {
+        try {
+          await cache.put(key, fromRemote.data, fromRemote.contentType);
+        } catch {
+          // best-effort mirror
+        }
+      }
+      return fromRemote;
+    },
+    async delete(key) {
+      await Promise.allSettled([remote.delete(key), cache.delete(key)]);
+    },
+  };
+}
+
 // --- Backend selection ------------------------------------------------------
-// Uses B2/S3 when configured (production), otherwise the local filesystem
-// (dev/CI). STORAGE_DRIVER=local can force the local backend even if S3 vars
-// are present (e.g. a debugging session).
+// Uses B2/S3 (fronted by a local read-through cache) when configured
+// (production), otherwise the local filesystem (dev/CI). STORAGE_DRIVER=local
+// can force the local backend even if S3 vars are present.
 
 function selectStorage(): Storage {
   if (process.env.STORAGE_DRIVER === "local") return localStorage;
   const s3 = readS3Config(process.env);
-  return s3 ? makeS3Storage(s3) : localStorage;
+  return s3 ? makeCachedStorage(makeS3Storage(s3), localStorage) : localStorage;
 }
 
 export const storage: Storage = selectStorage();
