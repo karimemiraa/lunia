@@ -67,7 +67,11 @@ ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db" \
     REDIS_URL="redis://localhost:6379" \
     SESSION_SECRET="build-time-placeholder-secret-not-for-real-use-only" \
     APP_URL="http://localhost:3000" \
-    NODE_ENV="production"
+    NODE_ENV="production" \
+    # Raise V8's heap ceiling so the type-check/build survives on small hosts
+    # (e.g. a 1GB VM); V8's default limit tracks physical RAM and swap doesn't
+    # lift it, so a constrained box OOMs during `next build` without this.
+    NODE_OPTIONS="--max-old-space-size=3072"
 RUN pnpm db:generate && pnpm build
 
 # --- Migrator/seed image: reuses the `build` stage's full node_modules ---
@@ -90,7 +94,13 @@ ENTRYPOINT ["corepack", "pnpm"]
 CMD ["prisma", "migrate", "deploy"]
 
 FROM base AS run
-ENV NODE_ENV=production
+# HOSTNAME=0.0.0.0 so Next's standalone server binds to all interfaces; Docker
+# otherwise sets HOSTNAME to the container id and Next binds only to that, which
+# makes the compose healthcheck (http://localhost:3000) fail → nginx never
+# starts. PORT is explicit for clarity.
+ENV NODE_ENV=production \
+    HOSTNAME=0.0.0.0 \
+    PORT=3000
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
