@@ -22,11 +22,12 @@ export function CtaBand({ eyebrow, headline, ctaLabel, ctaHref }: CtaBandProps) 
             {eyebrow}
           </span>
         )}
-        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight tracking-tight text-[var(--color-ink)] sm:text-5xl">
+        <h2 data-splittext className="font-[family-name:var(--font-display)] text-3xl leading-tight tracking-tight text-[var(--color-ink)] sm:text-5xl">
           {headline}
         </h2>
         <Link
           href={ctaHref}
+          data-magnetic
           className={`inline-flex items-center justify-center whitespace-nowrap rounded-full bg-[var(--color-ink)] px-8 py-3.5 text-sm font-medium tracking-wide text-[var(--color-cream)] transition-colors hover:bg-[var(--color-ink)]/85 ${focusRingClass}`}
         >
           {ctaLabel}

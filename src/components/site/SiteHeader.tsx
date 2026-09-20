@@ -65,7 +65,7 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
             {tNav("account")}
           </Link>
           <LocaleSwitcher locale={locale} />
-          <Link href={bookHref} className={ctaClass}>
+          <Link href={bookHref} data-magnetic className={ctaClass}>
             {tNav("book")}
           </Link>
         </div>

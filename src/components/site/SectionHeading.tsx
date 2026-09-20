@@ -18,7 +18,10 @@ export function SectionHeading({ eyebrow, heading, intro, align = "start", class
   return (
     <div className={`lunia-scroll flex max-w-2xl flex-col gap-4 ${alignClass} ${className}`.trim()}>
       {eyebrow && (
-        <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-teal-ink)]">
+        <span className={`flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-teal-ink)] ${align === "center" ? "justify-center" : ""}`}>
+          {align !== "center" && (
+            <span aria-hidden="true" className="h-px w-8 bg-gradient-to-r from-[var(--color-teal-ink)] to-transparent" />
+          )}
           {eyebrow}
         </span>
       )}

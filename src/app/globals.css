@@ -556,6 +556,62 @@ img { max-width: 100%; }
 }
 
 /* ---------------------------------------------------------------------------
+   GSAP + Lenis cinematic engine (CinematicScroll.tsx). Once JS initializes it
+   adds html.gsap-ready, which switches OFF the CSS scroll-timeline versions
+   above (Chrome-only) so nothing double-animates — JS then drives the same
+   hooks smoothly on every browser.
+   --------------------------------------------------------------------------- */
+html.gsap-ready .lunia-scroll,
+html.gsap-ready .lunia-scroll-fade,
+html.gsap-ready .lunia-parallax,
+html.gsap-ready .lunia-parallax-rise,
+html.gsap-ready .lunia-wordmark,
+html.gsap-ready .lunia-hero-fade { animation: none !important; }
+
+/* Cine reverts to a normal band that GSAP scales (no sticky-timeline pin). */
+html.gsap-ready .cine { height: auto; }
+html.gsap-ready .cine-sticky { position: static; height: auto; }
+html.gsap-ready .cine-frame { position: relative; inset: auto; width: 100%; height: 72vh; animation: none; will-change: transform; }
+
+/* Lenis smooth scroll */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* Scroll progress bar */
+.lunia-progress-bar {
+  position: fixed; inset-block-start: 0; inset-inline: 0; height: 3px;
+  background: linear-gradient(90deg, var(--color-teal), var(--color-gold));
+  transform: scaleX(0); transform-origin: left center; z-index: 70; pointer-events: none;
+}
+html[dir="rtl"] .lunia-progress-bar { transform-origin: right center; }
+
+/* Split-text headline: each word rises out of an overflow mask */
+.lunia-split-word { display: inline-block; overflow: hidden; vertical-align: top; }
+.lunia-split-inner { display: inline-block; will-change: transform; }
+
+/* Custom cursor (desktop pointer only; JS adds the elements + the class) */
+.lunia-cursor-dot, .lunia-cursor-ring {
+  position: fixed; top: 0; left: 0; pointer-events: none; z-index: 80;
+  border-radius: 9999px; opacity: 0; translate: -50% -50%; will-change: transform;
+}
+.lunia-cursor-dot { width: 7px; height: 7px; background: var(--color-forest); }
+.lunia-cursor-ring {
+  width: 34px; height: 34px;
+  border: 1.5px solid color-mix(in srgb, var(--color-forest) 55%, transparent);
+  transition: width .3s ease, height .3s ease, background-color .3s ease, border-color .3s ease;
+}
+.lunia-cursor-ring.is-active {
+  width: 54px; height: 54px;
+  background: color-mix(in srgb, var(--color-teal) 18%, transparent);
+  border-color: color-mix(in srgb, var(--color-teal-ink) 60%, transparent);
+}
+@media (pointer: fine) {
+  html.has-custom-cursor, html.has-custom-cursor a, html.has-custom-cursor button, html.has-custom-cursor [data-magnetic] { cursor: none; }
+}
+
+/* ---------------------------------------------------------------------------
    Respect reduced-motion: keep everything static and fully visible.
    --------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {

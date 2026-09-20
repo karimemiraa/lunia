@@ -76,7 +76,10 @@ export function Hero({
               {eyebrow}
             </span>
           )}
-          <h1 className="lunia-animate-fade-up lunia-delay-2 font-[family-name:var(--font-display)] text-5xl font-medium leading-[1.05] tracking-tight text-[var(--color-ink)] sm:text-6xl lg:text-7xl">
+          <h1
+            data-splittext
+            className="lunia-animate-fade-up lunia-delay-2 font-[family-name:var(--font-display)] text-5xl font-medium leading-[1.05] tracking-tight text-[var(--color-ink)] sm:text-6xl lg:text-7xl"
+          >
             {headline}
           </h1>
           {subhead && (
@@ -85,7 +88,7 @@ export function Hero({
             </p>
           )}
           <div className="lunia-animate-fade-up lunia-delay-4 mt-2 flex flex-wrap items-center gap-x-8 gap-y-4">
-            <Link href={ctaHref} className={`lunia-btn lunia-btn-primary px-8 py-3.5 ${focusRingClass}`}>
+            <Link href={ctaHref} data-magnetic className={`lunia-btn lunia-btn-primary px-8 py-3.5 ${focusRingClass}`}>
               {ctaLabel}
             </Link>
             {secondaryLabel && secondaryHref && (
