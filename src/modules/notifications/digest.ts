@@ -7,6 +7,7 @@
 import { prisma } from "@/lib/db";
 import { renderEmailHtml } from "@/modules/comms/emailLayout";
 import { resolveSenderForChannel } from "@/modules/comms/sender";
+import { openStageKeys } from "@/modules/crm/pipeline";
 
 interface DigestLine {
   label: string;
@@ -28,13 +29,14 @@ function buildEmailBody(name: string, lines: DigestLine[]): string {
 
 export async function sendAssigneeDigests(): Promise<DigestSendResult> {
   const now = new Date();
+  const openKeys = await openStageKeys();
 
   const [inquiries, leads, conversations] = await Promise.all([
     prisma.contactInquiry.findMany({ where: { handled: false, assignedToId: { not: null } } }),
     prisma.clientProfile.findMany({
       where: {
         ownerId: { not: null },
-        stage: { in: ["LEAD", "ATTEMPTED", "CONTACTED", "FOLLOW_UP"] },
+        stage: { in: openKeys },
         OR: [{ nextFollowUpAt: null }, { nextFollowUpAt: { lte: now } }],
       },
     }),

@@ -6,21 +6,17 @@ import { useRouter } from "next/navigation";
 import { moveLeadStageAction } from "./actions";
 import type { PipelineCard } from "@/modules/crm/leads";
 
+interface StageOpt {
+  key: string;
+  label: string;
+  color: string;
+}
+
 interface LeadBoardProps {
-  stages: { key: string; label: string }[];
+  stages: StageOpt[];
   columns: Record<string, PipelineCard[]>;
   counts: Record<string, number>;
 }
-
-const STAGE_ACCENT: Record<string, string> = {
-  LEAD: "var(--color-teal)",
-  ATTEMPTED: "var(--color-gold)",
-  CONTACTED: "var(--color-canopy)",
-  FOLLOW_UP: "var(--color-marigold)",
-  BOOKED: "var(--color-ice)",
-  WON: "var(--color-forest)",
-  LOST: "#d92d20",
-};
 
 function Card({
   card,
@@ -30,7 +26,7 @@ function Card({
   pending,
 }: {
   card: PipelineCard;
-  stages: { key: string; label: string }[];
+  stages: StageOpt[];
   onMove: (id: string, stage: string) => void;
   onDragStart: (id: string) => void;
   pending: boolean;
@@ -121,7 +117,7 @@ export function LeadBoard({ stages, columns, counts }: LeadBoardProps) {
             >
               <div className="flex items-center justify-between gap-2 px-1">
                 <span className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink)]">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: STAGE_ACCENT[s.key] ?? "var(--color-ink)" }} />
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color || "var(--color-ink)" }} />
                   {s.label}
                 </span>
                 <span className="rounded-full bg-[var(--color-ink)]/[0.06] px-2 py-0.5 text-xs text-[var(--color-ink)]/55">{counts[s.key] ?? 0}</span>

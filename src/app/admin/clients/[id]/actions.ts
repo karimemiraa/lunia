@@ -15,8 +15,8 @@ import { recordAudit } from "@/modules/iam/audit";
 import { prisma } from "@/lib/db";
 import { addVisitNote, deleteVisitNote, setNotePinned } from "@/modules/crm/visitNotes";
 import { updateClientTier, updateCustomer, deleteCustomer } from "@/modules/crm/clients";
-import { setLeadStage, assignOwner, setFollowUp, logActivity, LEAD_STAGES } from "@/modules/crm/leads";
-import type { LeadStage } from "@prisma/client";
+import { setLeadStage, assignOwner, setFollowUp, logActivity } from "@/modules/crm/leads";
+import { stageKeys } from "@/modules/crm/pipeline";
 import { redirect } from "next/navigation";
 import { upsertPreference } from "@/modules/comms/preferences";
 import { adjustPoints } from "@/modules/crm/loyalty";
@@ -182,8 +182,8 @@ export async function updateLeadAction(_prev: ClientActionState | null, formData
   try {
     const current = await prisma.clientProfile.findUnique({ where: { id: clientProfileId }, select: { stage: true, ownerId: true } });
     if (!current) return { error: "Customer not found." };
-    if ((LEAD_STAGES as string[]).includes(stage) && stage !== current.stage) {
-      await setLeadStage(clientProfileId, stage as LeadStage, admin.id);
+    if ((await stageKeys()).includes(stage) && stage !== current.stage) {
+      await setLeadStage(clientProfileId, stage, admin.id);
     }
     if (ownerId !== current.ownerId) {
       await assignOwner(clientProfileId, ownerId, admin.id);

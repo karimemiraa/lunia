@@ -5,6 +5,7 @@
 // as staff handle them (an inquiry marked handled, a WhatsApp thread read).
 
 import { prisma } from "@/lib/db";
+import { openStageKeys } from "@/modules/crm/pipeline";
 
 export type NotificationType = "inquiry" | "whatsapp" | "lead" | "booking";
 
@@ -30,6 +31,11 @@ export async function getNotificationFeed(): Promise<NotificationFeed> {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
+  // "New leads" = recently created and still in an open stage (not won/lost),
+  // so it survives renaming/adding stages in Superadmin.
+  const openKeys = await openStageKeys();
+  const newLeadWhere = { stage: { in: openKeys }, createdAt: { gte: since } };
+
   const [
     inquiryCount,
     inquiries,
@@ -44,8 +50,8 @@ export async function getNotificationFeed(): Promise<NotificationFeed> {
     prisma.contactInquiry.findMany({ where: { handled: false }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.whatsappConversation.count({ where: { unread: true } }),
     prisma.whatsappConversation.findMany({ where: { unread: true }, orderBy: { lastMessageAt: "desc" }, take: 5, include: { client: { select: { fullName: true } } } }),
-    prisma.clientProfile.count({ where: { stage: "LEAD", createdAt: { gte: since } } }),
-    prisma.clientProfile.findMany({ where: { stage: "LEAD", createdAt: { gte: since } }, orderBy: { createdAt: "desc" }, take: 5, include: { user: { select: { phone: true, email: true } } } }),
+    prisma.clientProfile.count({ where: newLeadWhere }),
+    prisma.clientProfile.findMany({ where: newLeadWhere, orderBy: { createdAt: "desc" }, take: 5, include: { user: { select: { phone: true, email: true } } } }),
     prisma.booking.count({ where: { createdAt: { gte: startOfToday } } }),
     prisma.booking.findMany({ where: { createdAt: { gte: startOfToday } }, orderBy: { createdAt: "desc" }, take: 5, include: { client: { select: { fullName: true } } } }),
   ]);

@@ -32,15 +32,22 @@ model PlatformSecret {
   updatedAt   DateTime @default(now()) @updatedAt
 }
 
-// Sales pipeline stage for a lead/customer (outbound + inbound CRM).
-enum LeadStage {
-  LEAD // new, not yet contacted
-  ATTEMPTED // outreach tried, no answer yet
-  CONTACTED // reached / in conversation
-  FOLLOW_UP // awaiting a scheduled follow-up
-  BOOKED // has an upcoming appointment
-  WON // converted (visited / active customer)
-  LOST // not interested / unreachable
+// Editable CRM pipeline stage. Seeded with a simple treatment-center journey
+// (New enquiry -> Contacted -> Consultation booked -> Active client, plus
+// Lost) and fully editable in the Superadmin panel (add/rename/reorder/
+// recolor/delete). ClientProfile.stage stores the stage's `key`. `kind` marks
+// whether a stage means still-open, won, or lost — used by reporting,
+// notifications, and digests instead of hardcoded stage names.
+model PipelineStage {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  label     String
+  sortOrder Int      @default(0)
+  kind      String   @default("open") // open | won | lost
+  color     String   @default("#9ed5d0")
+  createdAt DateTime @default(now())
+
+  @@index([sortOrder])
 }
 
 // Whether the lead came to us (inbound) or we reached out (outbound).
@@ -198,7 +205,7 @@ model ClientProfile {
   // Outbound / sales CRM: pipeline stage, assigned owner (soft ref to a staff
   // User, like authorUserId), inbound/outbound classification for channel
   // reporting, and the next follow-up date for non-responders.
-  stage          LeadStage      @default(LEAD)
+  stage          String         @default("new")
   ownerId        String?
   direction      LeadDirection?
   nextFollowUpAt DateTime?

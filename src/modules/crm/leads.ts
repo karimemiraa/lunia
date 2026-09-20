@@ -6,19 +6,8 @@
 
 import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
-import type { LeadStage, LeadDirection, ClientProfile } from "@prisma/client";
-
-export const LEAD_STAGES: LeadStage[] = ["LEAD", "ATTEMPTED", "CONTACTED", "FOLLOW_UP", "BOOKED", "WON", "LOST"];
-
-export const LEAD_STAGE_LABELS: Record<LeadStage, string> = {
-  LEAD: "New lead",
-  ATTEMPTED: "Attempted",
-  CONTACTED: "Contacted",
-  FOLLOW_UP: "Follow up",
-  BOOKED: "Booked",
-  WON: "Won",
-  LOST: "Lost",
-};
+import type { LeadDirection, ClientProfile } from "@prisma/client";
+import { listStages, firstStageKey } from "@/modules/crm/pipeline";
 
 export const ACTIVITY_KINDS = ["CALL", "WHATSAPP", "EMAIL", "SMS", "NOTE"] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number] | "STAGE_CHANGE" | "ASSIGN";
@@ -71,8 +60,8 @@ export async function logActivity(input: LogActivityInput): Promise<void> {
   });
 }
 
-/** Moves a lead to a new pipeline stage and records a STAGE_CHANGE activity. */
-export async function setLeadStage(clientProfileId: string, stage: LeadStage, byUserId: string): Promise<void> {
+/** Moves a lead to a new pipeline stage (stage key) and records a STAGE_CHANGE activity. */
+export async function setLeadStage(clientProfileId: string, stage: string, byUserId: string): Promise<void> {
   await prisma.clientProfile.update({ where: { id: clientProfileId }, data: { stage } });
   await logActivity({ clientProfileId, authorUserId: byUserId, kind: "STAGE_CHANGE", outcome: stage });
 }
@@ -98,7 +87,7 @@ export interface PipelineCard {
   name: string;
   phone: string | null;
   email: string | null;
-  stage: LeadStage;
+  stage: string;
   direction: LeadDirection | null;
   ownerId: string | null;
   ownerName: string | null;
@@ -115,16 +104,19 @@ const PIPELINE_COLUMN_CAP = 100;
 export async function listPipeline(filter?: {
   direction?: LeadDirection;
   source?: string;
-}): Promise<{ columns: Record<LeadStage, PipelineCard[]>; counts: Record<LeadStage, number> }> {
+}): Promise<{ columns: Record<string, PipelineCard[]>; counts: Record<string, number> }> {
   const where: Prisma.ClientProfileWhereInput = {};
   if (filter?.direction) where.direction = filter.direction;
   if (filter?.source) where.sourceChannel = filter.source;
 
-  const profiles = await prisma.clientProfile.findMany({
-    where,
-    include: { user: { select: { phone: true, email: true } } },
-    orderBy: [{ nextFollowUpAt: "asc" }, { createdAt: "desc" }],
-  });
+  const [stages, profiles] = await Promise.all([
+    listStages(),
+    prisma.clientProfile.findMany({
+      where,
+      include: { user: { select: { phone: true, email: true } } },
+      orderBy: [{ nextFollowUpAt: "asc" }, { createdAt: "desc" }],
+    }),
+  ]);
 
   const ownerIds = [...new Set(profiles.map((p) => p.ownerId).filter((x): x is string => !!x))];
   const owners = ownerIds.length
@@ -132,13 +124,18 @@ export async function listPipeline(filter?: {
     : [];
   const ownerNameById = new Map(owners.map((u) => [u.id, u.staffProfile?.fullName ?? u.email ?? u.id]));
 
-  const columns = Object.fromEntries(LEAD_STAGES.map((s) => [s, [] as PipelineCard[]])) as Record<LeadStage, PipelineCard[]>;
-  const counts = Object.fromEntries(LEAD_STAGES.map((s) => [s, 0])) as Record<LeadStage, number>;
+  const stageKeySet = new Set(stages.map((s) => s.key));
+  const fallbackKey = stages[0]?.key ?? "new";
+  const columns = Object.fromEntries(stages.map((s) => [s.key, [] as PipelineCard[]])) as Record<string, PipelineCard[]>;
+  const counts = Object.fromEntries(stages.map((s) => [s.key, 0])) as Record<string, number>;
 
   for (const p of profiles) {
-    counts[p.stage] += 1;
-    if (columns[p.stage].length >= PIPELINE_COLUMN_CAP) continue;
-    columns[p.stage].push({
+    // A lead whose stage key no longer exists (e.g. its stage was deleted)
+    // falls into the first column so it's never lost from the board.
+    const key = stageKeySet.has(p.stage) ? p.stage : fallbackKey;
+    counts[key] += 1;
+    if (columns[key].length >= PIPELINE_COLUMN_CAP) continue;
+    columns[key].push({
       id: p.id,
       name: p.fullName,
       phone: p.user.phone,
@@ -173,7 +170,7 @@ export interface CreateLeadInput {
   direction: LeadDirection;
   source?: string | null;
   ownerId?: string | null;
-  stage?: LeadStage;
+  stage?: string;
   byUserId: string;
 }
 
@@ -197,7 +194,7 @@ export async function createLead(input: CreateLeadInput): Promise<{ clientProfil
       ? await prisma.user.findUnique({ where: { email } })
       : null;
 
-  const stage = input.stage ?? "LEAD";
+  const stage = input.stage ?? (await firstStageKey());
   let profile: ClientProfile;
   if (existing) {
     profile = await prisma.clientProfile.upsert({

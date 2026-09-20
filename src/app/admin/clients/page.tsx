@@ -7,22 +7,11 @@ import { listSegments, segmentToQuery } from "@/modules/crm/segments";
 import { saveSegmentAction, deleteSegmentAction } from "./actions";
 import { listTiers } from "@/modules/iam/tiers";
 import { AddLeadForm } from "./AddLeadForm";
-import type { LeadStage } from "@prisma/client";
+import { listStages } from "@/modules/crm/pipeline";
 
 interface ClientsPageProps {
   searchParams: Promise<{ search?: string; tierKey?: string; source?: string; status?: string; tag?: string; stage?: string; ownerId?: string; direction?: string }>;
 }
-
-const STAGE_META: Record<LeadStage, { label: string; className: string }> = {
-  LEAD: { label: "New lead", className: "bg-[var(--color-ink)]/8 text-[var(--color-ink)]/60" },
-  ATTEMPTED: { label: "Attempted", className: "bg-[var(--color-gold)]/25 text-[#7c6a2f]" },
-  CONTACTED: { label: "Contacted", className: "bg-[var(--color-teal)]/20 text-[var(--color-teal-ink)]" },
-  FOLLOW_UP: { label: "Follow up", className: "bg-[var(--color-gold)]/30 text-[#7c6a2f]" },
-  BOOKED: { label: "Booked", className: "bg-[var(--color-teal)]/25 text-[var(--color-teal-ink)]" },
-  WON: { label: "Won", className: "bg-[var(--color-canopy)]/30 text-[var(--color-ink)]" },
-  LOST: { label: "Lost", className: "bg-red-100 text-red-700" },
-};
-const STAGE_OPTIONS: LeadStage[] = ["LEAD", "ATTEMPTED", "CONTACTED", "FOLLOW_UP", "BOOKED", "WON", "LOST"];
 
 /** ltvCacheMinor is stored in halalas (1/100 SAR). */
 function formatSar(minor: number): string {
@@ -74,13 +63,15 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const direction = params.direction?.trim() ?? "";
 
   const canManage = user.permissions.has(PERMISSIONS.CLIENT_MANAGE);
-  const [allMatching, tiers, allTags, segments, owners] = await Promise.all([
+  const [allMatching, tiers, allTags, segments, owners, stageRows] = await Promise.all([
     listClients({ search: search || undefined, tierKey: tierKey || undefined, source: source || undefined, tag: tag || undefined, stage: stage || undefined, ownerId: ownerId || undefined, direction: direction || undefined }),
     listTiers(),
     listClientTags(),
     listSegments(),
     listStaffOwners(),
+    listStages(),
   ]);
+  const stageMeta = new Map(stageRows.map((s) => [s.key, s]));
 
   // KPIs computed over the search/tier/source result (the whole roster when no
   // filters are set); the status dropdown then narrows the table itself.
@@ -181,9 +172,9 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
           <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Stage</span>
           <select name="stage" defaultValue={stage} className={inputClass}>
             <option value="">All stages</option>
-            {STAGE_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {STAGE_META[s].label}
+            {stageRows.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
               </option>
             ))}
           </select>
@@ -295,8 +286,9 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
                     <div className="text-xs text-[var(--color-ink)]/50">{client.phone ?? client.email ?? "None"}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STAGE_META[client.stage].className}`}>
-                      {STAGE_META[client.stage].label}
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-ink)]/[0.06] px-2.5 py-0.5 text-xs font-medium text-[var(--color-ink)]/75">
+                      <span className="h-2 w-2 rounded-full" style={{ background: stageMeta.get(client.stage)?.color || "var(--color-ink)" }} />
+                      {stageMeta.get(client.stage)?.label ?? client.stage}
                     </span>
                     {client.nextFollowUpAt && (
                       <div className="mt-0.5 text-[0.7rem] text-[var(--color-ink)]/45">Follow up {formatDate(client.nextFollowUpAt)}</div>

@@ -18,12 +18,12 @@ interface BrandLogosProps {
 // band of credentials rather than competing marks.
 export function BrandLogos({ brands }: BrandLogosProps) {
   return (
-    <ul className="grid grid-cols-2 items-center gap-x-8 gap-y-12 sm:grid-cols-3 lg:grid-cols-4">
+    <ul className="grid grid-cols-2 items-center gap-x-10 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
       {brands.map((brand) => (
         <li key={brand.href} className="lunia-scroll-fade flex items-center justify-center">
           <Link
             href={brand.href}
-            className="group flex h-16 items-center justify-center opacity-70 transition-opacity duration-300 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2"
+            className="group flex h-24 w-full items-center justify-center opacity-85 transition-opacity duration-300 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2"
             aria-label={brand.name}
           >
             {brand.logoKey ? (
@@ -31,12 +31,12 @@ export function BrandLogos({ brands }: BrandLogosProps) {
               <img
                 src={`/api/media/${brand.logoKey}`}
                 alt={brand.name}
-                className="max-h-12 w-auto max-w-[10rem] object-contain"
+                className="max-h-20 w-auto max-w-[15rem] object-contain sm:max-h-24"
                 loading="lazy"
                 decoding="async"
               />
             ) : (
-              <span className="text-center font-[family-name:var(--font-display)] text-xl font-medium tracking-wide text-[var(--color-ink)] sm:text-2xl">
+              <span className="text-center font-[family-name:var(--font-display)] text-2xl font-medium tracking-wide text-[var(--color-ink)] sm:text-3xl">
                 {brand.name}
               </span>
             )}

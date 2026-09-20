@@ -2,7 +2,8 @@ import Link from "next/link";
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
-import { listPipeline, listLeadSources, LEAD_STAGES, LEAD_STAGE_LABELS } from "@/modules/crm/leads";
+import { listPipeline, listLeadSources } from "@/modules/crm/leads";
+import { listStages } from "@/modules/crm/pipeline";
 import type { LeadDirection } from "@prisma/client";
 import { LeadBoard } from "./LeadBoard";
 
@@ -16,12 +17,13 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const { direction, source } = await searchParams;
 
   const dir = direction === "INBOUND" || direction === "OUTBOUND" ? (direction as LeadDirection) : undefined;
-  const [{ columns, counts }, sources] = await Promise.all([
+  const [{ columns, counts }, sources, stageRows] = await Promise.all([
     listPipeline({ direction: dir, source: source || undefined }),
     listLeadSources(),
+    listStages(),
   ]);
 
-  const stages = LEAD_STAGES.map((key) => ({ key, label: LEAD_STAGE_LABELS[key] }));
+  const stages = stageRows.map((s) => ({ key: s.key, label: s.label, color: s.color }));
   const chip = (active: boolean) =>
     `rounded-full px-3 py-1.5 text-sm transition-colors ${active ? "bg-[var(--color-forest)] text-[var(--color-cream)]" : "border border-[var(--line)] text-[var(--color-ink)]/70 hover:bg-[var(--color-ink)]/[0.04]"}`;
   const qs = (next: Record<string, string | undefined>) => {
@@ -38,7 +40,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     <AdminShell
       user={user}
       title="Leads"
-      description="Your sales pipeline. Drag a lead between stages, or use its menu to move it. Includes inbound leads from WhatsApp, inquiries, and every other channel."
+      description="Every enquiry in one pipeline — from WhatsApp, the website, walk-ins, referrals, and more. Drag a lead between stages, or use its menu to move it. Stages are editable in the Superadmin panel."
       actions={
         canManage ? (
           <Link href="/admin/clients" className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">

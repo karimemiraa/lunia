@@ -2,8 +2,10 @@ import Link from "next/link";
 import { requireAdmin } from "../admin/_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { SECRET_GROUPS, getSecretsStatus, listCustomCredentials } from "@/modules/platform/secrets";
+import { listStages } from "@/modules/crm/pipeline";
 import { SecretsForm } from "./SecretsForm";
 import { CustomCredentials } from "./CustomCredentials";
+import { PipelineStagesEditor } from "./PipelineStagesEditor";
 
 export const metadata = { title: "Superadmin — Lunia" };
 
@@ -12,7 +14,7 @@ export const metadata = { title: "Superadmin — Lunia" };
 // chrome; everything the day-to-day team uses stays in /admin.
 export default async function SuperadminPage() {
   await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
-  const [status, custom] = await Promise.all([getSecretsStatus(), listCustomCredentials()]);
+  const [status, custom, stages] = await Promise.all([getSecretsStatus(), listCustomCredentials(), listStages()]);
 
   return (
     <div className="min-h-screen bg-[var(--color-page)] text-[var(--color-ink)]">
@@ -37,6 +39,8 @@ export default async function SuperadminPage() {
           Technical &amp; marketing setup for the whole platform. Secrets are stored securely and shown only as a
           masked hint — enter a new value to replace one, or leave a field blank to keep the current value.
         </p>
+
+        <PipelineStagesEditor stages={stages} />
 
         {SECRET_GROUPS.map((group) => (
           <SecretsForm key={group.id} group={group} status={status} />

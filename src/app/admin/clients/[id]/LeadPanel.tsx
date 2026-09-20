@@ -15,6 +15,10 @@ interface ActivityRow {
   authorName?: string;
   createdAtIso: string;
 }
+interface StageOption {
+  value: string;
+  label: string;
+}
 interface LeadPanelProps {
   clientProfileId: string;
   stage: string;
@@ -23,18 +27,10 @@ interface LeadPanelProps {
   source: string | null;
   nextFollowUpIso: string | null;
   staff: StaffOption[];
+  stages: StageOption[];
   activities: ActivityRow[];
 }
 
-const STAGES: { value: string; label: string }[] = [
-  { value: "LEAD", label: "New lead" },
-  { value: "ATTEMPTED", label: "Attempted" },
-  { value: "CONTACTED", label: "Contacted" },
-  { value: "FOLLOW_UP", label: "Follow up" },
-  { value: "BOOKED", label: "Booked" },
-  { value: "WON", label: "Won" },
-  { value: "LOST", label: "Lost" },
-];
 const KINDS = ["CALL", "WHATSAPP", "EMAIL", "SMS", "NOTE"];
 const initial: ClientActionState = {};
 const CENTER_TZ = "Asia/Riyadh";
@@ -49,7 +45,7 @@ function KindBadge({ kind }: { kind: string }) {
   );
 }
 
-export function LeadPanel({ clientProfileId, stage, ownerId, direction, source, nextFollowUpIso, staff, activities }: LeadPanelProps) {
+export function LeadPanel({ clientProfileId, stage, ownerId, direction, source, nextFollowUpIso, staff, stages, activities }: LeadPanelProps) {
   const [saveState, saveAction, savePending] = useActionState(updateLeadAction, initial);
   const [logState, logAction, logPending] = useActionState(logLeadActivityAction, initial);
   const logFormRef = useRef<HTMLFormElement>(null);
@@ -72,7 +68,7 @@ export function LeadPanel({ clientProfileId, stage, ownerId, direction, source, 
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Stage</span>
             <select name="stage" defaultValue={stage} className="lunia-input" data-testid="lead-stage">
-              {STAGES.map((s) => (
+              {stages.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>

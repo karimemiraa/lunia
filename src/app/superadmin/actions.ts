@@ -10,6 +10,7 @@ import {
   setCustomCredential,
   deleteCustomCredential,
 } from "@/modules/platform/secrets";
+import { createStage, updateStage, deleteStage, reorderStage, type StageKind } from "@/modules/crm/pipeline";
 
 export interface PlatformActionState {
   error?: string;
@@ -84,5 +85,71 @@ export async function deleteCustomCredentialAction(name: string): Promise<Platfo
     summary: `Deleted API credential "${name}"`,
   });
   revalidatePath("/superadmin");
+  return { success: true };
+}
+
+// --- CRM pipeline stages -----------------------------------------------------
+
+function normalizeKind(raw: string): StageKind {
+  return raw === "won" || raw === "lost" ? raw : "open";
+}
+
+export async function createStageAction(_prev: PlatformActionState | null, formData: FormData): Promise<PlatformActionState> {
+  const admin = await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
+  const label = String(formData.get("label") ?? "").trim();
+  const kind = normalizeKind(String(formData.get("kind") ?? "open"));
+  const color = String(formData.get("color") ?? "").trim() || undefined;
+  if (!label) return { error: "A stage name is required." };
+  try {
+    await createStage({ label, kind, color });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to add stage." };
+  }
+  await recordAudit({ actorUserId: admin.id, action: "PIPELINE_STAGE_CREATE", entityType: "PipelineStage", summary: `Added pipeline stage "${label}"` });
+  revalidatePath("/superadmin");
+  revalidatePath("/admin/leads");
+  return { success: true };
+}
+
+export async function updateStageAction(_prev: PlatformActionState | null, formData: FormData): Promise<PlatformActionState> {
+  const admin = await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
+  const id = String(formData.get("id") ?? "").trim();
+  const label = String(formData.get("label") ?? "").trim();
+  const kind = normalizeKind(String(formData.get("kind") ?? "open"));
+  const color = String(formData.get("color") ?? "").trim() || undefined;
+  if (!id) return { error: "Missing stage." };
+  try {
+    await updateStage(id, { label, kind, color });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save stage." };
+  }
+  await recordAudit({ actorUserId: admin.id, action: "PIPELINE_STAGE_UPDATE", entityType: "PipelineStage", entityId: id, summary: `Updated pipeline stage "${label}"` });
+  revalidatePath("/superadmin");
+  revalidatePath("/admin/leads");
+  return { success: true };
+}
+
+export async function deleteStageAction(id: string): Promise<PlatformActionState> {
+  const admin = await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
+  try {
+    await deleteStage(id);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to delete stage." };
+  }
+  await recordAudit({ actorUserId: admin.id, action: "PIPELINE_STAGE_DELETE", entityType: "PipelineStage", entityId: id, summary: `Deleted pipeline stage ${id}` });
+  revalidatePath("/superadmin");
+  revalidatePath("/admin/leads");
+  return { success: true };
+}
+
+export async function reorderStageAction(id: string, dir: -1 | 1): Promise<PlatformActionState> {
+  await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
+  try {
+    await reorderStage(id, dir);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to reorder stage." };
+  }
+  revalidatePath("/superadmin");
+  revalidatePath("/admin/leads");
   return { success: true };
 }

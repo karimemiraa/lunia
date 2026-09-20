@@ -50,8 +50,8 @@ export interface ClientListRow {
   bookingCount: number;
   status: ClientLifecycle;
   createdAt: Date;
-  // Sales pipeline
-  stage: import("@prisma/client").LeadStage;
+  // Sales pipeline (stage is a PipelineStage key)
+  stage: string;
   direction: import("@prisma/client").LeadDirection | null;
   ownerId: string | null;
   ownerName?: string;
@@ -89,7 +89,7 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
     where.tags = { has: filter.tag };
   }
   if (filter.stage) {
-    where.stage = filter.stage as Prisma.ClientProfileWhereInput["stage"];
+    where.stage = filter.stage;
   }
   if (filter.ownerId) {
     where.ownerId = filter.ownerId === "unassigned" ? null : filter.ownerId;

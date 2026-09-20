@@ -16,6 +16,7 @@ import { ClinicalForm } from "./ClinicalForm";
 import { CustomerEditor } from "./CustomerEditor";
 import { LeadPanel } from "./LeadPanel";
 import { listLeadActivities } from "@/modules/crm/leads";
+import { listStages } from "@/modules/crm/pipeline";
 import { listStaffUsers } from "@/modules/iam/users";
 
 interface ClientDetailPageProps {
@@ -76,12 +77,13 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   const [detail, tiers] = await Promise.all([getClientDetail(id), canManage ? listTiers() : Promise.resolve([])]);
   if (!detail) notFound();
 
-  const [preference, loyalty, credits, leadActivities, staffUsers] = await Promise.all([
+  const [preference, loyalty, credits, leadActivities, staffUsers, pipelineStages] = await Promise.all([
     canManage ? getPreference(detail.profile.id) : Promise.resolve(null),
     getLoyalty(detail.profile.id),
     listClientCredits(detail.profile.id),
     canManage ? listLeadActivities(detail.profile.id) : Promise.resolve([]),
     canManage ? listStaffUsers() : Promise.resolve([]),
+    canManage ? listStages() : Promise.resolve([]),
   ]);
 
   // Derived metrics from the booking history.
@@ -325,6 +327,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
       source={detail.profile.sourceChannel}
       nextFollowUpIso={detail.profile.nextFollowUpAt ? detail.profile.nextFollowUpAt.toISOString() : null}
       staff={staffUsers.map((s) => ({ id: s.id, name: s.fullName || s.email || "Staff" }))}
+      stages={pipelineStages.map((s) => ({ value: s.key, label: s.label }))}
       activities={leadActivities.map((a) => ({
         id: a.id,
         kind: a.kind,

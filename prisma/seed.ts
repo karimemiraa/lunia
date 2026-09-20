@@ -75,6 +75,19 @@ async function main() {
   // units spent -- see EARN_DIVISOR). guest/member/vip form the actual
   // points ladder; bride/postsurgery are staff-assigned program tiers, not
   // loyalty ranks, so their minPoints is set unreachably high (below Int's
+  // CRM pipeline stages — a simple treatment-center journey, editable in the
+  // Superadmin panel. Only created if missing (never overwrites edits).
+  const pipelineStages = [
+    { key: "new", label: "New enquiry", sortOrder: 1, kind: "open", color: "#9ed5d0" },
+    { key: "contacted", label: "Contacted", sortOrder: 2, kind: "open", color: "#c0ad73" },
+    { key: "consultation", label: "Consultation booked", sortOrder: 3, kind: "open", color: "#93ccc6" },
+    { key: "active", label: "Active client", sortOrder: 4, kind: "won", color: "#283d3c" },
+    { key: "lost", label: "Lost", sortOrder: 5, kind: "lost", color: "#d92d20" },
+  ];
+  for (const s of pipelineStages) {
+    await prisma.pipelineStage.upsert({ where: { key: s.key }, update: {}, create: s });
+  }
+
   // ~2.1B ceiling) so points earning never auto-assigns/overwrites them.
   const tiers = [
     { key: "guest", name: "Guest", priority: 0, discountPct: 0, minPoints: 0 },
