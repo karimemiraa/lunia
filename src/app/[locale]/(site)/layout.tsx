@@ -8,7 +8,6 @@ import { StickyBookCta } from "@/components/site/StickyBookCta";
 import { WhatsAppFab } from "@/components/site/WhatsAppFab";
 import { PageTransition } from "@/components/site/PageTransition";
 import { CinematicScroll } from "@/components/site/CinematicScroll";
-import { CustomCursor } from "@/components/site/CustomCursor";
 import { AssistantWidget } from "@/components/site/AssistantWidget";
 import { Tracker } from "@/components/analytics/Tracker";
 import { prisma } from "@/lib/db";
@@ -45,7 +44,6 @@ export default async function SiteLayout({
       <body className="flex min-h-screen flex-col">
         <NextIntlClientProvider messages={messages}>
           <CinematicScroll />
-          <CustomCursor />
           <SiteHeader locale={locale} />
           <PageTransition className="flex-1">{children}</PageTransition>
           <SiteFooter locale={locale} />

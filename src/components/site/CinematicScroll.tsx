@@ -91,25 +91,29 @@ export function CinematicScroll() {
             });
           });
 
-          // 2) Standard reveals — lift + scale + fade, EXPO, staggered in batches.
+          // 2) Standard reveals — a gentle lift + fade, EXPO, staggered. Kept
+          // subtle (small travel, no scale-down) so long editorial rows settle
+          // quickly and never feel like they "jump" as you scroll.
           ScrollTrigger.batch(".lunia-scroll, [data-reveal]", {
-            start: "top 86%",
-            onEnter: (els) =>
-              gsap.fromTo(
-                els,
-                { opacity: 0, y: 64, scale: 0.965 },
-                { opacity: 1, y: 0, scale: 1, duration: 1.15, ease: EXPO, stagger: 0.09, overwrite: true },
-              ),
-          });
-
-          // 3) Card reveals with a touch of skew + rotationX for depth.
-          ScrollTrigger.batch("[data-reveal='card'], .lunia-reveal-card", {
             start: "top 88%",
             onEnter: (els) =>
               gsap.fromTo(
                 els,
-                { opacity: 0, y: 80, rotationX: -18, skewY: 3, transformPerspective: 900 },
-                { opacity: 1, y: 0, rotationX: 0, skewY: 0, duration: 1.2, ease: EXPO, stagger: 0.12, overwrite: true },
+                { opacity: 0, y: 40 },
+                { opacity: 1, y: 0, duration: 1.0, ease: EXPO, stagger: 0.08, overwrite: true },
+              ),
+          });
+
+          // 3) Card reveals — a clean lift + fade (no 3D flip/skew, which read
+          // as janky on large image+text rows). Reserved for opt-in
+          // .lunia-reveal-card elements.
+          ScrollTrigger.batch(".lunia-reveal-card", {
+            start: "top 88%",
+            onEnter: (els) =>
+              gsap.fromTo(
+                els,
+                { opacity: 0, y: 56 },
+                { opacity: 1, y: 0, duration: 1.05, ease: EXPO, stagger: 0.1, overwrite: true },
               ),
           });
 

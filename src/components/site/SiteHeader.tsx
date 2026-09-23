@@ -53,13 +53,10 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
           className={`inline-flex items-center rounded-sm ${focusRingClass}`}
           aria-label={tNav("home")}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/wordmark.svg"
-            alt="LUNIA — Skin & Hair"
-            className="h-9 w-auto md:h-11"
-            width={218}
-            height={82}
+          <span
+            role="img"
+            aria-label="LUNIA — Skin & Hair"
+            className="lunia-logo h-9 text-[var(--color-teal-ink)] transition-colors md:h-11"
           />
         </Link>
 

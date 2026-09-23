@@ -11,38 +11,56 @@ interface BrandLogosProps {
   brands: BrandLogo[];
 }
 
-// A quiet "logo wall" of the clinical-grade partner brands. Until real logo
-// artwork is uploaded (Admin -> Media, then set on the brand), each partner is
-// shown as a clean monochrome wordmark; once a logo image exists it renders in
-// its place automatically. Monochrome + muted so the row reads as one calm
-// band of credentials rather than competing marks.
-export function BrandLogos({ brands }: BrandLogosProps) {
+function BrandItem({ brand, ariaHidden }: { brand: BrandLogo; ariaHidden?: boolean }) {
+  const inner = brand.logoKey ? (
+    // eslint-disable-next-line @next/next/no-img-element -- uploaded brand logo, arbitrary domain
+    <img
+      src={`/api/media/${brand.logoKey}`}
+      alt={ariaHidden ? "" : brand.name}
+      className="max-h-16 w-auto max-w-[13rem] object-contain"
+      loading="lazy"
+      decoding="async"
+    />
+  ) : (
+    <span className="whitespace-nowrap text-center font-[family-name:var(--font-display)] text-2xl font-medium tracking-wide text-[var(--color-ink)] sm:text-3xl">
+      {brand.name}
+    </span>
+  );
+
   return (
-    <ul className="grid grid-cols-2 items-center gap-x-10 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
-      {brands.map((brand) => (
-        <li key={brand.href} className="lunia-scroll-fade flex items-center justify-center">
-          <Link
-            href={brand.href}
-            className="group flex h-24 w-full items-center justify-center opacity-85 transition-opacity duration-300 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2"
-            aria-label={brand.name}
-          >
-            {brand.logoKey ? (
-              // eslint-disable-next-line @next/next/no-img-element -- uploaded brand logo, arbitrary domain
-              <img
-                src={`/api/media/${brand.logoKey}`}
-                alt={brand.name}
-                className="max-h-20 w-auto max-w-[15rem] object-contain sm:max-h-24"
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <span className="text-center font-[family-name:var(--font-display)] text-2xl font-medium tracking-wide text-[var(--color-ink)] sm:text-3xl">
-                {brand.name}
-              </span>
-            )}
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <li className="flex shrink-0 items-center px-8 lg:px-12">
+      <Link
+        href={brand.href}
+        tabIndex={ariaHidden ? -1 : undefined}
+        aria-hidden={ariaHidden}
+        className="group flex h-20 items-center justify-center opacity-70 grayscale transition-all duration-300 hover:opacity-100 hover:grayscale-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2"
+        aria-label={ariaHidden ? undefined : brand.name}
+      >
+        {inner}
+      </Link>
+    </li>
+  );
+}
+
+// A calm, continuously-scrolling "logo wall" of the clinical-grade partner
+// brands (a premium, self-animating credentials band). The track is duplicated
+// so the loop is seamless; it pauses on hover, edges are feathered with a mask,
+// and it holds still for reduced-motion users (globals.css). Each partner shows
+// as a muted mark that lifts to full color on hover. Uploaded logo artwork
+// (Admin -> Media) renders in place of the wordmark automatically.
+export function BrandLogos({ brands }: BrandLogosProps) {
+  if (brands.length === 0) return null;
+
+  return (
+    <div className="lunia-marquee">
+      <ul className="lunia-marquee-track">
+        {brands.map((brand) => (
+          <BrandItem key={brand.href} brand={brand} />
+        ))}
+        {brands.map((brand) => (
+          <BrandItem key={`dup-${brand.href}`} brand={brand} ariaHidden />
+        ))}
+      </ul>
+    </div>
   );
 }

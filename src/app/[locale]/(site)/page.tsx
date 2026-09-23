@@ -292,7 +292,7 @@ export default async function Home({ params }: HomePageProps) {
       <JourneyRail eyebrow={tJourney("eyebrow")} heading={tJourney("heading")} steps={journeySteps} />
 
       <Section tone="tinted">
-        <div className="flex flex-col gap-14">
+        <div className="lunia-pattern-mosaic flex flex-col gap-14">
           <SectionHeading eyebrow={tBrands("eyebrow")} heading={tBrands("heading")} intro={tBrands("intro")} />
           <BrandLogos
             brands={brands.map((brand: Brand, index: number) => ({

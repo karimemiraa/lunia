@@ -654,25 +654,43 @@ html[dir="rtl"] .lunia-progress-bar { transform-origin: right center; }
   html.gsap-ready .lunia-hrail { overflow: hidden; scroll-snap-type: none; }
 }
 
-/* Custom cursor (desktop pointer only; JS adds the elements + the class) */
-.lunia-cursor-dot, .lunia-cursor-ring {
-  position: fixed; top: 0; left: 0; pointer-events: none; z-index: 80;
-  border-radius: 9999px; opacity: 0; translate: -50% -50%; will-change: transform;
+/* Brand logo as a themeable mask: one SVG asset, recolored via currentColor so
+   the wordmark can be deep teal on light chrome (the guidelines' high-contrast
+   pairing) and cream/white on dark brand surfaces — set the color on the
+   element. Height is set by the caller; width follows the artwork's ratio. */
+.lunia-logo {
+  display: inline-block;
+  aspect-ratio: 740 / 277;
+  background-color: currentColor;
+  -webkit-mask: url("/brand/wordmark.svg") left center / contain no-repeat;
+  mask: url("/brand/wordmark.svg") left center / contain no-repeat;
 }
-.lunia-cursor-dot { width: 7px; height: 7px; background: var(--color-forest); }
-.lunia-cursor-ring {
-  width: 34px; height: 34px;
-  border: 1.5px solid color-mix(in srgb, var(--color-forest) 55%, transparent);
-  transition: width .3s ease, height .3s ease, background-color .3s ease, border-color .3s ease;
+
+/* Vertical "rhythm" timeline (the customer-journey section). A rail runs down
+   the inline-start with a glow-star node per step; each step lifts in on
+   scroll. Robust on every browser and mobile — no pinning/horizontal scrub. */
+.lunia-timeline { position: relative; padding-inline-start: 1.75rem; }
+.lunia-timeline-line {
+  position: absolute; top: 0.4rem; bottom: 0.4rem; inset-inline-start: 0.75rem;
+  width: 1.5px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--color-canopy) 55%, transparent) 10%,
+    color-mix(in srgb, var(--color-canopy) 55%, transparent) 90%, transparent);
 }
-.lunia-cursor-ring.is-active {
-  width: 54px; height: 54px;
-  background: color-mix(in srgb, var(--color-teal) 18%, transparent);
-  border-color: color-mix(in srgb, var(--color-teal-ink) 60%, transparent);
+.lunia-timeline-node {
+  position: absolute; inset-inline-start: -1.375rem; inset-block-start: 0.55rem;
+  width: 0.75rem; height: 0.75rem; color: var(--color-canopy);
+  background-color: currentColor;
+  -webkit-mask: url("/brand/glow.svg") center / contain no-repeat;
+  mask: url("/brand/glow.svg") center / contain no-repeat;
 }
-@media (pointer: fine) {
-  html.has-custom-cursor, html.has-custom-cursor a, html.has-custom-cursor button, html.has-custom-cursor [data-magnetic] { cursor: none; }
-}
+
+/* Logo marquee (clinical partners): a track duplicated twice scrolls left in a
+   seamless loop; pauses on hover. Gated by reduced-motion below. */
+@keyframes lunia-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.lunia-marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.lunia-marquee-track { display: flex; width: max-content; animation: lunia-marquee 38s linear infinite; }
+.lunia-marquee:hover .lunia-marquee-track { animation-play-state: paused; }
 
 /* ---------------------------------------------------------------------------
    Respect reduced-motion: keep everything static and fully visible.
