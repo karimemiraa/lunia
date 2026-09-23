@@ -1,7 +1,13 @@
 services:
   app:
-    build: .
-    image: lunia:latest
+    # Image is built + pushed to GHCR by CI (.github/workflows/deploy.yml); the
+    # server only pulls it — it never builds. `build:` stays as a local fallback
+    # (dev / manual `docker compose build`). Override the registry/tag via
+    # LUNIA_IMAGE / LUNIA_TAG if needed (e.g. pin to a commit SHA for rollback).
+    build:
+      context: .
+      target: run
+    image: ${LUNIA_IMAGE:-ghcr.io/karimemiraa/lunia}:${LUNIA_TAG:-latest}
     env_file: .env.prod
     depends_on:
       postgres:
@@ -45,7 +51,7 @@ services:
     build:
       context: .
       target: migrator
-    image: lunia:migrate
+    image: ${LUNIA_IMAGE:-ghcr.io/karimemiraa/lunia}:${LUNIA_MIGRATE_TAG:-migrate}
     command: ["run", "worker"]
     env_file: .env.prod
     depends_on:
@@ -69,7 +75,7 @@ services:
     build:
       context: .
       target: migrator
-    image: lunia:migrate
+    image: ${LUNIA_IMAGE:-ghcr.io/karimemiraa/lunia}:${LUNIA_MIGRATE_TAG:-migrate}
     env_file: .env.prod
     depends_on:
       postgres:
