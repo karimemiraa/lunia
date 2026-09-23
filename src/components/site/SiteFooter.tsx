@@ -70,9 +70,14 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
     <footer className="border-t border-[var(--color-ink)]/10 bg-[var(--color-cream)]/60">
       <div className="mx-auto grid w-full max-w-6xl gap-12 px-6 py-16 sm:py-20 md:grid-cols-[1.4fr_1fr_1fr]">
         <div className="flex flex-col gap-4">
-          <span className="font-[family-name:var(--font-display)] text-2xl font-medium tracking-[0.3em] text-[var(--color-ink)]">
-            LUNIA
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/wordmark.svg"
+            alt="LUNIA — Skin & Hair"
+            className="h-11 w-auto self-start"
+            width={218}
+            height={82}
+          />
           <p className="max-w-sm text-sm leading-relaxed text-[var(--color-ink)]/70">{tFooter("tagline")}</p>
         </div>
 

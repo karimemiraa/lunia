@@ -1,23 +1,26 @@
 @import "tailwindcss";
 
 @theme {
-  /* Primary — warm "sunshine" amber/gold family (rivive-inspired). The token
-     names are kept (teal/canopy/ice) so every component recolors from here
-     without edits; the values are now a warm luxury palette. */
-  --color-teal: #e89833;
-  --color-canopy: #f2b45e;
-  --color-ice: #f0c98a;
-  /* Secondary — golds / warm neutrals */
-  --color-gold: #c99a3e;
-  --color-marigold: #e0b566;
-  --color-cream: #f1e5d3;
-  --color-dragonfruit: #e6cfa6;
-  /* Ink + page — warm espresso ink on a soft warm off-white */
-  --color-ink: #2b241d;
-  --color-page: #faf5ec;
-  /* Forest — a deep warm espresso used as a rich accent on authoritative
+  /* Primary — the Lunia "Luminous Teal" family, straight from the brand
+     guidelines (V1.2). Token names (teal/canopy/ice) are the single source of
+     truth every component recolors from, so the whole app follows this block.
+       Luminous Teal #9ed5d0 · Deep Canopy #93ccc6 · Alice Blue #86bfb8
+     Canopy/ice are nudged for usable UI contrast/gradients while staying on
+     the brand hues. */
+  --color-teal: #9ed5d0;      /* Luminous Teal — the signature brand color */
+  --color-canopy: #6fb9b1;    /* deeper teal for gradients / stronger accents */
+  --color-ice: #cfeae7;       /* pale teal tint for soft glows and fills */
+  /* Secondary — warm gold/cream accents (used sparingly, ~2.5% per brand). */
+  --color-gold: #c0ad73;      /* Tiger Lily */
+  --color-marigold: #cdbb85;  /* Wild Marigold */
+  --color-cream: #f3eee2;     /* soft ivory paper (warm neutral surface/text) */
+  --color-dragonfruit: #d9cca3; /* Dragonfruit Pink */
+  /* Ink + page — deep teal-charcoal on a soft mint off-white. */
+  --color-ink: #223f3a;
+  --color-page: #f1f7f5;
+  /* Forest — a deep teal-green used as a rich accent on authoritative
      surfaces (admin banners, primary actions, inquiry headers). */
-  --color-forest: #39312a;
+  --color-forest: #2b4d47;
 
   --font-display: "Cormorant Garamond", "The Seasons", serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -28,15 +31,15 @@
 :root {
   color-scheme: light;
 
-  /* Deeper amber/brown accents for legible text tints over warm grounds
-     (eyebrows, links). Named -teal-* for compatibility; values are warm. */
-  --color-teal-deep: #a86a1c;
-  --color-teal-ink: #8f5e17;
+  /* Deeper teal accents for legible text tints over the light mint ground
+     (eyebrows, links) — the brand's darker "Shade" tones, reserved for text. */
+  --color-teal-deep: #4f938b;
+  --color-teal-ink: #2f5f58;
 
-  /* Layered warm surfaces + hairlines for a calm, luxurious hierarchy. */
-  --surface: #fffaf3;
-  --surface-2: #f5ecdd;
-  --surface-3: #eee2cf;
+  /* Layered mint-white surfaces + hairlines for a calm, luxurious hierarchy. */
+  --surface: #ffffff;
+  --surface-2: #e7f1ee;
+  --surface-3: #d9e9e5;
   --line: color-mix(in srgb, var(--color-ink) 10%, transparent);
   --line-strong: color-mix(in srgb, var(--color-ink) 18%, transparent);
 
@@ -291,6 +294,57 @@ body {
   );
   background-size: 200% 100%;
   animation: lunia-shimmer 2.4s linear infinite;
+}
+
+/* ---------------------------------------------------------------------------
+   Brand patterns (from the Lunia guidelines). Applied as a faint, masked
+   background layer via ::before so they add texture without ever competing
+   with content ("subtle, never overwhelm the primary messaging"). Add
+   .lunia-pattern-waves or .lunia-pattern-mosaic to any positioned container.
+   --------------------------------------------------------------------------- */
+.lunia-pattern-waves,
+.lunia-pattern-mosaic {
+  position: relative;
+  isolation: isolate;
+}
+.lunia-pattern-waves::before,
+.lunia-pattern-mosaic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: repeat;
+  /* Fade the tile out toward the edges so it reads as a soft wash. */
+  -webkit-mask-image: radial-gradient(120% 120% at 50% 40%, #000 30%, transparent 78%);
+  mask-image: radial-gradient(120% 120% at 50% 40%, #000 30%, transparent 78%);
+}
+.lunia-pattern-waves::before {
+  background-image: url("/brand/pattern-waves.svg");
+  background-size: 260px auto;
+  opacity: 0.35;
+}
+.lunia-pattern-mosaic::before {
+  background-image: url("/brand/pattern-mosaic.svg");
+  background-size: 128px 128px;
+  opacity: 0.14;
+}
+/* On dark brand surfaces the teal tile is tinted brighter so it stays visible. */
+.lunia-pattern-on-dark::before { opacity: 0.16; filter: brightness(1.7); }
+/* Tone-on-tone: on a solid teal field, multiply the teal tile so the motif
+   reads as a slightly deeper teal texture rather than vanishing. */
+.lunia-pattern-multiply::before { mix-blend-mode: multiply; opacity: 0.5; }
+
+/* The signature "Glow" motif as a decorative inline mark (eyebrows, dividers).
+   Uses the brand star; color follows currentColor via a mask so it can sit in
+   any brand tone. */
+.lunia-glow-mark {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  background: currentColor;
+  -webkit-mask: url("/brand/glow.svg") center / contain no-repeat;
+  mask: url("/brand/glow.svg") center / contain no-repeat;
 }
 
 /* ---------------------------------------------------------------------------

@@ -50,10 +50,17 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-6 py-5">
         <Link
           href={home}
-          className={`font-[family-name:var(--font-display)] text-2xl font-medium tracking-[0.35em] text-[var(--color-ink)] ${focusRingClass}`}
+          className={`inline-flex items-center rounded-sm ${focusRingClass}`}
           aria-label={tNav("home")}
         >
-          LUNIA
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/wordmark.svg"
+            alt="LUNIA — Skin & Hair"
+            className="h-9 w-auto md:h-11"
+            width={218}
+            height={82}
+          />
         </Link>
 
         <nav aria-label={tNav("primaryLabel")} className="hidden items-center gap-8 md:flex">

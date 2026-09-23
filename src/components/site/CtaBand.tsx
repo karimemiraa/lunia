@@ -15,11 +15,13 @@ const focusRingClass =
 // — no imagery, no clutter, just an unmissable, elegant call to book.
 export function CtaBand({ eyebrow, headline, ctaLabel, ctaHref }: CtaBandProps) {
   return (
-    <div className="rounded-[2rem] bg-[var(--color-teal)] px-8 py-16 text-center sm:px-16 sm:py-20">
+    <div className="lunia-pattern-mosaic lunia-pattern-multiply overflow-hidden rounded-[2rem] bg-[var(--color-teal)] px-8 py-16 text-center sm:px-16 sm:py-20">
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-6">
         {eyebrow && (
           <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-ink)]/70">
+            <span aria-hidden="true" className="lunia-glow-mark" />
             {eyebrow}
+            <span aria-hidden="true" className="lunia-glow-mark" />
           </span>
         )}
         <h2 data-splittext className="font-[family-name:var(--font-display)] text-3xl leading-tight tracking-tight text-[var(--color-ink)] sm:text-5xl">

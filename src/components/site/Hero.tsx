@@ -72,7 +72,8 @@ export function Hero({
       <div className="relative mx-auto flex min-h-[34rem] w-full max-w-6xl flex-col justify-center gap-8 px-6 py-24 sm:min-h-[42rem] lg:min-h-[46rem]">
         <div className="flex max-w-xl flex-col gap-6 text-start">
           {eyebrow && (
-            <span className="lunia-animate-fade-up lunia-delay-1 text-xs font-semibold uppercase tracking-[0.4em] text-[var(--color-teal-ink)]">
+            <span className="lunia-animate-fade-up lunia-delay-1 inline-flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.4em] text-[var(--color-teal-ink)]">
+              <span aria-hidden="true" className="lunia-glow-mark" />
               {eyebrow}
             </span>
           )}
