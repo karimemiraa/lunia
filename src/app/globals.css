@@ -692,6 +692,145 @@ html[dir="rtl"] .lunia-progress-bar { transform-origin: right center; }
 .lunia-marquee-track { display: flex; width: max-content; animation: lunia-marquee 38s linear infinite; }
 .lunia-marquee:hover .lunia-marquee-track { animation-play-state: paused; }
 
+/* ===========================================================================
+   Home — Apple-grade editorial system ("lx-").
+   Big confident type, generous air, sticky scroll-told chapters. Every
+   scroll-driven state below is layered on ONLY under html.gsap-ready (added by
+   CinematicScroll), so no-JS / reduced-motion visitors get a complete, static,
+   fully legible page.
+   =========================================================================== */
+
+/* Layered as `components` so Tailwind utilities (colors, object-position…)
+   passed on an element still override these defaults. */
+@layer components {
+  /* Type scale */
+  .lx-display {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.022em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  .lx-h1 { font-size: clamp(3.1rem, 1.4rem + 6.6vw, 8.25rem); }
+  .lx-h2 { font-size: clamp(2.4rem, 1.2rem + 4.2vw, 5.25rem); }
+  .lx-h3 { font-size: clamp(1.9rem, 1.3rem + 1.9vw, 3rem); }
+  .lx-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.26em; text-transform: uppercase;
+    color: var(--color-teal-ink);
+  }
+  html[dir="rtl"] .lx-eyebrow { letter-spacing: 0; font-size: 0.95rem; }
+  .lx-lead {
+    font-size: clamp(1.075rem, 0.95rem + 0.55vw, 1.45rem);
+    line-height: 1.5;
+    color: color-mix(in srgb, var(--color-ink) 68%, transparent);
+    text-wrap: pretty;
+  }
+
+  /* Pills + chevron links (Apple's CTA vocabulary, in brand colour). */
+  .lx-pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    border-radius: 999px; padding: 0.8rem 1.55rem;
+    background: var(--color-teal); color: var(--color-ink);
+    font-size: 0.98rem; font-weight: 500; letter-spacing: 0.005em; white-space: nowrap;
+    transition: background-color .25s ease, transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s ease;
+    box-shadow: 0 1px 0 color-mix(in srgb, #fff 40%, transparent) inset, 0 10px 30px -14px color-mix(in srgb, var(--color-teal-ink) 60%, transparent);
+  }
+  .lx-pill:hover { background: #8ccdc6; transform: translateY(-1px); }
+  .lx-pill:active { transform: translateY(0) scale(.985); }
+  .lx-pill-ink { background: var(--color-ink); color: var(--color-cream); box-shadow: none; }
+  .lx-pill-ink:hover { background: color-mix(in srgb, var(--color-ink) 86%, #fff); }
+  .lx-pill:focus-visible, .lx-link:focus-visible { outline: none; box-shadow: var(--ring); }
+  .lx-link {
+    display: inline-flex; align-items: center; gap: 0.3rem; border-radius: 6px;
+    color: var(--color-teal-ink); font-weight: 500; font-size: 0.98rem;
+  }
+  .lx-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .lx-link svg { width: 0.85em; height: 0.85em; transition: transform .25s ease; }
+  .lx-link:hover svg { transform: translateX(3px); }
+  html[dir="rtl"] .lx-link svg { transform: scaleX(-1); }
+  html[dir="rtl"] .lx-link:hover svg { transform: scaleX(-1) translateX(3px); }
+
+  /* --- Hero: the film rises from under the headline and fills the screen. ---
+     Static fallback: 100svh, headline on top, the film "peeking" below as a
+     rounded stage. With motion: a 200vh track whose sticky viewport is scrubbed
+     by GSAP (stage → full-bleed, copy lifts away, caption resolves). */
+  .lx-hero { position: relative; height: 100svh; min-height: 40rem; }
+  html.gsap-ready .lx-hero { height: 205vh; }
+  .lx-hero-viewport {
+    position: sticky; top: 0; height: 100svh; min-height: 40rem;
+    overflow: clip; isolation: isolate;
+  }
+  .lx-hero-stage {
+    /* Above the copy: as it rises, the film slides over the fading headline. */
+    position: absolute; inset: 0; z-index: 20;
+    overflow: hidden; border-radius: 42px;
+    transform-origin: 50% 0%;
+    transform: translate3d(0, 56svh, 0) scale(0.8);
+    background: #cfe3db;
+    will-change: transform;
+  }
+  @media (max-width: 767px) {
+    .lx-hero-stage { transform: translate3d(0, 60svh, 0) scale(0.88); border-radius: 30px; }
+  }
+  .lx-hero-stage video, .lx-hero-stage img { width: 100%; height: 100%; object-fit: cover; }
+  .lx-hero-caption { opacity: 0; visibility: hidden; }
+  html:not(.gsap-ready) .lx-hero-caption { display: none; }
+
+  /* --- Manifesto: words light up as you read. --- */
+  .lx-highlight .lx-word { transition: color .2s linear; }
+  html.gsap-ready .lx-highlight .lx-word { color: color-mix(in srgb, var(--color-cream) 22%, transparent); }
+  html.gsap-ready .lx-highlight .lx-word.is-lit { color: var(--color-cream); }
+
+  /* --- Bento tiles --- */
+  .lx-tile {
+    position: relative; overflow: hidden; isolation: isolate;
+    border-radius: 28px; background: var(--surface);
+    box-shadow: 0 1px 0 var(--line), 0 30px 60px -40px color-mix(in srgb, var(--color-ink) 35%, transparent);
+  }
+  .lx-tile-media { position: absolute; inset: 0; z-index: -1; }
+  .lx-tile-media > * { width: 100%; height: 100%; object-fit: cover; transition: transform 1.4s cubic-bezier(.16,1,.3,1); }
+  .lx-tile:hover .lx-tile-media > * { transform: scale(1.045); }
+  .lx-stat { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.03em; line-height: 0.9; font-size: clamp(3.5rem, 2.5rem + 3vw, 6rem); }
+
+  /* --- Department cards (tall, image-led) --- */
+  .lx-card {
+    position: relative; overflow: hidden; isolation: isolate; border-radius: 28px;
+    background: var(--color-forest); color: var(--color-cream);
+    transition: transform .6s cubic-bezier(.16,1,.3,1), box-shadow .6s ease;
+  }
+  .lx-card:hover { transform: translateY(-6px); box-shadow: 0 40px 80px -40px color-mix(in srgb, var(--color-ink) 55%, transparent); }
+  .lx-card-media { position: absolute; inset: 0; z-index: -1; }
+  .lx-card-media > div, .lx-card-media img { width: 100%; height: 100%; }
+  .lx-card-media img, .lx-card-media video { transition: transform 1.2s cubic-bezier(.16,1,.3,1); }
+  .lx-card:hover .lx-card-media img, .lx-card:hover .lx-card-media video { transform: scale(1.06); }
+  .lx-snap { scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .lx-snap::-webkit-scrollbar { display: none; }
+  .lx-snap > * { scroll-snap-align: start; }
+
+  /* --- Sticky stepper (the six moments) --- */
+  .lx-steps-media { position: sticky; top: 11svh; height: 78svh; border-radius: 30px; overflow: hidden; isolation: isolate; background: #1c332f; }
+  .lx-steps-media [data-step-media] {
+    position: absolute; inset: 0; opacity: 0; transform: scale(1.06);
+    transition: opacity .9s cubic-bezier(.16,1,.3,1), transform 1.6s cubic-bezier(.16,1,.3,1);
+  }
+  .lx-steps-media [data-step-media].is-active { opacity: 1; transform: scale(1); }
+  .lx-steps-media [data-step-media] > * { width: 100%; height: 100%; object-fit: cover; }
+  .lx-step { transition: opacity .6s ease; }
+  html.gsap-ready .lx-step { opacity: 0.28; }
+  html.gsap-ready .lx-step.is-active { opacity: 1; }
+  .lx-steps-progress { transform-origin: top; }
+}
+
+/* Arabic display type (unlayered, so it wins over leading utilities): Kufi
+   needs open leading, and must never get negative tracking — letter-spacing
+   breaks the joins between connected Arabic letterforms. The split-word masks
+   get extra room so dots and descenders aren't clipped as words rise in. */
+html[dir="rtl"] .lx-display { letter-spacing: 0; line-height: 1.32; }
+html[dir="rtl"] .lx-highlight { line-height: 1.55; }
+html[dir="rtl"] .lx-stat { letter-spacing: 0; line-height: 1.1; }
+html[dir="rtl"] .lunia-split-word { padding-block: 0.18em; }
+
 /* ---------------------------------------------------------------------------
    Respect reduced-motion: keep everything static and fully visible.
    --------------------------------------------------------------------------- */

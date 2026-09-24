@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { Department, Brand } from "@prisma/client";
 
-import { Hero } from "@/components/site/Hero";
-import { MediaFrame } from "@/components/site/MediaFrame";
+import { AppleHero } from "@/components/site/home/AppleHero";
+import { Manifesto } from "@/components/site/home/Manifesto";
+import { ValuesBento } from "@/components/site/home/ValuesBento";
+import { DepartmentTiles } from "@/components/site/home/DepartmentTiles";
+import { JourneySticky } from "@/components/site/home/JourneySticky";
 import { HeroRatingCard } from "@/components/site/HeroRatingCard";
 import { CinematicImage } from "@/components/site/CinematicImage";
 import { Section } from "@/components/site/Section";
 import { SectionHeading } from "@/components/site/SectionHeading";
-import { JourneyRail } from "@/components/site/JourneyRail";
-import { StatsBand } from "@/components/site/StatsBand";
 import { BrandLogos } from "@/components/site/BrandLogos";
 import { Testimonials } from "@/components/site/Testimonials";
 import { CtaBand } from "@/components/site/CtaBand";
@@ -87,7 +87,7 @@ export default async function Home({ params }: HomePageProps) {
   const { locale: rawLocale } = await params;
   const locale: PublicLocale = isPublicLocale(rawLocale) ? rawLocale : "ar";
 
-  const [hero, departments, brands, business, social, seo, tCommon, tHero, tPositioning, tServices, tJourney, tBrands, tTestimonials, tCta, tFaq, tMeta] =
+  const [hero, departments, brands, business, social, seo, tCommon, tHero, tManifesto, tValues, tSanctuary, tServices, tJourney, tBrands, tTestimonials, tCta, tFaq, tMeta] =
     await Promise.all([
       getHomeHero(locale),
       listDepartments({ publishedOnly: true }),
@@ -97,7 +97,9 @@ export default async function Home({ params }: HomePageProps) {
       getSetting("seo").catch(() => null),
       getTranslations({ locale, namespace: "common" }),
       getTranslations({ locale, namespace: "home.hero" }),
-      getTranslations({ locale, namespace: "home.positioning" }),
+      getTranslations({ locale, namespace: "home.manifesto" }),
+      getTranslations({ locale, namespace: "home.values" }),
+      getTranslations({ locale, namespace: "home.sanctuary" }),
       getTranslations({ locale, namespace: "home.services" }),
       getTranslations({ locale, namespace: "home.journey" }),
       getTranslations({ locale, namespace: "home.brands" }),
@@ -205,14 +207,17 @@ export default async function Home({ params }: HomePageProps) {
     <main className="flex flex-col">
       {jsonLdEntities.length > 0 && <JsonLd data={jsonLdEntities} />}
 
-      <Hero
+      <AppleHero
         eyebrow={tHero("eyebrow")}
         headline={hero.headline}
-        subhead={hero.intro || undefined}
+        subhead={hero.intro || tHero("subhead")}
         ctaLabel={hero.cta}
         ctaHref={bookHref}
+        secondaryLabel={tHero("secondary")}
+        secondaryHref="#philosophy"
+        caption={tHero("caption")}
         media={hero.heroMedia}
-        floatingCard={
+        trust={
           reviewsAggregate.count > 0 ? (
             <HeroRatingCard
               avg={reviewsAggregate.avg}
@@ -223,77 +228,55 @@ export default async function Home({ params }: HomePageProps) {
         }
       />
 
-      <CinematicImage
-        src="/brand/experience-brush.jpg"
-        alt={tPositioning("heading")}
-        eyebrow={tPositioning("eyebrow")}
-        headline={tPositioning("heading")}
-        intro={tPositioning("body")}
+      <Manifesto id="philosophy" eyebrow={tManifesto("eyebrow")} text={tManifesto("text")} />
+
+      <ValuesBento
+        eyebrow={tValues("eyebrow")}
+        heading={tValues("heading")}
+        intro={tValues("intro")}
+        purity={{ title: tValues("purity.title"), body: tValues("purity.body") }}
+        mastery={{ title: tValues("mastery.title"), body: tValues("mastery.body") }}
+        revelation={{ title: tValues("revelation.title"), body: tValues("revelation.body") }}
+        stats={[
+          { value: departments.length, label: tValues("stats.departments") },
+          { value: journeySteps.length, label: tValues("stats.steps") },
+          { value: brands.length, label: tValues("stats.brands") },
+          { value: 100, suffix: "%", label: tValues("stats.diagnostic") },
+        ]}
       />
 
-      <Section tone="plain">
-        <StatsBand
-          stats={[
-            { value: departments.length, label: locale === "ar" ? "أقسام متخصصة" : "Specialised departments" },
-            { value: journeySteps.length, label: locale === "ar" ? "خطوات في كل رحلة" : "Steps in every journey" },
-            { value: brands.length, label: locale === "ar" ? "علامات طبية موثوقة" : "Clinical-grade partners" },
-            { value: 100, suffix: "%", label: locale === "ar" ? "قائم على التشخيص أولاً" : "Diagnostic-first, always" },
-          ]}
-        />
-      </Section>
+      <DepartmentTiles
+        eyebrow={tServices("eyebrow")}
+        heading={tServices("heading")}
+        intro={tServices("intro")}
+        exploreLabel={tServices("explore")}
+        departments={departments.map((department: Department, index: number) => ({
+          id: department.id,
+          href: `/${locale}/services/${department.slug}`,
+          name: localized(locale, department.nameEn, department.nameAr),
+          tagline: localized(locale, department.taglineEn, department.taglineAr),
+          media: departmentMedia[index],
+        }))}
+      />
 
-      <Section tone="tinted">
-        <div className="flex flex-col gap-16 lg:gap-28">
-          <SectionHeading eyebrow={tServices("eyebrow")} heading={tServices("heading")} intro={tServices("intro")} />
-          {/* One department per row (image + text), alternating sides. Each row
-              reveals as it scrolls into view, so you scroll to meet the next. */}
-          {departments.map((department: Department, index: number) => {
-            const total = String(departments.length).padStart(2, "0");
-            const num = String(index + 1).padStart(2, "0");
-            const flip = index % 2 === 1;
-            return (
-              <div key={department.id} data-reveal="card">
-                <Link
-                  href={`/${locale}/services/${department.slug}`}
-                  className="group grid items-center gap-8 lg:grid-cols-2 lg:gap-16"
-                >
-                  <div className={`lunia-clip ${flip ? "lg:order-2" : ""}`}>
-                    <MediaFrame
-                      mediaKey={departmentMedia[index]?.key}
-                      kind={departmentMedia[index]?.kind}
-                      alt={localized(locale, department.nameEn, department.nameAr)}
-                      aspectClassName="aspect-[16/11]"
-                    />
-                  </div>
-                  <div className={`flex flex-col gap-4 ${flip ? "lg:order-1" : ""}`}>
-                    <span className="text-sm font-medium tracking-[0.2em] text-[var(--color-teal-ink)]">
-                      {num} / {total}
-                    </span>
-                    <h3 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)] sm:text-4xl">
-                      {localized(locale, department.nameEn, department.nameAr)}
-                    </h3>
-                    <p className="max-w-md text-base leading-relaxed text-[var(--color-ink)]/70">
-                      {localized(locale, department.taglineEn, department.taglineAr)}
-                    </p>
-                    <span className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-[var(--color-ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors group-hover:decoration-[var(--color-gold)]">
-                      {locale === "ar" ? "اكتشفي القسم" : "Explore the department"}
-                      <span aria-hidden="true" className="transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
-                        {locale === "ar" ? "←" : "→"}
-                      </span>
-                    </span>
-                  </div>
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      </Section>
+      <CinematicImage
+        src="/media/sanctuary.webp"
+        alt={tSanctuary("heading")}
+        eyebrow={tSanctuary("eyebrow")}
+        headline={tSanctuary("heading")}
+        intro={tSanctuary("body")}
+      />
 
-      <JourneyRail eyebrow={tJourney("eyebrow")} heading={tJourney("heading")} steps={journeySteps} />
+      <JourneySticky
+        eyebrow={tJourney("eyebrow")}
+        heading={tJourney("heading")}
+        stepLabel={tJourney("stepLabel")}
+        steps={journeySteps}
+      />
 
       <Section tone="tinted">
         <div className="lunia-pattern-mosaic flex flex-col gap-14">
-          <SectionHeading eyebrow={tBrands("eyebrow")} heading={tBrands("heading")} intro={tBrands("intro")} />
+          <SectionHeading eyebrow={tBrands("eyebrow")} heading={tBrands("heading")} intro={tBrands("intro")} align="center" className="mx-auto" />
           <BrandLogos
             brands={brands.map((brand: Brand, index: number) => ({
               name: brand.name,

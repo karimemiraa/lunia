@@ -19,9 +19,9 @@ const NAV_ITEMS = [
 const focusRingClass =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-page)]";
 
-const ctaClass = `lunia-btn lunia-btn-primary px-6 py-2.5 ${focusRingClass}`;
+const ctaClass = `lx-pill px-5 py-2 text-[0.875rem] ${focusRingClass}`;
 
-const navLinkClass = `lunia-underline rounded-sm text-sm font-medium tracking-wide text-[var(--color-ink)]/75 transition-colors hover:text-[var(--color-ink)] ${focusRingClass}`;
+const navLinkClass = `rounded-sm text-[0.8125rem] font-medium tracking-[0.01em] text-[var(--color-ink)]/72 transition-colors hover:text-[var(--color-ink)] ${focusRingClass}`;
 
 // The public site's chrome header: sticky, translucent-cream, generous
 // whitespace. Everything but LocaleSwitcher stays a server component — the
@@ -46,8 +46,8 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
   ));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--color-ink)]/10 bg-[var(--color-cream)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-cream)]/60">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-6 py-5">
+    <header className="sticky top-0 z-40 border-b border-[var(--color-ink)]/[0.07] bg-[var(--color-page)]/80 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[var(--color-page)]/68">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-5 sm:px-6">
         <Link
           href={home}
           className={`inline-flex items-center rounded-sm ${focusRingClass}`}
@@ -56,7 +56,7 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
           <span
             role="img"
             aria-label="LUNIA — Skin & Hair"
-            className="lunia-logo h-9 text-[var(--color-teal-ink)] transition-colors md:h-11"
+            className="lunia-logo h-9 text-[var(--color-teal-ink)] transition-colors md:h-10"
           />
         </Link>
 

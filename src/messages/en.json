@@ -33,7 +33,10 @@
   "home": {
     "heroStatement": "Where natural beauty begins",
     "hero": {
-      "eyebrow": "Skin Quality Center"
+      "eyebrow": "Skin Quality Center",
+      "subhead": "The architecture of skin and hair vitality.",
+      "secondary": "Discover the philosophy",
+      "caption": "Beauty, cultivated through care. Never alteration."
     },
     "meta": {
       "title": "Lunia | Riyadh's Skin Quality Center",
@@ -47,7 +50,8 @@
     "services": {
       "eyebrow": "What We Do",
       "heading": "Three departments, one philosophy",
-      "intro": "Skin, hair & scalp, and post-surgery recovery, each built on the same diagnostic-first approach to lasting quality."
+      "intro": "Skin, hair & scalp, and post-surgery recovery, each built on the same diagnostic-first approach to lasting quality.",
+      "explore": "Explore"
     },
     "journey": {
       "eyebrow": "The Customer Journey",
@@ -77,7 +81,8 @@
           "title": "Return",
           "body": "Skin quality is sustained, not a one-time result, we track it with you, visit after visit."
         }
-      ]
+      ],
+      "stepLabel": "Step"
     },
     "brands": {
       "eyebrow": "Trusted Partners",
@@ -128,6 +133,38 @@
           "a": "Lunia is a Skin Quality Center in Riyadh, Saudi Arabia, serving customers across the city with diagnostic-led skin, hair & scalp, and post-surgery recovery care."
         }
       ]
+    },
+    "manifesto": {
+      "eyebrow": "The Lunia Philosophy",
+      "text": "A facial fades by the weekend. Skin quality is something you build, layer by layer, visit by visit, until it holds its own glow. Not a spa. A Skin Quality Center."
+    },
+    "values": {
+      "eyebrow": "What We Believe",
+      "heading": "Care that reveals. Never alters.",
+      "intro": "Three values shape every visit, from the first diagnostic read to the glow you carry home.",
+      "purity": {
+        "title": "Purity",
+        "body": "Non-invasive excellence. Clean, transparent care devoted to preserving your natural beauty, never replacing it."
+      },
+      "mastery": {
+        "title": "Mastery",
+        "body": "Expert-curated journeys and the world's most distinguished clinical brands, balanced between science and nature."
+      },
+      "revelation": {
+        "title": "Revelation",
+        "body": "We don't alter, we reveal. The expertise and the calm for your natural brilliance to come through."
+      },
+      "stats": {
+        "departments": "Specialised departments",
+        "steps": "Moments in every journey",
+        "brands": "Clinical-grade partners",
+        "diagnostic": "Diagnostic-first, always"
+      }
+    },
+    "sanctuary": {
+      "eyebrow": "The Space",
+      "heading": "A sanctuary of expertise.",
+      "body": "Refined skin and hair mastery, held in the restorative calm of a luxury retreat. The pause you deserve, with the precision you can trust."
     }
   },
   "about": {

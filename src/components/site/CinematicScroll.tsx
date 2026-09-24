@@ -3,11 +3,12 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-// The site's cinematic motion engine — built to match the rivive.sa feel:
-// Lenis smooth scrolling + GSAP ScrollTrigger, with EXPO easing, staggered
-// scale/opacity reveals, skew + rotationX depth on text and cards, split-text
-// headlines, clip-path image wipes, animated counters, and a pinned
-// horizontal-scroll section on desktop.
+// The site's cinematic motion engine: Lenis smooth scrolling + GSAP
+// ScrollTrigger with EXPO easing — staggered reveals, split-text headlines,
+// clip-path image wipes, animated counters, and the Apple-style homepage
+// chapters (film-stage hero, scroll-highlight statement, sticky stepper).
+// Sections are CSS-sticky and GSAP only scrubs transforms/classes, so nothing
+// is pinned and no section can overlap its neighbours.
 //
 // On init it adds `html.gsap-ready`, which switches OFF the older CSS
 // scroll-timeline versions (globals.css) so nothing double-animates. Fully
@@ -18,7 +19,20 @@ export function CinematicScroll() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // Reduced motion: no scroll choreography, and no ambient autoplaying
+      // film — every video rests on its poster frame.
+      document.querySelectorAll<HTMLVideoElement>("video[autoplay]").forEach((v) => v.pause());
+      return;
+    }
+
+    // React doesn't serialize `muted` into the server HTML, so browsers treat
+    // SSR'd autoplay films as unmuted and refuse to start them. Mute + start
+    // them explicitly once we're on the client.
+    document.querySelectorAll<HTMLVideoElement>("video[autoplay]").forEach((v) => {
+      v.muted = true;
+      v.play().catch(() => {});
+    });
 
     let cleanup: (() => void) | null = null;
     let killed = false;
@@ -100,7 +114,9 @@ export function CinematicScroll() {
               gsap.fromTo(
                 els,
                 { opacity: 0, y: 40 },
-                { opacity: 1, y: 0, duration: 1.0, ease: EXPO, stagger: 0.08, overwrite: true },
+                // clearProps hands transform back to CSS afterwards, so hover
+                // lifts (cards, tiles) work once the reveal has settled.
+                { opacity: 1, y: 0, duration: 1.0, ease: EXPO, stagger: 0.08, overwrite: true, clearProps: "transform" },
               ),
           });
 
@@ -170,6 +186,8 @@ export function CinematicScroll() {
             const suffix = el.getAttribute("data-count-suffix") ?? "";
             const dur = 2;
             const obj = { v: 0 };
+            // SSR shows the final figure (no-JS); start from zero once we animate.
+            el.textContent = `0${suffix}`;
             gsap.to(obj, {
               v: target,
               duration: dur,
@@ -204,31 +222,135 @@ export function CinematicScroll() {
             });
           }
 
-          // 10) Horizontal-scroll section (desktop only). NOT pinned — the card
-          // track slides sideways as the section transits the viewport, so it
-          // stays in normal document flow and can never overlap its neighbours.
-          // (Pinning inside the flex <main> + page-transition wrapper caused the
-          // sections above/below to overlap.) Mobile keeps a native swipe rail.
-          const mm = gsap.matchMedia();
-          mm.add("(min-width: 1024px)", () => {
-            gsap.utils.toArray<HTMLElement>("[data-horizontal]").forEach((section) => {
-              const track = section.querySelector<HTMLElement>("[data-horizontal-track]");
-              if (!track) return;
-              const distance = () => Math.max(0, track.scrollWidth - section.clientWidth + 48);
-              gsap.fromTo(
-                track,
-                { x: 0 },
-                {
-                  x: () => -distance(),
-                  ease: "none",
-                  scrollTrigger: { trigger: section, start: "top 72%", end: "bottom top", scrub: 0.6, invalidateOnRefresh: true },
-                },
-              );
+          // 10) Apple hero — the film stage rises from beneath the headline and
+          // grows to full-bleed (scale + y + corner radius), the copy lifts
+          // away, then a caption resolves over the film. Scrubbed across the
+          // section's tall track while its viewport is CSS-sticky (no GSAP pin,
+          // so nothing can overlap neighbouring sections).
+          gsap.utils.toArray<HTMLElement>("[data-apple-hero]").forEach((section) => {
+            const stage = section.querySelector<HTMLElement>("[data-hero-stage]");
+            const copy = section.querySelector<HTMLElement>("[data-hero-copy]");
+            const caption = section.querySelector<HTMLElement>("[data-hero-caption]");
+            const shade = section.querySelector<HTMLElement>("[data-hero-shade]");
+            if (!stage || !copy) return;
+            const mobile = () => window.innerWidth < 768;
+            const s0 = () => (mobile() ? 0.9 : 0.84);
+            // Start the stage just under the copy (copy's offsetParent is the
+            // sticky viewport), but always leave a generous slice of film.
+            const y0 = () => Math.min(copy.offsetTop + copy.offsetHeight + (mobile() ? 28 : 44), window.innerHeight * 0.7);
+
+            const tl = gsap.timeline({
+              defaults: { ease: "none" },
+              scrollTrigger: { trigger: section, start: "top top", end: "bottom bottom", scrub: 0.5, invalidateOnRefresh: true },
+            });
+            tl.fromTo(stage, { y: y0, scale: s0, borderRadius: () => 30 / s0() }, { y: 0, scale: 1, borderRadius: 0, duration: 0.72 }, 0)
+              .to(copy, { y: () => -window.innerHeight * 0.14, opacity: 0, duration: 0.38 }, 0);
+            if (shade) tl.fromTo(shade, { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.6);
+            if (caption) tl.fromTo(caption, { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.2 }, 0.72);
+            tl.to({}, { duration: 0.12 });
+          });
+
+          // 11) Scroll-highlight statement — each word brightens as the reader
+          // reaches it (words are split once; color is toggled via a class so
+          // it's a cheap, transition-smoothed repaint).
+          gsap.utils.toArray<HTMLElement>("[data-highlight]").forEach((el) => {
+            const raw = el.textContent ?? "";
+            if (!raw.trim()) return;
+            el.textContent = "";
+            const words: HTMLElement[] = [];
+            for (const part of raw.split(/(\s+)/)) {
+              if (!part) continue;
+              if (/^\s+$/.test(part)) {
+                el.appendChild(document.createTextNode(part));
+                continue;
+              }
+              const w = document.createElement("span");
+              w.className = "lx-word";
+              w.textContent = part;
+              el.appendChild(w);
+              words.push(w);
+            }
+            ScrollTrigger.create({
+              trigger: el,
+              start: "top 78%",
+              end: "bottom 45%",
+              scrub: true,
+              onUpdate: (self) => {
+                const lit = Math.round(self.progress * words.length);
+                words.forEach((w, i) => w.classList.toggle("is-lit", i < lit));
+              },
             });
           });
 
-          return () => mm.revert();
+          // 12) Sticky stepper — as each step crosses the reading line it
+          // becomes active: its copy brightens and the sticky media panel
+          // crossfades to its film/photo. Only the active film plays, and only
+          // while the section is on screen. A rail fills with progress.
+          gsap.utils.toArray<HTMLElement>("[data-steps]").forEach((section) => {
+            const steps = gsap.utils.toArray<HTMLElement>("[data-step]", section);
+            const media = gsap.utils.toArray<HTMLElement>("[data-step-media]", section);
+            let current = 0;
+            let onScreen = false;
+            const sync = () => {
+              steps.forEach((s, k) => s.classList.toggle("is-active", k === current));
+              media.forEach((m, k) => {
+                m.classList.toggle("is-active", k === current);
+                const v = m.querySelector("video");
+                if (!v) return;
+                if (k === current && onScreen) {
+                  if (v.preload === "none") v.preload = "auto";
+                  v.muted = true;
+                  v.play().catch(() => {});
+                } else v.pause();
+              });
+            };
+            steps.forEach((s, i) =>
+              ScrollTrigger.create({
+                trigger: s,
+                start: "top 62%",
+                end: "bottom 62%",
+                onToggle: (self) => {
+                  if (self.isActive && current !== i) {
+                    current = i;
+                    sync();
+                  }
+                },
+              }),
+            );
+            ScrollTrigger.create({
+              trigger: section,
+              start: "top bottom",
+              end: "bottom top",
+              onToggle: (self) => {
+                onScreen = self.isActive;
+                sync();
+              },
+            });
+            sync();
+            const list = section.querySelector("[data-steps-list]");
+            const bar = section.querySelector("[data-steps-progress]");
+            if (list && bar) {
+              gsap.fromTo(bar, { scaleY: 0 }, { scaleY: 1, ease: "none", scrollTrigger: { trigger: list, start: "top 62%", end: "bottom 62%", scrub: true } });
+            }
+          });
         });
+
+        // Ambient films play only while on screen (saves battery + bandwidth;
+        // preload="none" films start fetching as they approach).
+        const io = new IntersectionObserver(
+          (entries) =>
+            entries.forEach((e) => {
+              const v = e.target as HTMLVideoElement;
+              if (e.isIntersecting) {
+                if (v.preload === "none") v.preload = "auto";
+                v.muted = true;
+                v.play().catch(() => {});
+              } else v.pause();
+            }),
+          { rootMargin: "200px 0px" },
+        );
+        document.querySelectorAll<HTMLVideoElement>("video[data-inview-play]").forEach((v) => io.observe(v));
+        listeners.push(() => io.disconnect());
 
         ScrollTrigger.refresh();
         const onLoad = () => ScrollTrigger.refresh();

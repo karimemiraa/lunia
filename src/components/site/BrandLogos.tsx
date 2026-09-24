@@ -17,7 +17,7 @@ function BrandItem({ brand, ariaHidden }: { brand: BrandLogo; ariaHidden?: boole
     <img
       src={`/api/media/${brand.logoKey}`}
       alt={ariaHidden ? "" : brand.name}
-      className="max-h-16 w-auto max-w-[13rem] object-contain"
+      className="max-h-[4.5rem] w-auto max-w-[15rem] object-contain"
       loading="lazy"
       decoding="async"
     />
@@ -33,7 +33,7 @@ function BrandItem({ brand, ariaHidden }: { brand: BrandLogo; ariaHidden?: boole
         href={brand.href}
         tabIndex={ariaHidden ? -1 : undefined}
         aria-hidden={ariaHidden}
-        className="group flex h-20 items-center justify-center opacity-70 grayscale transition-all duration-300 hover:opacity-100 hover:grayscale-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2"
+        className="group flex h-24 items-center justify-center opacity-70 grayscale transition-all duration-300 hover:opacity-100 hover:grayscale-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2"
         aria-label={ariaHidden ? undefined : brand.name}
       >
         {inner}

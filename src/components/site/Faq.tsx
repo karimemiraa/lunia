@@ -20,21 +20,21 @@ export function Faq({ items }: FaqProps) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col divide-y divide-[var(--color-ink)]/10">
       {items.map((item, index) => (
-        <details key={index} className="group py-6">
+        <details key={index} className="group py-7 sm:py-8">
           <summary
             className={`flex cursor-pointer list-none items-center justify-between gap-6 text-start [&::-webkit-details-marker]:hidden ${focusRingClass}`}
           >
-            <span className="font-[family-name:var(--font-display)] text-lg text-[var(--color-ink)] sm:text-xl">
+            <span className="font-[family-name:var(--font-display)] text-xl leading-snug text-[var(--color-ink)] sm:text-[1.75rem]">
               {item.q}
             </span>
             <span
               aria-hidden="true"
-              className="shrink-0 text-2xl font-light leading-none text-[var(--color-ink)]/40 transition-transform duration-300 group-open:rotate-45"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-ink)]/15 text-xl font-light leading-none text-[var(--color-ink)]/60 transition-all duration-300 group-open:rotate-45 group-open:bg-[var(--color-teal)] group-open:text-[var(--color-ink)]"
             >
               +
             </span>
           </summary>
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[var(--color-ink)]/70 sm:text-base">{item.a}</p>
+          <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--color-ink)]/70 sm:text-[1.075rem]">{item.a}</p>
         </details>
       ))}
     </div>
