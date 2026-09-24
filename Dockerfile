@@ -35,9 +35,9 @@
 #   include-globs, discarding a different sibling package each time). That
 #   nondeterminism makes it unsafe to ship, so we dropped
 #   `outputFileTracingIncludes` from next.config.ts entirely.
-# - Fix actually used: the `run` stage below copies the **full** `node_modules`
-#   (from the `prisma` stage — see there for why) under the standalone output, instead of
-#   cherry-picking files. A whole-directory `COPY` preserves pnpm's real
+# - Fix actually used: the `run` stage below is built FROM the `prisma` stage,
+#   so it carries the **full** `node_modules` under the standalone output
+#   instead of cherry-picking files. A whole-directory install/`COPY` preserves pnpm's real
 #   symlinks (only a symlink given directly as a COPY *source* gets
 #   dereferenced — copying the directory that contains it does not), so the
 #   entire adapter-pg -> driver-adapter-utils -> debug / pg / postgres-array
@@ -69,9 +69,10 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS prisma
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-# Dummy value only — config validation needs *a* URL; nothing connects.
-ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
-RUN pnpm db:generate
+# Dummy value only — config validation needs *a* URL; nothing connects. Set on
+# the command (not ENV) so it never leaks into the run/migrator images that
+# build FROM this stage.
+RUN DATABASE_URL="postgresql://user:pass@localhost:5432/db" pnpm db:generate
 
 FROM base AS build
 COPY --from=prisma /app/node_modules ./node_modules
@@ -118,7 +119,23 @@ COPY . .
 ENTRYPOINT ["corepack", "pnpm"]
 CMD ["prisma", "migrate", "deploy"]
 
-FROM base AS run
+FROM prisma AS run
+# Built FROM the `prisma` stage (not `FROM base` + a COPY of node_modules): the
+# big dependency layers are then *inherited*, i.e. the exact same layers the
+# migrator image also inherits. CI builds both images with one shared cache;
+# inherited stage layers stay cached (and byte-identical) across releases,
+# whereas a separate `COPY --from=… node_modules` step was evicted by the
+# second build's cache export and re-created a new ~1.1 GB layer every time.
+#
+# See the block comment at the top of this file: the standalone trace's own
+# node_modules is unreliable for the Prisma adapter-pg chain, so the full
+# node_modules (devDependencies included — prisma, tsx, etc.) is used instead
+# (preserves pnpm's real symlinks — no pinned package/version names). This
+# means `app`'s image technically has Prisma's CLI and `tsx` available too, as
+# a side effect, not by design — always run `migrate deploy` / `db:seed` via
+# the dedicated `migrator` target / `migrate` compose service (see that
+# stage's comment above and docs/RUNBOOK.md), not via `docker compose run app`.
+#
 # HOSTNAME=0.0.0.0 so Next's standalone server binds to all interfaces; Docker
 # otherwise sets HOSTNAME to the container id and Next binds only to that, which
 # makes the compose healthcheck (http://localhost:3000) fail → nginx never
@@ -126,24 +143,11 @@ FROM base AS run
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000
-# See the block comment at the top of this file: the standalone trace's own
-# node_modules is unreliable for the Prisma adapter-pg chain, so the full
-# node_modules (devDependencies included — prisma, tsx, etc.) is used instead
-# (preserves pnpm's real symlinks — no pinned package/version names). It comes
-# from the `prisma` stage and is copied FIRST: it's the one huge layer, and it
-# only changes with the lockfile/schema, so ordinary releases reuse it and
-# only the small layers below are re-shipped. This means `app`'s image
-# technically has Prisma's CLI and `tsx` available too, as a side effect, not
-# by design — always run `migrate deploy` / `db:seed` via the dedicated
-# `migrator` target / `migrate` compose service (see that stage's comment
-# above and docs/RUNBOOK.md), not via `docker compose run app ...`.
-COPY --from=prisma /app/node_modules ./node_modules
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
-# Straight from the build context (content-cached), so these layers only
-# change when their files do — not on every rebuild of the `build` stage.
+# Straight from the build context (content-cached), so this layer only changes
+# when public/ does — not on every rebuild of the `build` stage.
 COPY public ./public
-COPY prisma ./prisma
 
 EXPOSE 3000
 CMD ["node", "server.js"]
