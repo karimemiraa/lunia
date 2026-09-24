@@ -34,6 +34,24 @@ export function CinematicScroll() {
       v.play().catch(() => {});
     });
 
+    // Browsers suspend muted films while the tab is hidden; when the visitor
+    // comes back, resume the ones that should be playing (autoplay films, the
+    // active stepper film, and on-screen ambient films that have loaded).
+    const onVisible = () => {
+      if (document.hidden) return;
+      const selector = "video[autoplay], video[data-inview-play], [data-step-media].is-active video";
+      document.querySelectorAll<HTMLVideoElement>(selector).forEach((v) => {
+        if (!v.paused) return;
+        const r = v.getBoundingClientRect();
+        const onScreen = r.bottom > 0 && r.top < window.innerHeight;
+        if (v.autoplay || (onScreen && v.preload !== "none")) {
+          v.muted = true;
+          v.play().catch(() => {});
+        }
+      });
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     let cleanup: (() => void) | null = null;
     let killed = false;
 
@@ -373,6 +391,7 @@ export function CinematicScroll() {
 
     return () => {
       killed = true;
+      document.removeEventListener("visibilitychange", onVisible);
       cleanup?.();
     };
   }, [pathname]);
