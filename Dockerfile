@@ -36,7 +36,7 @@
 #   nondeterminism makes it unsafe to ship, so we dropped
 #   `outputFileTracingIncludes` from next.config.ts entirely.
 # - Fix actually used: the `run` stage below copies the **full** `node_modules`
-#   from the `build` stage on top of the standalone output, instead of
+#   (from the `prisma` stage — see there for why) under the standalone output, instead of
 #   cherry-picking files. A whole-directory `COPY` preserves pnpm's real
 #   symlinks (only a symlink given directly as a COPY *source* gets
 #   dereferenced — copying the directory that contains it does not), so the
@@ -58,8 +58,23 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
+# --- Prisma client, generated into node_modules in its own stage ---
+# `prisma-client-js` writes the client INTO node_modules, so generating it in
+# the build stage (after `COPY . .`) made the whole ~1.4GB node_modules a new
+# layer on every commit — even a CSS change re-shipped it to the server, which
+# is what made deploys slow and time out. Generated here from only the schema +
+# config, this node_modules changes only when the lockfile or schema changes,
+# so its layer is cached/reused (and already on the server) for ordinary
+# code-only releases.
+FROM deps AS prisma
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+# Dummy value only — config validation needs *a* URL; nothing connects.
+ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
+RUN pnpm db:generate
+
 FROM base AS build
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=prisma /app/node_modules ./node_modules
 COPY . .
 # Dummy build-time values only — schema/env validation needs *a* value, not
 # a reachable database or a real secret. Never used to connect anywhere.
@@ -72,9 +87,13 @@ ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db" \
     # (e.g. a 1GB VM); V8's default limit tracks physical RAM and swap doesn't
     # lift it, so a constrained box OOMs during `next build` without this.
     NODE_OPTIONS="--max-old-space-size=3072"
-RUN pnpm db:generate && pnpm build
+# The client is already generated (prisma stage). Drop the standalone trace's
+# own node_modules — `run` layers the full, stable node_modules instead (see the
+# block comment at the top of this file), and keeping the trace out means that
+# stable layer is never overwritten by a per-build copy.
+RUN pnpm build && rm -rf .next/standalone/node_modules
 
-# --- Migrator/seed image: reuses the `build` stage's full node_modules ---
+# --- Migrator/seed image: stable deps + generated client + source ---
 # This exists as its own named target (rather than relying on `run` also
 # happening to have Prisma + tsx available — see that stage's comment below)
 # so operational commands have one clearly-documented, stable entry point:
@@ -89,7 +108,13 @@ RUN pnpm db:generate && pnpm build
 # with no `--target` builds the LAST stage by default — `run` (the
 # production image) must be that last stage, or a plain
 # `docker build -t lunia:test .` silently builds the migrator image instead.
-FROM build AS migrator
+#
+# Built from the `prisma` stage (stable deps + generated client) plus the
+# source — NOT from `build` — so it doesn't carry the per-commit Next build
+# output: only the small source layer changes between releases. The worker
+# (tsx + src via tsconfig paths) and prisma CLI need nothing from `next build`.
+FROM prisma AS migrator
+COPY . .
 ENTRYPOINT ["corepack", "pnpm"]
 CMD ["prisma", "migrate", "deploy"]
 
@@ -101,20 +126,24 @@ FROM base AS run
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
-COPY --from=build /app/prisma ./prisma
 # See the block comment at the top of this file: the standalone trace's own
 # node_modules is unreliable for the Prisma adapter-pg chain, so the full
-# `build`-stage node_modules (devDependencies included — prisma, tsx, etc.)
-# replaces it wholesale here (preserves pnpm's real symlinks — no pinned
-# package/version names). This means `app`'s image technically has Prisma's
-# CLI and `tsx` available too, as a side effect, not by design — always run
-# `migrate deploy` / `db:seed` via the dedicated `migrator` target /
-# `migrate` compose service (see that stage's comment above and
-# docs/RUNBOOK.md), not via `docker compose run app ...`.
-COPY --from=build /app/node_modules ./node_modules
+# node_modules (devDependencies included — prisma, tsx, etc.) is used instead
+# (preserves pnpm's real symlinks — no pinned package/version names). It comes
+# from the `prisma` stage and is copied FIRST: it's the one huge layer, and it
+# only changes with the lockfile/schema, so ordinary releases reuse it and
+# only the small layers below are re-shipped. This means `app`'s image
+# technically has Prisma's CLI and `tsx` available too, as a side effect, not
+# by design — always run `migrate deploy` / `db:seed` via the dedicated
+# `migrator` target / `migrate` compose service (see that stage's comment
+# above and docs/RUNBOOK.md), not via `docker compose run app ...`.
+COPY --from=prisma /app/node_modules ./node_modules
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+# Straight from the build context (content-cached), so these layers only
+# change when their files do — not on every rebuild of the `build` stage.
+COPY public ./public
+COPY prisma ./prisma
 
 EXPOSE 3000
 CMD ["node", "server.js"]
