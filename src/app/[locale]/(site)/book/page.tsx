@@ -92,17 +92,16 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
 
   return (
     <main className="flex flex-col">
-      <Section tone="plain">
-        <div className="flex flex-col gap-4 text-start">
-          <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-canopy)]">
+      <section className="lunia-pattern-mosaic bg-[var(--color-page)] pb-[clamp(1.5rem,4svh,3rem)] pt-[clamp(4rem,10svh,7rem)]">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-start px-5 sm:px-6">
+          <span className="lx-eyebrow lunia-animate-fade-up">
+            <span aria-hidden="true" className="lunia-glow-mark" />
             {tHero("eyebrow")}
           </span>
-          <h1 className="font-[family-name:var(--font-display)] text-4xl leading-[1.1] tracking-tight text-[var(--color-ink)] sm:text-5xl">
-            {tHero("heading")}
-          </h1>
-          <p className="max-w-xl text-base leading-relaxed text-[var(--color-ink)]/70 sm:text-lg">{tHero("intro")}</p>
+          <h1 className="lx-display lx-h1 lunia-animate-fade-up lunia-delay-1 mt-5 max-w-4xl text-[var(--color-ink)]">{tHero("heading")}</h1>
+          <p className="lx-lead lunia-animate-fade-up lunia-delay-2 mt-6 max-w-2xl">{tHero("intro")}</p>
         </div>
-      </Section>
+      </section>
 
       <Section tone="plain">
         <BookingWizard

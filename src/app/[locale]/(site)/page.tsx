@@ -25,6 +25,7 @@ import { listDepartments } from "@/modules/catalog/departments";
 import { listBrands } from "@/modules/catalog/brands";
 import { localized } from "@/modules/catalog/localize";
 import { buildMetadata } from "@/modules/seo/metadata";
+import { withFallbacks, departmentStill } from "@/lib/siteMedia";
 import { localBusinessJsonLd, faqPageJsonLd, aggregateRatingJsonLd, reviewJsonLd } from "@/modules/seo/jsonld";
 import { listApprovedReviews, getAggregate } from "@/modules/reviews/reviews";
 
@@ -124,6 +125,9 @@ export default async function Home({ params }: HomePageProps) {
     departments.map((department: Department) => resolveMedia(department.heroMediaId)),
   );
   const brandMedia = await Promise.all(brands.map((brand: Brand) => resolveMedia(brand.logoMediaId)));
+  // CMS department photos, with a curated still wherever one is missing or
+  // repeats an earlier department's upload (so the cards never duplicate).
+  const departmentTileMedia = withFallbacks(departmentMedia, (i) => departmentStill(departments[i]!.slug));
 
   const journeySteps = (tJourney.raw("steps") as StepMessage[]).map((step) => ({
     title: step.title,
@@ -255,7 +259,7 @@ export default async function Home({ params }: HomePageProps) {
           href: `/${locale}/services/${department.slug}`,
           name: localized(locale, department.nameEn, department.nameAr),
           tagline: localized(locale, department.taglineEn, department.taglineAr),
-          media: departmentMedia[index],
+          media: departmentTileMedia[index]!,
         }))}
       />
 

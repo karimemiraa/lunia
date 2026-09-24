@@ -2,15 +2,21 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import type { Brand } from "@prisma/client";
 import { Section } from "@/components/site/Section";
 import { CtaBand } from "@/components/site/CtaBand";
-import { MediaFrame } from "@/components/site/MediaFrame";
+import { LocalNav } from "@/components/site/apple/LocalNav";
+import { Chapter } from "@/components/site/apple/Chapter";
+import { Gallery } from "@/components/site/apple/Gallery";
+import { BrandTile } from "@/components/site/apple/BrandTile";
+import { Statement } from "@/components/site/apple/Statement";
+import { Chevron } from "@/components/site/home/AppleHero";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { getMedia } from "@/modules/cms/media";
 import { getEnv } from "@/lib/env";
-import { getBrandBySlug } from "@/modules/catalog/brands";
+import { getBrandBySlug, listBrands } from "@/modules/catalog/brands";
 import { localized } from "@/modules/catalog/localize";
 import { buildMetadata } from "@/modules/seo/metadata";
 import { breadcrumbJsonLd } from "@/modules/seo/jsonld";
@@ -71,10 +77,13 @@ export default async function BrandPage({ params }: BrandPageProps) {
     notFound();
   }
 
-  const [tCommon, tNav, tBrand] = await Promise.all([
+  const [tCommon, tNav, tBrand, tIndex, tUi, allBrands] = await Promise.all([
     getTranslations({ locale, namespace: "common" }),
     getTranslations({ locale, namespace: "nav" }),
     getTranslations({ locale, namespace: "brandDetail" }),
+    getTranslations({ locale, namespace: "brandsIndex" }),
+    getTranslations({ locale, namespace: "ui" }),
+    listBrands({ publishedOnly: true }),
   ]);
 
   const bookHref = `/${locale}/book`;
@@ -82,6 +91,8 @@ export default async function BrandPage({ params }: BrandPageProps) {
   const brandUrl = `${appUrl}/${locale}/brands/${brand.slug}`;
 
   const logoMedia = await resolveMedia(brand.logoMediaId);
+  const others = allBrands.filter((b: Brand) => b.id !== brand.id);
+  const otherLogos = await Promise.all(others.map((b: Brand) => resolveMedia(b.logoMediaId)));
 
   const breadcrumb = breadcrumbJsonLd([
     { name: tNav("home"), url: `${appUrl}/${locale}` },
@@ -89,54 +100,71 @@ export default async function BrandPage({ params }: BrandPageProps) {
     { name: brand.name, url: brandUrl },
   ]);
 
+  const whyChosen = localized(locale, brand.whyChosenEn, brand.whyChosenAr);
+
   return (
     <main className="flex flex-col">
       <JsonLd data={breadcrumb} />
 
-      <Section tone="plain">
-        <div className="grid gap-10 sm:grid-cols-[1fr_1.1fr] sm:items-center sm:gap-16">
-          <MediaFrame
-            mediaKey={logoMedia?.key}
-            kind={logoMedia?.kind}
-            alt={brand.name}
-            aspectClassName="aspect-square"
-            className="mx-auto w-full max-w-xs sm:mx-0"
-          />
-          <div className="flex flex-col gap-6 text-start">
-            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-canopy)]">
-              {tNav("brands")}
-            </span>
-            <h1 className="font-[family-name:var(--font-display)] text-4xl leading-[1.1] tracking-tight text-[var(--color-ink)] sm:text-5xl">
-              {brand.name}
-            </h1>
-            <p className="max-w-xl text-base leading-relaxed text-[var(--color-ink)]/70 sm:text-lg">
-              {localized(locale, brand.descEn, brand.descAr)}
-            </p>
+      <LocalNav
+        title={brand.name}
+        titleHref={`/${locale}/brands`}
+        links={[
+          { href: "#overview", label: tBrand("localNav.overview") },
+          ...(whyChosen ? [{ href: "#why", label: tBrand("localNav.why") }] : []),
+        ]}
+        cta={{ href: bookHref, label: tUi("book") }}
+      />
+
+      <section id="overview" className="scroll-mt-32 bg-[var(--color-page)] pb-[clamp(4rem,10svh,7rem)] pt-[clamp(4rem,10svh,7rem)]">
+        <div className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
+          <span className="lx-eyebrow lunia-animate-fade-up">
+            <span aria-hidden="true" className="lunia-glow-mark" />
+            {tBrand("partnerLabel")}
+          </span>
+          <div className="lunia-pattern-mosaic lunia-animate-scale-in mt-8 flex aspect-[16/8] w-full max-w-3xl items-center justify-center overflow-hidden rounded-[32px] bg-white shadow-[0_40px_80px_-50px_rgba(34,63,58,0.45)]">
+            {logoMedia ? (
+              // eslint-disable-next-line @next/next/no-img-element -- uploaded brand logo, arbitrary domain
+              <img src={`/api/media/${logoMedia.key}`} alt={brand.name} className="max-h-28 w-auto max-w-[60%] object-contain sm:max-h-36" />
+            ) : (
+              <span className="lx-display lx-h2 text-[var(--color-ink)]">{brand.name}</span>
+            )}
+          </div>
+          <h1 className="lx-display lx-h1 lunia-animate-fade-up lunia-delay-1 mt-12 text-[var(--color-ink)]">{brand.name}</h1>
+          <p className="lx-lead lunia-animate-fade-up lunia-delay-2 mt-6 max-w-2xl">{localized(locale, brand.descEn, brand.descAr)}</p>
+          <div className="lunia-animate-fade-up lunia-delay-3 mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-4">
+            <a href={bookHref} className="lx-pill">
+              {tCommon("bookNow")}
+            </a>
             {brand.url && (
-              <a
-                href={brand.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-fit items-center gap-2 text-sm font-medium text-[var(--color-ink)] underline decoration-[var(--color-gold)] decoration-2 underline-offset-4"
-              >
+              <a href={brand.url} target="_blank" rel="noreferrer" className="lx-link">
                 {tBrand("visitWebsite")}
+                <Chevron />
               </a>
             )}
           </div>
         </div>
-      </Section>
+      </section>
 
-      <Section tone="tinted">
-        <div className="mx-auto flex max-w-2xl flex-col gap-6 text-start">
-          <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)] sm:text-3xl">
-            {tBrand("whyChosenLabel")}
-          </h2>
-          <p className="text-base leading-relaxed text-[var(--color-ink)]/75 sm:text-lg">
-            {localized(locale, brand.whyChosenEn, brand.whyChosenAr)}
-          </p>
-          <p className="text-sm leading-relaxed text-[var(--color-ink)]/55">{tBrand("treatmentsNote")}</p>
-        </div>
-      </Section>
+      {whyChosen && <Statement id="why" eyebrow={tBrand("whyChosenLabel")} text={whyChosen} note={tBrand("treatmentsNote")} />}
+
+      {others.length > 0 && (
+        <Chapter tone="mist" heading={tBrand("othersHeading")} align="start" bleed>
+          <Gallery label={tBrand("othersHeading")} prevLabel={tUi("prev")} nextLabel={tUi("next")}>
+            {others.map((b: Brand, i: number) => (
+              <BrandTile
+                key={b.id}
+                name={b.name}
+                blurb={localized(locale, b.descEn, b.descAr)}
+                href={`/${locale}/brands/${b.slug}`}
+                logoKey={otherLogos[i]?.key ?? null}
+                linkLabel={tIndex("learnMore")}
+                className="w-[80vw] shrink-0 sm:w-[20rem] lg:w-[22rem]"
+              />
+            ))}
+          </Gallery>
+        </Chapter>
+      )}
 
       <Section tone="plain">
         <CtaBand

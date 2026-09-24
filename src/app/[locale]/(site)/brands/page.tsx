@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import type { Brand } from "@prisma/client";
 
-import { Hero } from "@/components/site/Hero";
 import { Section } from "@/components/site/Section";
-import { BrandCard } from "@/components/site/BrandCard";
 import { CtaBand } from "@/components/site/CtaBand";
+import { LocalNav } from "@/components/site/apple/LocalNav";
+import { PageHero } from "@/components/site/apple/PageHero";
+import { Chapter } from "@/components/site/apple/Chapter";
+import { BrandTile } from "@/components/site/apple/BrandTile";
+import { FeatureTiles, type FeatureTile } from "@/components/site/apple/FeatureTiles";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 import type { PublicLocale } from "@/modules/cms/publicContent";
@@ -61,18 +64,27 @@ export default async function BrandsPage({ params }: BrandsPageProps) {
   const { locale: rawLocale } = await params;
   const locale: PublicLocale = isPublicLocale(rawLocale) ? rawLocale : "ar";
 
-  const [brands, tCommon, tNav, tHero, tCta] = await Promise.all([
+  const [brands, tCommon, tNav, tHero, tCta, tIndex, tUi] = await Promise.all([
     listBrands({ publishedOnly: true }),
     getTranslations({ locale, namespace: "common" }),
     getTranslations({ locale, namespace: "nav" }),
     getTranslations({ locale, namespace: "brandsIndex.hero" }),
     getTranslations({ locale, namespace: "brandsIndex.cta" }),
+    getTranslations({ locale, namespace: "brandsIndex" }),
+    getTranslations({ locale, namespace: "ui" }),
   ]);
 
   const bookHref = `/${locale}/book`;
   const appUrl = resolveAppUrl();
 
   const brandMedia = await Promise.all(brands.map((brand: Brand) => resolveMedia(brand.logoMediaId)));
+
+  const standardIcons = ["flask", "shield", "drop", "chart"] as const;
+  const standards: FeatureTile[] = (tIndex.raw("standards.tiles") as { title: string; body: string }[]).map((t, i) => ({
+    icon: standardIcons[i] ?? "sparkle",
+    title: t.title,
+    body: t.body,
+  }));
 
   const breadcrumb = breadcrumbJsonLd([
     { name: tNav("home"), url: `${appUrl}/${locale}` },
@@ -83,29 +95,44 @@ export default async function BrandsPage({ params }: BrandsPageProps) {
     <main className="flex flex-col">
       <JsonLd data={breadcrumb} />
 
-      <Hero
-        eyebrow={tHero("eyebrow")}
-        headline={tHero("heading")}
-        subhead={tHero("intro")}
-        ctaLabel={tCommon("bookNow")}
-        ctaHref={bookHref}
+      <LocalNav
+        title={tNav("brands")}
+        links={[
+          { href: "#partners", label: tIndex("localNav.partners") },
+          { href: "#standards", label: tIndex("localNav.standards") },
+        ]}
+        cta={{ href: bookHref, label: tUi("book") }}
       />
 
-      <Section tone="plain">
-        <div className="grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+      <PageHero
+        eyebrow={tHero("eyebrow")}
+        title={tHero("heading")}
+        lead={tHero("intro")}
+        cta={{ href: bookHref, label: tCommon("bookNow") }}
+        secondary={{ href: "#partners", label: tIndex("partners.heading") }}
+        media={{ type: "image", src: "/media/ritual-shelf.webp" }}
+      />
+
+      <Chapter id="partners" tone="mist" eyebrow={tIndex("partners.eyebrow")} heading={tIndex("partners.heading")}>
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {brands.map((brand: Brand, index: number) => (
-            <BrandCard
+            <BrandTile
               key={brand.id}
               name={brand.name}
               blurb={localized(locale, brand.descEn, brand.descAr)}
               href={`/${locale}/brands/${brand.slug}`}
-              logo={brandMedia[index]}
+              logoKey={brandMedia[index]?.key ?? null}
+              linkLabel={tIndex("learnMore")}
             />
           ))}
         </div>
-      </Section>
+      </Chapter>
 
-      <Section tone="tinted">
+      <Chapter id="standards" tone="page" eyebrow={tIndex("standards.eyebrow")} heading={tIndex("standards.heading")}>
+        <FeatureTiles tiles={standards} columns={4} />
+      </Chapter>
+
+      <Section tone="plain">
         <CtaBand eyebrow={tCta("eyebrow")} headline={tCta("headline")} ctaLabel={tCommon("bookNow")} ctaHref={bookHref} />
       </Section>
     </main>

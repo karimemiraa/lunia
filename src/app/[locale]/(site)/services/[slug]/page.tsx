@@ -1,23 +1,31 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import type { Service } from "@prisma/client";
+import type { Department, Service } from "@prisma/client";
 
 import { Section } from "@/components/site/Section";
-import { SectionHeading } from "@/components/site/SectionHeading";
 import { CtaBand } from "@/components/site/CtaBand";
 import { Faq } from "@/components/site/Faq";
-import { MediaFrame } from "@/components/site/MediaFrame";
+import { DepartmentTiles } from "@/components/site/home/DepartmentTiles";
+import { LocalNav } from "@/components/site/apple/LocalNav";
+import { PageHero } from "@/components/site/apple/PageHero";
+import { Chapter } from "@/components/site/apple/Chapter";
+import { Gallery } from "@/components/site/apple/Gallery";
+import { MediaCard } from "@/components/site/apple/MediaCard";
+import { Statement } from "@/components/site/apple/Statement";
+import { FeatureRow } from "@/components/site/apple/FeatureRow";
+import { FeatureTiles, type FeatureTile } from "@/components/site/apple/FeatureTiles";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { getMedia } from "@/modules/cms/media";
 import { getEnv } from "@/lib/env";
-import { getDepartmentBySlug } from "@/modules/catalog/departments";
+import { getDepartmentBySlug, listDepartments } from "@/modules/catalog/departments";
 import { localized, localizedList } from "@/modules/catalog/localize";
 import { buildMetadata } from "@/modules/seo/metadata";
 import { breadcrumbJsonLd, serviceJsonLd, faqPageJsonLd, aggregateRatingJsonLd } from "@/modules/seo/jsonld";
 import { getAggregate } from "@/modules/reviews/reviews";
+import { DEPARTMENT_FILM, departmentStill, serviceStill, withFallbacks, formatSar, type SiteMedia } from "@/lib/siteMedia";
 
 interface DepartmentPageProps {
   params: Promise<{ locale: string; slug: string }>;
@@ -80,19 +88,47 @@ export default async function DepartmentPage({ params }: DepartmentPageProps) {
     notFound();
   }
 
-  const [tCommon, tNav, tDept, tFaq] = await Promise.all([
+  const [tCommon, tNav, tDept, tFaq, tUi, tIndex, allDepartments] = await Promise.all([
     getTranslations({ locale, namespace: "common" }),
     getTranslations({ locale, namespace: "nav" }),
     getTranslations({ locale, namespace: "serviceDepartment" }),
     getTranslations({ locale, namespace: "serviceDepartment.faq" }),
+    getTranslations({ locale, namespace: "ui" }),
+    getTranslations({ locale, namespace: "servicesIndex" }),
+    listDepartments({ publishedOnly: true }),
   ]);
 
   const bookHref = `/${locale}/book`;
   const appUrl = resolveAppUrl();
   const departmentUrl = `${appUrl}/${locale}/services/${department.slug}`;
 
-  const heroMedia = await resolveMedia(department.heroMediaId);
   const services = department.services.filter((service: Service) => service.isPublished);
+  const serviceCms = await Promise.all(services.map((service: Service) => resolveMedia(service.heroMediaId)));
+  const serviceMedia: SiteMedia[] = services.map((service: Service, i: number) => {
+    const cms = serviceCms[i];
+    return cms ? { type: "cms", key: cms.key, kind: cms.kind } : serviceStill(service.slug, department.slug);
+  });
+  const heroFilm = DEPARTMENT_FILM[department.slug] ?? departmentStill(department.slug);
+
+  // The other departments ("All in the family"), never repeating a photo.
+  const otherDepartments = allDepartments.filter((d: Department) => d.id !== department.id);
+  const otherCms = await Promise.all(otherDepartments.map((d: Department) => resolveMedia(d.heroMediaId)));
+  const otherMedia = withFallbacks(otherCms, (i) => departmentStill(otherDepartments[i]!.slug));
+
+  const metaFor = (service: Service) =>
+    [tUi("minutes", { n: service.durationMin }), service.priceMinor > 0 ? `${tUi("from")} ${formatSar(locale, service.priceMinor)}` : null]
+      .filter(Boolean)
+      .join(" · ");
+
+  const whyAll = tIndex.raw("why.tiles") as { title: string; body: string }[];
+  const whyTiles: FeatureTile[] = (
+    [
+      [0, "diagnose"],
+      [1, "shield"],
+      [3, "layers"],
+      [4, "chart"],
+    ] as const
+  ).map(([i, icon]) => ({ icon, title: whyAll[i]!.title, body: whyAll[i]!.body }));
 
   const departmentName = localized(locale, department.nameEn, department.nameAr);
   const faqItems = tFaq.raw("items") as FaqMessage[];
@@ -138,79 +174,98 @@ export default async function DepartmentPage({ params }: DepartmentPageProps) {
     <main className="flex flex-col">
       <JsonLd data={[breadcrumb, ...serviceEntities, ...(faqEntity ? [faqEntity] : []), ...aggregateRatingEntities]} />
 
-      <Section tone="plain">
-        <div className="grid gap-10 sm:grid-cols-[1.1fr_1fr] sm:items-center sm:gap-16">
-          <div className="flex flex-col gap-6 text-start">
-            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-canopy)]">
-              {tNav("services")}
-            </span>
-            <h1 className="font-[family-name:var(--font-display)] text-4xl leading-[1.1] tracking-tight text-[var(--color-ink)] sm:text-5xl">
-              {departmentName}
-            </h1>
-            <p className="max-w-xl text-base leading-relaxed text-[var(--color-ink)]/70 sm:text-lg">
-              {localized(locale, department.taglineEn, department.taglineAr)}
-            </p>
-            <p className="max-w-xl text-base leading-relaxed text-[var(--color-ink)]/70">
-              {localized(locale, department.descEn, department.descAr)}
-            </p>
+      <LocalNav
+        title={departmentName}
+        titleHref={`/${locale}/services`}
+        links={[
+          { href: "#overview", label: tDept("localNav.overview") },
+          { href: "#treatments", label: tDept("localNav.treatments") },
+          ...(faqItems.length > 0 ? [{ href: "#faq", label: tDept("localNav.faq") }] : []),
+        ]}
+        cta={{ href: bookHref, label: tUi("book") }}
+      />
+
+      <PageHero
+        eyebrow={tNav("services")}
+        title={departmentName}
+        lead={localized(locale, department.taglineEn, department.taglineAr)}
+        cta={{ href: bookHref, label: tCommon("bookNow") }}
+        secondary={{ href: "#treatments", label: tDept("treatmentsHeading") }}
+        media={heroFilm}
+        mediaAlt={departmentName}
+      />
+
+      {services.length > 0 && (
+        <Chapter tone="white" heading={tDept("highlights")} align="start" bleed>
+          <Gallery label={tDept("highlights")} prevLabel={tUi("prev")} nextLabel={tUi("next")}>
+            {services.map((service: Service, i: number) => (
+              <MediaCard
+                key={service.id}
+                media={serviceMedia[i]!}
+                eyebrow={tUi("minutes", { n: service.durationMin })}
+                title={localized(locale, service.nameEn, service.nameAr)}
+                body={localized(locale, service.summaryEn, service.summaryAr)}
+                href={`#${service.slug}`}
+                textAt="bottom"
+                className="aspect-[3/4] w-[80vw] shrink-0 sm:w-[22rem] lg:w-[25rem]"
+              />
+            ))}
+          </Gallery>
+        </Chapter>
+      )}
+
+      <Statement id="overview" eyebrow={tDept("overview")} text={localized(locale, department.descEn, department.descAr)} />
+
+      <Chapter
+        id="treatments"
+        tone="mist"
+        eyebrow={tDept("treatmentsEyebrow")}
+        heading={tDept("treatmentsHeading")}
+        lead={tDept("servicesIntro")}
+      >
+        {services.length === 0 ? (
+          <p className="text-center text-base text-[var(--color-ink)]/60">{tDept("emptyServices")}</p>
+        ) : (
+          <div className="flex flex-col gap-20 lg:gap-28">
+            {services.map((service: Service, i: number) => (
+              <FeatureRow
+                key={service.id}
+                id={service.slug}
+                media={serviceMedia[i]!}
+                title={localized(locale, service.nameEn, service.nameAr)}
+                body={localized(locale, service.summaryEn, service.summaryAr)}
+                meta={metaFor(service)}
+                bullets={localizedList(locale, service.benefitsEn, service.benefitsAr)}
+                cta={{ href: `${bookHref}?service=${service.slug}`, label: tDept("bookThis") }}
+                flip={i % 2 === 1}
+              />
+            ))}
           </div>
-          <MediaFrame
-            mediaKey={heroMedia?.key}
-            kind={heroMedia?.kind}
-            alt={departmentName}
-            aspectClassName="aspect-[4/5] sm:aspect-[4/5]"
-          />
-        </div>
-      </Section>
+        )}
+      </Chapter>
 
-      <Section tone="plain">
-        <div className="flex flex-col gap-14">
-          <SectionHeading heading={tDept("servicesHeading")} intro={tDept("servicesIntro")} />
-
-          {services.length === 0 ? (
-            <p className="text-base text-[var(--color-ink)]/60">{tDept("emptyServices")}</p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-[var(--color-ink)]/10">
-              {services.map((service: Service) => {
-                const benefits = localizedList(locale, service.benefitsEn, service.benefitsAr);
-                return (
-                  <li key={service.id} id={service.slug} className="flex flex-col gap-4 py-10 first:pt-0 last:pb-0">
-                    <h3 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)] sm:text-3xl">
-                      {localized(locale, service.nameEn, service.nameAr)}
-                    </h3>
-                    <p className="max-w-2xl text-base leading-relaxed text-[var(--color-ink)]/70">
-                      {localized(locale, service.summaryEn, service.summaryAr)}
-                    </p>
-                    {benefits.length > 0 && (
-                      <div className="flex flex-col gap-2">
-                        <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-ink)]/40">
-                          {tDept("benefitsLabel")}
-                        </span>
-                        <ul className="grid gap-x-8 gap-y-2 text-sm text-[var(--color-ink)]/75 sm:grid-cols-2">
-                          {benefits.map((benefit) => (
-                            <li key={benefit} className="flex items-start gap-2">
-                              <span aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--color-gold)]" />
-                              {benefit}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </Section>
+      <Chapter tone="page" heading={tDept("whyHeading")}>
+        <FeatureTiles tiles={whyTiles} columns={4} />
+      </Chapter>
 
       {faqItems.length > 0 && (
-        <Section tone="tinted">
-          <div className="flex flex-col gap-10">
-            <SectionHeading heading={tFaq("heading")} align="center" className="mx-auto" />
-            <Faq items={faqItems} />
-          </div>
-        </Section>
+        <Chapter id="faq" tone="white" heading={tFaq("heading")}>
+          <Faq items={faqItems} />
+        </Chapter>
+      )}
+
+      {otherDepartments.length > 0 && (
+        <DepartmentTiles
+          heading={tDept("family")}
+          exploreLabel={tIndex("exploreLabel")}
+          departments={otherDepartments.map((d: Department, i: number) => ({
+            id: d.id,
+            href: `/${locale}/services/${d.slug}`,
+            name: localized(locale, d.nameEn, d.nameAr),
+            tagline: localized(locale, d.taglineEn, d.taglineAr),
+            media: otherMedia[i]!,
+          }))}
+        />
       )}
 
       <Section tone="plain">

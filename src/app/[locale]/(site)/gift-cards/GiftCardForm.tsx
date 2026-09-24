@@ -72,7 +72,7 @@ export function GiftCardForm({ locale }: { locale: "en" | "ar" }) {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-6 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8">
+    <form onSubmit={submit} className="flex flex-col gap-6 rounded-[28px] bg-white p-7 shadow-[0_40px_80px_-55px_rgba(34,63,58,0.45)] sm:p-10">
       <div className="flex flex-col gap-3">
         <span className={labelClass}>{t("form.amountLabel")}</span>
         <div className="flex flex-wrap gap-2">

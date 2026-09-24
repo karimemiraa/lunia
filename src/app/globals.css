@@ -779,8 +779,18 @@ html[dir="rtl"] .lunia-progress-bar { transform-origin: right center; }
 
   /* --- Manifesto: words light up as you read. --- */
   .lx-highlight .lx-word { transition: color .2s linear; }
-  html.gsap-ready .lx-highlight .lx-word { color: color-mix(in srgb, var(--color-cream) 22%, transparent); }
-  html.gsap-ready .lx-highlight .lx-word.is-lit { color: var(--color-cream); }
+  html.gsap-ready .lx-highlight .lx-word { color: color-mix(in srgb, var(--lx-hl, var(--color-cream)) 22%, transparent); }
+  html.gsap-ready .lx-highlight .lx-word.is-lit { color: var(--lx-hl, var(--color-cream)); }
+  .lx-highlight-light { --lx-hl: var(--color-ink); }
+
+  /* --- Horizontal galleries: start aligned with the max-w-7xl container,
+     bleed to the viewport edge, snap per card. --- */
+  .lx-gallery {
+    --lx-gutter: max(1.5rem, calc((100vw - 80rem) / 2 + 1.5rem));
+    padding-inline: var(--lx-gutter);
+    scroll-padding-inline: var(--lx-gutter);
+  }
+  @media (max-width: 639px) { .lx-gallery { --lx-gutter: 1.25rem; } }
 
   /* --- Bento tiles --- */
   .lx-tile {
@@ -845,4 +855,24 @@ html[dir="rtl"] .lunia-split-word { padding-block: 0.18em; }
   .lunia-reveal { opacity: 1 !important; transform: none !important; }
   .lunia-wordmark-char { opacity: 1 !important; transform: none !important; }
   .lunia-drop-char { opacity: 1 !important; transform: none !important; }
+}
+
+/* Gift-card fan (GiftCardFan): cards rise from one stack and fan out; the
+   independent `translate` property lifts a card on hover without fighting
+   the fan transform. */
+@layer components {
+  .lx-fan-card {
+    transform: translate(calc(-50% + var(--tx)), var(--ty)) rotate(var(--r));
+    transition: translate 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: lx-fan-in 1.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--d);
+  }
+  .lx-fan-card:hover { translate: 0 -6%; }
+}
+@keyframes lx-fan-in {
+  from { transform: translate(-50%, 18%) rotate(0deg); opacity: 0; }
+  40% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lx-fan-card { animation: none; }
 }

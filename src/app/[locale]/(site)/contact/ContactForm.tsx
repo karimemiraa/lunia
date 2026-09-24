@@ -33,11 +33,11 @@ export function ContactForm() {
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-6 rounded-2xl border border-[var(--color-ink)]/10 bg-[var(--color-page)] p-6 sm:p-8"
+      className="flex flex-col gap-6 rounded-[28px] bg-white p-7 shadow-[0_40px_80px_-55px_rgba(34,63,58,0.45)] sm:p-10"
       noValidate
     >
       <div className="flex flex-col gap-1">
-        <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">{t("heading")}</h2>
+        <h2 className="lx-display text-[clamp(1.9rem,1.5rem+1vw,2.5rem)] text-[var(--color-ink)]">{t("heading")}</h2>
         <p className="text-sm leading-relaxed text-[var(--color-ink)]/65">{t("intro")}</p>
       </div>
 

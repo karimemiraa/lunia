@@ -3,12 +3,12 @@ import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
 import { Hero } from "@/components/site/Hero";
-import { JourneySteps } from "@/components/site/JourneySteps";
+import { JourneySticky } from "@/components/site/home/JourneySticky";
 import { CtaBand } from "@/components/site/CtaBand";
 import { Faq } from "@/components/site/Faq";
 import { Testimonials } from "@/components/site/Testimonials";
 import { ServiceCard } from "@/components/site/ServiceCard";
-import { BrandCard } from "@/components/site/BrandCard";
+import { BrandTile } from "@/components/site/apple/BrandTile";
 import { ResultsGallery } from "@/components/site/ResultsGallery";
 
 const SIX_STEPS = [
@@ -38,13 +38,17 @@ describe("Hero", () => {
   });
 });
 
-describe("JourneySteps", () => {
-  it("renders all 6 provided steps' titles", () => {
-    render(<JourneySteps heading="The Journey" steps={SIX_STEPS} />);
+describe("JourneySticky", () => {
+  it("renders all 6 provided steps' titles, numbered, with the first step active", () => {
+    const { container } = render(<JourneySticky eyebrow="Journey" heading="The Journey" stepLabel="Step" steps={SIX_STEPS} />);
 
     for (const step of SIX_STEPS) {
       expect(screen.getByText(step.title)).toBeInTheDocument();
     }
+    expect(screen.getByText("Step 06")).toBeInTheDocument();
+    const steps = container.querySelectorAll("[data-step]");
+    expect(steps).toHaveLength(6);
+    expect(steps[0]).toHaveClass("is-active");
   });
 });
 
@@ -110,9 +114,9 @@ describe("ServiceCard", () => {
   });
 });
 
-describe("BrandCard", () => {
+describe("BrandTile", () => {
   it("renders the name, blurb, and links to href", () => {
-    render(<BrandCard name="ZO Skin Health" blurb="Clinical skincare." href="/en/brands/zo-skin-health" />);
+    render(<BrandTile name="ZO Skin Health" blurb="Clinical skincare." href="/en/brands/zo-skin-health" linkLabel="Learn more" />);
 
     const link = screen.getByRole("link", { name: /ZO Skin Health/ });
     expect(link).toHaveAttribute("href", "/en/brands/zo-skin-health");

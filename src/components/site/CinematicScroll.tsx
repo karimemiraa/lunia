@@ -198,6 +198,16 @@ export function CinematicScroll() {
             }
           });
 
+          // 7b) Growing media stage (page heroes) — scales up and eases its
+          // corners in as it rises into view, Apple-style. Scrubbed, not pinned.
+          gsap.utils.toArray<HTMLElement>("[data-grow]").forEach((el) => {
+            gsap.fromTo(
+              el,
+              { scale: 0.88, borderRadius: 40 },
+              { scale: 1, borderRadius: 28, ease: "none", scrollTrigger: { trigger: el, start: "top bottom", end: "top 18%", scrub: 0.4 } },
+            );
+          });
+
           // 8) Animated counters — count up from 0 to [data-count] on enter.
           gsap.utils.toArray<HTMLElement>("[data-count]").forEach((el) => {
             const target = parseFloat(el.getAttribute("data-count") || "0");

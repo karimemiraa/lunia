@@ -33,7 +33,8 @@ describe("SiteHeader", () => {
 
     render(<NextIntlClientProvider locale="en" messages={enMessages}>{header}</NextIntlClientProvider>);
 
-    for (const label of ["Home", "About", "Services", "Brands", "Results", "Journal", "Contact"]) {
+    const nav = enMessages.nav;
+    for (const label of [nav.home, nav.about, nav.services, nav.brands, nav.results, nav.journal, nav.contact]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
 

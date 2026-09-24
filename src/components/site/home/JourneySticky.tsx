@@ -4,6 +4,7 @@ interface JourneyStep {
 }
 
 interface JourneyStickyProps {
+  id?: string;
   eyebrow: string;
   heading: string;
   stepLabel: string;
@@ -32,11 +33,12 @@ const stillFor = (m: StepMedia) => (m.type === "video" ? m.poster : m.src);
 // [data-steps] toggles .is-active and plays only the active film). A progress
 // rail with Glow-star nodes fills as you go. On mobile each step simply
 // carries its own still above the copy. Without JS every step is fully shown.
-export function JourneySticky({ eyebrow, heading, stepLabel, steps }: JourneyStickyProps) {
+export function JourneySticky({ id, eyebrow, heading, stepLabel, steps }: JourneyStickyProps) {
   return (
     <section
+      id={id}
       data-steps
-      className="lunia-pattern-waves lunia-pattern-on-dark relative bg-[var(--color-forest)] py-[clamp(6rem,14svh,10rem)] text-[var(--color-cream)]"
+      className="scroll-mt-32 lunia-pattern-waves lunia-pattern-on-dark relative bg-[var(--color-forest)] py-[clamp(6rem,14svh,10rem)] text-[var(--color-cream)]"
     >
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-6">
         <header className="flex max-w-3xl flex-col items-start">

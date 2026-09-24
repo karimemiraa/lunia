@@ -206,6 +206,38 @@
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Come see the difference a real diagnosis makes"
+    },
+    "localNav": {
+      "story": "Story",
+      "values": "What guides us",
+      "journey": "Journey",
+      "team": "Team"
+    },
+    "guides": {
+      "eyebrow": "What Guides Us",
+      "heading": "Beauty cultivated through care, not alteration.",
+      "cards": [
+        {
+          "eyebrow": "Why we exist",
+          "title": "Riyadh is choosing lasting skin health.",
+          "body": "Women are prioritizing long-term skin and hair quality over invasive, synthetic fixes. Lunia exists to meet that shift."
+        },
+        {
+          "eyebrow": "Our story",
+          "title": "Mastery, held in calm.",
+          "body": "Refined skin and hair expertise meets the restorative tranquility of a luxury retreat."
+        },
+        {
+          "eyebrow": "Inspiration",
+          "title": "Like the moon's own glow.",
+          "body": "Every client carries an innate brilliance. Our work is to honor it and help it wake."
+        },
+        {
+          "eyebrow": "Our concept",
+          "title": "Unfolding natural brilliance.",
+          "body": "Botanical potency and absolute serenity, so your most authentic glow can come through."
+        }
+      ]
     }
   },
   "servicesIndex": {
@@ -227,6 +259,83 @@
     "moment": {
       "eyebrow": "Clinical-grade care",
       "headline": "Every treatment, matched to your skin."
+    },
+    "localNav": {
+      "departments": "Departments",
+      "treatments": "Treatments",
+      "why": "Why Lunia"
+    },
+    "treatments": {
+      "eyebrow": "The Treatments",
+      "heading": "Explore every treatment.",
+      "intro": "Twelve protocols across three departments, each one begun with a diagnostic read, never picked from a menu.",
+      "seeAll": "See the department"
+    },
+    "why": {
+      "eyebrow": "Why Lunia",
+      "heading": "Why Lunia is the best place for your skin.",
+      "bookLink": "Book a visit",
+      "giftLink": "Send a gift card",
+      "tiles": [
+        {
+          "title": "Diagnosis before anything",
+          "body": "Every first visit starts with imaging and a real conversation, so the plan fits your skin."
+        },
+        {
+          "title": "Non-invasive, always",
+          "body": "No needles, no heavy downtime. Care that preserves your natural beauty, never replaces it."
+        },
+        {
+          "title": "Clinical-grade brands",
+          "body": "Only partners we'd recommend to our own families, chosen for results, not trends."
+        },
+        {
+          "title": "A plan, not a package",
+          "body": "Your specialist builds a rhythm of visits around what your skin actually needs."
+        },
+        {
+          "title": "Progress you can track",
+          "body": "We re-read your skin at every stage, so improvement is measured, not guessed."
+        },
+        {
+          "title": "A calm, private space",
+          "body": "Treatment rooms and a recovery lounge designed for quiet and discretion."
+        },
+        {
+          "title": "Book in a minute",
+          "body": "Choose a service and a time online, confirm by phone, no account needed."
+        },
+        {
+          "title": "Share the glow",
+          "body": "Give a Lunia gift card for any service, delivered instantly by email."
+        }
+      ]
+    },
+    "know": {
+      "eyebrow": "Get to Know Lunia",
+      "heading": "Care you can see. Calm you can feel.",
+      "cards": [
+        {
+          "eyebrow": "Diagnosis",
+          "title": "It all starts with a real read of your skin."
+        },
+        {
+          "eyebrow": "Formulas",
+          "title": "Clinical-grade, never harsh."
+        },
+        {
+          "eyebrow": "The space",
+          "title": "A sanctuary of expertise."
+        },
+        {
+          "eyebrow": "Hair & scalp",
+          "title": "Healthy hair starts at the scalp."
+        },
+        {
+          "eyebrow": "Recovery",
+          "title": "Recovery, taken as seriously as the procedure."
+        }
+      ]
     }
   },
   "brandsIndex": {
@@ -242,6 +351,37 @@
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Book a diagnostic consultation to begin"
+    },
+    "localNav": {
+      "partners": "Partners",
+      "standards": "Our standards"
+    },
+    "partners": {
+      "eyebrow": "Our Partners",
+      "heading": "Every name, earned."
+    },
+    "learnMore": "Learn more",
+    "standards": {
+      "eyebrow": "How We Choose",
+      "heading": "How a brand earns its place.",
+      "tiles": [
+        {
+          "title": "Clinical evidence",
+          "body": "Ingredients and protocols backed by real research, not marketing claims."
+        },
+        {
+          "title": "Gentle on every skin",
+          "body": "Tolerance and safety across skin types, including sensitive and post-procedure skin."
+        },
+        {
+          "title": "Transparent formulas",
+          "body": "Honest ingredient lists we can explain to you, ingredient by ingredient."
+        },
+        {
+          "title": "Results over trends",
+          "body": "A brand stays only as long as it keeps delivering visible, lasting results."
+        }
+      ]
     }
   },
   "brandDetail": {
@@ -251,6 +391,12 @@
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Book a diagnostic consultation to begin"
+    },
+    "partnerLabel": "Clinical partner",
+    "othersHeading": "Explore other partners.",
+    "localNav": {
+      "overview": "Overview",
+      "why": "Why we chose it"
     }
   },
   "resultsIndex": {
@@ -279,6 +425,28 @@
     "moment": {
       "eyebrow": "Real, lasting results",
       "headline": "Skin quality you can see and keep."
+    },
+    "localNav": {
+      "gallery": "Gallery",
+      "measure": "How we measure"
+    },
+    "measure": {
+      "eyebrow": "How We Measure",
+      "heading": "Progress, measured. Never guessed.",
+      "tiles": [
+        {
+          "title": "Imaging at every visit",
+          "body": "The same diagnostic imaging each time, so your skin is only ever compared with itself."
+        },
+        {
+          "title": "Same light, same angles",
+          "body": "Photos are taken under consistent conditions, so any change is real, not lighting."
+        },
+        {
+          "title": "Consent first",
+          "body": "Nothing is shared without your explicit, written consent."
+        }
+      ]
     }
   },
   "journalIndex": {
@@ -296,7 +464,9 @@
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Book a diagnostic consultation to begin"
-    }
+    },
+    "latest": "Latest stories",
+    "category": "Blog"
   },
   "journalPost": {
     "byLabel": "By",
@@ -304,7 +474,8 @@
     "cta": {
       "eyebrow": "Ready When You Are",
       "headline": "Book a diagnostic consultation to begin"
-    }
+    },
+    "moreHeading": "More from the Blog."
   },
   "contact": {
     "meta": {
@@ -336,6 +507,45 @@
       "successMessage": "Thank you, we've received your message and will reach out shortly.",
       "errorMessage": "Something went wrong, please check your details and try again.",
       "requiredNote": "* Required"
+    },
+    "localNav": {
+      "visit": "Visit",
+      "message": "Message us"
+    },
+    "status": {
+      "open": "Open today, {open} – {close}",
+      "closed": "Closed today"
+    },
+    "strip": {
+      "book": {
+        "title": "Book a visit",
+        "link": "Book online"
+      },
+      "whatsapp": {
+        "title": "WhatsApp us",
+        "link": "Start a chat"
+      },
+      "call": {
+        "title": "Call the clinic",
+        "link": "Call now"
+      },
+      "directions": {
+        "title": "Find us",
+        "link": "Get directions"
+      },
+      "gift": {
+        "title": "Gift cards",
+        "link": "Send a gift"
+      }
+    },
+    "hoursHeading": "Clinic hours",
+    "closedLabel": "Closed",
+    "helpHeading": "How can we help you?",
+    "help": {
+      "book": "Book a diagnostic consultation",
+      "services": "Explore our services",
+      "journal": "Read the blog",
+      "gift": "Buy a gift card"
     }
   },
   "serviceDepartment": {
@@ -363,6 +573,20 @@
           "a": "Both. Many customers come in for maintenance once their skin or scalp quality is where they want it, consistency is what keeps results from fading."
         }
       ]
+    },
+    "highlights": "Get the highlights.",
+    "overview": "Overview",
+    "treatmentsEyebrow": "Treatments",
+    "treatmentsHeading": "Every treatment, matched to you.",
+    "durationLabel": "Duration",
+    "priceLabel": "From",
+    "bookThis": "Book this treatment",
+    "family": "Explore the other departments.",
+    "whyHeading": "Why it works.",
+    "localNav": {
+      "overview": "Overview",
+      "treatments": "Treatments",
+      "faq": "FAQ"
     }
   },
   "book": {
@@ -680,6 +904,43 @@
     "errors": {
       "generic": "Something went wrong, please try again.",
       "amount": "Please choose a valid amount."
+    },
+    "localNav": {
+      "how": "How it works",
+      "buy": "Buy"
+    },
+    "heroCta": "Buy a gift card",
+    "cardLabel": "Gift Card",
+    "how": {
+      "eyebrow": "How It Works",
+      "heading": "Three steps. One glow.",
+      "tiles": [
+        {
+          "title": "Choose an amount",
+          "body": "Pick a preset or enter your own, for any Lunia service."
+        },
+        {
+          "title": "Add a personal note",
+          "body": "Write a message and choose who receives it."
+        },
+        {
+          "title": "Delivered instantly",
+          "body": "The gift card code arrives by email, ready to book with."
+        }
+      ]
+    },
+    "buy": {
+      "eyebrow": "Buy a Gift Card",
+      "heading": "Make it personal."
     }
+  },
+  "ui": {
+    "prev": "Previous",
+    "next": "Next",
+    "learnMore": "Learn more",
+    "book": "Book",
+    "minutes": "{n} min",
+    "from": "From",
+    "highlights": "Highlights"
   }
 }
