@@ -1005,7 +1005,11 @@ async function handleText(turn: Turn, text: string): Promise<void> {
   const hadPhone = !!s.phone;
   if (u.name && !s.name && s.state !== "book_otp") s.name = u.name;
   if (u.phone && (!s.phone || s.state === "book_phone" || s.state === "cb_phone")) s.phone = u.phone;
-  if (s.phone && !hadPhone) {
+  // Contact details become a lead right away, except in the booking path:
+  // there the number is unverified until the OTP, so the lead is only
+  // captured once the booking (and so the verified client) exists.
+  const bookingPath = s.state.startsWith("book_");
+  if (s.phone && !hadPhone && !bookingPath) {
     setOutcome(s, "LEAD");
     await turn.ports.captureLead(s);
   }
@@ -1033,8 +1037,10 @@ async function handleText(turn: Turn, text: string): Promise<void> {
       }
       if (!s.phone || s.phone !== phone) {
         s.phone = phone;
-        setOutcome(s, "LEAD");
-        await turn.ports.captureLead(s);
+        if (s.state === "cb_phone") {
+          setOutcome(s, "LEAD");
+          await turn.ports.captureLead(s);
+        }
       }
       return s.state === "book_phone" ? turn.sendCode() : turn.askWindow();
     }

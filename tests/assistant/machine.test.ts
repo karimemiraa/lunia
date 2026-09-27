@@ -142,12 +142,16 @@ describe("assistant state machine", () => {
     r = await run(r.session, ports, "055 123 4567");
     expect(r.session.state).toBe("book_otp");
     expect(ports.calls.sendOtp).toEqual(["+966551234567"]);
-    expect(ports.calls.captureLead).toHaveLength(1);
+    // No lead from an unverified number in the booking path.
+    expect(ports.calls.captureLead).toHaveLength(0);
+    expect(r.session.outcome).toBeUndefined();
     r = await run(r.session, ports, "000000");
+    expect(ports.calls.captureLead).toHaveLength(0);
     expect(r.session.state).toBe("book_otp");
     r = await run(r.session, ports, "123456");
     expect(r.session.outcome).toBe("BOOKED");
     expect(r.session.bookingId).toBe("bk_test_000001");
+    expect(ports.calls.captureLead).toEqual([{ phone: "+966551234567", outcome: "BOOKED" }]);
     const summary = (r.replies as { summary?: unknown; links?: { href: string }[] }[]).find((x) => x.summary);
     expect(summary?.links?.[0]?.href).toBe("/en/account");
     expect(ports.calls.book).toHaveLength(2);
@@ -180,7 +184,8 @@ describe("assistant state machine", () => {
     let r = await run(newSession("en"), ports, choice("book"), choice("svc:svc-led-light-therapy"), choice("day:2026-09-28"));
     r = await run(r.session, ports, choice("slot:2026-09-28T13:00:00.000Z"), "Mona", "0551234567", "123456");
     expect(r.session.state).toBe("book_slot");
-    expect(r.session.outcome).toBe("LEAD");
+    expect(r.session.outcome).toBeUndefined();
+    expect(ports.calls.captureLead).toHaveLength(0);
   });
 
   it("requests a call-back and captures the lead", async () => {

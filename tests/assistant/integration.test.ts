@@ -212,6 +212,9 @@ describe("chat service end to end", () => {
     res = await sendChat(ctx, { kind: "choice", value: slot! });
     res = await sendChat(ctx, { kind: "text", text: `IT-${RUN} Booker` });
     res = await sendChat(ctx, { kind: "text", text: phone });
+    // Nothing is written to the CRM for an unverified number.
+    expect(await prisma.user.count({ where: { phone } })).toBe(0);
+    expect((await prisma.chatSession.findUniqueOrThrow({ where: { token: ctx.token } })).clientProfileId).toBeNull();
     const devLine = res.view.messages.map((m) => m.text).find((t) => /Development only/.test(t));
     const code = /(\d{6})/.exec(devLine ?? "")?.[1];
     expect(code).toBeTruthy();
@@ -226,6 +229,12 @@ describe("chat service end to end", () => {
     expect(booking).toMatchObject({ channel: "ONLINE", sourceChannel: "chat", clientProfileId: session.clientProfileId });
     expect(booking.appointments[0]!.startAt.toISOString()).toBe(slot!.slice("slot:".length));
     expect(res.view.messages.at(-1)!.links?.[0]?.href).toBe("/en/account");
+    // The lead is attached to the verified client, with one consultation note.
+    const client = await prisma.clientProfile.findUniqueOrThrow({ where: { id: booking.clientProfileId }, include: { user: true } });
+    expect(client.user.phone).toBe(phone);
+    expect(client.tags).toContain("chat-assistant");
+    const notes = await prisma.leadActivity.findMany({ where: { clientProfileId: client.id } });
+    expect(notes.map((n) => n.outcome)).toEqual(["CHAT_BOOKED"]);
   });
 
   it("rejects oversized and malformed input without persisting", async () => {
