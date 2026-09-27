@@ -103,9 +103,11 @@ interface Slot {
   endAt: Date;
 }
 
-// First free slot 3-21 days ahead that fits a staff member's weekly schedule
-// and doesn't overlap their (or the room's) existing appointments. Falls back
-// to 3 days ahead at 11:00 if the schedules are empty.
+// A slot 3-21 days ahead placed right AFTER a staff member's shift ends, so
+// the demo booking shows up like a real upcoming visit but can never take a
+// bookable slot from a real customer (this also runs against production).
+// Skips anything overlapping existing appointments. Falls back to 3 days
+// ahead at 22:30 if the schedules are empty.
 async function findUpcomingSlot(durationMin: number, now: Date, ignoreAppointmentId?: string): Promise<Slot> {
   const [schedules, rooms] = await Promise.all([
     prisma.staffSchedule.findMany({ where: { isActive: true, staff: { isActive: true, type: "STAFF" } }, orderBy: { startMin: "asc" } }),
@@ -117,7 +119,7 @@ async function findUpcomingSlot(durationMin: number, now: Date, ignoreAppointmen
     const dateISO = utcToCenterLocal(new Date(now.getTime() + offset * DAY_MS)).dateISO;
     const weekday = weekdayForDateISO(dateISO);
     for (const sch of schedules.filter((s) => s.weekday === weekday)) {
-      for (let start = sch.startMin + 60; start + durationMin <= sch.endMin; start += 30) {
+      for (let start = sch.endMin; start + durationMin <= 24 * 60; start += 30) {
         const startAt = centerLocalToUtc(dateISO, start);
         const endAt = centerLocalToUtc(dateISO, start + durationMin);
         const busy = await prisma.appointment.findMany({
@@ -139,7 +141,8 @@ async function findUpcomingSlot(durationMin: number, now: Date, ignoreAppointmen
   const staff = await prisma.user.findFirst({ where: { type: "STAFF", isActive: true }, orderBy: { createdAt: "asc" } });
   if (!staff) throw new Error("No staff users. Run the seed first.");
   const dateISO = utcToCenterLocal(new Date(now.getTime() + 3 * DAY_MS)).dateISO;
-  return { staffUserId: staff.id, roomId: rooms[0].id, startAt: centerLocalToUtc(dateISO, 660), endAt: centerLocalToUtc(dateISO, 660 + durationMin) };
+  const lateMin = Math.min(22 * 60 + 30, 24 * 60 - durationMin);
+  return { staffUserId: staff.id, roomId: rooms[0].id, startAt: centerLocalToUtc(dateISO, lateMin), endAt: centerLocalToUtc(dateISO, lateMin + durationMin) };
 }
 
 // --- Main -------------------------------------------------------------------------
