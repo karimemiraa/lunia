@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { BookingStatus } from "@prisma/client";
 import { checkInAction, completeAction, cancelAction, noShowAction, rescheduleAction, getCalendarSlotsAction, type CalendarSlotDTO } from "./actions";
@@ -85,6 +86,12 @@ export function AppointmentActions({ bookingId, appointmentId, serviceId, status
           >
             {pendingIntent === "complete" ? "Completing…" : "Complete"}
           </button>
+        )}
+        {status !== "CANCELLED" && status !== "NO_SHOW" && (
+          // Opens (or reuses) this booking's draft invoice in Billing.
+          <Link href={`/admin/billing/new?booking=${bookingId}`} className={buttonClass}>
+            Checkout
+          </Link>
         )}
         {!isTerminal && (
           <button

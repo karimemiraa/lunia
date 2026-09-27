@@ -21,6 +21,7 @@ import { MyCreditsPanel } from "./MyCreditsPanel";
 import { HealthProfileCard, ConsentsCard } from "./PatientFilePanels";
 import { getLatestIntake } from "@/modules/clinical/intake";
 import { consentStatusForClient } from "@/modules/clinical/consents";
+import { MyInvoicesPanel } from "./MyInvoicesPanel";
 import { logout } from "./actions";
 
 interface AccountPageProps {
@@ -222,6 +223,8 @@ export default async function AccountPage({ params }: AccountPageProps) {
               sessionsTotal: pkg.sessionsTotal,
             }))}
           />
+
+          <MyInvoicesPanel locale={locale} clientProfileId={user.clientProfile.id} />
 
           <NotificationsPanel locale={locale} preference={preference} />
 

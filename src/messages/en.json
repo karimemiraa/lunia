@@ -1155,5 +1155,66 @@
     "offline": "Connection problem. Please try again.",
     "privacy": "Your details are only used to contact you about your care.",
     "whatsapp": "Chat on WhatsApp"
+  },
+  "invoices": {
+    "meta": {
+      "title": "Your invoice",
+      "description": "View, print or pay your Lunia invoice."
+    },
+    "view": {
+      "print": "Print / Save as PDF",
+      "a4": "A4",
+      "receipt": "Receipt",
+      "payOnline": "Pay online",
+      "balanceDue": "Balance due: {amount}",
+      "paidInFull": "Paid in full. Thank you.",
+      "paymentReceived": "Thank you, your payment was received. It can take a minute to show here.",
+      "notFound": "This invoice link is not valid. Please ask us to send it again.",
+      "draft": "This invoice has not been issued yet."
+    },
+    "account": {
+      "heading": "My invoices",
+      "intro": "Your tax invoices and receipts from Lunia.",
+      "empty": "You have no invoices yet.",
+      "view": "View",
+      "creditNote": "Credit note",
+      "status": {
+        "ISSUED": "Unpaid",
+        "PARTIALLY_PAID": "Partly paid",
+        "PAID": "Paid"
+      }
+    },
+    "doc": {
+      "simplifiedTaxInvoice": "Simplified Tax Invoice",
+      "creditNote": "Credit Note",
+      "number": "Invoice No.",
+      "creditNumber": "Credit Note No.",
+      "date": "Issue date",
+      "seller": "Seller",
+      "vatNumber": "VAT No.",
+      "crNumber": "CR No.",
+      "customer": "Customer",
+      "customerVat": "Customer VAT No.",
+      "originalInvoice": "Original invoice",
+      "reason": "Reason",
+      "description": "Description",
+      "qty": "Qty",
+      "unitPrice": "Unit price",
+      "discount": "Discount",
+      "vatRate": "VAT %",
+      "vat": "VAT",
+      "lineTotal": "Total",
+      "subtotal": "Total excl. VAT",
+      "invoiceDiscount": "Discount",
+      "taxable": "Taxable amount",
+      "vatTotal": "Total VAT",
+      "total": "Total incl. VAT",
+      "paid": "Paid",
+      "balance": "Balance due",
+      "currency": "Amounts in SAR",
+      "vatAt": "VAT at {rate}%",
+      "thankYou": "Thank you for choosing Lunia.",
+      "draft": "DRAFT - not a tax invoice"
+    }
   }
 }
