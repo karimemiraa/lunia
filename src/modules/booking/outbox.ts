@@ -27,7 +27,7 @@ import { resolveDeliveryChannel } from "@/modules/comms/preferences";
 // cycle above.
 import { resolveSenderForChannel } from "@/modules/comms/sender";
 
-const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "WAITLIST_OPEN", "REVIEW_REQUEST"]);
+const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "WAITLIST_OPEN", "REVIEW_REQUEST", "INVOICE"]);
 export type MsgKind = z.infer<typeof msgKindSchema>;
 
 // Payload is a free-form JSON object (message-template data); Prisma's Json
@@ -153,6 +153,16 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
       return isAr
         ? `شكراً لزيارتك لونيا${ref}. نسعد بمشاركتك رأيك:${linkPartAr}`
         : `Thank you for visiting Lunia${ref}. We'd love to hear about your experience:${linkPartEn}`;
+    }
+    case "INVOICE": {
+      // Billing always passes the tokenized invoice link; payLine is the
+      // optional "pay online" sentence (empty when nothing is due).
+      const link = typeof payload.link === "string" ? payload.link : "";
+      const number = typeof payload.invoiceNumber === "string" ? payload.invoiceNumber : "";
+      const payLine = typeof payload.payLine === "string" && payload.payLine ? `\n\n${payload.payLine}` : "";
+      return isAr
+        ? `فاتورتك من لونيا ${number} جاهزة: ${link}${payLine}`
+        : `Your Lunia invoice ${number} is ready: ${link}${payLine}`;
     }
     default:
       return isAr ? `رسالة من لونيا${ref}.` : `A message from Lunia${ref}.`;
@@ -442,6 +452,8 @@ function subjectForKind(kind: string, locale: string): string {
       return isAr ? "فتح موعد كنت بانتظاره في لونيا" : "A spot opened up at Lunia";
     case "REVIEW_REQUEST":
       return isAr ? "شاركينا رأيك في زيارتك لونيا" : "Share your Lunia experience";
+    case "INVOICE":
+      return isAr ? "فاتورتك من لونيا" : "Your Lunia invoice";
     default:
       return "Lunia";
   }

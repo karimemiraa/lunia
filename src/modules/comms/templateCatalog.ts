@@ -13,6 +13,7 @@ export const TEMPLATE_KINDS = [
   "OTP",
   "WAITLIST_OPEN",
   "REVIEW_REQUEST",
+  "INVOICE",
 ] as const;
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
 
@@ -49,6 +50,11 @@ export const KIND_META: Record<string, { label: string; description: string; pla
     label: "Review request",
     description: "Invites the customer to leave a review.",
     placeholders: ["serviceName", "link"],
+  },
+  INVOICE: {
+    label: "Invoice",
+    description: "Sent from Billing with the invoice link (and an online pay link when one is due).",
+    placeholders: ["invoiceNumber", "total", "link", "payLine"],
   },
 };
 
@@ -92,6 +98,10 @@ export const DEFAULT_BODIES: Record<string, { ar: string; en: string }> = {
     ar: "شكراً لزيارتك لونيا لخدمة {{serviceName}}.\n\nيسعدنا سماع رأيك عن تجربتك:\n{{link}}",
     en: "Thank you for visiting Lunia for your {{serviceName}}.\n\nWe'd love to hear about your experience:\n{{link}}",
   },
+  INVOICE: {
+    ar: "أهلاً {{name}}، فاتورتك من لونيا رقم {{invoiceNumber}} بمبلغ {{total}} جاهزة، تقدرين تشوفينها وتطبعينها من هنا:\n{{link}}\n\n{{payLine}}",
+    en: "Hi {{name}}, your Lunia invoice {{invoiceNumber}} for {{total}} is ready. View or print it here:\n{{link}}\n\n{{payLine}}",
+  },
 };
 
 export function defaultBody(kind: string, locale: string): string {
@@ -116,6 +126,8 @@ export function subjectForTemplate(kind: string, locale: string): string {
       return isAr ? "فتح موعد كنت بانتظاره في لونيا" : "A spot opened up at Lunia";
     case "REVIEW_REQUEST":
       return isAr ? "شاركنا رأيك في زيارتك لونيا" : "Share your Lunia experience";
+    case "INVOICE":
+      return isAr ? "فاتورتك من لونيا" : "Your Lunia invoice";
     default:
       return "Lunia";
   }
@@ -131,6 +143,9 @@ export function sampleParams(locale: string): Record<string, string> {
         bookingId: "LUN-4821",
         code: "482913",
         link: "https://lunia.sa/r/az8y",
+        invoiceNumber: "INV-2026-000123",
+        total: "1,150.00 ر.س",
+        payLine: "تقدرين تدفعين أونلاين بأمان من هنا: https://lunia.sa/p/8k2x",
       }
     : {
         serviceName: "Radiance Facial",
@@ -138,6 +153,9 @@ export function sampleParams(locale: string): Record<string, string> {
         bookingId: "LUN-4821",
         code: "482913",
         link: "https://lunia.sa/r/az8y",
+        invoiceNumber: "INV-2026-000123",
+        total: "1,150.00 SAR",
+        payLine: "Pay online securely here: https://lunia.sa/p/8k2x",
       };
 }
 

@@ -83,6 +83,32 @@ const loyaltySettingsSchema = z.object({
 });
 export type LoyaltySettings = z.infer<typeof loyaltySettingsSchema>;
 
+// Seller / VAT identity printed on every tax invoice and encoded in the ZATCA
+// QR + UBL XML (see src/modules/billing/settings.ts for defaults + the
+// "is this complete enough to issue invoices" check). ZATCA requires the
+// full national address (building no., street, district, city, postal code).
+// pricesIncludeVat: catalog/service prices are VAT-inclusive (the site shows
+// consumer prices, which must include VAT in KSA) — invoices back-compute the
+// exclusive amount from them.
+const taxSettingsSchema = z.object({
+  sellerNameAr: z.string().default(""),
+  sellerNameEn: z.string().default(""),
+  // 15 digits, starts and ends with 3 (ZATCA format); "" until configured.
+  vatNumber: z.string().regex(/^(3\d{13}3)?$/, "VAT number must be 15 digits starting and ending with 3").default(""),
+  crNumber: z.string().default(""),
+  buildingNo: z.string().default(""),
+  street: z.string().default(""),
+  district: z.string().default(""),
+  city: z.string().default(""),
+  postalCode: z.string().default(""),
+  additionalNo: z.string().default(""),
+  invoicePrefix: z.string().regex(/^[A-Z0-9]{1,8}$/).default("INV"),
+  creditNotePrefix: z.string().regex(/^[A-Z0-9]{1,8}$/).default("CN"),
+  pricesIncludeVat: z.boolean().default(true),
+  defaultVatRateBp: z.number().int().min(0).max(10_000).default(1500),
+});
+export type TaxSettings = z.infer<typeof taxSettingsSchema>;
+
 export const settingsRegistry = {
   business: businessSettingsSchema,
   hours: hoursSettingsSchema,
@@ -91,6 +117,7 @@ export const settingsRegistry = {
   hero: heroSettingsSchema,
   comms: commsSettingsSchema,
   loyalty: loyaltySettingsSchema,
+  tax: taxSettingsSchema,
 } as const;
 
 export type SettingKey = keyof typeof settingsRegistry;

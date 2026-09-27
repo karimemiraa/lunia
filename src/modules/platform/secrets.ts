@@ -53,11 +53,17 @@ export const SECRET_GROUPS: SecretGroup[] = [
   {
     id: "payments",
     title: "Payments",
-    description: "Payment gateway for online gift-card purchases and deposits.",
+    description: "Payment gateway for online pay-by-link invoices, gift-card purchases and deposits.",
     fields: [
       { key: "PAYMENT_PROVIDER", label: "Provider", secret: false, placeholder: "moyasar / tap / hyperpay / stripe" },
       { key: "PAYMENT_PUBLIC_KEY", label: "Publishable key", secret: false },
       { key: "PAYMENT_SECRET_KEY", label: "Secret key", secret: true },
+      {
+        key: "PAYMENT_WEBHOOK_SECRET",
+        label: "Webhook secret token",
+        help: "The secret token set on the gateway's webhook (Moyasar: Settings → Webhooks) pointing at /api/payments/moyasar/webhook.",
+        secret: true,
+      },
     ],
   },
   {
