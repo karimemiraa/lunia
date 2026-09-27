@@ -138,3 +138,22 @@ describe("lots and expiry", () => {
     expect(lots).toHaveLength(0);
   });
 });
+
+describe("dashboard and stock notifications", () => {
+  it("reports value, low stock and expiring lots; notifications respect the permission", async () => {
+    const { getInventoryDashboard } = await import("@/modules/inventory/dashboard");
+    const { stockSource } = await import("@/modules/notifications/sources/stock");
+    const low = await makeProduct({ stockQty: 1, reorderLevel: 3, costMinor: 1000 });
+    await recordStockMovement({ productId: low.id, qty: 2, type: "PURCHASE", lotNumber: "NOTIFY", expiresAt: new Date(Date.now() + 10 * 86_400_000) });
+
+    const dash = await getInventoryDashboard();
+    expect(dash.valueMinor).toBeGreaterThanOrEqual(3 * 1000);
+    expect(dash.lowStock).toBeGreaterThanOrEqual(1);
+    expect(dash.expiring.some((l) => l.productId === low.id)).toBe(true);
+
+    expect(await stockSource(new Set())).toEqual({ count: 0, items: [] });
+    const feed = await stockSource(new Set(["inventory:manage"]));
+    expect(feed.count).toBeGreaterThanOrEqual(2);
+    expect(feed.items.every((i) => i.type === "stock")).toBe(true);
+  });
+});
