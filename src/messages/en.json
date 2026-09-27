@@ -896,7 +896,7 @@
       "secure": "Secure checkout — no card details are stored by Lunia."
     },
     "success": {
-      "heading": "Your gift card is ready 🎁",
+      "heading": "Your gift card is ready",
       "intro": "We've emailed the code. Here it is too — keep it safe:",
       "amountLabel": "Value",
       "another": "Buy another"
