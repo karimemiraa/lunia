@@ -14,7 +14,7 @@ interface AdminShellProps {
 }
 
 export async function AdminShell({ user, title, description, actions, children }: AdminShellProps) {
-  const feed = await getNotificationFeed();
+  const feed = await getNotificationFeed(user.permissions);
   return (
     <div className="flex min-h-screen text-[var(--color-ink)]">
       <AdminNav permissions={user.permissions} />

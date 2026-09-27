@@ -5,12 +5,28 @@ import Link from "next/link";
 import type { NotificationFeed, NotificationType } from "@/modules/notifications/feed";
 import { sendDigestsAction } from "./notifications.actions";
 
+// Line icons (24px viewBox paths) per notification type -- no emoji.
 const TYPE_ICON: Record<NotificationType, string> = {
-  inquiry: "✉",
-  whatsapp: "💬",
-  lead: "✨",
-  booking: "📅",
+  inquiry: "M4 6h16v12H4z M4 7l8 6 8-6",
+  whatsapp: "M4 5h16v11H9l-5 4z M8 9.5h8 M8 12.5h5",
+  lead: "M12 4v16 M4 12h16 M6.5 6.5l11 11 M17.5 6.5l-11 11",
+  booking: "M3.5 5h17v16h-17z M3.5 9h17 M8 3v4 M16 3v4",
+  callback: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z",
+  stock: "m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z m-8 4.5 8 4.5 8-4.5 M12 12v9",
+  leave: "M3.5 5h17v16h-17z M3.5 9h17 M9 14l2 2 4-4",
+  document: "M6 3h8l4 4v14H6z M14 3v4h4 M12 11v4 M12 17.5v.5",
+  invoice: "M6 3h12v18l-3-2-3 2-3-2-3 2z M9 8h6 M9 12h6 M9 16h3",
 };
+
+function TypeIcon({ type }: { type: NotificationType }) {
+  return (
+    <span aria-hidden="true" className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-teal)]/25 text-[var(--color-forest)]">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+        <path d={TYPE_ICON[type]} />
+      </svg>
+    </span>
+  );
+}
 
 function timeAgo(at: Date): string {
   const mins = Math.round((Date.now() - new Date(at).getTime()) / 60000);
@@ -85,7 +101,7 @@ export function NotificationBell({ feed }: { feed: NotificationFeed }) {
                       onClick={() => setOpen(false)}
                       className="flex gap-3 border-b border-[var(--line)] px-4 py-3 transition-colors last:border-b-0 hover:bg-[var(--color-ink)]/[0.03]"
                     >
-                      <span aria-hidden="true" className="text-base leading-none">{TYPE_ICON[item.type]}</span>
+                      <TypeIcon type={item.type} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-[var(--color-ink)]">{item.title}</span>
                         {item.subtitle && <span className="block truncate text-xs text-[var(--color-ink)]/55">{item.subtitle}</span>}

@@ -110,19 +110,23 @@ enum UserType {
 }
 
 model User {
-  id                 String          @id @default(cuid())
-  type               UserType
-  email              String?         @unique
-  phone              String?         @unique
-  passwordHash       String?
-  locale             String          @default("en")
-  isActive           Boolean         @default(true)
-  createdAt          DateTime        @default(now())
-  roles              UserRole[]
-  staffProfile       StaffProfile?
-  clientProfile      ClientProfile?
-  staffSchedules     StaffSchedule[]
-  staffAppointments  Appointment[]   @relation("StaffAppointments")
+  id                String             @id @default(cuid())
+  type              UserType
+  email             String?            @unique
+  phone             String?            @unique
+  passwordHash      String?
+  locale            String             @default("en")
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  roles             UserRole[]
+  staffProfile      StaffProfile?
+  clientProfile     ClientProfile?
+  staffSchedules    StaffSchedule[]
+  employeeRecord    EmployeeRecord?
+  attendance        AttendanceRecord[]
+  leaveRequests     LeaveRequest[]
+  payslips          Payslip[]
+  staffAppointments Appointment[]      @relation("StaffAppointments")
 }
 
 model Role {
@@ -152,8 +156,8 @@ model RolePermission {
 model UserRole {
   userId String
   roleId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
 }
@@ -186,50 +190,57 @@ model MembershipTier {
 }
 
 model ClientProfile {
-  id            String            @id @default(cuid())
-  userId        String            @unique
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fullName      String
-  sourceChannel String?
-  ltvCacheMinor Int               @default(0)
-  createdAt     DateTime          @default(now())
+  id                     String                  @id @default(cuid())
+  userId                 String                  @unique
+  user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName               String
+  sourceChannel          String?
+  ltvCacheMinor          Int                     @default(0)
+  createdAt              DateTime                @default(now())
   // CRM segmentation + clinical (skin center) profile
-  tags          String[]          @default([])
-  skinType      String?
-  skinConcerns  String[]          @default([])
-  allergies     String?
-  clinicalNotes String?
+  tags                   String[]                @default([])
+  skinType               String?
+  skinConcerns           String[]                @default([])
+  allergies              String?
+  clinicalNotes          String?
   // Consent (PDPL): timestamps record when consent was last given (null = not given)
-  consentTreatmentAt DateTime?
-  consentDataAt      DateTime?
+  consentTreatmentAt     DateTime?
+  consentDataAt          DateTime?
   // Outbound / sales CRM: pipeline stage, assigned owner (soft ref to a staff
   // User, like authorUserId), inbound/outbound classification for channel
   // reporting, and the next follow-up date for non-responders.
-  stage          String         @default("new")
-  ownerId        String?
-  direction      LeadDirection?
-  nextFollowUpAt DateTime?
-  leadActivities LeadActivity[]
-  whatsappConversations WhatsappConversation[]
-  membership    ClientMembership?
-  bookings      Booking[]
-  visitNotes    VisitNote[]
+  stage                  String                  @default("new")
+  ownerId                String?
+  direction              LeadDirection?
+  nextFollowUpAt         DateTime?
+  leadActivities         LeadActivity[]
+  whatsappConversations  WhatsappConversation[]
+  membership             ClientMembership?
+  bookings               Booking[]
+  visitNotes             VisitNote[]
   notificationPreference NotificationPreference?
-  loyaltyAccount      LoyaltyAccount?
-  loyaltyTransactions LoyaltyTransaction[]
-  giftCards           GiftCard[]
-  packagePurchases    PackagePurchase[]
-  waitlistEntries     WaitlistEntry[]
-  reviews             Review[]
+  loyaltyAccount         LoyaltyAccount?
+  loyaltyTransactions    LoyaltyTransaction[]
+  giftCards              GiftCard[]
+  packagePurchases       PackagePurchase[]
+  waitlistEntries        WaitlistEntry[]
+  medicalIntakes         MedicalIntake[]
+  consentSignatures      ConsentSignature[]
+  treatmentRecords       TreatmentRecord[]
+  clinicalPhotos         ClinicalPhoto[]
+  chatSessions           ChatSession[]
+  callbackRequests       CallbackRequest[]
+  invoices               Invoice[]
+  reviews                Review[]
 }
 
 // A saved client segment: a named filter over the roster for targeted
 // marketing / re-engagement (stored as the same filter shape the roster uses).
 model Segment {
-  id        String   @id @default(cuid())
-  name      String
-  filter    Json
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  name        String
+  filter      Json
+  createdAt   DateTime @default(now())
   createdById String?
 }
 
@@ -333,46 +344,47 @@ model Department {
 }
 
 model Service {
-  id             String             @id @default(cuid())
-  slug           String             @unique
-  departmentId   String
-  department     Department         @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  nameEn         String
-  nameAr         String
-  summaryEn      String
-  summaryAr      String
-  benefitsEn     Json
-  benefitsAr     Json
-  heroMediaId    String?
-  order          Int                @default(0)
-  isPublished    Boolean            @default(true)
-  durationMin    Int                @default(60)
-  priceMinor     Int                @default(0)
-  onlineBookable Boolean            @default(true)
-  inCenterOnly   Boolean            @default(false)
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @default(now()) @updatedAt
-  accessRule     ServiceAccessRule?
-  appointments   Appointment[]
-  packages       ServicePackage[]
+  id              String              @id @default(cuid())
+  slug            String              @unique
+  departmentId    String
+  department      Department          @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  nameEn          String
+  nameAr          String
+  summaryEn       String
+  summaryAr       String
+  benefitsEn      Json
+  benefitsAr      Json
+  heroMediaId     String?
+  order           Int                 @default(0)
+  isPublished     Boolean             @default(true)
+  durationMin     Int                 @default(60)
+  priceMinor      Int                 @default(0)
+  onlineBookable  Boolean             @default(true)
+  inCenterOnly    Boolean             @default(false)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @default(now()) @updatedAt
+  accessRule      ServiceAccessRule?
+  appointments    Appointment[]
+  packages        ServicePackage[]
   waitlistEntries WaitlistEntry[]
+  consumables     ServiceConsumable[]
   reviews         Review[]
 }
 
 model Brand {
-  id           String   @id @default(cuid())
-  slug         String   @unique
-  name         String
-  descEn       String
-  descAr       String
-  whyChosenEn  String
-  whyChosenAr  String
-  logoMediaId  String?
-  url          String?
-  order        Int      @default(0)
-  isPublished  Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @default(now()) @updatedAt
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  descEn      String
+  descAr      String
+  whyChosenEn String
+  whyChosenAr String
+  logoMediaId String?
+  url         String?
+  order       Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 }
 
 model BlogPost {
@@ -438,6 +450,8 @@ enum MsgKind {
   POST_VISIT
   WAITLIST_OPEN
   REVIEW_REQUEST
+  INVOICE
+  CALLBACK_ACK
 }
 
 enum MsgStatus {
@@ -665,7 +679,9 @@ model WaitlistEntry {
   phone           String?
   email           String?
   locale          String         @default("ar")
-  /** Center-local "YYYY-MM-DD" the client wants a slot on. */
+  /**
+   * Center-local "YYYY-MM-DD" the client wants a slot on.
+   */
   desiredDateISO  String
   desiredWindow   String?
   status          WaitlistStatus @default(WAITING)
@@ -697,31 +713,31 @@ enum ReviewStatus {
 // Only APPROVED rows with consentPublic=true ever appear in
 // getAggregate/listApprovedReviews (public-facing reads).
 model Review {
-  id                String        @id @default(cuid())
+  id                String         @id @default(cuid())
   clientProfileId   String?
   clientProfile     ClientProfile? @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
-  bookingId         String?       @unique
-  booking           Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  bookingId         String?        @unique
+  booking           Booking?       @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   serviceId         String?
-  service           Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  service           Service?       @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   // 0 until the client submits (see design note above); submitReview
   // validates/writes 1..5.
-  rating            Int           @default(0)
+  rating            Int            @default(0)
   title             String?
   body              String?
-  locale            String        @default("ar")
+  locale            String         @default("ar")
   authorDisplayName String?
-  status            ReviewStatus  @default(PENDING)
+  status            ReviewStatus   @default(PENDING)
   // Whether the client consented to their name/quote being shown publicly
   // (Testimonials, JSON-LD Review entities). A review can be APPROVED for
   // internal reputation tracking without ever being public.
-  consentPublic     Boolean       @default(false)
+  consentPublic     Boolean        @default(false)
   // Unguessable (crypto.randomBytes-derived) single-use token for the public
   // submit link; tokenUsedAt is set the moment submitReview succeeds so a
   // replayed/shared link can never overwrite an already-submitted review.
-  token             String        @unique
+  token             String         @unique
   tokenUsedAt       DateTime?
-  createdAt         DateTime      @default(now())
+  createdAt         DateTime       @default(now())
   approvedAt        DateTime?
 
   @@index([status])
@@ -788,25 +804,25 @@ model CheckIn {
 }
 
 model ScheduledMessage {
-  id        String    @id @default(cuid())
-  bookingId String?
-  kind      MsgKind
-  toPhone   String?
-  toEmail   String?
-  locale    String
-  sendAt    DateTime
-  sentAt    DateTime?
-  status    MsgStatus @default(PENDING)
-  payload   Json
-  createdAt DateTime  @default(now())
+  id              String    @id @default(cuid())
+  bookingId       String?
+  kind            MsgKind
+  toPhone         String?
+  toEmail         String?
+  locale          String
+  sendAt          DateTime
+  sentAt          DateTime?
+  status          MsgStatus @default(PENDING)
+  payload         Json
+  createdAt       DateTime  @default(now())
   // Optional link to the client this message is for, so the outbox can look
   // up their NotificationPreference (channel routing + opt-out skipping).
   clientProfileId String?
   // Set atomically when a worker claims a batch (PENDING -> SENDING); lets
   // multiple worker replicas run without double-sending, and lets an
   // abandoned SENDING row (crashed worker) be reclaimed after a timeout.
-  claimId   String?
-  claimedAt DateTime?
+  claimId         String?
+  claimedAt       DateTime?
 
   @@index([status, sendAt])
   @@index([claimId])
@@ -932,4 +948,548 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([actorUserId])
+}
+
+// ===========================================================================
+// Patient file (clinical record). Sensitive: gated by clinical:manage.
+// ===========================================================================
+
+// A medical-history questionnaire submission (the customer fills it in their
+// account before a first visit, or staff capture it at the desk). Append-only
+// so the file keeps its history; the latest row is the current answers.
+model MedicalIntake {
+  id              String        @id @default(cuid())
+  clientProfileId String
+  client          ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  /// { conditions: string[], medications, allergies, pregnant, breastfeeding,
+  ///   recentProcedures, skinType, concerns: string[], goals, ... }
+  answers         Json
+  submittedBy     String        @default("CLIENT") // CLIENT | STAFF
+  staffUserId     String?
+  createdAt       DateTime      @default(now())
+
+  @@index([clientProfileId, createdAt])
+}
+
+// A consent-form template (bilingual), optionally tied to specific services.
+// Editing bumps `version`; signatures keep the version they agreed to.
+model ConsentForm {
+  id         String             @id @default(cuid())
+  key        String             @unique
+  titleEn    String
+  titleAr    String
+  bodyEn     String             @db.Text
+  bodyAr     String             @db.Text
+  serviceIds String[]           @default([])
+  version    Int                @default(1)
+  isActive   Boolean            @default(true)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @default(now()) @updatedAt
+  signatures ConsentSignature[]
+}
+
+model ConsentSignature {
+  id              String        @id @default(cuid())
+  clientProfileId String
+  client          ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  consentFormId   String
+  consentForm     ConsentForm   @relation(fields: [consentFormId], references: [id], onDelete: Restrict)
+  formVersion     Int
+  /// Snapshot of the exact text agreed to (form may change later).
+  bodySnapshot    String        @db.Text
+  signerName      String
+  /// PNG data URL of the drawn signature.
+  signatureData   String        @db.Text
+  locale          String        @default("ar")
+  bookingId       String?
+  witnessUserId   String?
+  ip              String?
+  signedAt        DateTime      @default(now())
+
+  @@index([clientProfileId, signedAt])
+}
+
+// What was actually done in a session: settings, products, reaction, next step.
+model TreatmentRecord {
+  id              String          @id @default(cuid())
+  clientProfileId String
+  client          ClientProfile   @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  appointmentId   String?         @unique
+  serviceId       String?
+  performedById   String
+  performedAt     DateTime        @default(now())
+  /// Free-form device/protocol settings, e.g. { device, wavelength, passes }.
+  settings        Json?
+  /// [{ productId?, name, qty, unit }]
+  productsUsed    Json?
+  notes           String?         @db.Text
+  skinReaction    String?
+  followUpAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
+  photos          ClinicalPhoto[]
+
+  @@index([clientProfileId, performedAt])
+}
+
+// Clinical / skin-analysis photos. PRIVATE: stored under the storage prefix
+// "clinical/" and only served through an authenticated admin route — never via
+// the public /api/media route.
+model ClinicalPhoto {
+  id                String           @id @default(cuid())
+  clientProfileId   String
+  client            ClientProfile    @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  treatmentRecordId String?
+  treatmentRecord   TreatmentRecord? @relation(fields: [treatmentRecordId], references: [id], onDelete: SetNull)
+  storageKey        String
+  mime              String           @default("image/jpeg")
+  kind              String           @default("OTHER") // BEFORE | AFTER | ANALYSIS | OTHER
+  area              String?
+  /// Imaging device that produced it (e.g. skin analyzer), if any.
+  device            String?
+  note              String?
+  consentToShare    Boolean          @default(false)
+  uploadedById      String
+  takenAt           DateTime         @default(now())
+  createdAt         DateTime         @default(now())
+
+  @@index([clientProfileId, takenAt])
+}
+
+// ===========================================================================
+// On-site assistant (rule-based chatbot) + call-back queue.
+// ===========================================================================
+
+model ChatSession {
+  id                    String            @id @default(cuid())
+  /// Opaque token held in the visitor's cookie.
+  token                 String            @unique
+  locale                String            @default("ar")
+  clientProfileId       String?
+  client                ClientProfile?    @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
+  name                  String?
+  phone                 String?
+  email                 String?
+  /// Structured facts the assistant extracted: { concerns[], goals[], skinType,
+  /// area, timeline, budget, previousTreatments, contraindications[], ... }
+  profile               Json              @default("{}")
+  /// [{ from: "bot"|"user", text, at, step? }]
+  transcript            Json              @default("[]")
+  /// Current step of the conversation state machine.
+  state                 String            @default("start")
+  outcome               String? // BOOKED | CALLBACK | LEAD | WHATSAPP | ABANDONED
+  bookingId             String?
+  recommendedServiceIds String[]          @default([])
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @default(now()) @updatedAt
+  callbacks             CallbackRequest[]
+
+  @@index([createdAt])
+  @@index([outcome])
+}
+
+model CallbackRequest {
+  id              String         @id @default(cuid())
+  clientProfileId String?
+  client          ClientProfile? @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
+  chatSessionId   String?
+  chatSession     ChatSession?   @relation(fields: [chatSessionId], references: [id], onDelete: SetNull)
+  name            String
+  phone           String
+  locale          String         @default("ar")
+  /// e.g. "morning" | "afternoon" | "evening" | "asap"
+  preferredWindow String?
+  topic           String?
+  notes           String?        @db.Text
+  source          String         @default("CHAT") // CHAT | WEBSITE | WHATSAPP | STAFF
+  status          String         @default("OPEN") // OPEN | NO_ANSWER | DONE | CANCELLED
+  attempts        Int            @default(0)
+  assignedToId    String?
+  dueAt           DateTime?
+  outcome         String?
+  handledById     String?
+  handledAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt
+
+  @@index([status, dueAt])
+}
+
+// ===========================================================================
+// Billing & accounting (VAT invoices, payments, expenses, cash drawer).
+// Money is in minor units (halalas). VAT default 15%.
+// ===========================================================================
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  VOID
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  MADA
+  APPLE_PAY
+  BANK_TRANSFER
+  GIFT_CARD
+  PACKAGE
+  ONLINE
+  OTHER
+}
+
+model Invoice {
+  id                String         @id @default(cuid())
+  /// Human sequential number, e.g. "INV-2026-000123" / "CN-2026-000004".
+  number            String         @unique
+  kind              String         @default("INVOICE") // INVOICE | CREDIT_NOTE
+  originalInvoiceId String?
+  clientProfileId   String?
+  client            ClientProfile? @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
+  bookingId         String?
+  customerName      String
+  customerPhone     String?
+  customerVatNumber String?
+  status            InvoiceStatus  @default(DRAFT)
+  issuedAt          DateTime?
+  /// Totals after line discounts. subtotal excludes VAT.
+  subtotalMinor     Int            @default(0)
+  discountMinor     Int            @default(0)
+  vatMinor          Int            @default(0)
+  totalMinor        Int            @default(0)
+  paidMinor         Int            @default(0)
+  vatRateBp         Int            @default(1500)
+  notes             String?        @db.Text
+  createdById       String?
+  // ZATCA e-invoicing. Phase 1: QR (TLV base64). Phase 2 fields are filled
+  // once the Fatoora onboarding (CSID) is configured.
+  zatcaUuid         String?        @unique
+  zatcaCounter      Int?
+  zatcaQr           String?        @db.Text
+  zatcaHash         String?
+  zatcaPrevHash     String?
+  zatcaStatus       String         @default("NOT_SUBMITTED") // NOT_SUBMITTED | REPORTED | CLEARED | REJECTED
+  zatcaXml          String?        @db.Text
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @default(now()) @updatedAt
+  lines             InvoiceLine[]
+  payments          Payment[]
+  paymentLinks      PaymentLink[]
+
+  @@index([clientProfileId])
+  @@index([bookingId])
+  @@index([issuedAt])
+  @@index([status])
+}
+
+model InvoiceLine {
+  id             String  @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  kind           String  @default("SERVICE") // SERVICE | PRODUCT | PACKAGE | GIFT_CARD | OTHER
+  serviceId      String?
+  productId      String?
+  description    String
+  qty            Int     @default(1)
+  /// Unit price EXCLUDING VAT.
+  unitPriceMinor Int
+  discountMinor  Int     @default(0)
+  vatRateBp      Int     @default(1500)
+  vatMinor       Int     @default(0)
+  /// Line total INCLUDING VAT.
+  totalMinor     Int     @default(0)
+  sortOrder      Int     @default(0)
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  invoiceId     String?
+  invoice       Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  method        PaymentMethod
+  /// Negative for refunds.
+  amountMinor   Int
+  reference     String?
+  provider      String?
+  providerRef   String?
+  status        String        @default("COMPLETED") // COMPLETED | FAILED | REFUNDED
+  receivedById  String?
+  cashSessionId String?
+  receivedAt    DateTime      @default(now())
+  note          String?
+
+  @@index([invoiceId])
+  @@index([receivedAt])
+}
+
+// Online "pay by link" (sent over WhatsApp/email). Provider-agnostic; the
+// gateway (e.g. Moyasar: mada/Visa/Mastercard/Apple Pay) is configured in
+// Superadmin → Payments.
+model PaymentLink {
+  id          String    @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  provider    String
+  providerRef String?
+  url         String?
+  amountMinor Int
+  status      String    @default("PENDING") // PENDING | PAID | EXPIRED | FAILED
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+
+  @@index([providerRef])
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  expenses  Expense[]
+}
+
+model Expense {
+  id            String           @id @default(cuid())
+  categoryId    String?
+  category      ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  vendor        String?
+  description   String
+  /// Amount EXCLUDING VAT.
+  amountMinor   Int
+  vatMinor      Int              @default(0)
+  paidAt        DateTime         @default(now())
+  method        PaymentMethod    @default(BANK_TRANSFER)
+  reference     String?
+  attachmentKey String?
+  createdById   String?
+  createdAt     DateTime         @default(now())
+
+  @@index([paidAt])
+}
+
+// A front-desk cash drawer session (open with a float, close with a count).
+model CashSession {
+  id                String    @id @default(cuid())
+  openedById        String
+  openedAt          DateTime  @default(now())
+  openingFloatMinor Int       @default(0)
+  closedById        String?
+  closedAt          DateTime?
+  countedCashMinor  Int?
+  expectedCashMinor Int?
+  note              String?
+
+  @@index([openedAt])
+}
+
+// ===========================================================================
+// Inventory (retail products + treatment consumables).
+// Quantities are integers in the product's base unit (pcs, ml, g).
+// ===========================================================================
+
+model Supplier {
+  id             String          @id @default(cuid())
+  name           String
+  contactName    String?
+  phone          String?
+  email          String?
+  vatNumber      String?
+  notes          String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  products       Product[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model Product {
+  id           String              @id @default(cuid())
+  sku          String?             @unique
+  barcode      String?             @unique
+  nameEn       String
+  nameAr       String?
+  brandName    String?
+  supplierId   String?
+  supplier     Supplier?           @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  category     String?
+  unit         String              @default("pcs")
+  kind         String              @default("RETAIL") // RETAIL | CONSUMABLE | BOTH
+  costMinor    Int                 @default(0)
+  /// Retail price EXCLUDING VAT.
+  priceMinor   Int                 @default(0)
+  vatRateBp    Int                 @default(1500)
+  reorderLevel Int                 @default(0)
+  /// Denormalized running balance of StockMovement.qty.
+  stockQty     Int                 @default(0)
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @default(now()) @updatedAt
+  movements    StockMovement[]
+  consumables  ServiceConsumable[]
+  poLines      PurchaseOrderLine[]
+}
+
+model StockMovement {
+  id            String    @id @default(cuid())
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Positive = stock in, negative = stock out.
+  qty           Int
+  type          String // PURCHASE | SALE | CONSUMPTION | ADJUSTMENT | RETURN | WASTE
+  refType       String? // INVOICE | APPOINTMENT | PURCHASE_ORDER | MANUAL
+  refId         String?
+  unitCostMinor Int?
+  lotNumber     String?
+  expiresAt     DateTime?
+  note          String?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+
+  @@index([productId, createdAt])
+  @@index([refType, refId])
+}
+
+// Bill of materials: what a service consumes from stock each time it is done.
+model ServiceConsumable {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  qty       Int
+
+  @@unique([serviceId, productId])
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  number      String              @unique
+  supplierId  String
+  supplier    Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  status      String              @default("DRAFT") // DRAFT | ORDERED | PARTIAL | RECEIVED | CANCELLED
+  orderedAt   DateTime?
+  receivedAt  DateTime?
+  totalMinor  Int                 @default(0)
+  notes       String?
+  createdById String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @default(now()) @updatedAt
+  lines       PurchaseOrderLine[]
+}
+
+model PurchaseOrderLine {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  qty             Int
+  unitCostMinor   Int
+  receivedQty     Int           @default(0)
+}
+
+// ===========================================================================
+// HR & payroll.
+// ===========================================================================
+
+model EmployeeRecord {
+  id                      String    @id @default(cuid())
+  userId                  String    @unique
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeNo              String?   @unique
+  nationality             String?
+  isSaudi                 Boolean   @default(false)
+  nationalId              String?
+  nationalIdExpiry        DateTime?
+  passportNo              String?
+  passportExpiry          DateTime?
+  jobTitle                String?
+  department              String?
+  hireDate                DateTime?
+  contractType            String? // FULL_TIME | PART_TIME | CONTRACTOR
+  contractEnd             DateTime?
+  basicSalaryMinor        Int       @default(0)
+  housingAllowanceMinor   Int       @default(0)
+  transportAllowanceMinor Int       @default(0)
+  otherAllowanceMinor     Int       @default(0)
+  /// Commission on completed-service revenue, in basis points (500 = 5%).
+  commissionBp            Int       @default(0)
+  gosiApplicable          Boolean   @default(true)
+  iban                    String?
+  bankName                String?
+  annualLeaveDays         Int       @default(21)
+  emergencyContact        String?
+  notes                   String?   @db.Text
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @default(now()) @updatedAt
+}
+
+model AttendanceRecord {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Center-local "YYYY-MM-DD".
+  dateISO    String
+  clockInAt  DateTime
+  clockOutAt DateTime?
+  source     String    @default("SELF") // SELF | MANUAL
+  note       String?
+  editedById String?
+
+  @@index([userId, dateISO])
+  @@index([dateISO])
+}
+
+model LeaveRequest {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String    @default("ANNUAL") // ANNUAL | SICK | UNPAID | OTHER
+  startDateISO String
+  endDateISO   String
+  days         Int
+  reason       String?
+  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
+  decidedById  String?
+  decidedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, status])
+}
+
+model PayrollRun {
+  id            String    @id @default(cuid())
+  /// "YYYY-MM"
+  periodMonth   String    @unique
+  status        String    @default("DRAFT") // DRAFT | APPROVED | PAID
+  totalNetMinor Int       @default(0)
+  createdById   String
+  approvedById  String?
+  approvedAt    DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  payslips      Payslip[]
+}
+
+model Payslip {
+  id                String     @id @default(cuid())
+  payrollRunId      String
+  payrollRun        PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  basicMinor        Int        @default(0)
+  housingMinor      Int        @default(0)
+  transportMinor    Int        @default(0)
+  otherAllowMinor   Int        @default(0)
+  commissionMinor   Int        @default(0)
+  overtimeMinor     Int        @default(0)
+  bonusMinor        Int        @default(0)
+  deductionsMinor   Int        @default(0)
+  gosiEmployeeMinor Int        @default(0)
+  gosiEmployerMinor Int        @default(0)
+  netMinor          Int        @default(0)
+  notes             String?
+
+  @@unique([payrollRunId, userId])
 }

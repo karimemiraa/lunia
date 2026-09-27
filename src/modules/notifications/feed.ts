@@ -6,8 +6,19 @@
 
 import { prisma } from "@/lib/db";
 import { openStageKeys } from "@/modules/crm/pipeline";
+import type { PermissionKey } from "@/modules/iam/permissions";
+import { SOURCES } from "./sources";
 
-export type NotificationType = "inquiry" | "whatsapp" | "lead" | "booking";
+export type NotificationType =
+  | "inquiry"
+  | "whatsapp"
+  | "lead"
+  | "booking"
+  | "callback"
+  | "stock"
+  | "leave"
+  | "document"
+  | "invoice";
 
 export interface NotificationItem {
   id: string;
@@ -20,13 +31,13 @@ export interface NotificationItem {
 
 export interface NotificationFeed {
   total: number;
-  counts: Record<NotificationType, number>;
+  counts: Partial<Record<NotificationType, number>>;
   items: NotificationItem[];
 }
 
 const NEW_LEAD_WINDOW_DAYS = 7;
 
-export async function getNotificationFeed(): Promise<NotificationFeed> {
+export async function getNotificationFeed(permissions: Set<PermissionKey> = new Set()): Promise<NotificationFeed> {
   const since = new Date(Date.now() - NEW_LEAD_WINDOW_DAYS * 86_400_000);
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
@@ -90,11 +101,26 @@ export async function getNotificationFeed(): Promise<NotificationFeed> {
       at: b.createdAt,
     })),
   ];
+  const counts: Partial<Record<NotificationType, number>> = {
+    inquiry: inquiryCount,
+    whatsapp: whatsappCount,
+    lead: leadCount,
+    booking: bookingCount,
+  };
+  let total = inquiryCount + whatsappCount + leadCount + bookingCount;
+
+  // Module-contributed sources; one failing source never breaks the bell.
+  const extra = await Promise.allSettled(SOURCES.map((source) => source(permissions)));
+  for (const result of extra) {
+    if (result.status !== "fulfilled") continue;
+    total += result.value.count;
+    for (const item of result.value.items) {
+      items.push(item);
+      counts[item.type] = (counts[item.type] ?? 0) + 1;
+    }
+  }
+
   items.sort((a, b) => b.at.getTime() - a.at.getTime());
 
-  return {
-    total: inquiryCount + whatsappCount + leadCount + bookingCount,
-    counts: { inquiry: inquiryCount, whatsapp: whatsappCount, lead: leadCount, booking: bookingCount },
-    items: items.slice(0, 12),
-  };
+  return { total, counts, items: items.slice(0, 12) };
 }

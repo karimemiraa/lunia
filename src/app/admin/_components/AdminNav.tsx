@@ -23,6 +23,36 @@ interface NavGroup {
 // --- compact stroke icons (18px) ---------------------------------------
 const ic = "h-[1.15rem] w-[1.15rem] shrink-0";
 const I = {
+  receipt: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+      <path strokeLinejoin="round" d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path strokeLinecap="round" d="M9 8h6M9 12h6M9 16h3" />
+    </svg>
+  ),
+  box: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+      <path strokeLinejoin="round" d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path strokeLinejoin="round" d="m4 7.5 8 4.5 8-4.5M12 12v9" />
+    </svg>
+  ),
+  clipboard: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+      <rect x="5" y="4.5" width="14" height="16.5" rx="2" /><path strokeLinecap="round" d="M9 4.5V3h6v1.5M9 10h6M9 14h6M9 18h3" />
+    </svg>
+  ),
+  phone: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+      <path strokeLinejoin="round" d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z" />
+    </svg>
+  ),
+  chat: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+      <path strokeLinejoin="round" d="M4 5h16v11H9l-5 4z" /><path strokeLinecap="round" d="M8 9.5h8M8 12.5h5" />
+    </svg>
+  ),
+  clock: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+      <circle cx="12" cy="12" r="8.5" /><path strokeLinecap="round" d="M12 7.5V12l3 2" />
+    </svg>
+  ),
   dashboard: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
       <rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" />
@@ -131,6 +161,9 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/clients", label: "Customers", perm: PERMISSIONS.CLIENT_VIEW, icon: I.users },
       { href: "/admin/leads", label: "Leads", perm: PERMISSIONS.CLIENT_VIEW, icon: I.inbox },
+      { href: "/admin/callbacks", label: "Call-backs", perm: PERMISSIONS.CLIENT_VIEW, icon: I.phone },
+      { href: "/admin/assistant", label: "Chat assistant", perm: PERMISSIONS.CLIENT_VIEW, icon: I.chat },
+      { href: "/admin/clinical/consents", label: "Consent forms", perm: PERMISSIONS.CLINICAL_MANAGE, icon: I.clipboard },
     ],
   },
   {
@@ -140,6 +173,32 @@ const GROUPS: NavGroup[] = [
       { href: "/admin/waitlist", label: "Waitlist", perm: PERMISSIONS.BOOKING_VIEW, icon: I.inbox },
       { href: "/admin/booking/rooms", label: "Rooms", perm: PERMISSIONS.STAFF_MANAGE, icon: I.book },
       { href: "/admin/booking/schedules", label: "Schedules", perm: PERMISSIONS.STAFF_MANAGE, icon: I.calendar },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { href: "/admin/billing", label: "Invoices & payments", perm: PERMISSIONS.BILLING_MANAGE, icon: I.receipt },
+      { href: "/admin/accounting", label: "Accounting", perm: PERMISSIONS.ACCOUNTING_MANAGE, icon: I.report },
+      { href: "/admin/accounting/expenses", label: "Expenses", perm: PERMISSIONS.ACCOUNTING_MANAGE, icon: I.receipt },
+    ],
+  },
+  {
+    label: "Inventory",
+    items: [
+      { href: "/admin/inventory", label: "Products & stock", perm: PERMISSIONS.INVENTORY_MANAGE, icon: I.box },
+      { href: "/admin/inventory/purchase-orders", label: "Purchase orders", perm: PERMISSIONS.INVENTORY_MANAGE, icon: I.clipboard },
+      { href: "/admin/inventory/suppliers", label: "Suppliers", perm: PERMISSIONS.INVENTORY_MANAGE, icon: I.users },
+    ],
+  },
+  {
+    label: "Team",
+    items: [
+      { href: "/admin/me", label: "My time & leave", icon: I.clock },
+      { href: "/admin/hr", label: "Employees", perm: PERMISSIONS.HR_MANAGE, icon: I.users },
+      { href: "/admin/hr/attendance", label: "Attendance", perm: PERMISSIONS.HR_MANAGE, icon: I.clock },
+      { href: "/admin/hr/leave", label: "Leave requests", perm: PERMISSIONS.HR_MANAGE, icon: I.calendar },
+      { href: "/admin/hr/payroll", label: "Payroll", perm: PERMISSIONS.HR_MANAGE, icon: I.receipt },
     ],
   },
   {
@@ -180,9 +239,18 @@ const GROUPS: NavGroup[] = [
   },
 ];
 
-function isActive(pathname: string, href: string): boolean {
+function matches(pathname: string, href: string): boolean {
   if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+const ALL_HREFS = GROUPS.flatMap((g) => g.items.map((i) => i.href));
+
+// Only the most specific matching item is active, so /admin/accounting/expenses
+// highlights "Expenses" and not also "Accounting".
+function isActive(pathname: string, href: string): boolean {
+  if (!matches(pathname, href)) return false;
+  return !ALL_HREFS.some((other) => other !== href && other.length > href.length && matches(pathname, other));
 }
 
 function Chevron({ open }: { open: boolean }) {

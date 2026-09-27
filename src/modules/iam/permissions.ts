@@ -10,6 +10,15 @@ export const PERMISSIONS = {
   MARKETING_MANAGE: "marketing:manage",
   STAFF_MANAGE: "staff:manage",
   SETTINGS_MANAGE: "settings:manage",
+  // Patient file: medical history, consents, treatment records, clinical photos.
+  CLINICAL_MANAGE: "clinical:manage",
+  // Front-desk billing: create/issue invoices, take payments, send pay links.
+  BILLING_MANAGE: "billing:manage",
+  // Back office: expenses, cash-drawer close, VAT & P&L reports, ZATCA setup.
+  ACCOUNTING_MANAGE: "accounting:manage",
+  INVENTORY_MANAGE: "inventory:manage",
+  // Employee files, attendance, leave approvals and payroll.
+  HR_MANAGE: "hr:manage",
   // Superadmin-only platform/technical control (email/WhatsApp/payment/AI/API
   // credential setup). Deliberately EXCLUDED from ALL_PERMISSION_KEYS below so
   // it is never granted by the "all permissions" roles (admin) nor offered in
@@ -36,16 +45,22 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   "marketing:manage": "Manage marketing & campaigns",
   "staff:manage": "Manage users & roles",
   "settings:manage": "Manage settings & communications",
+  "clinical:manage": "Patient file (medical history, consents, treatment records, photos)",
+  "billing:manage": "Billing (invoices, payments, pay links)",
+  "accounting:manage": "Accounting (expenses, cash close, VAT & P&L)",
+  "inventory:manage": "Inventory (products, stock, suppliers, purchase orders)",
+  "hr:manage": "HR & payroll (employees, attendance, leave, payroll)",
   "platform:manage": "Superadmin: platform & integrations",
 };
 
 // Grouped for a compact, scannable permissions editor.
 export const PERMISSION_GROUPS: { label: string; keys: PermissionKey[] }[] = [
   { label: "Scheduling", keys: ["booking:view", "booking:manage"] },
-  { label: "Customers", keys: ["client:view", "client:manage", "visitnote:write"] },
+  { label: "Customers", keys: ["client:view", "client:manage", "visitnote:write", "clinical:manage"] },
+  { label: "Finance & stock", keys: ["billing:manage", "accounting:manage", "inventory:manage"] },
   { label: "Growth", keys: ["analytics:view", "marketing:manage"] },
   { label: "Content", keys: ["catalog:manage", "cms:manage"] },
-  { label: "System", keys: ["staff:manage", "settings:manage"] },
+  { label: "System", keys: ["staff:manage", "settings:manage", "hr:manage"] },
 ];
 
 export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
@@ -59,14 +74,19 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.CATALOG_MANAGE,
     PERMISSIONS.ANALYTICS_VIEW,
     PERMISSIONS.STAFF_MANAGE,
+    PERMISSIONS.CLINICAL_MANAGE,
+    PERMISSIONS.BILLING_MANAGE,
+    PERMISSIONS.ACCOUNTING_MANAGE,
+    PERMISSIONS.INVENTORY_MANAGE,
   ],
   reception: [
     PERMISSIONS.BOOKING_MANAGE,
     PERMISSIONS.BOOKING_VIEW,
     PERMISSIONS.CLIENT_MANAGE,
     PERMISSIONS.CLIENT_VIEW,
+    PERMISSIONS.BILLING_MANAGE,
   ],
-  specialist: [PERMISSIONS.BOOKING_VIEW, PERMISSIONS.CLIENT_VIEW, PERMISSIONS.VISITNOTE_WRITE],
+  specialist: [PERMISSIONS.BOOKING_VIEW, PERMISSIONS.CLIENT_VIEW, PERMISSIONS.VISITNOTE_WRITE, PERMISSIONS.CLINICAL_MANAGE],
   marketing: [PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.MARKETING_MANAGE, PERMISSIONS.CMS_MANAGE],
   // Full administrative access (distinct from the singular Owner account).
   admin: ALL_PERMISSION_KEYS,
@@ -77,6 +97,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.CLIENT_MANAGE,
     PERMISSIONS.CLIENT_VIEW,
     PERMISSIONS.ANALYTICS_VIEW,
+    PERMISSIONS.BILLING_MANAGE,
   ],
   // Telesales: phone outreach — manages customers and bookings, runs campaigns.
   telesales: [
