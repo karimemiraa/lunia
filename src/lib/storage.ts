@@ -34,6 +34,22 @@ function assertSafeKey(key: string): void {
   }
 }
 
+// Keys under these prefixes hold private documents (finance receipts...) and
+// must never be served by the public /api/media route; each module serves its
+// own through a permission-checked admin route instead.
+export const PRIVATE_STORAGE_PREFIXES = ["finance/"] as const;
+
+export function isPrivateStorageKey(key: string): boolean {
+  // Normalize the way the filesystem would ("./", "//", case on macOS) so a
+  // crafted spelling can't slip past the prefix check.
+  const normalized = key
+    .split("/")
+    .filter((segment) => segment !== "" && segment !== ".")
+    .join("/")
+    .toLowerCase();
+  return PRIVATE_STORAGE_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
 // --- Local filesystem backend (dev/test) ------------------------------------
 // Uploaded bytes live under <cwd>/uploads with a sidecar .meta file recording
 // the content type.
