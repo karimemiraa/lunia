@@ -8,6 +8,7 @@ import { UserRow } from "./UserRow";
 
 export default async function UsersPage() {
   const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const canViewHr = admin.permissions.has(PERMISSIONS.HR_MANAGE);
 
   const [users, roles] = await Promise.all([
     listStaffUsers(),
@@ -29,7 +30,7 @@ export default async function UsersPage() {
 
       <div className="flex flex-col gap-3" data-testid="users-list">
         {users.map((u) => (
-          <UserRow key={u.id} user={u} roles={roles} isSelf={u.id === admin.id} />
+          <UserRow key={u.id} user={u} roles={roles} isSelf={u.id === admin.id} canViewHr={canViewHr} />
         ))}
       </div>
     </AdminShell>

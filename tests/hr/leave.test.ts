@@ -142,3 +142,12 @@ describe("leave requests", () => {
     expect(rec.annualLeaveDays).toBe(21);
   });
 });
+
+describe("splitReason", () => {
+  it("separates the requester's reason from the HR note", async () => {
+    const { splitReason } = await import("@/modules/hr/leave");
+    expect(splitReason("Family trip\n\nHR note: Enjoy")).toEqual({ reason: "Family trip", hrNote: "Enjoy" });
+    expect(splitReason("\n\nHR note: Covered by Sara")).toEqual({ reason: null, hrNote: "Covered by Sara" });
+    expect(splitReason("Just a reason")).toEqual({ reason: "Just a reason", hrNote: null });
+  });
+});

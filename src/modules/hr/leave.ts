@@ -110,18 +110,48 @@ export async function requestLeave(userId: string, input: LeaveRequestInput): Pr
   return { ok: true, id: row.id };
 }
 
+// LeaveRequest has no column for the manager's note, so it is appended to
+// the reason under this marker (the requester sees it on their own page).
+const NOTE_MARKER = "\n\nHR note: ";
+
+export function splitReason(reason: string | null): { reason: string | null; hrNote: string | null } {
+  if (!reason) return { reason: null, hrNote: null };
+  const at = reason.indexOf(NOTE_MARKER);
+  if (at === -1) return { reason, hrNote: null };
+  return { reason: reason.slice(0, at) || null, hrNote: reason.slice(at + NOTE_MARKER.length) || null };
+}
+
 export async function decideLeave(
   id: string,
   decision: "APPROVED" | "REJECTED",
   deciderId: string,
+  note?: string,
 ): Promise<LeaveResult> {
   const row = await prisma.leaveRequest.findUnique({ where: { id } });
   if (!row) return { ok: false, error: "Leave request not found." };
   if (row.status !== "PENDING") return { ok: false, error: `This request is already ${row.status.toLowerCase()}.` };
+  if (decision === "APPROVED") {
+    // Belt and braces: never approve on top of another approved absence.
+    const clash = await prisma.leaveRequest.findFirst({
+      where: {
+        userId: row.userId,
+        status: "APPROVED",
+        startDateISO: { lte: row.endDateISO },
+        endDateISO: { gte: row.startDateISO },
+      },
+    });
+    if (clash) return { ok: false, error: "This overlaps leave that is already approved." };
+  }
+  const cleanNote = note?.trim().slice(0, 300);
   // Guarded update so two managers deciding at once can't both win.
   const updated = await prisma.leaveRequest.updateMany({
     where: { id, status: "PENDING" },
-    data: { status: decision, decidedById: deciderId, decidedAt: new Date() },
+    data: {
+      status: decision,
+      decidedById: deciderId,
+      decidedAt: new Date(),
+      ...(cleanNote ? { reason: `${row.reason ?? ""}${NOTE_MARKER}${cleanNote}` } : {}),
+    },
   });
   if (updated.count === 0) return { ok: false, error: "This request was already decided." };
   return { ok: true, id };
