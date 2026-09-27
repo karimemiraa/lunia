@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { setUserRolesAction, deleteUserAction, type UserActionState } from "./actions";
 import type { StaffUserRow } from "@/modules/iam/users";
@@ -11,7 +12,17 @@ interface RoleOption {
 
 const initialState: UserActionState = {};
 
-export function UserRow({ user, roles, isSelf }: { user: StaffUserRow; roles: RoleOption[]; isSelf: boolean }) {
+export function UserRow({
+  user,
+  roles,
+  isSelf,
+  canViewHr = false,
+}: {
+  user: StaffUserRow;
+  roles: RoleOption[];
+  isSelf: boolean;
+  canViewHr?: boolean;
+}) {
   const [roleState, roleAction, rolePending] = useActionState(setUserRolesAction, initialState);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteUserAction, initialState);
 
@@ -24,6 +35,14 @@ export function UserRow({ user, roles, isSelf }: { user: StaffUserRow; roles: Ro
         </p>
         <p className="text-sm text-[var(--color-ink)]/60">{user.email}</p>
         {user.title && <p className="text-xs text-[var(--color-ink)]/45">{user.title}</p>}
+        {canViewHr && (
+          <Link
+            href={`/admin/hr/${user.id}`}
+            className="mt-1 inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-teal-ink)] underline-offset-4 hover:underline"
+          >
+            Employee file
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-col items-start gap-3 sm:items-end">
