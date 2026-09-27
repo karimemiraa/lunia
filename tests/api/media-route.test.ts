@@ -37,6 +37,21 @@ describe("GET /api/media/[...path]", () => {
     expect(response.status).toBe(404);
   });
 
+  it("refuses private prefixes (clinical/, finance/) even when the file exists", async () => {
+    const privateKeys = [`clinical/media-route-${Date.now()}.png`, `finance/media-route-${Date.now()}.pdf`];
+    try {
+      for (const key of privateKeys) {
+        await storage.put(key, Buffer.from("private"), "image/png");
+        const response = await GET(new Request(`http://localhost/api/media/${key}`), {
+          params: Promise.resolve({ path: key.split("/") }),
+        });
+        expect(response.status).toBe(404);
+      }
+    } finally {
+      for (const key of privateKeys) await storage.delete(key);
+    }
+  });
+
   it("returns 404 for a path-traversal attempt", async () => {
     const response = await GET(new Request("http://localhost/api/media/..%2Fevil"), {
       params: Promise.resolve({ path: ["..", "evil"] }),

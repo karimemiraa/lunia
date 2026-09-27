@@ -9,6 +9,7 @@ import { WhatsAppFab } from "@/components/site/WhatsAppFab";
 import { PageTransition } from "@/components/site/PageTransition";
 import { CinematicScroll } from "@/components/site/CinematicScroll";
 import { AssistantWidget } from "@/components/site/AssistantWidget";
+import { ImpersonationBanner } from "@/components/site/ImpersonationBanner";
 import { Tracker } from "@/components/analytics/Tracker";
 import { prisma } from "@/lib/db";
 import { getSetting } from "@/modules/cms/settings";
@@ -44,6 +45,7 @@ export default async function SiteLayout({
       <body className="flex min-h-screen flex-col">
         <NextIntlClientProvider messages={messages}>
           <CinematicScroll />
+          <ImpersonationBanner locale={locale} />
           <SiteHeader locale={locale} />
           <PageTransition className="flex-1">{children}</PageTransition>
           <SiteFooter locale={locale} />

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { storage, isPrivateStorageKey } from "@/lib/storage";
 
 // Media reads are intentionally public/unauthenticated: this serves images
-// and other assets for the public website, not admin-only content.
+// and other assets for the public website, not admin-only content. Private
+// prefixes (clinical photos, finance documents) are refused outright -- they
+// have their own authenticated routes.
+
 // Parses a single "bytes=start-end" range (the only form browsers send for
 // media). Returns null for anything we can't satisfy, which falls back to a
 // full 200 response.
@@ -30,8 +33,7 @@ export async function GET(
   const { path: segments } = await context.params;
   const key = segments.join("/");
 
-  // Private documents (e.g. finance receipts) are only served by their own
-  // authenticated admin routes.
+  // Same 404 as a missing key, so the route doesn't confirm private files exist.
   if (isPrivateStorageKey(key)) {
     return new NextResponse(null, { status: 404 });
   }

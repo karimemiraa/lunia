@@ -4,9 +4,11 @@ import { getRedis } from "@/lib/redis";
 const TTL_SECONDS = 60 * 60 * 24 * 7;
 const keyFor = (token: string) => `session:${token}`;
 
-export async function createSession(userId: string): Promise<string> {
+// ttlSeconds lets short-lived sessions (e.g. a 1-hour "view as customer"
+// preview) expire server-side regardless of the cookie's own lifetime.
+export async function createSession(userId: string, ttlSeconds: number = TTL_SECONDS): Promise<string> {
   const token = randomBytes(32).toString("hex");
-  await getRedis().set(keyFor(token), JSON.stringify({ userId }), "EX", TTL_SECONDS);
+  await getRedis().set(keyFor(token), JSON.stringify({ userId }), "EX", ttlSeconds);
   return token;
 }
 

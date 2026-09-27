@@ -18,6 +18,9 @@ import { LeadPanel } from "./LeadPanel";
 import { listLeadActivities } from "@/modules/crm/leads";
 import { listStages } from "@/modules/crm/pipeline";
 import { listStaffUsers } from "@/modules/iam/users";
+import { canImpersonate } from "@/modules/iam/impersonation";
+import { PatientFileTab } from "./clinical/_components/PatientFileTab";
+import { ViewAsCustomer } from "./ViewAsCustomer";
 
 interface ClientDetailPageProps {
   params: Promise<{ id: string }>;
@@ -73,6 +76,8 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   const user = await requireAdmin(PERMISSIONS.CLIENT_VIEW);
   const canManage = user.permissions.has(PERMISSIONS.CLIENT_MANAGE);
   const canWriteNotes = user.permissions.has(PERMISSIONS.VISITNOTE_WRITE);
+  const canClinical = user.permissions.has(PERMISSIONS.CLINICAL_MANAGE);
+  const canViewAs = canImpersonate(user.permissions);
 
   const [detail, tiers] = await Promise.all([getClientDetail(id), canManage ? listTiers() : Promise.resolve([])]);
   if (!detail) notFound();
@@ -348,6 +353,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
     { id: "pipeline", label: "Pipeline", content: pipelineTab, badge: leadActivities.length },
     { id: "appointments", label: "Appointments", content: appointments, badge: detail.bookings.length },
     { id: "clinical", label: "Clinical", content: clinicalTab },
+    ...(canClinical ? [{ id: "patient", label: "Patient file", content: <PatientFileTab clientProfileId={detail.profile.id} /> }] : []),
     { id: "timeline", label: "Timeline", content: timelineTab, badge: timeline.length },
     { id: "loyalty", label: "Loyalty", content: loyaltyTab },
     { id: "credits", label: "Credits", content: creditsTab, badge: credits.giftCards.length + credits.packages.length },
@@ -397,6 +403,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
                 preference={preference}
               />
             )}
+            {canViewAs && <ViewAsCustomer clientProfileId={detail.profile.id} />}
             <Link
               href={`/admin/calendar?${new URLSearchParams({
                 name: detail.profile.fullName,

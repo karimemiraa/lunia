@@ -95,7 +95,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
       {dayOpen && (
         <DayModal closeHref={closeHref} title={`Schedule for ${longDateFmt.format(new Date(`${dayOpen}T12:00:00Z`))}`}>
           <div className="flex flex-col gap-5">
-            <DaySchedule rows={rows} date={dayOpen} canManage={canManage} />
+            <DaySchedule rows={rows} date={dayOpen} canManage={canManage} canClinical={user.permissions.has(PERMISSIONS.CLINICAL_MANAGE)} />
             {canManage && (
               <details open={addOpen} className="rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-2)]/40">
                 <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-[var(--color-forest)]">

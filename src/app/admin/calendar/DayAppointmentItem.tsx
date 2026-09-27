@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { BookingStatus } from "@prisma/client";
 import { AppointmentActions } from "./AppointmentActions";
@@ -22,6 +23,8 @@ interface DayAppointmentItemProps {
   customerNote: string | null;
   defaultDate: string;
   canManage: boolean;
+  /** Patient-file treatment record for this appointment (clinical:manage only). */
+  treatmentHref?: string | null;
 }
 
 // Staff-authored note shown to the customer (Booking.centerNote) + read-only
@@ -166,6 +169,11 @@ export function DayAppointmentItem(props: DayAppointmentItemProps) {
             <Detail label="Staff" value={props.staffName} />
             <Detail label="Room" value={props.roomName} />
           </dl>
+          {props.treatmentHref && (
+            <Link href={props.treatmentHref} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 self-start">
+              Treatment record
+            </Link>
+          )}
           <NotesSection
             bookingId={props.bookingId}
             centerNote={props.centerNote}
