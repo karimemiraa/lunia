@@ -13,6 +13,7 @@ export const TEMPLATE_KINDS = [
   "OTP",
   "WAITLIST_OPEN",
   "REVIEW_REQUEST",
+  "CALLBACK_ACK",
 ] as const;
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
 
@@ -49,6 +50,11 @@ export const KIND_META: Record<string, { label: string; description: string; pla
     label: "Review request",
     description: "Invites the customer to leave a review.",
     placeholders: ["serviceName", "link"],
+  },
+  CALLBACK_ACK: {
+    label: "Call-back acknowledgement",
+    description: "Sent when a customer asks us to call them (website assistant).",
+    placeholders: ["name", "when"],
   },
 };
 
@@ -92,6 +98,10 @@ export const DEFAULT_BODIES: Record<string, { ar: string; en: string }> = {
     ar: "شكراً لزيارتك لونيا لخدمة {{serviceName}}.\n\nيسعدنا سماع رأيك عن تجربتك:\n{{link}}",
     en: "Thank you for visiting Lunia for your {{serviceName}}.\n\nWe'd love to hear about your experience:\n{{link}}",
   },
+  CALLBACK_ACK: {
+    ar: "هلا {{name}}، وصلنا طلبك في لونيا.\n\nبتتصل فيك أخصائية {{when}}.\n\nشكراً لك.",
+    en: "Hi {{name}}, we've received your request at Lunia.\n\nA specialist will call you {{when}}.\n\nThank you.",
+  },
 };
 
 export function defaultBody(kind: string, locale: string): string {
@@ -116,6 +126,8 @@ export function subjectForTemplate(kind: string, locale: string): string {
       return isAr ? "فتح موعد كنت بانتظاره في لونيا" : "A spot opened up at Lunia";
     case "REVIEW_REQUEST":
       return isAr ? "شاركنا رأيك في زيارتك لونيا" : "Share your Lunia experience";
+    case "CALLBACK_ACK":
+      return isAr ? "وصلنا طلب الاتصال" : "We'll call you shortly";
     default:
       return "Lunia";
   }
@@ -131,6 +143,8 @@ export function sampleParams(locale: string): Record<string, string> {
         bookingId: "LUN-4821",
         code: "482913",
         link: "https://lunia.sa/r/az8y",
+        name: "نورة",
+        when: "بكرة الساعة ١٠:٠٠ ص تقريباً",
       }
     : {
         serviceName: "Radiance Facial",
@@ -138,6 +152,8 @@ export function sampleParams(locale: string): Record<string, string> {
         bookingId: "LUN-4821",
         code: "482913",
         link: "https://lunia.sa/r/az8y",
+        name: "Sarah",
+        when: "tomorrow at around 10:00 AM",
       };
 }
 

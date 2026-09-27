@@ -1140,5 +1140,20 @@
     "viewingAs": "You are viewing as {name}",
     "warning": "Everything here is real: bookings, cancellations and messages reach the customer.",
     "exit": "Exit"
+  },
+  "assistant": {
+    "title": "Lunia Assistant",
+    "subtitle": "Skin, hair and recovery consultation",
+    "open": "Open the Lunia assistant",
+    "close": "Close the assistant",
+    "send": "Send",
+    "restart": "Start over",
+    "typing": "The assistant is typing",
+    "conversation": "Conversation with the Lunia assistant",
+    "quickReplies": "Suggested replies",
+    "inputLabel": "Your message",
+    "offline": "Connection problem. Please try again.",
+    "privacy": "Your details are only used to contact you about your care.",
+    "whatsapp": "Chat on WhatsApp"
   }
 }

@@ -65,7 +65,7 @@ export const SECRET_GROUPS: SecretGroup[] = [
     title: "AI assistant",
     description: "Credentials for the on-site booking assistant (used when the chatbot is wired to a live model).",
     fields: [
-      { key: "AI_PROVIDER", label: "Provider", secret: false, placeholder: "anthropic / openai" },
+      { key: "AI_PROVIDER", label: "Provider", secret: false, placeholder: "gemini / anthropic / openai" },
       { key: "AI_API_KEY", label: "API key", secret: true },
       { key: "AI_MODEL", label: "Model", secret: false, placeholder: "claude-opus-4-8" },
     ],

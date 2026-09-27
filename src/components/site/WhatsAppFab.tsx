@@ -4,9 +4,11 @@ function digitsOnly(value: string): string {
   return value.replace(/[^\d+]/g, "").replace(/^\+/, "");
 }
 
-// A persistent, gently pulsing WhatsApp button anchored to the bottom inline-
-// start corner (mirrors under RTL, opposite the Book CTA). Reads the number
-// from Settings; renders nothing if none is set. Server component.
+// A persistent, gently pulsing WhatsApp button at the physical bottom-right
+// (both languages), with the assistant launcher stacked above it. Hidden on
+// phones, where the assistant is the single launcher and offers "Continue on
+// WhatsApp" itself. Reads the number from Settings; renders nothing if none
+// is set. Server component.
 export async function WhatsAppFab() {
   const business = await getSetting("business").catch(() => null);
   if (!business?.whatsapp) return null;
@@ -18,8 +20,7 @@ export async function WhatsAppFab() {
       target="_blank"
       rel="noreferrer"
       aria-label="Chat on WhatsApp"
-      className="group fixed bottom-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[var(--shadow-lg)] transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
-      style={{ insetInlineStart: "1.25rem" }}
+      className="group fixed right-5 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[var(--shadow-lg)] transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 md:flex"
     >
       <span aria-hidden="true" className="absolute inset-0 rounded-full bg-[#25D366] opacity-60 motion-safe:animate-ping" />
       <svg viewBox="0 0 24 24" fill="currentColor" className="relative h-7 w-7" aria-hidden="true">

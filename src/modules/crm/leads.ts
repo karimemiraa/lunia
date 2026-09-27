@@ -14,6 +14,10 @@ export type ActivityKind = (typeof ACTIVITY_KINDS)[number] | "STAGE_CHANGE" | "A
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Mirrors ASSISTANT_AUTHOR_ID in src/modules/assistant/leads.ts (kept as a
+// literal here to avoid a crm -> assistant import cycle).
+const SYSTEM_AUTHOR_ID_ASSISTANT = "system:assistant";
+
 export interface LeadActivityRow {
   id: string;
   kind: string;
@@ -29,7 +33,9 @@ export async function listLeadActivities(clientProfileId: string): Promise<LeadA
   if (rows.length === 0) return [];
   const authorIds = [...new Set(rows.map((r) => r.authorUserId))];
   const authors = await prisma.user.findMany({ where: { id: { in: authorIds } }, include: { staffProfile: true } });
-  const nameById = new Map(authors.map((u) => [u.id, u.staffProfile?.fullName]));
+  const nameById = new Map<string, string | undefined>(authors.map((u) => [u.id, u.staffProfile?.fullName]));
+  // System-authored activities (e.g. the website assistant) have no staff user.
+  nameById.set(SYSTEM_AUTHOR_ID_ASSISTANT, "Website assistant");
   return rows.map((r) => ({
     id: r.id,
     kind: r.kind,

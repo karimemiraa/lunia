@@ -11,15 +11,8 @@ import { CinematicScroll } from "@/components/site/CinematicScroll";
 import { AssistantWidget } from "@/components/site/AssistantWidget";
 import { ImpersonationBanner } from "@/components/site/ImpersonationBanner";
 import { Tracker } from "@/components/analytics/Tracker";
-import { prisma } from "@/lib/db";
 import { getSetting } from "@/modules/cms/settings";
-import { localized } from "@/modules/catalog/localize";
 import "@/app/globals.css";
-
-function waHref(raw: string | undefined): string | null {
-  if (!raw) return null;
-  return `https://wa.me/${raw.replace(/[^\d+]/g, "").replace(/^\+/, "")}`;
-}
 
 // DB-backed CMS content renders per request (fresh content, no build-time DB
 // dependency, and no static-export step).
@@ -33,13 +26,11 @@ export default async function SiteLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const [messages, tCommon, services, business] = await Promise.all([
+  const [messages, tCommon, business] = await Promise.all([
     getMessages(),
     getTranslations({ locale, namespace: "common" }),
-    prisma.service.findMany({ where: { isPublished: true }, select: { slug: true, nameEn: true, nameAr: true }, orderBy: { order: "asc" } }),
     getSetting("business").catch(() => null),
   ]);
-  const assistantServices = services.map((s) => ({ slug: s.slug, name: localized(locale as "en" | "ar", s.nameEn, s.nameAr) }));
   return (
     <html lang={locale} dir={localeDirection(locale)} className={fontVariables}>
       <body className="flex min-h-screen flex-col">
@@ -51,12 +42,7 @@ export default async function SiteLayout({
           <SiteFooter locale={locale} />
           <StickyBookCta href={`/${locale}/book`} label={tCommon("bookNow")} />
           <WhatsAppFab />
-          <AssistantWidget
-            locale={locale}
-            services={assistantServices}
-            whatsappHref={waHref(business?.whatsapp)}
-            bookHref={`/${locale}/book`}
-          />
+          <AssistantWidget locale={locale} hasWhatsapp={!!business?.whatsapp} />
         </NextIntlClientProvider>
         <Tracker />
       </body>
