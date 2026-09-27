@@ -243,7 +243,8 @@ describe("billing/invoices read side", () => {
     const inv = await issueInvoice((await createDraft(walkInDraft(11_500))).id);
     const token = invoiceToken(inv.id);
     expect(verifyInvoiceToken(token)).toBe(inv.id);
-    expect(verifyInvoiceToken(`${inv.id}.AAAA`)).toBeNull();
+    expect(token).toMatch(/^[a-z0-9]+_[0-9a-f]{32}$/);
+    expect(verifyInvoiceToken(`${inv.id}_AAAA`)).toBeNull();
     expect(verifyInvoiceToken(token.replace(inv.id, `${inv.id}x`))).toBeNull();
     expect(verifyInvoiceToken("garbage")).toBeNull();
 
