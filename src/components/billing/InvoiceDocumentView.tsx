@@ -49,7 +49,8 @@ export function InvoiceDocumentView({ doc, format, toolbar }: { doc: InvoiceDocu
     @media print {
       html, body { background: #fff !important; }
       .invoice-no-print { display: none !important; }
-      .invoice-sheet { box-shadow: none !important; border: 0 !important; margin: 0 !important; width: auto !important; max-width: none !important; }
+      .invoice-wrap { padding: 0 !important; gap: 0 !important; }
+      .invoice-sheet { box-shadow: none !important; border: 0 !important; margin: 0 !important; padding: 0 !important; width: auto !important; max-width: none !important; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   `;
@@ -82,13 +83,13 @@ export function InvoiceDocumentView({ doc, format, toolbar }: { doc: InvoiceDocu
 
   if (format === "receipt") {
     return (
-      <div className="flex flex-col items-center gap-4 py-6">
+      <div className="invoice-wrap flex flex-col items-center gap-4 py-6">
         <style>{css}</style>
         {toolbar}
         <article className="invoice-sheet w-[80mm] max-w-full bg-white px-[4mm] py-[5mm] font-[family-name:var(--font-body)] text-[11px] leading-snug text-black shadow-[var(--shadow-lg)]">
           <header className="flex flex-col items-center gap-1 border-b border-dashed border-black/50 pb-2 text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/wordmark.svg" alt="Lunia" className="h-6" />
+            <img src="/brand/wordmark-mono.svg" alt="Lunia" className="h-6" />
             <p className="font-semibold">{s.sellerNameEn}</p>
             <p dir="rtl" lang="ar" className="font-semibold">
               {s.sellerNameAr}
@@ -161,16 +162,18 @@ export function InvoiceDocumentView({ doc, format, toolbar }: { doc: InvoiceDocu
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 py-6">
+    <div className="invoice-wrap flex flex-col items-center gap-4 py-6">
       <style>{css}</style>
       {toolbar}
-      <article className="invoice-sheet relative w-[210mm] max-w-full bg-white p-[12mm] font-[family-name:var(--font-body)] text-[12px] leading-relaxed text-[#1c2b29] shadow-[var(--shadow-lg)]">
+      {/* Responsive on phones (customers open the link there); from sm up —
+          which includes print, A4 being wider than 640px — the A4 grid. */}
+      <article className="invoice-sheet relative w-[210mm] max-w-full bg-white p-5 sm:p-[12mm] font-[family-name:var(--font-body)] text-[12px] leading-relaxed text-[#1c2b29] shadow-[var(--shadow-lg)]">
         {isDraft && (
           <p className="mb-4 rounded border border-red-300 bg-red-50 px-3 py-1 text-center font-semibold text-red-700">
             {en.invoices.doc.draft} · <span dir="rtl">{ar.invoices.doc.draft}</span>
           </p>
         )}
-        <header className="grid grid-cols-[1fr_auto_1fr] items-start gap-6 border-b-2 border-[var(--color-forest)] pb-5">
+        <header className="grid grid-cols-1 items-start gap-4 border-b-2 sm:grid-cols-[1fr_auto_1fr] sm:gap-6 border-[var(--color-forest)] pb-5">
           <div className="flex flex-col gap-0.5">
             <p className="text-[14px] font-semibold">{s.sellerNameEn || s.sellerNameAr}</p>
             <p>{addressEn}</p>
@@ -183,10 +186,13 @@ export function InvoiceDocumentView({ doc, format, toolbar }: { doc: InvoiceDocu
             </p>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/wordmark.svg" alt="Lunia" className="h-9" />
+          <img src="/brand/wordmark.svg" alt="Lunia" className="order-first h-9 justify-self-center sm:order-none" />
           <div dir="rtl" lang="ar" className="flex flex-col gap-0.5 text-right font-[family-name:var(--font-body-ar)]">
             <p className="text-[14px] font-semibold">{s.sellerNameAr || s.sellerNameEn}</p>
-            <p>{[s.buildingNo, s.street, s.district, s.city, s.postalCode].filter(Boolean).join("، ")}</p>
+            {/* The national address is registered in Latin script. */}
+            <p dir="ltr" className="text-right">
+              {addressEn}
+            </p>
             <p>
               {ar.invoices.doc.vatNumber}: <span className="font-mono">{s.vatNumber || "—"}</span>
             </p>
@@ -198,7 +204,7 @@ export function InvoiceDocumentView({ doc, format, toolbar }: { doc: InvoiceDocu
 
         <h1 className="my-5 flex items-center justify-center gap-4 rounded bg-[var(--color-forest)] py-2 text-[16px] font-semibold text-white">{title}</h1>
 
-        <section className="grid grid-cols-[1fr_auto] gap-6">
+        <section className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_auto]">
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
             <dt className="text-black/60">
               <L k={isCredit ? "creditNumber" : "number"} />
@@ -242,61 +248,63 @@ export function InvoiceDocumentView({ doc, format, toolbar }: { doc: InvoiceDocu
               </>
             )}
           </dl>
-          {doc.qrSvg && <div className="w-[34mm]" dangerouslySetInnerHTML={{ __html: doc.qrSvg }} />}
+          {doc.qrSvg && <div className="w-[34mm] justify-self-center" dangerouslySetInnerHTML={{ __html: doc.qrSvg }} />}
         </section>
 
-        <table className="mt-6 w-full border-collapse text-[11px]">
-          <thead>
-            <tr className="bg-[var(--color-ice)] text-left align-bottom">
-              <th className="border border-black/15 px-2 py-1.5 font-semibold">
-                <L k="description" stacked />
-              </th>
-              <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
-                <L k="qty" stacked />
-              </th>
-              <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
-                <L k="unitPrice" stacked />
-              </th>
-              <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
-                <L k="discount" stacked />
-              </th>
-              <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
-                <L k="vatRate" stacked />
-              </th>
-              <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
-                <L k="vat" stacked />
-              </th>
-              <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
-                <L k="lineTotal" stacked />
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {doc.lines.map((l) => (
-              <tr key={l.id} className="align-top">
-                <td className="border border-black/15 px-2 py-1.5">
-                  <div>{l.nameEn}</div>
-                  {l.nameAr && (
-                    <div dir="rtl" lang="ar" className="text-black/70">
-                      {l.nameAr}
-                    </div>
-                  )}
-                </td>
-                <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{l.qty}</td>
-                <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{formatAmount(l.unitPriceMinor)}</td>
-                <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{l.discountMinor ? formatAmount(l.discountMinor) : "—"}</td>
-                <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{l.vatRateBp / 100}%</td>
-                <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{formatAmount(l.vatMinor)}</td>
-                <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{formatAmount(l.totalMinor)}</td>
+        <div className="mt-6 overflow-x-auto">
+          <table className="w-full min-w-[560px] border-collapse text-[11px]">
+            <thead>
+              <tr className="bg-[var(--color-ice)] text-left align-bottom">
+                <th className="border border-black/15 px-2 py-1.5 font-semibold">
+                  <L k="description" stacked />
+                </th>
+                <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
+                  <L k="qty" stacked />
+                </th>
+                <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
+                  <L k="unitPrice" stacked />
+                </th>
+                <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
+                  <L k="discount" stacked />
+                </th>
+                <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
+                  <L k="vatRate" stacked />
+                </th>
+                <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
+                  <L k="vat" stacked />
+                </th>
+                <th className="border border-black/15 px-2 py-1.5 text-right font-semibold">
+                  <L k="lineTotal" stacked />
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {doc.lines.map((l) => (
+                <tr key={l.id} className="align-top">
+                  <td className="border border-black/15 px-2 py-1.5">
+                    <div>{l.nameEn}</div>
+                    {l.nameAr && (
+                      <div dir="rtl" lang="ar" className="text-black/70">
+                        {l.nameAr}
+                      </div>
+                    )}
+                  </td>
+                  <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{l.qty}</td>
+                  <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{formatAmount(l.unitPriceMinor)}</td>
+                  <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{l.discountMinor ? formatAmount(l.discountMinor) : "—"}</td>
+                  <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{l.vatRateBp / 100}%</td>
+                  <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{formatAmount(l.vatMinor)}</td>
+                  <td className="border border-black/15 px-2 py-1.5 text-right tabular-nums">{formatAmount(l.totalMinor)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <p className="mt-1 text-[10px] text-black/50">
           <L k="currency" />
         </p>
 
-        <section className="mt-5 grid grid-cols-2 gap-8">
+        <section className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8">
           <div className="text-[11px]">
             {doc.groups.length > 0 && (
               <table className="w-full border-collapse">
