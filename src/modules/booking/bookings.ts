@@ -23,6 +23,7 @@ import { earnForBooking, applyAutoTier, redeemPoints as redeemLoyaltyPoints } fr
 import { localized } from "@/modules/catalog/localize";
 import { notifyWaitlistForSlot } from "./waitlist";
 import { scheduleReviewRequest } from "@/modules/reviews/reviews";
+import { staffOnApprovedLeave } from "@/modules/hr/leave";
 
 export type Slot = ComputedSlot;
 
@@ -64,10 +65,13 @@ export async function getServiceSlots(
 
   const businessHours = await getBusinessHoursForDate(dateISO);
 
-  const [staffSchedules, rooms] = await Promise.all([
+  const [allSchedules, rooms, onLeave] = await Promise.all([
     prisma.staffSchedule.findMany({ where: { isActive: true } }),
     prisma.room.findMany({ where: { isActive: true } }),
+    staffOnApprovedLeave(dateISO),
   ]);
+  // Staff on approved leave that day simply have no bookable window.
+  const staffSchedules = allSchedules.filter((s) => !onLeave.has(s.staffUserId));
 
   // Appointments that overlap the center-local day at all (not merely ones
   // that start within it), so an appointment straddling local midnight is
