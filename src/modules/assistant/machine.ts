@@ -22,7 +22,7 @@ import {
   type Copy,
   type Locale,
 } from "./copy";
-import { openDays, openState } from "./hours";
+import { describeDueForCustomer, openDays, openState } from "./hours";
 import { cleanPersonName, type Expecting, type NluEngine } from "./nlu/rules";
 import { displayPhone, normalizePhone } from "./phone";
 import { domainOf, isOnlineBookable, recommendServices, type CatalogService } from "./recommend";
@@ -426,6 +426,7 @@ class Turn {
           chip("safety:recent_procedure", c.chip.safetyRecent),
           chip("safety:infection", c.chip.safetyInfection),
           chip("safety:allergies", c.chip.safetyAllergy),
+          skip,
         ]);
         return;
     }
@@ -687,17 +688,8 @@ class Turn {
     }
     setOutcome(this.s, "CALLBACK");
     await this.ports.captureLead(this.s);
-    this.say(c.cbDone(this.describeDue(res.dueAt ?? this.ports.now)));
+    this.say(c.cbDone(describeDueForCustomer(res.dueAt ?? this.ports.now, this.ports.now, this.s.locale)));
     this.go("menu", menuChips(this.s).filter((x) => x.value !== "callback"));
-  }
-
-  describeDue(due: Date): string {
-    const c = this.c;
-    if (due.getTime() - this.ports.now.getTime() < 15 * 60_000) return c.cbWhenSoon;
-    const local = utcToCenterLocal(due);
-    const hh = String(Math.floor(local.minutes / 60)).padStart(2, "0");
-    const mm = String(local.minutes % 60).padStart(2, "0");
-    return c.cbWhenAt(relativeDay(local.dateISO, this.ports.now, c, this.s.locale), formatClock(`${hh}:${mm}`, this.s.locale));
   }
 
   // ---- WhatsApp ----
@@ -880,9 +872,10 @@ function applyChoiceToProfile(s: Session, key: string, arg: string): boolean {
     }
     case "tried":
       if (arg === "none") p.triedText = "none";
-      else if (arg === "home") p.previousTreatments.includes("home_products") || p.previousTreatments.push("home_products");
-      else if (arg === "clinic") p.previousTreatments.includes("clinic_treatments") || p.previousTreatments.push("clinic_treatments");
-      else return false;
+      else if (arg === "home" || arg === "clinic") {
+        const label = arg === "home" ? "home_products" : "clinic_treatments";
+        if (!p.previousTreatments.includes(label)) p.previousTreatments.push(label);
+      } else return false;
       return true;
     case "goal":
       if (arg === "event") {
@@ -1135,7 +1128,12 @@ export async function advance(session: Session, input: Input, ports: AssistantPo
   if (input.kind === "choice") {
     const shown = s.flow.chips.find((x) => x.value === input.value);
     const [key] = input.value.split(":");
-    const allowed = !!shown || GLOBAL_CHOICES.has(key!) || input.value.startsWith("faq:") || input.value.startsWith("book:");
+    const allowed =
+      !!shown ||
+      GLOBAL_CHOICES.has(key!) ||
+      input.value.startsWith("faq:") ||
+      input.value.startsWith("book:") ||
+      (input.value === "skip" && s.state.startsWith("ask_"));
     userText = shown?.label ?? input.value;
     if (!allowed) {
       // A stale chip (e.g. from an older screen): ignore it gracefully.

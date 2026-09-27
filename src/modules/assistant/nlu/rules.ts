@@ -167,16 +167,25 @@ export function cleanPersonName(raw: string): string | null {
   return text;
 }
 
+// Words that end a name ("my name is Layla and ...", "اسمي نورة ورقمي ...").
+const NAME_BREAKS = new Set(
+  ["and", "call", "my", "number", "phone", "i", "from", "please", "و", "رقمي", "جوالي", "ابي", "ابغى", "من", "عمري", "لو"].map(normalizeText),
+);
+
 function extractName(raw: string, m: TextMatcher, expecting: Expecting | undefined): string | undefined {
-  const folded = m.text;
+  // Keep punctuation as its own token so a comma ends the name.
+  const tokens = raw.replace(/([,،.؛;!?؟:()])/g, " $1 ").split(/\s+/).filter(Boolean);
   for (const prefix of NAME_PREFIXES) {
-    const at = folded.indexOf(`${prefix} `);
-    if (at === 0 || (at > 0 && folded[at - 1] === " ")) {
-      // Take the original-script words after the prefix (up to 3).
-      const prefixWords = prefix.split(" ").length;
-      const before = folded.slice(0, at).split(" ").filter(Boolean).length;
-      const rawWords = raw.replace(/[^\p{L}\s'.-]/gu, " ").split(/\s+/).filter(Boolean);
-      const candidate = cleanPersonName(rawWords.slice(before + prefixWords, before + prefixWords + 3).join(" "));
+    const n = prefix.split(" ").length;
+    for (let i = 0; i + n <= tokens.length; i++) {
+      if (normalizeText(tokens.slice(i, i + n).join(" ")) !== prefix) continue;
+      const words: string[] = [];
+      for (const token of tokens.slice(i + n)) {
+        if (!/^[\p{L}'-]+$/u.test(token) || NAME_BREAKS.has(normalizeText(token)) || normalizeText(token).startsWith("ورقم")) break;
+        words.push(token);
+        if (words.length === 3) break;
+      }
+      const candidate = cleanPersonName(words.join(" "));
       if (candidate) return candidate;
     }
   }
@@ -184,6 +193,7 @@ function extractName(raw: string, m: TextMatcher, expecting: Expecting | undefin
     const phoneless = raw.replace(/[\d+٠-٩]/g, " ");
     return cleanPersonName(phoneless) ?? undefined;
   }
+  void m;
   return undefined;
 }
 

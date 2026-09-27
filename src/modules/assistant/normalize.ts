@@ -7,7 +7,6 @@ const DIACRITICS = /[ؐ-ًؚ-ٰٟۖ-ۭ]/g;
 const TATWEEL = /ـ/g;
 // Zero-width / bidi control characters people paste in (and abusers inject).
 const INVISIBLES = /[​-‏‪-‮⁦-⁩﻿]/g;
-// eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
 /** Converts Arabic-Indic (٠-٩) and Persian (۰-۹) digits to ASCII. */

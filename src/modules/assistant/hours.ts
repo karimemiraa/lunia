@@ -5,6 +5,7 @@
 import type { HoursSettings } from "@/modules/cms/settings";
 import { centerLocalToUtc, utcToCenterLocal } from "@/modules/booking/availability";
 import type { CallbackWindow } from "./types";
+import { copy, formatClock } from "./copy";
 
 export const WEEK_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 export type DayKey = (typeof WEEK_KEYS)[number];
@@ -98,4 +99,23 @@ export function callbackDueAt(hours: HoursSettings | null, window: CallbackWindo
 export function nextAttemptAt(hours: HoursSettings | null, now: Date, attempts: number): Date {
   const later = new Date(now.getTime() + (attempts >= 3 ? 24 : 2) * 3_600_000);
   return callbackDueAt(hours, "asap", later);
+}
+
+/** "today at around 4:00 PM" style phrase in the customer's language. */
+export function describeDueForCustomer(due: Date, now: Date, locale: "ar" | "en"): string {
+  const c = copy(locale);
+  if (due.getTime() - now.getTime() < 15 * 60_000) return c.cbWhenSoon;
+  const local = utcToCenterLocal(due);
+  const today = utcToCenterLocal(now).dateISO;
+  const tomorrow = new Date(`${today}T00:00:00Z`);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  const day =
+    local.dateISO === today
+      ? c.today
+      : local.dateISO === tomorrow.toISOString().slice(0, 10)
+        ? c.tomorrow
+        : new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory" : "en-GB", { weekday: "long", timeZone: "UTC" }).format(new Date(`${local.dateISO}T12:00:00Z`));
+  const hh = String(Math.floor(local.minutes / 60)).padStart(2, "0");
+  const mm = String(local.minutes % 60).padStart(2, "0");
+  return c.cbWhenAt(day, formatClock(`${hh}:${mm}`, locale));
 }

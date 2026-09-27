@@ -8,11 +8,10 @@ import { prisma } from "@/lib/db";
 import { getSetting } from "@/modules/cms/settings";
 import { scheduleMessage } from "@/modules/booking/outbox";
 import { logActivity } from "@/modules/crm/leads";
-import { utcToCenterLocal } from "@/modules/booking/availability";
-import { callbackDueAt, nextAttemptAt } from "./hours";
+import { callbackDueAt, describeDueForCustomer, nextAttemptAt } from "./hours";
 import { findOrCreateLeadByPhone } from "./leads";
 import { normalizePhone } from "./phone";
-import { asLocale, copy, formatClock } from "./copy";
+import { asLocale } from "./copy";
 import { CALLBACK_WINDOWS, type CallbackWindow } from "./types";
 
 export const CALLBACK_SOURCES = ["CHAT", "WEBSITE", "WHATSAPP", "STAFF"] as const;
@@ -43,25 +42,6 @@ const createSchema = z.object({
   acknowledge: z.boolean().default(true),
 });
 export type CreateCallbackInput = z.input<typeof createSchema>;
-
-/** "today at around 4:00 PM" style phrase in the customer's language. */
-export function describeDueForCustomer(due: Date, now: Date, locale: "ar" | "en"): string {
-  const c = copy(locale);
-  if (due.getTime() - now.getTime() < 15 * 60_000) return c.cbWhenSoon;
-  const local = utcToCenterLocal(due);
-  const today = utcToCenterLocal(now).dateISO;
-  const tomorrow = new Date(`${today}T00:00:00Z`);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  const day =
-    local.dateISO === today
-      ? c.today
-      : local.dateISO === tomorrow.toISOString().slice(0, 10)
-        ? c.tomorrow
-        : new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory" : "en-GB", { weekday: "long", timeZone: "UTC" }).format(new Date(`${local.dateISO}T12:00:00Z`));
-  const hh = String(Math.floor(local.minutes / 60)).padStart(2, "0");
-  const mm = String(local.minutes % 60).padStart(2, "0");
-  return c.cbWhenAt(day, formatClock(`${hh}:${mm}`, locale));
-}
 
 export async function createCallbackRequest(input: CreateCallbackInput, now: Date = new Date()) {
   const data = createSchema.parse(input);
@@ -128,6 +108,8 @@ export interface CallbackRow {
   attempts: number;
   outcome: string | null;
   dueAt: Date | null;
+  /** Open and its call time has arrived. */
+  overdue: boolean;
   createdAt: Date;
   handledAt: Date | null;
   clientProfileId: string | null;
@@ -146,7 +128,7 @@ async function staffNames(ids: (string | null)[]): Promise<Map<string, string>> 
 }
 
 /** The queue: open requests first (most overdue on top), then handled ones. */
-export async function listCallbacks(filter: CallbackFilter = "open", limit = 200): Promise<CallbackRow[]> {
+export async function listCallbacks(filter: CallbackFilter = "open", limit = 200, now: Date = new Date()): Promise<CallbackRow[]> {
   const where =
     filter === "open"
       ? { status: { in: [...OPEN_CALLBACK_STATUSES] } }
@@ -182,6 +164,7 @@ export async function listCallbacks(filter: CallbackFilter = "open", limit = 200
     attempts: r.attempts,
     outcome: r.outcome,
     dueAt: r.dueAt,
+    overdue: isOpen(r.status) && !!r.dueAt && r.dueAt.getTime() <= now.getTime(),
     createdAt: r.createdAt,
     handledAt: r.handledAt,
     clientProfileId: r.clientProfileId,
