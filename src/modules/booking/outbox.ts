@@ -27,7 +27,7 @@ import { resolveDeliveryChannel } from "@/modules/comms/preferences";
 // cycle above.
 import { resolveSenderForChannel } from "@/modules/comms/sender";
 
-const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "WAITLIST_OPEN", "REVIEW_REQUEST"]);
+const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "WAITLIST_OPEN", "REVIEW_REQUEST", "CALLBACK_ACK"]);
 export type MsgKind = z.infer<typeof msgKindSchema>;
 
 // Payload is a free-form JSON object (message-template data); Prisma's Json
@@ -153,6 +153,14 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
       return isAr
         ? `شكراً لزيارتك لونيا${ref}. نسعد بمشاركتك رأيك:${linkPartAr}`
         : `Thank you for visiting Lunia${ref}. We'd love to hear about your experience:${linkPartEn}`;
+    }
+    case "CALLBACK_ACK": {
+      // Sent when a call-back is requested (website assistant). {{when}} is
+      // the human "tomorrow at 10:00" the visitor was promised.
+      const when = typeof payload.when === "string" && payload.when ? ` ${payload.when}` : "";
+      return isAr
+        ? `وصلنا طلبك في لونيا، وبتتصل فيك أخصائية${when}. شكراً لك.`
+        : `We've received your request at Lunia. A specialist will call you${when}. Thank you.`;
     }
     default:
       return isAr ? `رسالة من لونيا${ref}.` : `A message from Lunia${ref}.`;
@@ -442,6 +450,8 @@ function subjectForKind(kind: string, locale: string): string {
       return isAr ? "فتح موعد كنت بانتظاره في لونيا" : "A spot opened up at Lunia";
     case "REVIEW_REQUEST":
       return isAr ? "شاركينا رأيك في زيارتك لونيا" : "Share your Lunia experience";
+    case "CALLBACK_ACK":
+      return isAr ? "وصلنا طلب الاتصال" : "We'll call you shortly";
     default:
       return "Lunia";
   }
