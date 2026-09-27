@@ -61,6 +61,7 @@
 import { prisma } from "@/lib/db";
 import { spendByChannel } from "./campaigns";
 import { bookingStats } from "../booking/stats";
+import { NOT_TEST_CLIENT } from "./testCustomers";
 
 export interface MarketingRangeFilter {
   from: Date;
@@ -87,7 +88,7 @@ async function firstBookingByClient(
   to: Date,
 ): Promise<Map<string, { createdAt: Date; sourceChannel: string | null }>> {
   const candidates = await prisma.booking.findMany({
-    where: { createdAt: { gte: from, lt: to } },
+    where: { createdAt: { gte: from, lt: to }, client: NOT_TEST_CLIENT },
     select: { clientProfileId: true },
   });
   const candidateClientIds = [...new Set(candidates.map((b) => b.clientProfileId))];

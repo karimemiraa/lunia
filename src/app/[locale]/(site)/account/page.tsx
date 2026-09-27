@@ -18,6 +18,9 @@ import { NotificationsPanel } from "./NotificationsPanel";
 import { SecurityPanel } from "./SecurityPanel";
 import { LoyaltyPanel } from "./LoyaltyPanel";
 import { MyCreditsPanel } from "./MyCreditsPanel";
+import { HealthProfileCard, ConsentsCard } from "./PatientFilePanels";
+import { getLatestIntake } from "@/modules/clinical/intake";
+import { consentStatusForClient } from "@/modules/clinical/consents";
 import { logout } from "./actions";
 
 interface AccountPageProps {
@@ -140,6 +143,10 @@ export default async function AccountPage({ params }: AccountPageProps) {
   const preference = await getPreference(user.clientProfile.id);
   const loyalty = await getLoyalty(user.clientProfile.id);
   const credits = await listClientCredits(user.clientProfile.id);
+  const [latestIntake, consentRows] = await Promise.all([
+    getLatestIntake(user.clientProfile.id),
+    consentStatusForClient(user.clientProfile.id),
+  ]);
 
   const t = await getTranslations({ locale, namespace: "account" });
   const logoutAction = logout.bind(null, locale);
@@ -177,6 +184,10 @@ export default async function AccountPage({ params }: AccountPageProps) {
           </div>
 
           <AccountBookings locale={locale} upcoming={upcoming} past={past} />
+
+          <HealthProfileCard locale={locale} lastUpdatedAt={latestIntake?.createdAt ?? null} />
+
+          <ConsentsCard locale={locale} rows={consentRows} />
 
           <LoyaltyPanel
             locale={locale}

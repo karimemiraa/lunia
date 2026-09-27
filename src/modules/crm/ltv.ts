@@ -11,6 +11,7 @@
 // without recomputing an aggregate per row.
 
 import { prisma } from "@/lib/db";
+import { NOT_TEST_CLIENT } from "./testCustomers";
 
 /** Recomputes a client's LTV from scratch: sum of priceMinorSnapshot across their COMPLETED bookings' appointments. */
 export async function computeClientLtvMinor(clientProfileId: string): Promise<number> {
@@ -37,6 +38,7 @@ export interface TopClientLtv {
 /** Top clients by cached LTV, highest first. Reads the cache (not a live recompute). */
 export async function topClientsByLtv(limit = 10): Promise<TopClientLtv[]> {
   const profiles = await prisma.clientProfile.findMany({
+    where: NOT_TEST_CLIENT,
     orderBy: { ltvCacheMinor: "desc" },
     take: limit,
   });

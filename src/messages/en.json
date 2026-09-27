@@ -942,5 +942,203 @@
     "minutes": "{n} min",
     "from": "From",
     "highlights": "Highlights"
+  },
+  "health": {
+    "meta": {
+      "title": "My health profile",
+      "description": "Your medical history and skin details, kept private for your specialist."
+    },
+    "card": {
+      "heading": "My health profile",
+      "intro": "A few questions about your skin and health so your specialist can plan safe treatments for you.",
+      "empty": "You haven't filled in your health profile yet.",
+      "updated": "Last updated {date}",
+      "start": "Fill in my health profile",
+      "update": "Review and update"
+    },
+    "heading": "My health profile",
+    "intro": "Please answer as accurately as you can. It takes about five minutes, and you can update it any time something changes.",
+    "privacy": "Your answers are confidential and only seen by the Lunia clinical team.",
+    "sections": {
+      "skin": "Your skin",
+      "health": "Medical conditions",
+      "medications": "Medications",
+      "allergies": "Allergies",
+      "pregnancy": "Pregnancy",
+      "procedures": "Recent procedures",
+      "sun": "Sun exposure",
+      "hair": "Hair and scalp",
+      "postSurgery": "Your surgery",
+      "notes": "Anything else"
+    },
+    "fields": {
+      "skinType": "How would you describe your skin?",
+      "concerns": "What would you like help with?",
+      "goals": "Your goals",
+      "goalsPlaceholder": "For example: calmer skin before my wedding in March",
+      "conditions": "Do you have, or have you had, any of the following?",
+      "conditionsOther": "Other conditions",
+      "medications": "Are you taking, or have you recently taken, any of the following?",
+      "isotretinoinLastDose": "Date of your last isotretinoin dose (if you know it)",
+      "medicationsOther": "Other medications or supplements",
+      "allergies": "Allergies (medicines, products, anaesthetics, latex...)",
+      "allergiesPlaceholder": "Leave empty if none",
+      "pregnant": "Are you pregnant or trying to get pregnant?",
+      "breastfeeding": "Are you breastfeeding?",
+      "yes": "Yes",
+      "no": "No",
+      "proceduresHint": "Laser, peels, fillers, Botox, microneedling or surgery in the last 6 months.",
+      "procedureKind": "Procedure",
+      "procedureDate": "Date",
+      "addProcedure": "Add a procedure",
+      "removeProcedure": "Remove",
+      "sunExposure": "How much sun are you exposed to day to day?",
+      "recentTan": "I have been tanned or sunburnt in the last 2 weeks",
+      "hairPattern": "Where do you notice the hair loss?",
+      "hairDuration": "For how long?",
+      "hairNotes": "Anything else about your hair (recent illness, stress, diet...)",
+      "surgeryType": "Type of surgery",
+      "surgeryDate": "Date of surgery",
+      "surgeon": "Surgeon's name",
+      "surgeonInstructions": "Instructions from your surgeon",
+      "notes": "Anything else we should know",
+      "select": "Select"
+    },
+    "skinTypes": {
+      "normal": "Normal",
+      "dry": "Dry",
+      "oily": "Oily",
+      "combination": "Combination",
+      "sensitive": "Sensitive",
+      "acneProne": "Acne-prone",
+      "mature": "Mature"
+    },
+    "concerns": {
+      "acne": "Acne",
+      "pigmentation": "Pigmentation",
+      "melasma": "Melasma",
+      "aging": "Fine lines",
+      "sensitivity": "Sensitivity",
+      "redness": "Redness",
+      "scarring": "Scars",
+      "dullness": "Dullness",
+      "pores": "Enlarged pores",
+      "dryness": "Dryness",
+      "hairLoss": "Hair loss",
+      "postSurgery": "Recovery after surgery"
+    },
+    "conditions": {
+      "diabetes": "Diabetes",
+      "thyroid": "Thyroid disorder",
+      "autoimmune": "Autoimmune condition",
+      "pcos": "PCOS",
+      "epilepsy": "Epilepsy or seizures",
+      "keloid": "Keloid or raised scars",
+      "herpes": "Cold sores (herpes)",
+      "hypertension": "High blood pressure",
+      "heart": "Heart condition",
+      "pacemaker": "Pacemaker or metal implants",
+      "bleedingDisorder": "Bleeding or clotting disorder",
+      "skinCancer": "Skin cancer",
+      "eczemaPsoriasis": "Eczema or psoriasis",
+      "vitiligo": "Vitiligo"
+    },
+    "medications": {
+      "isotretinoin": "Isotretinoin (Roaccutane) in the last 6 months",
+      "topicalRetinoids": "Retinol, tretinoin or adapalene creams",
+      "bloodThinners": "Blood thinners (such as aspirin or warfarin)",
+      "photosensitizing": "Medicines that make the skin sun-sensitive",
+      "oralSteroids": "Steroid tablets",
+      "hormonal": "Hormonal treatment or contraceptive pills"
+    },
+    "procedures": {
+      "laser": "Laser or IPL",
+      "peel": "Chemical peel",
+      "fillers": "Fillers",
+      "botox": "Botox",
+      "microneedling": "Microneedling",
+      "surgery": "Surgery",
+      "other": "Other"
+    },
+    "sunExposure": {
+      "low": "Mostly indoors",
+      "moderate": "Some time outdoors",
+      "high": "Outdoors a lot"
+    },
+    "hairPatterns": {
+      "diffuse": "All over (general thinning)",
+      "receding": "Hairline or temples",
+      "crown": "Crown",
+      "widening": "Widening parting",
+      "patchy": "Patches"
+    },
+    "hairDurations": {
+      "lt6m": "Less than 6 months",
+      "6to12m": "6 to 12 months",
+      "1to3y": "1 to 3 years",
+      "gt3y": "More than 3 years"
+    },
+    "submit": "Save my health profile",
+    "saving": "Saving...",
+    "saved": "Thank you. Your health profile is saved.",
+    "back": "Back to my account",
+    "errors": {
+      "notAuthenticated": "Please sign in again to continue.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "consents": {
+    "meta": {
+      "title": "Consent forms",
+      "description": "Read and sign your treatment consent forms."
+    },
+    "card": {
+      "heading": "Consent forms",
+      "intro": "Please read and sign these before your visit. It saves time at the front desk.",
+      "empty": "There are no forms for you to sign right now.",
+      "required": "Required",
+      "optional": "Optional",
+      "signed": "Signed {date}",
+      "needsSignature": "Not signed yet",
+      "newVersion": "Updated since you signed. Please sign the new version.",
+      "sign": "Read and sign",
+      "view": "View signed copy"
+    },
+    "sign": {
+      "heading": "Read and sign",
+      "version": "Version {version}",
+      "readCarefully": "Please read the form carefully. If anything is unclear, ask us before signing.",
+      "nameLabel": "Your full name",
+      "signatureLabel": "Your signature",
+      "signatureHint": "Sign with your finger, stylus or mouse inside the box.",
+      "clear": "Clear",
+      "agree": "I have read and understood this form and I agree to it.",
+      "submit": "Sign the form",
+      "submitting": "Signing...",
+      "success": "Thank you. Your form is signed.",
+      "viewSigned": "View signed copy",
+      "back": "Back to my account",
+      "errors": {
+        "notAuthenticated": "Please sign in again to continue.",
+        "notFound": "This form is no longer available.",
+        "signatureRequired": "Please add your signature in the box.",
+        "nameRequired": "Please enter your full name.",
+        "agreeRequired": "Please confirm that you agree to the form.",
+        "generic": "Something went wrong. Please try again."
+      }
+    },
+    "signed": {
+      "heading": "Signed consent",
+      "signedBy": "Signed by",
+      "signedAt": "Signed on",
+      "version": "Form version",
+      "print": "Print",
+      "back": "Back to my account"
+    }
+  },
+  "impersonation": {
+    "viewingAs": "You are viewing as {name}",
+    "warning": "Everything here is real: bookings, cancellations and messages reach the customer.",
+    "exit": "Exit"
   }
 }

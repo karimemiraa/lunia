@@ -18,6 +18,7 @@
 import { prisma } from "@/lib/db";
 import type { BookingStatus, Prisma } from "@prisma/client";
 import { utcToCenterLocal } from "./availability";
+import { NOT_TEST_CLIENT } from "@/modules/crm/testCustomers";
 
 export interface BookingStatsInput {
   from: Date;
@@ -65,7 +66,7 @@ type BookingForStats = Prisma.BookingGetPayload<{ include: { appointments: true 
  */
 export async function bookingStats({ from, to }: BookingStatsInput): Promise<BookingStats> {
   const bookings = await prisma.booking.findMany({
-    where: { createdAt: { gte: from, lt: to } },
+    where: { createdAt: { gte: from, lt: to }, client: NOT_TEST_CLIENT },
     include: { appointments: true },
   });
 
@@ -194,7 +195,7 @@ export async function upcomingAppointmentsCount(now: Date = new Date()): Promise
   return prisma.appointment.count({
     where: {
       startAt: { gte: now },
-      booking: { status: { in: ["CONFIRMED", "CHECKED_IN"] } },
+      booking: { status: { in: ["CONFIRMED", "CHECKED_IN"] }, client: NOT_TEST_CLIENT },
     },
   });
 }

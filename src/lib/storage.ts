@@ -34,6 +34,21 @@ function assertSafeKey(key: string): void {
   }
 }
 
+// Keys under these prefixes hold private records (clinical photos, finance
+// documents). They are only ever served by authenticated, permission-checked
+// routes -- never by the public /api/media route. The check normalizes the key
+// first ("./clinical/x", "Clinical/x" on a case-insensitive disk, "//clinical")
+// so a variant spelling can't reach the same file.
+export const PRIVATE_STORAGE_PREFIXES = ["finance/", "clinical/"] as const;
+
+export function isPrivateStorageKey(key: string): boolean {
+  const normalized = path.posix
+    .normalize(key.replace(/\\/g, "/"))
+    .replace(/^(\.\/|\/)+/, "")
+    .toLowerCase();
+  return PRIVATE_STORAGE_PREFIXES.some((prefix) => normalized.startsWith(prefix) || normalized === prefix.slice(0, -1));
+}
+
 // --- Local filesystem backend (dev/test) ------------------------------------
 // Uploaded bytes live under <cwd>/uploads with a sidecar .meta file recording
 // the content type.

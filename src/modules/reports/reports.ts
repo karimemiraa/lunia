@@ -28,6 +28,7 @@ import { bookingStats } from "@/modules/booking/stats";
 import { utcToCenterLocal } from "@/modules/booking/availability";
 import { listClients } from "@/modules/crm/clients";
 import { channelPerformance } from "@/modules/crm/marketing";
+import { testClientIds } from "@/modules/crm/testCustomers";
 
 export interface ReportColumn {
   key: string;
@@ -79,7 +80,10 @@ export interface ReportResult<T> {
  * appointment yields one row per appointment.
  */
 export async function bookingsReport(filter: BookingsReportFilter): Promise<ReportResult<BookingsReportRow>> {
-  const bookings = await listBookings({ from: filter.from, to: filter.to, status: filter.status });
+  const excluded = await testClientIds();
+  const bookings = (await listBookings({ from: filter.from, to: filter.to, status: filter.status })).filter(
+    (b) => !excluded.has(b.clientProfileId),
+  );
   if (bookings.length === 0) return { columns: BOOKINGS_REPORT_COLUMNS, rows: [] };
 
   const serviceIds = [...new Set(bookings.flatMap((b) => b.appointments.map((a) => a.serviceId)))];
@@ -182,9 +186,10 @@ export interface ClientsReportFilter {
  * crm/clients.ts.
  */
 export async function clientsReport(filter: ClientsReportFilter): Promise<ReportResult<ClientsReportRow>> {
-  const clients = await listClients();
+  const [clients, excluded] = await Promise.all([listClients(), testClientIds()]);
   const rows: ClientsReportRow[] = clients
     .filter((c) => {
+      if (excluded.has(c.clientProfileId)) return false;
       if (!c.lastVisitAt) return false;
       if (c.lastVisitAt < filter.from) return false;
       if (filter.to && c.lastVisitAt >= filter.to) return false;

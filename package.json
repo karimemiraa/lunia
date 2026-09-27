@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:generate": "prisma generate",
+    "demo:customer": "tsx prisma/demo-customer.ts",
     "worker": "tsx worker/index.ts"
   },
   "dependencies": {
