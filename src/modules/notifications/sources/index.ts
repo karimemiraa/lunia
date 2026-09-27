@@ -6,6 +6,7 @@
 import type { PermissionKey } from "@/modules/iam/permissions";
 import type { NotificationItem } from "../feed";
 import { stockSource } from "./stock";
+import { cashDrawerSource } from "./cashDrawer";
 
 export interface NotificationSourceResult {
   count: number;
@@ -14,4 +15,4 @@ export interface NotificationSourceResult {
 
 export type NotificationSource = (permissions: Set<PermissionKey>) => Promise<NotificationSourceResult>;
 
-export const SOURCES: NotificationSource[] = [stockSource];
+export const SOURCES: NotificationSource[] = [stockSource, cashDrawerSource];
