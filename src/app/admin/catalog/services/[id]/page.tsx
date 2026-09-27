@@ -8,6 +8,7 @@ import { listMedia } from "@/modules/cms/media";
 import { listTiers } from "@/modules/iam/tiers";
 import { getMinTierForService } from "@/modules/booking/accessRules";
 import { EditServiceForm } from "./EditServiceForm";
+import { ServiceConsumablesSection } from "../../../inventory/_components/ServiceConsumables";
 
 interface EditServicePageProps {
   params: Promise<{ id: string }>;
@@ -35,6 +36,7 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
         tiers={tiers}
         currentMinTierId={minTier?.minTierId ?? null}
       />
+      {user.permissions.has(PERMISSIONS.INVENTORY_MANAGE) && <ServiceConsumablesSection serviceId={service.id} />}
     </AdminShell>
   );
 }

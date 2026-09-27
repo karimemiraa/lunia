@@ -23,6 +23,7 @@ import { earnForBooking, applyAutoTier, redeemPoints as redeemLoyaltyPoints } fr
 import { localized } from "@/modules/catalog/localize";
 import { notifyWaitlistForSlot } from "./waitlist";
 import { scheduleReviewRequest } from "@/modules/reviews/reviews";
+import { consumeForBooking } from "@/modules/inventory/consumables";
 
 export type Slot = ComputedSlot;
 
@@ -760,6 +761,15 @@ export async function complete(bookingId: string): Promise<Booking> {
     await scheduleReviewRequest(booking, { completedAt: new Date() });
   } catch (err) {
     console.error(`Failed to schedule review request for booking "${bookingId}"`, err);
+  }
+
+  // Best-effort, same pattern: deduct the services' consumables from stock
+  // (idempotent per appointment). A missed deduction is fixable with a stock
+  // adjustment; failing to record the completion is not.
+  try {
+    await consumeForBooking(bookingId);
+  } catch (err) {
+    console.error(`Failed to deduct consumables for booking "${bookingId}"`, err);
   }
 
   return updated;
