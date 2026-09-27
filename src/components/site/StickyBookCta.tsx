@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface StickyBookCtaProps {
@@ -13,9 +14,14 @@ interface StickyBookCtaProps {
 // stays reachable in the corner for the rest of the page — the "always one tap
 // from booking" pattern. Purely additive and reduced-motion friendly: it's a
 // plain link with a CSS transition, and it self-hides at the very top of the
-// page. Anchored to the inline-end so it mirrors correctly under RTL.
+// page. Pinned to the physical left in both languages: the assistant and
+// WhatsApp launchers own the bottom-right corner. Hidden where it would be
+// redundant (the booking funnel itself and the customer account).
+const HIDDEN_ON = /^\/(ar|en)\/(book|account)(\/|$)/;
+
 export function StickyBookCta({ href, label }: StickyBookCtaProps) {
   const [shown, setShown] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setShown(window.scrollY > window.innerHeight * 0.85);
@@ -24,12 +30,13 @@ export function StickyBookCta({ href, label }: StickyBookCtaProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  if (HIDDEN_ON.test(pathname)) return null;
+
   return (
     <div
-      className={`fixed bottom-5 z-40 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-5 z-40 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         shown ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
       }`}
-      style={{ insetInlineEnd: "1.25rem" }}
     >
       <Link
         href={href}

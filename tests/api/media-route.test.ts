@@ -44,4 +44,29 @@ describe("GET /api/media/[...path]", () => {
 
     expect(response.status).toBe(404);
   });
+
+  it("serves byte ranges with 206 so iOS Safari can play video", async () => {
+    await storage.put(testKey, Buffer.from("0123456789"), "video/mp4");
+    const call = (range: string) =>
+      GET(new Request(`http://localhost/api/media/${testKey}`, { headers: { range } }), {
+        params: Promise.resolve({ path: testKey.split("/") }),
+      });
+
+    const probe = await call("bytes=0-1");
+    expect(probe.status).toBe(206);
+    expect(probe.headers.get("Content-Range")).toBe("bytes 0-1/10");
+    expect(probe.headers.get("Accept-Ranges")).toBe("bytes");
+    expect(Buffer.from(await probe.arrayBuffer()).toString()).toBe("01");
+
+    const open = await call("bytes=7-");
+    expect(open.headers.get("Content-Range")).toBe("bytes 7-9/10");
+    expect(Buffer.from(await open.arrayBuffer()).toString()).toBe("789");
+
+    const suffix = await call("bytes=-3");
+    expect(Buffer.from(await suffix.arrayBuffer()).toString()).toBe("789");
+
+    const beyond = await call("bytes=20-30");
+    expect(beyond.status).toBe(416);
+    expect(beyond.headers.get("Content-Range")).toBe("bytes */10");
+  });
 });

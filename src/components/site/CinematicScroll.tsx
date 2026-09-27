@@ -52,6 +52,17 @@ export function CinematicScroll() {
     };
     document.addEventListener("visibilitychange", onVisible);
 
+    // iOS Low Power Mode rejects every autoplay until the visitor interacts;
+    // the first touch counts as a gesture, so retry the paused films then.
+    const onFirstTouch = () => {
+      document.querySelectorAll<HTMLVideoElement>("video[autoplay]").forEach((v) => {
+        if (!v.paused) return;
+        v.muted = true;
+        v.play().catch(() => {});
+      });
+    };
+    document.addEventListener("touchstart", onFirstTouch, { once: true, passive: true });
+
     let cleanup: (() => void) | null = null;
     let killed = false;
 
@@ -402,6 +413,7 @@ export function CinematicScroll() {
     return () => {
       killed = true;
       document.removeEventListener("visibilitychange", onVisible);
+      document.removeEventListener("touchstart", onFirstTouch);
       cleanup?.();
     };
   }, [pathname]);

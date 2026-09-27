@@ -18,8 +18,8 @@ export async function AdminShell({ user, title, description, actions, children }
   return (
     <div className="flex min-h-screen text-[var(--color-ink)]">
       <AdminNav permissions={user.permissions} />
-      <div className="lunia-admin-bg relative min-w-0 flex-1">
-        <main className="relative mx-auto w-full max-w-6xl px-6 py-8 lg:px-10 lg:py-10">
+      <div className="lunia-admin-bg relative min-w-0 flex-1 pt-14 md:pt-0">
+        <main className="relative mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
           {/* Global search + notification center. */}
           <div className="mb-6 flex items-center gap-3">
             <form method="get" action="/admin/search" className="flex flex-1 items-center gap-2 sm:max-w-md" role="search">

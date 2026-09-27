@@ -48,7 +48,10 @@ export function MediaFrame({
     <div className={`${shapeClass} bg-gradient-to-br from-[var(--color-cream)] to-[var(--color-teal)]/25`}>
       {kind === "VIDEO" ? (
         <video
-          src={src}
+          // "#t=0.1" makes iOS paint the first frame as a still (there's no
+          // poster for uploaded films) instead of a blank box before playback.
+          src={`${src}#t=0.1`}
+          preload="metadata"
           className="h-full w-full object-cover"
           style={{ objectPosition }}
           muted

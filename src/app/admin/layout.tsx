@@ -1,5 +1,15 @@
+import type { Metadata, Viewport } from "next";
 import "@/app/globals.css";
 import { fontVariables } from "@/app/fonts";
+
+// Staff can "Add to Home Screen" on the front-desk iPad: its own manifest so
+// the installed app opens straight into /admin, full screen.
+export const metadata: Metadata = {
+  manifest: "/admin.webmanifest",
+  appleWebApp: { capable: true, title: "Lunia Staff", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = { themeColor: "#2b4d47" };
 
 // Auth-gated, per-request; never statically prerendered.
 export const dynamic = "force-dynamic";

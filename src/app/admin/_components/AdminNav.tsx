@@ -280,11 +280,18 @@ export function AdminNav({ permissions }: AdminNavProps) {
   const pathname = usePathname() ?? "";
   const [collapsed, setCollapsed] = useState(false);
   const [closed, setClosed] = useState<Record<string, boolean>>({});
+  // Phones: the nav is an off-canvas drawer opened from the top bar.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  // In the open drawer always show full labels; elsewhere honour the rail.
+  const rail = collapsed && !drawerOpen;
 
   // Hydrate persisted UI state after mount (avoids SSR/client mismatch).
+  // With no saved preference, tablets in portrait start with the icon rail so
+  // the content keeps its width on an iPad.
   useEffect(() => {
     try {
-      setCollapsed(localStorage.getItem("lunia-nav-collapsed") === "1");
+      const saved = localStorage.getItem("lunia-nav-collapsed");
+      setCollapsed(saved === null ? window.innerWidth < 1024 : saved === "1");
       const raw = localStorage.getItem("lunia-nav-closed");
       if (raw) setClosed(JSON.parse(raw) as Record<string, boolean>);
     } catch {
@@ -311,15 +318,34 @@ export function AdminNav({ permissions }: AdminNavProps) {
     });
 
   return (
+    <>
+    {/* Phone top bar (the sidebar becomes a drawer below md). */}
+    <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-white/10 bg-[var(--color-ink)] px-3 pt-[env(safe-area-inset-top)] text-[var(--color-cream)] md:hidden">
+      <button
+        type="button"
+        onClick={() => setDrawerOpen(true)}
+        aria-label="Open menu"
+        aria-expanded={drawerOpen}
+        className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-white/10"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
+          <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+      <span className="font-[family-name:var(--font-display)] text-lg tracking-[0.3em]">LUNIA</span>
+    </div>
+    {drawerOpen && (
+      <div aria-hidden="true" onClick={() => setDrawerOpen(false)} className="fixed inset-0 z-40 bg-black/40 md:hidden" />
+    )}
     <nav
       aria-label="Admin navigation"
-      className={`sticky top-0 flex h-screen shrink-0 flex-col gap-0.5 overflow-y-auto overflow-x-hidden border-e border-[var(--line)] bg-[var(--color-ink)] py-4 text-[var(--color-cream)] transition-[width] duration-300 ${
-        collapsed ? "w-[4.25rem] items-center px-2" : "w-60 px-3"
-      }`}
+      className={`fixed inset-y-0 start-0 z-50 flex h-[100dvh] w-72 shrink-0 flex-col gap-0.5 overflow-y-auto overflow-x-hidden border-e border-[var(--line)] bg-[var(--color-ink)] px-3 py-4 text-[var(--color-cream)] transition-transform duration-300 md:sticky md:top-0 md:z-auto md:h-screen md:translate-x-0 md:transition-[width] ${
+        drawerOpen ? "translate-x-0" : "-translate-x-full rtl:translate-x-full"
+      } ${collapsed ? "md:w-[4.25rem] md:items-center md:px-2" : "md:w-60 md:px-3"}`}
     >
       {/* Brand + collapse toggle */}
-      <div className={`mb-3 flex items-center ${collapsed ? "justify-center" : "gap-2 px-2"}`}>
-        {!collapsed && (
+      <div className={`mb-3 flex items-center ${rail ? "justify-center" : "gap-2 px-2"}`}>
+        {!rail && (
           <>
             <span className="font-[family-name:var(--font-display)] text-lg tracking-[0.3em]">LUNIA</span>
             <span className="ms-auto rounded-full bg-[var(--color-teal)]/15 px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-widest text-[var(--color-teal)]">
@@ -331,19 +357,29 @@ export function AdminNav({ permissions }: AdminNavProps) {
           type="button"
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`rounded-md p-1.5 text-[var(--color-cream)]/55 transition-colors hover:bg-white/10 hover:text-[var(--color-cream)] ${collapsed ? "" : "ms-1"}`}
+          className={`hidden rounded-md p-1.5 text-[var(--color-cream)]/55 transition-colors hover:bg-white/10 hover:text-[var(--color-cream)] md:inline-flex ${rail ? "" : "ms-1"}`}
         >
           {RailIcon}
+        </button>
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(false)}
+          aria-label="Close menu"
+          className="ms-1 flex h-10 w-10 items-center justify-center rounded-md text-[var(--color-cream)]/70 hover:bg-white/10 md:hidden"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
+            <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+          </svg>
         </button>
       </div>
 
       {GROUPS.map((group) => {
         const items = group.items.filter((item) => !item.perm || permissions.has(item.perm));
         if (items.length === 0) return null;
-        const open = collapsed ? true : !closed[group.label];
+        const open = rail ? true : !closed[group.label];
         return (
           <div key={group.label} className="w-full">
-            {collapsed ? (
+            {rail ? (
               <div aria-hidden="true" className="mx-auto my-2 h-px w-6 bg-white/10" />
             ) : (
               <button
@@ -365,9 +401,10 @@ export function AdminNav({ permissions }: AdminNavProps) {
                       <Link
                         href={item.href}
                         aria-current={active ? "page" : undefined}
-                        title={collapsed ? item.label : undefined}
+                        title={rail ? item.label : undefined}
+                        onClick={() => setDrawerOpen(false)}
                         className={`group flex items-center rounded-[var(--radius-sm)] text-sm transition-colors duration-200 ${
-                          collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-1.5"
+                          rail ? "justify-center p-2.5" : "gap-3 px-3 py-2.5 md:py-1.5"
                         } ${
                           active
                             ? "bg-[var(--color-teal)]/15 font-medium text-[var(--color-cream)]"
@@ -383,7 +420,7 @@ export function AdminNav({ permissions }: AdminNavProps) {
                         >
                           {item.icon}
                         </span>
-                        {!collapsed && item.label}
+                        {!rail && item.label}
                       </Link>
                     </li>
                   );
@@ -397,15 +434,16 @@ export function AdminNav({ permissions }: AdminNavProps) {
       <form action="/admin/logout" method="post" className="mt-auto w-full pt-3">
         <button
           type="submit"
-          title={collapsed ? "Sign out" : undefined}
+          title={rail ? "Sign out" : undefined}
           className={`flex w-full items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-cream)]/60 transition-colors hover:bg-white/5 hover:text-[var(--color-cream)] ${
-            collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2"
+            rail ? "justify-center p-2.5" : "gap-3 px-3 py-2"
           }`}
         >
           <span className="text-[var(--color-cream)]/50">{I.door}</span>
-          {!collapsed && "Sign out"}
+          {!rail && "Sign out"}
         </button>
       </form>
     </nav>
+    </>
   );
 }
