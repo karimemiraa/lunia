@@ -18,6 +18,7 @@ import { NotificationsPanel } from "./NotificationsPanel";
 import { SecurityPanel } from "./SecurityPanel";
 import { LoyaltyPanel } from "./LoyaltyPanel";
 import { MyCreditsPanel } from "./MyCreditsPanel";
+import { MyInvoicesPanel } from "./MyInvoicesPanel";
 import { logout } from "./actions";
 
 interface AccountPageProps {
@@ -211,6 +212,8 @@ export default async function AccountPage({ params }: AccountPageProps) {
               sessionsTotal: pkg.sessionsTotal,
             }))}
           />
+
+          <MyInvoicesPanel locale={locale} clientProfileId={user.clientProfile.id} />
 
           <NotificationsPanel locale={locale} preference={preference} />
 

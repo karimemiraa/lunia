@@ -280,3 +280,34 @@ export function inclusiveEditorValues(line: { qty: number; unitPriceMinor: numbe
   if (unitInclMinor * line.qty < line.totalMinor) unitInclMinor = Math.ceil(line.totalMinor / line.qty);
   return { unitInclMinor, discountInclMinor: unitInclMinor * line.qty - line.totalMinor };
 }
+
+export interface EnteredLine {
+  qty: number;
+  /** As entered: VAT-inclusive when pricesIncludeVat, else exclusive. */
+  unitPriceMinor: number;
+  discountMinor: number;
+  vatRateBp: number;
+}
+
+/**
+ * The whole draft calculation from what staff typed: stored (exclusive)
+ * line amounts plus totals. Shared by the server (authoritative) and the
+ * editor's live preview so both always agree.
+ */
+export function draftAmounts(
+  lines: EnteredLine[],
+  invoiceDiscountMinor: number,
+  pricesIncludeVat: boolean,
+): { amounts: LineAmounts[]; totals: InvoiceTotals } {
+  const amounts: LineAmounts[] = lines.map((l) =>
+    pricesIncludeVat
+      ? {
+          qty: l.qty,
+          vatRateBp: l.vatRateBp,
+          ...lineFromInclusive({ unitInclMinor: l.unitPriceMinor, qty: l.qty, discountInclMinor: l.discountMinor, vatRateBp: l.vatRateBp }),
+        }
+      : { qty: l.qty, unitPriceMinor: l.unitPriceMinor, discountMinor: l.discountMinor, vatRateBp: l.vatRateBp },
+  );
+  const discount = pricesIncludeVat ? invoiceDiscountFromInclusive(amounts, invoiceDiscountMinor) : invoiceDiscountMinor;
+  return { amounts, totals: computeInvoiceTotals(amounts, discount) };
+}

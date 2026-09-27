@@ -18,6 +18,9 @@ import { LeadPanel } from "./LeadPanel";
 import { listLeadActivities } from "@/modules/crm/leads";
 import { listStages } from "@/modules/crm/pipeline";
 import { listStaffUsers } from "@/modules/iam/users";
+import { listInvoices } from "@/modules/billing/invoices";
+import { formatSarMinor } from "@/modules/billing/money";
+import { StatusBadge } from "../../billing/ui";
 
 interface ClientDetailPageProps {
   params: Promise<{ id: string }>;
@@ -77,13 +80,15 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   const [detail, tiers] = await Promise.all([getClientDetail(id), canManage ? listTiers() : Promise.resolve([])]);
   if (!detail) notFound();
 
-  const [preference, loyalty, credits, leadActivities, staffUsers, pipelineStages] = await Promise.all([
+  const canBill = user.permissions.has(PERMISSIONS.BILLING_MANAGE);
+  const [preference, loyalty, credits, leadActivities, staffUsers, pipelineStages, invoices] = await Promise.all([
     canManage ? getPreference(detail.profile.id) : Promise.resolve(null),
     getLoyalty(detail.profile.id),
     listClientCredits(detail.profile.id),
     canManage ? listLeadActivities(detail.profile.id) : Promise.resolve([]),
     canManage ? listStaffUsers() : Promise.resolve([]),
     canManage ? listStages() : Promise.resolve([]),
+    canBill ? listInvoices({ clientProfileId: detail.profile.id, take: 50 }) : Promise.resolve(null),
   ]);
 
   // Derived metrics from the booking history.
@@ -343,6 +348,42 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
     </p>
   );
 
+  // --- Tab: Invoices (billing:manage) ------------------------------------------
+  const invoicesTab = invoices ? (
+    <div className="flex flex-col gap-3">
+      <div className="flex justify-end">
+        <Link href={`/admin/billing/new?client=${detail.profile.id}`} className="lunia-btn lunia-btn-forest-outline min-h-[44px]">
+          New invoice
+        </Link>
+      </div>
+      {invoices.rows.length === 0 ? (
+        <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">
+          No invoices yet.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2" data-testid="client-invoices">
+          {invoices.rows.map((inv) => (
+            <li key={inv.id}>
+              <Link href={`/admin/billing/${inv.id}`} className="lunia-card flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+                <span className="flex items-center gap-3">
+                  <span className="font-medium">{inv.status === "DRAFT" ? "Draft" : inv.number}</span>
+                  <StatusBadge status={inv.status} kind={inv.kind} />
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="text-xs text-[var(--color-ink)]/50">{formatDate(inv.issuedAt ?? inv.createdAt)}</span>
+                  <span className="font-medium tabular-nums">
+                    {inv.kind === "CREDIT_NOTE" ? "−" : ""}
+                    {formatSarMinor(inv.totalMinor)}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  ) : null;
+
   const tabs: TabDef[] = [
     { id: "overview", label: "Overview", content: overview },
     { id: "pipeline", label: "Pipeline", content: pipelineTab, badge: leadActivities.length },
@@ -351,6 +392,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
     { id: "timeline", label: "Timeline", content: timelineTab, badge: timeline.length },
     { id: "loyalty", label: "Loyalty", content: loyaltyTab },
     { id: "credits", label: "Credits", content: creditsTab, badge: credits.giftCards.length + credits.packages.length },
+    ...(invoicesTab ? [{ id: "invoices", label: "Invoices", content: invoicesTab, badge: invoices?.rows.length }] : []),
   ];
 
   return (

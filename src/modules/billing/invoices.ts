@@ -22,8 +22,7 @@ import { recordStockMovement } from "@/modules/inventory/stock";
 import {
   computeInvoiceTotals,
   computeLine,
-  invoiceDiscountFromInclusive,
-  lineFromInclusive,
+  draftAmounts,
   toDecimal,
   type InvoiceTotals,
   type LineAmounts,
@@ -92,22 +91,7 @@ interface NormalizedDraft {
 // Converts entered amounts to the stored (VAT-exclusive) representation and
 // computes every total server-side — the client preview is never trusted.
 export function normalizeDraft(input: z.output<typeof draftSchema>): NormalizedDraft {
-  const amounts: LineAmounts[] = input.lines.map((l) => {
-    if (!input.pricesIncludeVat) {
-      return { qty: l.qty, unitPriceMinor: l.unitPriceMinor, discountMinor: l.discountMinor, vatRateBp: l.vatRateBp };
-    }
-    const conv = lineFromInclusive({
-      unitInclMinor: l.unitPriceMinor,
-      qty: l.qty,
-      discountInclMinor: l.discountMinor,
-      vatRateBp: l.vatRateBp,
-    });
-    return { qty: l.qty, vatRateBp: l.vatRateBp, ...conv };
-  });
-  const invoiceDiscount = input.pricesIncludeVat
-    ? invoiceDiscountFromInclusive(amounts, input.invoiceDiscountMinor)
-    : input.invoiceDiscountMinor;
-  const totals = computeInvoiceTotals(amounts, invoiceDiscount);
+  const { amounts, totals } = draftAmounts(input.lines, input.invoiceDiscountMinor, input.pricesIncludeVat);
   const lines = input.lines.map((l, i) => {
     const a = amounts[i]!;
     const c = totals.lines[i]!;
