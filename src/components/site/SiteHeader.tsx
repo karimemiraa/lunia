@@ -55,13 +55,13 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-5 sm:px-6">
         <Link
           href={home}
-          className={`inline-flex items-center rounded-sm ${focusRingClass}`}
+          className={`lunia-logo-stage ${focusRingClass}`}
           aria-label={tNav("home")}
         >
           <span
             role="img"
             aria-label="LUNIA — Skin & Hair"
-            className="lunia-logo h-9 text-[var(--color-teal-ink)] transition-colors md:h-10"
+            className="lunia-logo h-6 md:h-7"
           />
         </Link>
 

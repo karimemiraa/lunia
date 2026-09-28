@@ -75,6 +75,140 @@
     linear-gradient(155deg, var(--color-ink) 0%, #16413d 55%, #0f2f2c 100%);
 }
 
+/* ---------------------------------------------------------------------------
+   Website themes. The Superadmin picks one (SiteSetting "appearance"); the
+   site layout writes it to <html data-theme>. A theme is ONLY a token set —
+   components never branch on the theme, they read tokens. "luminous" is the
+   default (:root above). Every theme keeps the guideline palette: Luminous
+   Teal stays the primary; only the ground it sits on changes.
+   --------------------------------------------------------------------------- */
+:root {
+  /* Logo stage: the wordmark is always painted in the primary Luminous Teal
+     (brand rule: logo color = primary); the stage behind it guarantees the
+     approved teal-on-ink pairing whatever the ground. */
+  --logo-color: var(--color-teal);
+  --logo-stage: var(--color-ink);
+  --logo-stage-ring: transparent;
+  /* Scrim + glass tokens so cards/overlays can adapt per theme. */
+  --scrim: rgba(16, 32, 29, 0.55);
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-blur: 0px;
+  --body-bg: var(--color-page);
+}
+
+/* --- Midnight: the same teal, luminous against deep ink. Cream type. --- */
+:root[data-theme="midnight"] {
+  --color-page: #0e1d1a;
+  --color-ink: #eef5f3;
+  --color-cream: #f3eee2;
+  --color-mist: #132824;
+  --color-ice: #1f3d38;
+  --color-forest: #16302b;
+  --color-teal-deep: #8fd0c9;
+  --color-teal-ink: #a9ddd7;
+  --surface: #15302b;
+  --surface-2: #112622;
+  --surface-3: #1c3a34;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 24px -12px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 24px 60px -28px rgba(0, 0, 0, 0.8);
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--color-teal) 45%, transparent),
+    0 12px 40px -12px color-mix(in srgb, var(--color-teal) 60%, transparent);
+  --logo-stage: transparent;
+  --logo-stage-ring: color-mix(in srgb, var(--color-teal) 35%, transparent);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --glass: rgba(21, 48, 43, 0.72);
+  --body-bg:
+    radial-gradient(70% 50% at 100% 0%, color-mix(in srgb, var(--color-teal) 14%, transparent), transparent 60%),
+    radial-gradient(60% 45% at 0% 100%, color-mix(in srgb, var(--color-gold) 10%, transparent), transparent 60%),
+    var(--color-page);
+  color-scheme: dark;
+}
+/* Ink type on the teal field is the guideline pairing; keep it in the dark by
+   re-scoping the text tokens inside the field. */
+:root[data-theme="midnight"] .lunia-teal-field {
+  --color-ink: #16302b;
+  --color-teal-ink: #1f4a44;
+  --color-cream: #f3eee2;
+  color: var(--color-ink);
+}
+:root[data-theme="midnight"] .lunia-pattern-waves::before,
+:root[data-theme="midnight"] .lunia-pattern-mosaic::before { filter: brightness(1.6); }
+:root[data-theme="midnight"] .lunia-teal-field.lunia-pattern-waves::before,
+:root[data-theme="midnight"] .lunia-teal-field.lunia-pattern-mosaic::before { filter: none; }
+
+/* --- Aurora: liquid glass. Frosted surfaces over a slow teal/ice/gold
+   aurora; iridescent teal field; everything a little translucent. --- */
+:root[data-theme="aurora"] {
+  --color-page: #f4faf9;
+  --color-mist: rgba(158, 213, 208, 0.16);
+  --surface: rgba(255, 255, 255, 0.66);
+  --surface-2: rgba(255, 255, 255, 0.45);
+  --surface-3: rgba(255, 255, 255, 0.8);
+  --line: rgba(255, 255, 255, 0.75);
+  --line-strong: color-mix(in srgb, var(--color-ink) 14%, transparent);
+  --shadow-md: 0 10px 30px -14px color-mix(in srgb, var(--color-ink) 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.8);
+  --shadow-lg: 0 30px 70px -30px color-mix(in srgb, var(--color-ink) 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.85);
+  --logo-stage: color-mix(in srgb, var(--color-ink) 88%, transparent);
+  --logo-stage-ring: rgba(255, 255, 255, 0.5);
+  --glass: rgba(255, 255, 255, 0.55);
+  --glass-blur: 18px;
+  --body-bg: var(--color-page);
+}
+:root[data-theme="aurora"] body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 35% at 15% 20%, color-mix(in srgb, var(--color-teal) 55%, transparent), transparent 70%),
+    radial-gradient(35% 30% at 85% 15%, color-mix(in srgb, var(--color-ice) 80%, transparent), transparent 70%),
+    radial-gradient(45% 40% at 70% 85%, color-mix(in srgb, var(--color-dragonfruit) 55%, transparent), transparent 70%),
+    radial-gradient(30% 30% at 25% 90%, color-mix(in srgb, var(--color-alice) 60%, transparent), transparent 70%);
+  filter: blur(40px) saturate(1.15);
+  animation: lunia-aurora-drift 26s ease-in-out infinite alternate;
+}
+@keyframes lunia-aurora-drift {
+  from { transform: translate3d(-3%, -2%, 0) rotate(0deg) scale(1); }
+  to { transform: translate3d(3%, 3%, 0) rotate(4deg) scale(1.06); }
+}
+:root[data-theme="aurora"] .lx-tile,
+:root[data-theme="aurora"] .lunia-card,
+:root[data-theme="aurora"] .lx-glass {
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+:root[data-theme="aurora"] .lunia-teal-field {
+  background:
+    radial-gradient(80% 60% at 20% 0%, rgba(255, 255, 255, 0.5) 0%, transparent 60%),
+    radial-gradient(60% 50% at 100% 100%, color-mix(in srgb, var(--color-marigold) 45%, transparent) 0%, transparent 60%),
+    linear-gradient(150deg, var(--color-teal) 0%, var(--color-ice) 40%, var(--color-deep-canopy) 75%, var(--color-alice) 100%);
+}
+
+/* A surface that is ALWAYS light (a photo card's cream scrim, a white gift
+   card): re-scope the text tokens so dark themes don't paint light type on it. */
+.lx-on-light { --color-ink: #223f3a; --color-teal-ink: #2f5f58; color: var(--color-ink); }
+
+/* Cards that should read as "glass" in Aurora and as flat surfaces elsewhere. */
+.lx-glass { background: var(--glass); }
+.lunia-logo-stage {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  background: var(--logo-stage);
+  box-shadow: inset 0 0 0 1px var(--logo-stage-ring);
+  color: var(--logo-color);
+  transition: background 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="aurora"] body::before { animation: none; }
+}
+
 /* Under RTL, resolve the same --font-display/--font-body tokens that every
    component already reads to their Arabic counterparts, so nothing needs
    locale-conditional font logic — direction alone decides the typeface. */
@@ -85,7 +219,7 @@ html[dir="rtl"] {
 }
 
 body {
-  background: var(--color-page);
+  background: var(--body-bg, var(--color-page));
   color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;

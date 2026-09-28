@@ -6,6 +6,10 @@ import { listStages } from "@/modules/crm/pipeline";
 import { SecretsForm } from "./SecretsForm";
 import { CustomCredentials } from "./CustomCredentials";
 import { PipelineStagesEditor } from "./PipelineStagesEditor";
+import { ThemePicker } from "./ThemePicker";
+import { NavVisibilityEditor } from "./NavVisibilityEditor";
+import { NAV_CATALOG } from "../admin/_components/AdminNav";
+import { getSetting } from "@/modules/cms/settings";
 
 export const metadata = { title: "Superadmin — Lunia" };
 
@@ -14,7 +18,13 @@ export const metadata = { title: "Superadmin — Lunia" };
 // chrome; everything the day-to-day team uses stays in /admin.
 export default async function SuperadminPage() {
   await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
-  const [status, custom, stages] = await Promise.all([getSecretsStatus(), listCustomCredentials(), listStages()]);
+  const [status, custom, stages, appearance, adminNav] = await Promise.all([
+    getSecretsStatus(),
+    listCustomCredentials(),
+    listStages(),
+    getSetting("appearance").catch(() => null),
+    getSetting("adminNav").catch(() => null),
+  ]);
 
   return (
     <div className="min-h-screen bg-[var(--color-page)] text-[var(--color-ink)]">
@@ -40,6 +50,10 @@ export default async function SuperadminPage() {
           Technical &amp; marketing setup for the whole platform. Secrets are stored securely and shown only as a
           masked hint — enter a new value to replace one, or leave a field blank to keep the current value.
         </p>
+
+        <ThemePicker current={appearance?.theme ?? "luminous"} />
+
+        <NavVisibilityEditor catalog={NAV_CATALOG} hidden={adminNav?.hiddenHrefs ?? []} />
 
         <PipelineStagesEditor stages={stages} />
 

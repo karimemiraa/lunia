@@ -26,13 +26,15 @@ export default async function SiteLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const [messages, tCommon, business] = await Promise.all([
+  const [messages, tCommon, business, appearance] = await Promise.all([
     getMessages(),
     getTranslations({ locale, namespace: "common" }),
     getSetting("business").catch(() => null),
+    getSetting("appearance").catch(() => null),
   ]);
+  const theme = appearance?.theme ?? "luminous";
   return (
-    <html lang={locale} dir={localeDirection(locale)} className={fontVariables}>
+    <html lang={locale} dir={localeDirection(locale)} className={fontVariables} data-theme={theme}>
       <body className="flex min-h-screen flex-col">
         <NextIntlClientProvider messages={messages}>
           <CinematicScroll />

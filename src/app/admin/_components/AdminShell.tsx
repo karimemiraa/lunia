@@ -4,6 +4,7 @@ import { PageHeader } from "./PageHeader";
 import { NotificationBell } from "./NotificationBell";
 import type { AdminUser } from "./requireAdmin";
 import { getNotificationFeed } from "@/modules/notifications/feed";
+import { getSetting } from "@/modules/cms/settings";
 
 interface AdminShellProps {
   user: AdminUser;
@@ -14,10 +15,13 @@ interface AdminShellProps {
 }
 
 export async function AdminShell({ user, title, description, actions, children }: AdminShellProps) {
-  const feed = await getNotificationFeed(user.permissions);
+  const [feed, navSetting] = await Promise.all([
+    getNotificationFeed(user.permissions),
+    getSetting("adminNav").catch(() => null),
+  ]);
   return (
     <div className="flex min-h-screen text-[var(--color-ink)]">
-      <AdminNav permissions={user.permissions} />
+      <AdminNav permissions={user.permissions} hiddenHrefs={navSetting?.hiddenHrefs ?? []} />
       <div className="lunia-admin-bg relative min-w-0 flex-1 pt-14 md:pt-0">
         <main className="relative mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
           {/* Global search + notification center. */}

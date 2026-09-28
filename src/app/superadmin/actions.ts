@@ -11,6 +11,7 @@ import {
   deleteCustomCredential,
 } from "@/modules/platform/secrets";
 import { createStage, updateStage, deleteStage, reorderStage, type StageKind } from "@/modules/crm/pipeline";
+import { getSetting, setSetting, THEME_KEYS, type ThemeKey } from "@/modules/cms/settings";
 
 export interface PlatformActionState {
   error?: string;
@@ -151,5 +152,44 @@ export async function reorderStageAction(id: string, dir: -1 | 1): Promise<Platf
   }
   revalidatePath("/superadmin");
   revalidatePath("/admin/leads");
+  return { success: true };
+}
+
+// --- Website theme -----------------------------------------------------------
+
+export async function setThemeAction(theme: string): Promise<PlatformActionState> {
+  const admin = await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
+  if (!(THEME_KEYS as readonly string[]).includes(theme)) return { error: "Unknown theme." };
+  const current = (await getSetting("appearance").catch(() => null))?.theme ?? "luminous";
+  await setSetting("appearance", { theme: theme as ThemeKey });
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "WEBSITE_THEME_CHANGE",
+    entityType: "SiteSetting",
+    entityId: "appearance",
+    summary: `Website theme: ${current} -> ${theme}`,
+  });
+  // Every public page is dynamic; revalidating the layout root flushes any
+  // cached RSC payloads so the new theme shows on the next request.
+  revalidatePath("/", "layout");
+  revalidatePath("/superadmin");
+  return { success: true };
+}
+
+// --- Staff menu visibility ---------------------------------------------------
+
+export async function saveNavVisibilityAction(hiddenHrefs: string[]): Promise<PlatformActionState> {
+  const admin = await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
+  const clean = Array.from(new Set(hiddenHrefs.filter((h) => typeof h === "string" && h.startsWith("/admin"))));
+  await setSetting("adminNav", { hiddenHrefs: clean });
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "ADMIN_NAV_VISIBILITY_UPDATE",
+    entityType: "SiteSetting",
+    entityId: "adminNav",
+    summary: clean.length ? `Hidden menu items: ${clean.join(", ")}` : "All menu items visible",
+  });
+  revalidatePath("/admin", "layout");
+  revalidatePath("/superadmin");
   return { success: true };
 }

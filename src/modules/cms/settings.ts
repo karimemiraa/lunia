@@ -109,6 +109,23 @@ const taxSettingsSchema = z.object({
 });
 export type TaxSettings = z.infer<typeof taxSettingsSchema>;
 
+// Website appearance: which of the built-in themes the public site wears.
+// Themes are pure token sets in globals.css ([data-theme=...]), so switching
+// is one setting write + revalidate — no rebuild.
+export const THEME_KEYS = ["luminous", "midnight", "aurora"] as const;
+export type ThemeKey = (typeof THEME_KEYS)[number];
+const appearanceSettingsSchema = z.object({
+  theme: z.enum(THEME_KEYS).default("luminous"),
+});
+export type AppearanceSettings = z.infer<typeof appearanceSettingsSchema>;
+
+// Staff navigation: menu items the superadmin has hidden from everyone who
+// lacks platform:manage (hrefs as listed in AdminNav's GROUPS).
+const adminNavSettingsSchema = z.object({
+  hiddenHrefs: z.array(z.string()).default([]),
+});
+export type AdminNavSettings = z.infer<typeof adminNavSettingsSchema>;
+
 export const settingsRegistry = {
   business: businessSettingsSchema,
   hours: hoursSettingsSchema,
@@ -118,6 +135,8 @@ export const settingsRegistry = {
   comms: commsSettingsSchema,
   loyalty: loyaltySettingsSchema,
   tax: taxSettingsSchema,
+  appearance: appearanceSettingsSchema,
+  adminNav: adminNavSettingsSchema,
 } as const;
 
 export type SettingKey = keyof typeof settingsRegistry;

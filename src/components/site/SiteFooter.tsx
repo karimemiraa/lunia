@@ -72,11 +72,9 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
     <footer className="lunia-teal-field lunia-pattern-waves lunia-pattern-multiply relative">
       <div className="mx-auto grid w-full max-w-6xl gap-12 px-6 py-16 sm:py-20 md:grid-cols-[1.4fr_1fr_1fr]">
         <div className="flex flex-col gap-4">
-          <span
-            role="img"
-            aria-label="LUNIA — Skin & Hair"
-            className="lunia-logo h-10 self-start text-[var(--color-teal-ink)]"
-          />
+          <span className="lunia-logo-stage self-start">
+            <span role="img" aria-label="LUNIA — Skin & Hair" className="lunia-logo h-7" />
+          </span>
           <p className="max-w-sm text-sm leading-relaxed text-[var(--color-ink)]/80">{tFooter("tagline")}</p>
         </div>
 

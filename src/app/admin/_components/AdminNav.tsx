@@ -7,6 +7,8 @@ import { PERMISSIONS, type PermissionKey } from "@/modules/iam/permissions";
 
 interface AdminNavProps {
   permissions: Set<PermissionKey>;
+  /** Menu hrefs the superadmin has hidden from everyone without platform:manage. */
+  hiddenHrefs?: string[];
 }
 
 interface NavItem {
@@ -246,6 +248,13 @@ function matches(pathname: string, href: string): boolean {
 
 const ALL_HREFS = GROUPS.flatMap((g) => g.items.map((i) => i.href));
 
+// Plain catalog of the menu (no icons) for the superadmin "menu visibility"
+// editor, so it always lists exactly what the sidebar can show.
+export const NAV_CATALOG: { label: string; items: { href: string; label: string }[] }[] = GROUPS.map((g) => ({
+  label: g.label,
+  items: g.items.map((i) => ({ href: i.href, label: i.label })),
+}));
+
 // Only the most specific matching item is active, so /admin/accounting/expenses
 // highlights "Expenses" and not also "Accounting".
 function isActive(pathname: string, href: string): boolean {
@@ -274,7 +283,9 @@ const RailIcon = (
   </svg>
 );
 
-export function AdminNav({ permissions }: AdminNavProps) {
+export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
+  // The superadmin always sees the whole menu (they're the one hiding things).
+  const hidden = permissions.has(PERMISSIONS.PLATFORM_MANAGE) ? new Set<string>() : new Set(hiddenHrefs);
   // usePathname can be null (e.g. outside a router context in unit tests);
   // fall back to "" so isActive never dereferences null.
   const pathname = usePathname() ?? "";
@@ -332,7 +343,7 @@ export function AdminNav({ permissions }: AdminNavProps) {
           <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
         </svg>
       </button>
-      <span role="img" aria-label="LUNIA" className="lunia-logo h-7 text-[var(--color-teal-ink)]" />
+      <span className="lunia-logo-stage !py-1.5 !px-3"><span role="img" aria-label="LUNIA" className="lunia-logo h-5" /></span>
     </div>
     {drawerOpen && (
       <div aria-hidden="true" onClick={() => setDrawerOpen(false)} className="fixed inset-0 z-40 bg-black/40 md:hidden" />
@@ -347,7 +358,7 @@ export function AdminNav({ permissions }: AdminNavProps) {
       <div className={`mb-3 flex items-center ${rail ? "justify-center" : "gap-2 px-2"}`}>
         {rail ? null : (
           <>
-            <span role="img" aria-label="LUNIA" className="lunia-logo h-7 text-[var(--color-teal-ink)]" />
+            <span className="lunia-logo-stage !py-1.5 !px-3"><span role="img" aria-label="LUNIA" className="lunia-logo h-5" /></span>
             <span className="ms-auto rounded-full bg-white/55 px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-widest text-[var(--color-teal-ink)]">
               Admin
             </span>
@@ -374,7 +385,7 @@ export function AdminNav({ permissions }: AdminNavProps) {
       </div>
 
       {GROUPS.map((group) => {
-        const items = group.items.filter((item) => !item.perm || permissions.has(item.perm));
+        const items = group.items.filter((item) => (!item.perm || permissions.has(item.perm)) && !hidden.has(item.href));
         if (items.length === 0) return null;
         const open = rail ? true : !closed[group.label];
         return (
