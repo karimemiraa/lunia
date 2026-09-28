@@ -199,7 +199,7 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
         aria-label={open ? t("close") : t("open")}
         aria-expanded={open}
         aria-controls="lunia-assistant-panel"
-        className={`fixed right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-teal)] text-[var(--color-ink)] shadow-[var(--shadow-glow)] ring-1 ring-white/60 transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 md:h-14 md:w-14 ${launcherBottom} ${open ? "max-md:hidden" : ""}`}
+        className={`lunia-teal-field fixed right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full shadow-[var(--shadow-glow)] ring-1 ring-[var(--color-cream)]/60 transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-page)] md:h-14 md:w-14 ${launcherBottom} ${open ? "max-md:hidden" : ""}`}
       >
         {open ? (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
@@ -230,7 +230,7 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="truncate font-[family-name:var(--font-display)] text-lg leading-tight">{t("title")}</h2>
-              <p className="truncate text-xs text-[var(--color-ink)]/70">{t("subtitle")}</p>
+              <p className="truncate text-xs text-[var(--color-ink)]/75">{t("subtitle")}</p>
             </div>
             <button
               type="button"
@@ -238,7 +238,7 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
               disabled={busy}
               aria-label={t("restart")}
               title={t("restart")}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-ink)]/70 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] disabled:opacity-50"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--color-cream)]/35 hover:text-[var(--color-ink)] disabled:opacity-50"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-[18px] w-[18px]" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4" />
@@ -248,7 +248,7 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
               type="button"
               onClick={close}
               aria-label={t("close")}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-ink)]/70 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)]"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--color-cream)]/35 hover:text-[var(--color-ink)]"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
                 <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
@@ -267,14 +267,14 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
             {view?.messages.map((m) => <Message key={m.id} message={m} />)}
             {pending && (
               <div className="flex justify-end">
-                <div className="max-w-[85%] whitespace-pre-line break-words rounded-2xl rounded-ee-md bg-[var(--color-teal)] px-3.5 py-2.5 text-[0.94rem] leading-relaxed text-[var(--color-ink)]">
+                <div className="lunia-teal-field max-w-[85%] whitespace-pre-line break-words rounded-2xl rounded-ee-md px-3.5 py-2.5 text-[0.94rem] leading-relaxed">
                   {pending.text}
                 </div>
               </div>
             )}
             {busy && <Typing label={t("typing")} />}
             {error && (
-              <p role="alert" className="text-center text-sm text-red-700">
+              <p role="alert" className="lx-notice lx-notice-error text-center">
                 {t("offline")}
               </p>
             )}
@@ -318,20 +318,20 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
               maxLength={600}
               enterKeyHint="send"
               {...inputProps}
-              className="min-h-11 min-w-0 flex-1 rounded-full border border-[var(--line-strong)] bg-[var(--color-page)] px-4 text-base text-[var(--color-ink)] placeholder:text-[var(--color-ink)]/40 focus:border-[var(--color-canopy)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal)]/50"
+              className="min-h-11 min-w-0 flex-1 rounded-full border border-[var(--line-strong)] bg-[var(--color-page)] px-4 text-base text-[var(--color-ink)] placeholder:text-[var(--color-ink)]/55 focus:border-[var(--color-canopy)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal)]/50"
             />
             <button
               type="submit"
               disabled={busy || !draft.trim()}
               aria-label={t("send")}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-teal)] text-[var(--color-ink)] transition-opacity disabled:opacity-40"
+              className="lunia-teal-field flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-5 w-5 ${ar ? "-scale-x-100" : ""}`} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h13M13 6l6 6-6 6" />
               </svg>
             </button>
           </form>
-          <p className="shrink-0 bg-[var(--surface)] px-4 pb-2 text-center text-[0.7rem] text-[var(--color-ink)]/45 max-md:hidden">{t("privacy")}</p>
+          <p className="shrink-0 bg-[var(--surface)] px-4 pb-2 text-center text-[0.7rem] text-[var(--color-ink)]/75 max-md:hidden">{t("privacy")}</p>
         </div>
       )}
     </>
@@ -342,7 +342,7 @@ function Message({ message }: { message: ChatMessageView }) {
   if (message.from === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] whitespace-pre-line break-words rounded-2xl rounded-ee-md bg-[var(--color-teal)] px-3.5 py-2.5 text-[0.94rem] leading-relaxed text-[var(--color-ink)]">
+        <div className="lunia-teal-field max-w-[85%] whitespace-pre-line break-words rounded-2xl rounded-ee-md px-3.5 py-2.5 text-[0.94rem] leading-relaxed">
           {message.text}
         </div>
       </div>
@@ -356,7 +356,7 @@ function Message({ message }: { message: ChatMessageView }) {
       {message.cards && message.cards.length > 0 && (
         <ul className="flex w-full flex-col gap-2">
           {message.cards.map((card) => (
-            <li key={card.serviceId} className="rounded-2xl border border-[var(--color-teal)]/45 bg-[var(--surface)] p-3.5 shadow-[var(--shadow-sm)]">
+            <li key={card.serviceId} className="lx-surface rounded-2xl border border-[var(--color-teal)]/45 p-3.5">
               <p className="font-[family-name:var(--font-display)] text-[1.05rem] leading-snug text-[var(--color-ink)]">{card.name}</p>
               <p className="mt-0.5 text-xs text-[var(--color-teal-ink)]">
                 {card.duration} <span aria-hidden="true">|</span> {card.price}
@@ -373,7 +373,7 @@ function Message({ message }: { message: ChatMessageView }) {
           <dl>
             {message.summary.rows.map((row) => (
               <div key={row.label} className="flex justify-between gap-3 py-0.5">
-                <dt className="text-[var(--color-ink)]/60">{row.label}</dt>
+                <dt className="text-[var(--color-ink)]/75">{row.label}</dt>
                 <dd className="text-end font-medium text-[var(--color-ink)]">{row.value}</dd>
               </div>
             ))}

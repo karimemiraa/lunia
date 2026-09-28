@@ -34,7 +34,7 @@ export function Statement({ eyebrow, text, note, id, tone = "light" }: Statement
         >
           {text}
         </p>
-        {note && <p className={`mt-8 max-w-2xl text-[0.98rem] leading-relaxed ${dark ? "text-[var(--color-cream)]/65" : "text-[var(--color-ink)]/60"}`}>{note}</p>}
+        {note && <p className={`mt-8 max-w-2xl text-[0.98rem] leading-relaxed ${dark ? "text-[var(--color-cream)]/65" : "text-[var(--color-ink)]/75"}`}>{note}</p>}
       </div>
     </section>
   );

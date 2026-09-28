@@ -24,7 +24,7 @@ export function LocalNav({ title, titleHref, links = [], cta }: LocalNavProps) {
   return (
     <nav
       aria-label={title}
-      className="sticky top-16 z-30 border-b border-[var(--color-ink)]/[0.07] bg-[var(--color-page)]/78 backdrop-blur-xl backdrop-saturate-150"
+      className="lx-chrome sticky top-16 z-30"
     >
       <div className="mx-auto flex h-12 w-full max-w-7xl items-center justify-between gap-6 px-5 sm:px-6">
         {titleHref ? (
@@ -39,7 +39,7 @@ export function LocalNav({ title, titleHref, links = [], cta }: LocalNavProps) {
             <ul className="hidden items-center gap-6 md:flex">
               {links.map((l) => (
                 <li key={l.href}>
-                  <a href={l.href} className={`rounded-sm text-[0.78rem] text-[var(--color-ink)]/70 transition-colors hover:text-[var(--color-ink)] ${focusRing}`}>
+                  <a href={l.href} className={`rounded-sm text-[0.78rem] text-[var(--color-ink)]/75 transition-colors hover:text-[var(--color-ink)] ${focusRing}`}>
                     {l.label}
                   </a>
                 </li>

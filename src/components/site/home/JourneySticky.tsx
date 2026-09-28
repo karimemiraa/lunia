@@ -54,23 +54,23 @@ export function JourneySticky({ id, eyebrow, heading, stepLabel, steps }: Journe
         <div className="mt-14 grid gap-12 lg:mt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-20">
           {/* Sticky media panel (desktop) */}
           <div className="hidden lg:block">
-            <div className="lx-steps-media shadow-[0_40px_90px_-50px_rgba(34,63,58,0.55)]">
+            <div className="lx-steps-media shadow-[var(--shadow-lg)]">
               {steps.map((step, i) => {
                 const m = mediaFor(i);
                 return (
                   <div key={step.title} data-step-media className={i === 0 ? "is-active" : ""}>
                     {m.type === "video" ? (
-                      <video muted loop playsInline preload={i === 0 ? "metadata" : "none"} poster={m.poster} aria-hidden="true">
+                      <video muted loop playsInline preload={i === 0 ? "metadata" : "none"} poster={m.poster} aria-hidden="true" width={1280} height={720}>
                         <source src={m.src} type="video/mp4" />
                       </video>
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element -- static brand media
-                      <img src={m.src} alt="" loading="lazy" decoding="async" />
+                      <img src={m.src} alt="" width={1200} height={1400} loading="lazy" decoding="async" />
                     )}
                   </div>
                 );
               })}
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 rounded-[30px] ring-1 ring-inset ring-white/40" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 rounded-[30px] ring-1 ring-inset ring-[var(--color-cream)]/40" />
             </div>
           </div>
 
@@ -93,7 +93,7 @@ export function JourneySticky({ id, eyebrow, heading, stepLabel, steps }: Journe
                 >
                   <div className="mb-7 aspect-[4/3] overflow-hidden rounded-[24px] lg:hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element -- static brand media */}
-                    <img src={stillFor(m)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                    <img src={stillFor(m)} alt="" width={1200} height={900} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   </div>
                   <div className="relative">
                     <span aria-hidden="true" className="lunia-timeline-node !top-[0.3rem]" />

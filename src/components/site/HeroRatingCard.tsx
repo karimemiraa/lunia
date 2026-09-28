@@ -40,14 +40,14 @@ function Star() {
 // social proof and Clingr-style depth to the opener without any new media.
 export function HeroRatingCard({ avg, count, summary }: HeroRatingCardProps) {
   return (
-    <div className="pointer-events-auto flex items-center gap-4 rounded-2xl border border-[var(--color-cream)]/25 bg-[var(--color-cream)]/95 px-5 py-4 shadow-[var(--shadow-lg)] backdrop-blur-md">
+    <div className="lx-surface pointer-events-auto flex items-center gap-4 rounded-2xl border border-[var(--line)] px-5 py-4 shadow-[var(--shadow-lg)] backdrop-blur-md">
       <span className="font-[family-name:var(--font-display)] text-4xl font-medium leading-none text-[var(--color-ink)]">
         {avg.toFixed(1)}
       </span>
       <span className="block h-10 w-px bg-[var(--color-ink)]/10" aria-hidden="true" />
       <div className="flex flex-col gap-1">
         <Stars avg={avg} />
-        <span className="text-xs text-[var(--color-ink)]/60">{summary}</span>
+        <span className="text-xs text-[var(--color-ink)]/75">{summary}</span>
       </div>
     </div>
   );

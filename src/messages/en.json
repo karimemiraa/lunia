@@ -19,7 +19,8 @@
     "switchLanguage": "Switch language",
     "toArabic": "العربية",
     "toEnglish": "English",
-    "brandName": "Lunia"
+    "brandName": "Lunia",
+    "skipToContent": "Skip to content"
   },
   "footer": {
     "tagline": "Not facials, skin quality.",
@@ -506,7 +507,18 @@
       "submittingLabel": "Sending…",
       "successMessage": "Thank you, we've received your message and will reach out shortly.",
       "errorMessage": "Something went wrong, please check your details and try again.",
-      "requiredNote": "* Required"
+      "requiredNote": "* Required",
+      "phoneHelp": "Saudi mobile (05x) or an international number with the country code.",
+      "messageHelp": "A sentence or two is plenty. A specialist will read it personally.",
+      "successHeading": "Message received",
+      "successNext": "Book a visit",
+      "backHome": "Back to home",
+      "errors": {
+        "name": "Please enter your full name.",
+        "phone": "Please enter a valid phone number.",
+        "email": "Please enter a valid email address.",
+        "message": "Tell us a little more (at least 10 characters)."
+      }
     },
     "localNav": {
       "visit": "Visit",
@@ -613,7 +625,8 @@
       "durationValue": "{minutes} min",
       "tierNote": "Available to {tier} members and above",
       "continueLabel": "Continue",
-      "emptyState": "No bookable services are available online right now, please contact us to book."
+      "emptyState": "No bookable services are available online right now, please contact us to book.",
+      "emptyCta": "Contact us to book"
     },
     "date": {
       "heading": "Choose a date and time",
@@ -622,7 +635,11 @@
       "noSlots": "No times are available on this date, try another day.",
       "timeHeading": "Available times",
       "continueLabel": "Continue",
-      "selectServicePrompt": "Select a service to see available times."
+      "selectServicePrompt": "Select a service to see available times.",
+      "noSlotsHeading": "Nothing free that day",
+      "checkingNext": "Checking the next few days…",
+      "nextAvailable": "Next available days",
+      "noneNearby": "Nothing in the next few days either. Join the waitlist and we'll hold a spot for you the moment one opens."
     },
     "waitlist": {
       "heading": "Join the waitlist",
@@ -646,7 +663,9 @@
       "devCodeHint": "Dev/test code: {code}",
       "giftCardLabel": "Gift card code (optional)",
       "giftCardPlaceholder": "e.g. AB3D-EF7H-JK2M-NP9Q",
-      "giftCardHint": "Have a gift card? We'll apply what we can toward this booking."
+      "giftCardHint": "Have a gift card? We'll apply what we can toward this booking.",
+      "identifierHelp": "We only use this to confirm your booking and send reminders.",
+      "codeHelp": "Didn't get it? Check your spam folder, or use a different phone or email."
     },
     "success": {
       "heading": "You're booked",
@@ -676,7 +695,22 @@
       "tierGated": "This service is available to {tier} members and above.",
       "slotTaken": "That time was just taken, please choose another.",
       "noService": "Please choose a service first.",
-      "noSlot": "Please choose a time first."
+      "noSlot": "Please choose a time first.",
+      "nameRequired": "Please enter your full name.",
+      "identifierRequired": "Please enter a phone number or email address.",
+      "codeIncomplete": "Enter all 6 digits of the code."
+    },
+    "stepper": {
+      "stepName": "Step {number}: {name}",
+      "completed": "(completed)",
+      "goBackTo": "Go back to {step}"
+    },
+    "summary": {
+      "change": "Change"
+    },
+    "resume": {
+      "restored": "We kept your selection from earlier.",
+      "startOver": "Start over"
     }
   },
   "account": {
@@ -893,17 +927,27 @@
       "messageLabel": "Personal message (optional)",
       "submit": "Buy gift card",
       "submitting": "Processing…",
-      "secure": "Secure checkout — no card details are stored by Lunia."
+      "secure": "Secure checkout — no card details are stored by Lunia.",
+      "customAmountLabel": "Amount in SAR",
+      "amountHelp": "Between {min} and {max} SAR, in steps of 10.",
+      "purchaserEmailHint": "Your receipt and the gift card code go here.",
+      "messageHint": "Up to {max} characters."
     },
     "success": {
       "heading": "Your gift card is ready",
       "intro": "We've emailed the code. Here it is too — keep it safe:",
       "amountLabel": "Value",
-      "another": "Buy another"
+      "another": "Buy another",
+      "copy": "Copy code",
+      "copied": "Copied",
+      "bookNow": "Book with it"
     },
     "errors": {
       "generic": "Something went wrong, please try again.",
-      "amount": "Please choose a valid amount."
+      "amount": "Please choose a valid amount.",
+      "purchaserName": "Please enter your name.",
+      "purchaserEmail": "Please enter a valid email address.",
+      "recipientEmail": "Please enter a valid email address for the recipient."
     },
     "localNav": {
       "how": "How it works",
@@ -1216,5 +1260,13 @@
       "thankYou": "Thank you for choosing Lunia.",
       "draft": "DRAFT - not a tax invoice"
     }
+  },
+  "notFound": {
+    "eyebrow": "Page not found",
+    "heading": "This page has drifted away",
+    "body": "The link may be old, or the page may have moved. Everything you need is still a tap away.",
+    "home": "Back to home",
+    "book": "Book a visit",
+    "services": "Explore services"
   }
 }

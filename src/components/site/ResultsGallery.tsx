@@ -32,8 +32,8 @@ const focusRingClass =
 function chipClass(isActive: boolean) {
   return `rounded-full border px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition-colors duration-300 ${focusRingClass} ${
     isActive
-      ? "border-[var(--color-teal)] bg-[var(--color-teal)] text-[var(--color-ink)]"
-      : "border-[var(--color-ink)]/15 text-[var(--color-ink)]/60 hover:border-[var(--color-ink)]/35 hover:text-[var(--color-ink)]"
+      ? "border-[var(--color-teal)] bg-[var(--color-teal)] text-[var(--color-on-teal)]"
+      : "border-[var(--color-ink)]/15 text-[var(--color-ink)]/75 hover:border-[var(--color-ink)]/35 hover:text-[var(--color-ink)]"
   }`;
 }
 
@@ -52,7 +52,7 @@ export function ResultsGallery({ items, categories, allLabel, consentNote, empty
   );
 
   if (items.length === 0) {
-    return emptyLabel ? <p className="text-center text-sm text-[var(--color-ink)]/60">{emptyLabel}</p> : null;
+    return emptyLabel ? <p className="text-center text-sm text-[var(--color-ink)]/75">{emptyLabel}</p> : null;
   }
 
   return (
@@ -81,12 +81,12 @@ export function ResultsGallery({ items, categories, allLabel, consentNote, empty
         {visible.map((item, index) => (
           <figure key={index} className="flex flex-col gap-3">
             <MediaFrame mediaKey={item.media?.key} kind={item.media?.kind} alt={item.caption ?? ""} aspectClassName="aspect-[3/4]" />
-            {item.caption && <figcaption className="text-sm text-[var(--color-ink)]/70">{item.caption}</figcaption>}
+            {item.caption && <figcaption className="text-sm text-[var(--color-ink)]/75">{item.caption}</figcaption>}
           </figure>
         ))}
       </div>
 
-      {consentNote && <p className="text-center text-xs text-[var(--color-ink)]/50">{consentNote}</p>}
+      {consentNote && <p className="text-center text-xs text-[var(--color-ink)]/75">{consentNote}</p>}
     </div>
   );
 }

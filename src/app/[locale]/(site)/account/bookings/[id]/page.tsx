@@ -44,7 +44,7 @@ function formatSar(priceMinor: number, locale: string): string {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1 border-b border-[var(--color-ink)]/10 py-3 last:border-b-0">
-      <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/45">{label}</dt>
+      <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/75">{label}</dt>
       <dd className="text-base text-[var(--color-ink)]">{value}</dd>
     </div>
   );
@@ -93,7 +93,7 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
           <div className="flex flex-col gap-2">
             <Link
               href={`/${locale}/account`}
-              className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-[var(--color-ink)]/70 transition-colors hover:text-[var(--color-ink)]"
+              className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-[var(--color-ink)]/75 transition-colors hover:text-[var(--color-ink)]"
             >
               <span aria-hidden="true">{locale === "ar" ? "→" : "←"}</span>
               {t("detail.back")}
@@ -101,7 +101,7 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
             <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)] sm:text-4xl">
               {serviceName}
             </h1>
-            <span className="w-fit rounded-full bg-[var(--color-ink)]/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-ink)]/70">
+            <span className="w-fit rounded-full bg-[var(--color-ink)]/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-ink)]/75">
               {t(`status.${booking.status}`)}
             </span>
           </div>

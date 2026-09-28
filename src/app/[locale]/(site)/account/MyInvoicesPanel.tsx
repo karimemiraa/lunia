@@ -23,10 +23,10 @@ export async function MyInvoicesPanel({ locale, clientProfileId }: { locale: "ar
     <section className="lunia-card flex flex-col gap-5 p-6" data-testid="invoices-panel">
       <div className="flex flex-col gap-2">
         <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">{t("heading")}</h2>
-        <p className="text-sm text-[var(--color-ink)]/65">{t("intro")}</p>
+        <p className="text-sm text-[var(--color-ink)]/75">{t("intro")}</p>
       </div>
       {invoices.length === 0 ? (
-        <p className="text-sm text-[var(--color-ink)]/60">{t("empty")}</p>
+        <p className="text-sm text-[var(--color-ink)]/75">{t("empty")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {invoices.map((inv) => {
@@ -42,7 +42,7 @@ export async function MyInvoicesPanel({ locale, clientProfileId }: { locale: "ar
                     <span className="font-mono text-[var(--color-ink)]" dir="ltr">
                       {inv.number}
                     </span>
-                    <span className="text-xs text-[var(--color-ink)]/55">
+                    <span className="text-xs text-[var(--color-ink)]/75">
                       {inv.issuedAt ? dateFmt.format(inv.issuedAt) : ""} · {status}
                     </span>
                   </span>

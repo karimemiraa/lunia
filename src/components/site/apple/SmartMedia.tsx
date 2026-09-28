@@ -20,11 +20,11 @@ export function SmartMedia({ media, alt = "", className = "" }: SmartMediaProps)
 
   if (media.type === "image") {
     // eslint-disable-next-line @next/next/no-img-element -- static brand media from /public
-    return <img src={media.src} alt={alt} loading="lazy" decoding="async" className={fill} />;
+    return <img src={media.src} alt={alt} width={1600} height={1200} loading="lazy" decoding="async" className={fill} />;
   }
 
   return (
-    <video data-inview-play muted loop playsInline preload="none" poster={media.poster} aria-hidden={alt ? undefined : true} aria-label={alt || undefined} className={fill}>
+    <video data-inview-play muted loop playsInline preload="none" poster={media.poster} aria-hidden={alt ? undefined : true} aria-label={alt || undefined} width={1280} height={720} className={fill}>
       {media.mobileSrc && <source src={media.mobileSrc} type="video/mp4" media="(max-width: 767px)" />}
       <source src={media.src} type="video/mp4" />
     </video>
@@ -34,7 +34,7 @@ export function SmartMedia({ media, alt = "", className = "" }: SmartMediaProps)
 export function SmartMediaEager({ media, alt = "", className = "" }: SmartMediaProps) {
   if (media.type !== "video") return <SmartMedia media={media} alt={alt} className={className} />;
   return (
-    <video autoPlay muted loop playsInline preload="auto" poster={media.poster} aria-hidden={alt ? undefined : true} aria-label={alt || undefined} className={`h-full w-full object-cover ${className}`.trim()}>
+    <video autoPlay muted loop playsInline preload="auto" poster={media.poster} aria-hidden={alt ? undefined : true} aria-label={alt || undefined} width={1280} height={720} className={`h-full w-full object-cover ${className}`.trim()}>
       {media.mobileSrc && <source src={media.mobileSrc} type="video/mp4" media="(max-width: 767px)" />}
       <source src={media.src} type="video/mp4" />
     </video>

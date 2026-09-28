@@ -171,7 +171,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
                 {greeting}
               </h1>
               {firstName ? (
-                <p className="text-sm text-[var(--color-ink)]/65">{t("heading")}</p>
+                <p className="text-sm text-[var(--color-ink)]/75">{t("heading")}</p>
               ) : null}
             </div>
             <form action={logoutAction}>

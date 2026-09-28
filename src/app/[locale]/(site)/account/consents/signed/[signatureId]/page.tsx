@@ -34,7 +34,7 @@ export default async function SignedConsentPage({ params }: SignedConsentPagePro
       <Section tone="plain">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-            <Link href={`/${locale}/account`} className="text-sm text-[var(--color-ink)]/60 hover:text-[var(--color-ink)]">
+            <Link href={`/${locale}/account`} className="text-sm text-[var(--color-ink)]/75 hover:text-[var(--color-ink)]">
               {t("back")}
             </Link>
             <PrintButton

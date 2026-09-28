@@ -10,7 +10,7 @@ import { gsap } from "gsap";
 // users see the content immediately with no motion. The content is always in
 // the SSR HTML (only its opacity/position is animated), so no-JS and crawlers
 // still get everything.
-export function PageTransition({ children, className }: { children: React.ReactNode; className?: string }) {
+export function PageTransition({ children, className, id }: { children: React.ReactNode; className?: string; id?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
@@ -32,7 +32,8 @@ export function PageTransition({ children, className }: { children: React.ReactN
   }, [pathname]);
 
   return (
-    <div ref={ref} className={className}>
+    // tabIndex -1 lets the skip link land focus here without adding a tab stop.
+    <div ref={ref} id={id} tabIndex={id ? -1 : undefined} className={`${className ?? ""} outline-none`.trim()}>
       {children}
     </div>
   );

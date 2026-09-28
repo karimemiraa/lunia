@@ -72,13 +72,13 @@ export function SecurityPanel({ locale, fullName, hasPassword }: SecurityPanelPr
     <section className="lunia-card flex flex-col gap-6 p-6" data-testid="security-panel">
       <div className="flex flex-col gap-2">
         <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">{t("heading")}</h2>
-        <p className="text-sm text-[var(--color-ink)]/65">{t("intro")}</p>
+        <p className="text-sm text-[var(--color-ink)]/75">{t("intro")}</p>
       </div>
 
       {/* Name */}
       <form onSubmit={handleNameSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+          <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
             {t("nameLabel")}
           </span>
           <input
@@ -104,7 +104,7 @@ export function SecurityPanel({ locale, fullName, hasPassword }: SecurityPanelPr
             </p>
           )}
           {nameError && (
-            <p role="alert" className="text-sm font-medium text-red-700">
+            <p role="alert" className="text-sm font-medium text-[var(--color-danger)]">
               {nameError}
             </p>
           )}
@@ -123,11 +123,11 @@ export function SecurityPanel({ locale, fullName, hasPassword }: SecurityPanelPr
             </span>
           )}
         </div>
-        <p className="text-sm text-[var(--color-ink)]/65">
+        <p className="text-sm text-[var(--color-ink)]/75">
           {passwordSet ? t("passwordIntroSet") : t("passwordIntroUnset")}
         </p>
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+          <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
             {t("passwordLabel")}
           </span>
           <input
@@ -144,7 +144,7 @@ export function SecurityPanel({ locale, fullName, hasPassword }: SecurityPanelPr
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+          <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
             {t("passwordConfirmLabel")}
           </span>
           <input
@@ -174,7 +174,7 @@ export function SecurityPanel({ locale, fullName, hasPassword }: SecurityPanelPr
             </p>
           )}
           {pwError && (
-            <p role="alert" className="text-sm font-medium text-red-700">
+            <p role="alert" className="text-sm font-medium text-[var(--color-danger)]">
               {pwError}
             </p>
           )}

@@ -20,8 +20,8 @@ interface ChapterProps {
 const TONES: Record<Tone, string> = {
   page: "bg-[var(--color-page)]",
   mist: "bg-[var(--color-mist)]",
-  white: "bg-white",
-  cream: "bg-[color-mix(in_srgb,var(--color-cream)_55%,var(--color-page))]",
+  white: "bg-[var(--surface)]",
+  cream: "bg-[var(--wash-cream)]",
   // The primary brand field (Luminous Teal -> Deep Canopy -> Alice Blue).
   teal: "lunia-teal-field",
   forest: "bg-[var(--color-forest)] text-[var(--color-cream)]",

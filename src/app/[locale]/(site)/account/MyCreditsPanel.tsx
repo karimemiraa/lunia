@@ -51,15 +51,15 @@ export function MyCreditsPanel({ locale, giftCards, packages }: MyCreditsPanelPr
     <section className="lunia-card flex flex-col gap-6 p-6" data-testid="credits-panel">
       <div className="flex flex-col gap-2">
         <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">{t("heading")}</h2>
-        <p className="text-sm text-[var(--color-ink)]/65">{t("intro")}</p>
+        <p className="text-sm text-[var(--color-ink)]/75">{t("intro")}</p>
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+        <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
           {t("giftCardsHeading")}
         </h3>
         {giftCards.length === 0 ? (
-          <p className="text-sm text-[var(--color-ink)]/60" data-testid="credits-empty-giftcards">
+          <p className="text-sm text-[var(--color-ink)]/75" data-testid="credits-empty-giftcards">
             {t("emptyGiftCards")}
           </p>
         ) : (
@@ -72,7 +72,7 @@ export function MyCreditsPanel({ locale, giftCards, packages }: MyCreditsPanelPr
                 <div className="flex flex-col">
                   <span className="font-mono text-[var(--color-ink)]">{card.code}</span>
                   {card.expiresAtIso && (
-                    <span className="text-xs text-[var(--color-ink)]/55">
+                    <span className="text-xs text-[var(--color-ink)]/75">
                       {t("giftCardExpiry", { date: formatDate(card.expiresAtIso, locale) })}
                     </span>
                   )}
@@ -87,11 +87,11 @@ export function MyCreditsPanel({ locale, giftCards, packages }: MyCreditsPanelPr
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+        <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
           {t("packagesHeading")}
         </h3>
         {packages.length === 0 ? (
-          <p className="text-sm text-[var(--color-ink)]/60" data-testid="credits-empty-packages">
+          <p className="text-sm text-[var(--color-ink)]/75" data-testid="credits-empty-packages">
             {t("emptyPackages")}
           </p>
         ) : (

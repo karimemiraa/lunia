@@ -109,7 +109,7 @@ export default async function JournalPage({ params }: JournalPageProps) {
       <section className="bg-[var(--color-mist)] pb-[clamp(5rem,12svh,8rem)] pt-[clamp(3.5rem,8svh,5.5rem)]">
         <div className="mx-auto w-full max-w-7xl px-5 sm:px-6">
           {posts.length === 0 || !featured ? (
-            <p className="text-center text-base text-[var(--color-ink)]/60">{tIndex("emptyLabel")}</p>
+            <p className="text-center text-base text-[var(--color-ink)]/75">{tIndex("emptyLabel")}</p>
           ) : (
             <>
               <h2 className="lx-display mb-8 text-[clamp(1.9rem,1.4rem+1.4vw,2.6rem)] text-[var(--color-ink)]">{tIndex("latest")}</h2>

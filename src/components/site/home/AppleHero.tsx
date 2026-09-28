@@ -51,7 +51,7 @@ export function AppleHero({
           {media?.key ? (
             <MediaFrame mediaKey={media.key} kind={media.kind} alt="" aspectClassName="h-full" rounded={false} className="h-full w-full" />
           ) : (
-            <video autoPlay muted loop playsInline preload="auto" poster="/media/hero.jpg" aria-hidden="true">
+            <video autoPlay muted loop playsInline preload="auto" poster="/media/hero.jpg" aria-hidden="true" width={1920} height={1080}>
               <source src="/media/hero-m.mp4" type="video/mp4" media="(max-width: 767px)" />
               <source src="/media/hero.mp4" type="video/mp4" />
             </video>
@@ -59,7 +59,7 @@ export function AppleHero({
           <div
             data-hero-shade
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-t from-[#10201d]/70 via-[#10201d]/10 to-transparent opacity-0"
+            className="lx-photo-scrim absolute inset-0 opacity-0"
           />
           <div
             data-hero-caption

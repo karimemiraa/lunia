@@ -27,7 +27,7 @@ export function FeatureRow({ id, media, title, body, meta, bullets = [], cta, fl
       <div data-reveal className={`flex flex-col ${flip ? "lg:order-1" : ""}`}>
         {meta && <span className="text-[0.85rem] font-semibold tracking-wide text-[var(--color-teal-ink)]">{meta}</span>}
         <h3 className="lx-display lx-h3 mt-3 text-[var(--color-ink)]">{title}</h3>
-        {body && <p className="mt-4 max-w-lg text-[1.075rem] leading-relaxed text-[var(--color-ink)]/70">{body}</p>}
+        {body && <p className="mt-4 max-w-lg text-[1.075rem] leading-relaxed text-[var(--color-ink)]/75">{body}</p>}
         {bullets.length > 0 && (
           <ul className="mt-6 flex flex-col gap-3">
             {bullets.map((b) => (

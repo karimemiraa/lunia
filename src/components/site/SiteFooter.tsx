@@ -42,7 +42,7 @@ function SocialIcon({ href, label, children }: { href: string; label: string; ch
       rel="noreferrer"
       aria-label={label}
       title={label}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-ink)]/20 bg-white/25 text-[var(--color-ink)]/80 transition-colors hover:bg-white/55 hover:text-[var(--color-ink)] ${focusRingClass}`}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-ink)]/20 bg-[var(--color-cream)]/25 text-[var(--color-ink)]/80 transition-colors duration-200 hover:bg-[var(--color-cream)]/55 hover:text-[var(--color-ink)] ${focusRingClass}`}
     >
       <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
         {children}

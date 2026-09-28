@@ -39,7 +39,7 @@ export function BookingNoteForm({ locale, bookingId, initialNote }: BookingNoteF
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <p className="text-sm text-[var(--color-ink)]/60">{t("customerNoteHint")}</p>
+      <p className="text-sm text-[var(--color-ink)]/75">{t("customerNoteHint")}</p>
       <textarea
         value={note}
         onChange={(e) => {
@@ -60,9 +60,9 @@ export function BookingNoteForm({ locale, bookingId, initialNote }: BookingNoteF
         >
           {isPending ? t("saving") : t("save")}
         </button>
-        {saved && <span className="text-sm font-medium text-[var(--color-teal-ink,#2f6d67)]">{t("saved")} ✓</span>}
+        {saved && <span className="text-sm font-medium text-[var(--color-teal-ink)]">{t("saved")}</span>}
         {error && (
-          <span role="alert" className="text-sm text-red-700">
+          <span role="alert" className="text-sm text-[var(--color-danger)]">
             {error}
           </span>
         )}

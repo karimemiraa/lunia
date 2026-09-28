@@ -50,7 +50,7 @@ export function Gallery({ children, label, prevLabel, nextLabel }: GalleryProps)
   };
 
   const btn =
-    "flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-ink)]/[0.07] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-ink)]/[0.13] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-[var(--color-ink)]/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)]";
+    "flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-ink)]/[0.08] text-[var(--color-ink)] transition-colors duration-200 hover:bg-[var(--color-ink)]/[0.16] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-[var(--color-ink)]/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-page)]";
 
   return (
     <div>

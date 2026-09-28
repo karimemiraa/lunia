@@ -14,8 +14,8 @@ interface SectionProps extends PropsWithChildren {
 
 const TONE_CLASSES: Record<SectionTone, string> = {
   plain: "",
-  tinted: "bg-[var(--color-cream)]/50",
-  ink: "bg-[var(--color-ink)] text-[var(--color-cream)]",
+  tinted: "bg-[var(--color-mist)]",
+  ink: "bg-[var(--color-ink)] text-[var(--color-on-ink)]",
 };
 
 // Vertical-rhythm wrapper used by every public section: generous block
