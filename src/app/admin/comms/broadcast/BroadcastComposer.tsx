@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useActionState } from "react";
+import { useActionState, useMemo, useRef, useState } from "react";
+import { ConfirmDialog } from "../../_ui/ConfirmDialog";
+import { Field, SelectField, TextareaField } from "../../_ui/Field";
+import { InlineStatus, SubmitButton } from "../../_ui/Form";
 import { sendBroadcastAction, type BroadcastActionState } from "./actions";
 import { renderEmailHtml } from "@/modules/comms/emailLayout";
 import { interpolateTemplate } from "@/modules/comms/templateCatalog";
@@ -33,87 +35,105 @@ export function BroadcastComposer({ audiences }: { audiences: AudienceOption[] }
     [subject, previewBody, sampleName, locale],
   );
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const confirmed = useRef(false);
+  const [asking, setAsking] = useState(false);
+  const count = selected?.count ?? 0;
+
+  // First submit opens the confirm dialog; confirming re-submits for real.
   function confirmSend(e: React.FormEvent<HTMLFormElement>) {
-    const count = selected?.count ?? 0;
-    if (!window.confirm(`Send this ${channel} broadcast to ${count} customer${count === 1 ? "" : "s"} (${audienceLabel})?`)) {
-      e.preventDefault();
+    if (confirmed.current) {
+      confirmed.current = false;
+      return;
     }
+    e.preventDefault();
+    if (!formRef.current?.reportValidity()) return;
+    setAsking(true);
+  }
+  function reallySend() {
+    setAsking(false);
+    confirmed.current = true;
+    formRef.current?.requestSubmit();
   }
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <form action={action} onSubmit={confirmSend} className="flex flex-col gap-4">
+      <form ref={formRef} action={action} onSubmit={confirmSend} className="flex flex-col gap-4">
         <input type="hidden" name="audienceLabel" value={audienceLabel} />
 
         <div className="grid grid-cols-2 gap-4">
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-[var(--color-ink)]">Channel</span>
-            <select name="channel" value={channel} onChange={(e) => setChannel(e.target.value)} className="lunia-input">
-              {CHANNELS.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-[var(--color-ink)]">Language</span>
-            <select name="locale" value={locale} onChange={(e) => setLocale(e.target.value)} className="lunia-input">
-              <option value="ar">العربية</option>
-              <option value="en">English</option>
-            </select>
-          </label>
+          <SelectField label="Channel" name="channel" value={channel} onChange={(e) => setChannel(e.target.value)}>
+            {CHANNELS.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField label="Language" name="locale" value={locale} onChange={(e) => setLocale(e.target.value)}>
+            <option value="ar">العربية</option>
+            <option value="en">English</option>
+          </SelectField>
         </div>
 
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Audience</span>
-          <select name="audience" value={audience} onChange={(e) => setAudience(e.target.value)} className="lunia-input" data-testid="broadcast-audience">
-            {audiences.map((a) => (
-              <option key={a.key} value={a.key}>{a.label} · {a.count}</option>
-            ))}
-          </select>
-          <span className="text-xs text-[var(--color-ink)]/55">
-            {selected?.count ?? 0} customer{(selected?.count ?? 0) === 1 ? "" : "s"} will receive this. Customers who opted out of marketing are excluded automatically.
-          </span>
-        </label>
+        <SelectField
+          label="Audience"
+          name="audience"
+          value={audience}
+          onChange={(e) => setAudience(e.target.value)}
+          data-testid="broadcast-audience"
+          help={`${count} customer${count === 1 ? "" : "s"} will receive this. Customers who opted out of marketing are excluded automatically.`}
+        >
+          {audiences.map((a) => (
+            <option key={a.key} value={a.key}>
+              {a.label} · {a.count}
+            </option>
+          ))}
+        </SelectField>
 
         {channel === "email" && (
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-[var(--color-ink)]">Subject line</span>
-            <input type="text" name="subject" value={subject} onChange={(e) => setSubject(e.target.value)} className="lunia-input" />
-          </label>
+          <Field label="Subject line" name="subject" value={subject} onChange={(e) => setSubject(e.target.value)} required maxLength={120} />
         )}
 
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Message</span>
-          <textarea
-            name="body"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            rows={8}
-            required
-            dir={locale.startsWith("ar") ? "rtl" : "ltr"}
-            className="lunia-input leading-relaxed"
-            placeholder={locale.startsWith("ar") ? "اكتب رسالتك هنا…" : "Write your message here…"}
-          />
-          <span className="text-xs text-[var(--color-ink)]/55">
-            Tip: use <code className="font-mono">{"{{name}}"}</code> to greet each customer by their first name.
-          </span>
-        </label>
+        <TextareaField
+          label="Message"
+          name="body"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={8}
+          required
+          dir={locale.startsWith("ar") ? "rtl" : "ltr"}
+          inputClassName="leading-relaxed"
+          placeholder={locale.startsWith("ar") ? "اكتب رسالتك هنا…" : "Write your message here…"}
+          help={
+            <>
+              Use <code className="font-mono">{"{{name}}"}</code> to greet each customer by their first name.
+            </>
+          }
+        />
 
         <div className="flex flex-wrap items-center gap-3">
-          <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest disabled:opacity-60">
-            {pending ? "Sending…" : `Send broadcast`}
-          </button>
-          {state.result && (
-            <span className="text-xs font-medium text-[var(--color-teal-ink,#2f6d67)]">
-              Sent to {state.result.sentCount} of {state.result.recipientCount}
-              {state.result.failedCount > 0 ? ` · ${state.result.failedCount} failed` : ""}
-              {state.result.skippedNoContact > 0 ? ` · ${state.result.skippedNoContact} had no ${channel === "email" ? "email" : "phone"}` : ""}
-            </span>
-          )}
-          {state.error && (
-            <span role="alert" className="text-xs text-red-600">{state.error}</span>
-          )}
+          <SubmitButton pending={pending} pendingLabel="Sending…">
+            Send broadcast
+          </SubmitButton>
+          <InlineStatus
+            success={
+              state.result
+                ? `Sent to ${state.result.sentCount} of ${state.result.recipientCount}${state.result.failedCount > 0 ? ` · ${state.result.failedCount} failed` : ""}${
+                    state.result.skippedNoContact > 0 ? ` · ${state.result.skippedNoContact} had no ${channel === "email" ? "email" : "phone"}` : ""
+                  }`
+                : undefined
+            }
+            error={state.error}
+          />
         </div>
+        <ConfirmDialog
+          open={asking}
+          title={`Send to ${count} customer${count === 1 ? "" : "s"}?`}
+          description={`This ${CHANNELS.find((c) => c.value === channel)?.label ?? channel} broadcast goes to “${audienceLabel}” now and cannot be recalled.`}
+          confirmLabel="Send broadcast"
+          onConfirm={reallySend}
+          onCancel={() => setAsking(false)}
+        />
       </form>
 
       <div className="flex flex-col gap-2">

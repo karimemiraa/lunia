@@ -1,22 +1,17 @@
 "use client";
 
+import { ConfirmButton } from "../_ui/ConfirmDialog";
+
 interface DeleteButtonProps {
   action: (formData: FormData) => void | Promise<void>;
+  /** File name shown in the confirm copy. */
+  name?: string;
 }
 
-export function DeleteButton({ action }: DeleteButtonProps) {
+export function DeleteButton({ action, name }: DeleteButtonProps) {
   return (
-    <button
-      type="submit"
-      formAction={action}
-      onClick={(event) => {
-        if (!confirm("Delete this media item? This cannot be undone.")) {
-          event.preventDefault();
-        }
-      }}
-      className="lunia-btn lunia-btn-danger lunia-btn-sm"
-    >
+    <ConfirmButton title="Delete this media item?" description={`${name ? `“${name}” ` : "It "}will be removed from the library and from any page that uses it. This cannot be undone.`} confirmLabel="Delete" formAction={action}>
       Delete
-    </button>
+    </ConfirmButton>
   );
 }
