@@ -1,0 +1,27 @@
+/* Semantic status tokens for the staff system. Defined once here (imported by
+   the _ui primitives); the integrator may lift them into globals.css. Each
+   tone is a soft tint + an ink that stays >= 4.5:1 on it. */
+:root {
+  --status-neutral-bg: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --status-neutral-ink: color-mix(in srgb, var(--color-ink) 72%, transparent);
+  --status-info-bg: color-mix(in srgb, var(--color-teal) 28%, transparent);
+  --status-info-ink: var(--color-teal-ink);
+  --status-success-bg: color-mix(in srgb, #2e7d5b 16%, transparent);
+  --status-success-ink: #1f5f45;
+  --status-warning-bg: color-mix(in srgb, #c0ad73 32%, transparent);
+  --status-warning-ink: #6b5a1c;
+  --status-danger-bg: color-mix(in srgb, #d92d20 12%, transparent);
+  --status-danger-ink: #a51d12;
+  --status-accent-bg: color-mix(in srgb, var(--color-forest) 12%, transparent);
+  --status-accent-ink: var(--color-forest);
+}
+
+/* Inputs must be >= 16px on touch devices so iOS never zooms the page. */
+@media (pointer: coarse) {
+  .lunia-input { font-size: 1rem; }
+}
+
+/* Motion: respect reduced motion for the kit's small transitions. */
+@media (prefers-reduced-motion: reduce) {
+  .lx-dialog, .lx-menu { transition: none !important; animation: none !important; }
+}
