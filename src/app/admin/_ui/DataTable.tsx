@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { RowMenu, type MenuItem } from "./RowMenu";
 import { EmptyState, type EmptyStateProps } from "./EmptyState";
@@ -169,14 +169,21 @@ export function DataTable<T>({
   const safePage = Math.min(page, pageCount);
   const visible = size > 0 ? sorted.slice((safePage - 1) * size, safePage * size) : sorted;
 
-  // Reset to page 1 when the data set or filter changes.
-  useEffect(() => setPage(1), [query, rows.length, size]);
+  // Reset to page 1 when the data set or filter changes (adjusting state
+  // during render, per React's guidance, instead of in an effect).
+  const pageKey = `${query}|${rows.length}|${size}`;
+  const [prevPageKey, setPrevPageKey] = useState(pageKey);
+  if (pageKey !== prevPageKey) {
+    setPrevPageKey(pageKey);
+    setPage(1);
+  }
 
   const selectedRows = useMemo(() => rows.filter((r) => selected.has(rowKey(r))), [rows, selected, rowKey]);
-  useEffect(() => {
-    onSelectionChange?.(selectedRows);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
+  function updateSelected(fn: (prev: Set<string>) => Set<string>) {
+    const next = fn(selected);
+    setSelected(next);
+    onSelectionChange?.(rows.filter((r) => next.has(rowKey(r))));
+  }
 
   function toggleSort(col: Column<T>) {
     if (col.sortable === false) return;
@@ -189,14 +196,21 @@ export function DataTable<T>({
 
   const allVisibleSelected = visible.length > 0 && visible.every((r) => selected.has(rowKey(r)));
   function toggleAll() {
-    setSelected((s) => {
+    updateSelected((s) => {
       const n = new Set(s);
       if (allVisibleSelected) visible.forEach((r) => n.delete(rowKey(r)));
       else visible.forEach((r) => n.add(rowKey(r)));
       return n;
     });
   }
-  const clearSelection = () => setSelected(new Set());
+  const clearSelection = () => updateSelected(() => new Set());
+  const toggleOne = (k: string) =>
+    updateSelected((s) => {
+      const n = new Set(s);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      return n;
+    });
 
   const primary = columns.find((c) => c.primary) ?? columns[0]!;
   const cardCols = columns.filter((c) => c !== primary && !c.hideOnCard);
@@ -294,20 +308,7 @@ export function DataTable<T>({
                     <tr key={k} className={`border-t border-[var(--line)] align-middle transition-colors hover:bg-[var(--color-teal)]/[0.06] ${isSel ? "bg-[var(--color-teal)]/10" : ""}`}>
                       {selectable && (
                         <td className={pad}>
-                          <input
-                            type="checkbox"
-                            aria-label="Select row"
-                            checked={isSel}
-                            onChange={() =>
-                              setSelected((s) => {
-                                const n = new Set(s);
-                                if (n.has(k)) n.delete(k);
-                                else n.add(k);
-                                return n;
-                              })
-                            }
-                            className="h-5 w-5 accent-[var(--color-forest)]"
-                          />
+                          <input type="checkbox" aria-label="Select row" checked={isSel} onChange={() => toggleOne(k)} className="h-5 w-5 accent-[var(--color-forest)]" />
                         </td>
                       )}
                       {columns.map((c) => {
@@ -348,20 +349,7 @@ export function DataTable<T>({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       {selectable && (
-                        <input
-                          type="checkbox"
-                          aria-label="Select row"
-                          checked={selected.has(k)}
-                          onChange={() =>
-                            setSelected((s) => {
-                              const n = new Set(s);
-                              if (n.has(k)) n.delete(k);
-                              else n.add(k);
-                              return n;
-                            })
-                          }
-                          className="h-5 w-5 shrink-0 accent-[var(--color-forest)]"
-                        />
+                        <input type="checkbox" aria-label="Select row" checked={selected.has(k)} onChange={() => toggleOne(k)} className="h-5 w-5 shrink-0 accent-[var(--color-forest)]" />
                       )}
                       <div className="min-w-0 text-base font-medium text-[var(--color-ink)]">
                         {link ? (

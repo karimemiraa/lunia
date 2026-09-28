@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { useId, useState, type InputHTMLAttributes, type ReactNode, type Ref, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import "./tokens.css";
 
 import { errorTextClass, helpTextClass, inputClass, invalidInputClass, labelTextClass } from "./labels";
@@ -72,6 +72,7 @@ export interface FieldProps extends Omit<Native, "type" | "className" | "childre
   suffix?: ReactNode;
   /** Prefix rendered inside the control. */
   prefix?: ReactNode;
+  ref?: Ref<HTMLInputElement>;
 }
 
 /**

@@ -6,7 +6,9 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { prisma } from "@/lib/db";
 import { createDraftFromBooking } from "@/modules/billing/invoices";
 import { getTaxSettings, taxSettingsIssues } from "@/modules/billing/settings";
+import { quickPicks } from "@/modules/billing/lookup";
 import { InvoiceEditor } from "../InvoiceEditor";
+import { InlineStatus } from "../../_ui/Form";
 
 interface NewInvoicePageProps {
   searchParams: Promise<{ booking?: string; client?: string }>;
@@ -30,7 +32,7 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
     if (id) redirect(`/admin/billing/${id}`);
     return (
       <AdminShell user={user} title="Checkout">
-        <p className="rounded-[var(--radius-sm)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>
+        <InlineStatus error={error} />
         <Link href="/admin/billing/new" className="lunia-btn lunia-btn-forest mt-4">
           Start a walk-in invoice instead
         </Link>
@@ -38,17 +40,19 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
     );
   }
 
-  const [settings, profile] = await Promise.all([
+  const [settings, picks, profile] = await Promise.all([
     getTaxSettings(),
+    quickPicks(8),
     client
       ? prisma.clientProfile.findUnique({ where: { id: client }, select: { id: true, fullName: true, user: { select: { phone: true } } } })
       : null,
   ]);
 
   return (
-    <AdminShell user={user} title="New invoice" description="Walk-in sale or a quick invoice — save as a draft or issue straight away.">
+    <AdminShell user={user} title="New sale" description="Scan or search to add items, take payment, send the receipt.">
       <InvoiceEditor
         invoiceId={null}
+        quickPicks={picks}
         pricesIncludeVat={settings.pricesIncludeVat}
         defaultVatRateBp={settings.defaultVatRateBp}
         settingsIssues={taxSettingsIssues(settings)}
