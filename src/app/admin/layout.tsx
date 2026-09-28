@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" dir="ltr" className={fontVariables}>
-      <body className="bg-[var(--surface-2)] text-[var(--color-ink)]">{children}</body>
+      <body className="lunia-staff bg-[var(--surface-2)] text-[var(--color-ink)]">{children}</body>
     </html>
   );
 }

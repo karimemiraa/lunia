@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default function SuperadminLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" dir="ltr" className={fontVariables}>
-      <body className="bg-[var(--color-page)] text-[var(--color-ink)]">{children}</body>
+      <body className="lunia-staff bg-[var(--color-page)] text-[var(--color-ink)]">{children}</body>
     </html>
   );
 }

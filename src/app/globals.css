@@ -282,8 +282,8 @@ body {
    busy/dated behind dense CRM screens. */
 .lunia-admin-bg {
   background:
-    radial-gradient(62% 55% at 100% 0%, color-mix(in srgb, var(--color-teal) 12%, transparent), transparent 62%),
-    radial-gradient(55% 55% at 0% 100%, color-mix(in srgb, var(--color-canopy) 9%, transparent), transparent 58%),
+    radial-gradient(62% 55% at 100% 0%, color-mix(in srgb, var(--color-teal) 22%, transparent), transparent 62%),
+    radial-gradient(55% 55% at 0% 100%, color-mix(in srgb, var(--color-alice) 14%, transparent), transparent 58%),
     linear-gradient(180deg, var(--color-page) 0%, var(--surface-2) 100%);
   background-attachment: fixed;
 }
@@ -440,21 +440,30 @@ body {
   color: var(--color-page);
 }
 .lunia-btn-ink:hover { background: #24423f; transform: translateY(-1px); box-shadow: var(--shadow-md); }
-/* Forest — the primary "confirm/advance" action on admin surfaces. */
+/* Primary "confirm/advance" action in the staff system — the same Luminous
+   Teal pill as the website's CTAs, with ink type (the brand's text color). */
 .lunia-btn-forest {
-  background: var(--color-forest);
-  color: var(--color-cream);
+  background: linear-gradient(135deg, var(--color-teal), var(--color-deep-canopy));
+  color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 8%, transparent), var(--shadow-sm);
 }
-.lunia-btn-forest:hover { background: #32504e; transform: translateY(-1px); box-shadow: var(--shadow-md); }
-/* Quiet forest outline — secondary admin actions that still read as a set. */
+.lunia-btn-forest:hover { background: linear-gradient(135deg, #a9dcd7, var(--color-teal)); transform: translateY(-1px); box-shadow: var(--shadow-glow); }
+/* Quiet outline for secondary staff actions. */
 .lunia-btn-forest-outline {
   background: var(--surface);
-  color: var(--color-forest);
-  border: 1px solid color-mix(in srgb, var(--color-forest) 35%, transparent);
+  color: var(--color-teal-ink);
+  border: 1px solid color-mix(in srgb, var(--color-teal-ink) 30%, transparent);
 }
 .lunia-btn-forest-outline:hover {
-  background: color-mix(in srgb, var(--color-forest) 8%, transparent);
+  background: var(--color-mist);
   transform: translateY(-1px);
+}
+
+/* Staff system (admin + superadmin): "forest" accents resolve to a deep
+   Lunia teal (a shade of the primaries — cream on it is still AA), so banners,
+   badges and highlights sit in the same family as the website. */
+.lunia-staff {
+  --color-forest: #3d7169;
 }
 .lunia-btn-ghost {
   background: var(--surface);

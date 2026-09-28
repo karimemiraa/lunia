@@ -320,35 +320,35 @@ export function AdminNav({ permissions }: AdminNavProps) {
   return (
     <>
     {/* Phone top bar (the sidebar becomes a drawer below md). */}
-    <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-white/10 bg-[var(--color-ink)] px-3 pt-[env(safe-area-inset-top)] text-[var(--color-cream)] md:hidden">
+    <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 lunia-teal-field border-b border-[var(--color-ink)]/10 px-3 pt-[env(safe-area-inset-top)] md:hidden">
       <button
         type="button"
         onClick={() => setDrawerOpen(true)}
         aria-label="Open menu"
         aria-expanded={drawerOpen}
-        className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-white/10"
+        className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-white/35"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
           <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
         </svg>
       </button>
-      <span className="font-[family-name:var(--font-display)] text-lg tracking-[0.3em]">LUNIA</span>
+      <span role="img" aria-label="LUNIA" className="lunia-logo h-7 text-[var(--color-teal-ink)]" />
     </div>
     {drawerOpen && (
       <div aria-hidden="true" onClick={() => setDrawerOpen(false)} className="fixed inset-0 z-40 bg-black/40 md:hidden" />
     )}
     <nav
       aria-label="Admin navigation"
-      className={`fixed inset-y-0 start-0 z-50 flex h-[100dvh] w-72 shrink-0 flex-col gap-0.5 overflow-y-auto overflow-x-hidden border-e border-[var(--line)] bg-[var(--color-ink)] px-3 py-4 text-[var(--color-cream)] transition-transform duration-300 md:sticky md:top-0 md:z-auto md:h-screen md:translate-x-0 md:transition-[width] ${
+      className={`fixed inset-y-0 start-0 z-50 flex h-[100dvh] w-72 shrink-0 flex-col gap-0.5 overflow-y-auto overflow-x-hidden lunia-teal-field border-e border-[var(--color-ink)]/10 px-3 py-4 transition-transform duration-300 md:sticky md:top-0 md:z-auto md:h-screen md:translate-x-0 md:transition-[width] ${
         drawerOpen ? "translate-x-0" : "-translate-x-full rtl:translate-x-full"
       } ${collapsed ? "md:w-[4.25rem] md:items-center md:px-2" : "md:w-60 md:px-3"}`}
     >
       {/* Brand + collapse toggle */}
       <div className={`mb-3 flex items-center ${rail ? "justify-center" : "gap-2 px-2"}`}>
-        {!rail && (
+        {rail ? null : (
           <>
-            <span className="font-[family-name:var(--font-display)] text-lg tracking-[0.3em]">LUNIA</span>
-            <span className="ms-auto rounded-full bg-[var(--color-teal)]/15 px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-widest text-[var(--color-teal)]">
+            <span role="img" aria-label="LUNIA" className="lunia-logo h-7 text-[var(--color-teal-ink)]" />
+            <span className="ms-auto rounded-full bg-white/55 px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-widest text-[var(--color-teal-ink)]">
               Admin
             </span>
           </>
@@ -357,7 +357,7 @@ export function AdminNav({ permissions }: AdminNavProps) {
           type="button"
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`hidden rounded-md p-1.5 text-[var(--color-cream)]/55 transition-colors hover:bg-white/10 hover:text-[var(--color-cream)] md:inline-flex ${rail ? "" : "ms-1"}`}
+          className={`hidden rounded-md p-1.5 text-[var(--color-ink)]/60 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] md:inline-flex ${rail ? "" : "ms-1"}`}
         >
           {RailIcon}
         </button>
@@ -365,7 +365,7 @@ export function AdminNav({ permissions }: AdminNavProps) {
           type="button"
           onClick={() => setDrawerOpen(false)}
           aria-label="Close menu"
-          className="ms-1 flex h-10 w-10 items-center justify-center rounded-md text-[var(--color-cream)]/70 hover:bg-white/10 md:hidden"
+          className="ms-1 flex h-10 w-10 items-center justify-center rounded-md text-[var(--color-ink)]/70 hover:bg-white/35 md:hidden"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
             <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
@@ -380,13 +380,13 @@ export function AdminNav({ permissions }: AdminNavProps) {
         return (
           <div key={group.label} className="w-full">
             {rail ? (
-              <div aria-hidden="true" className="mx-auto my-2 h-px w-6 bg-white/10" />
+              <div aria-hidden="true" className="mx-auto my-2 h-px w-6 bg-[var(--color-ink)]/15" />
             ) : (
               <button
                 type="button"
                 onClick={() => toggleGroup(group.label)}
                 aria-expanded={open}
-                className="mt-3 flex w-full items-center justify-between rounded px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-cream)]/55 transition-colors hover:text-[var(--color-cream)]/80"
+                className="mt-3 flex w-full items-center justify-between rounded px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-teal-ink)]/80 transition-colors hover:text-[var(--color-ink)]"
               >
                 {group.label}
                 <Chevron open={open} />
@@ -407,15 +407,15 @@ export function AdminNav({ permissions }: AdminNavProps) {
                           rail ? "justify-center p-2.5" : "gap-3 px-3 py-2.5 md:py-1.5"
                         } ${
                           active
-                            ? "bg-[var(--color-teal)]/15 font-medium text-[var(--color-cream)]"
-                            : "text-[var(--color-cream)]/70 hover:bg-white/5 hover:text-[var(--color-cream)]"
+                            ? "bg-white/65 font-medium text-[var(--color-ink)] shadow-[0_1px_2px_rgba(34,63,58,0.08)]"
+                            : "text-[var(--color-ink)]/75 hover:bg-white/35 hover:text-[var(--color-ink)]"
                         }`}
                       >
                         <span
                           className={
                             active
-                              ? "text-[var(--color-teal)]"
-                              : "text-[var(--color-cream)]/55 transition-colors group-hover:text-[var(--color-teal)]"
+                              ? "text-[var(--color-teal-ink)]"
+                              : "text-[var(--color-ink)]/55 transition-colors group-hover:text-[var(--color-teal-ink)]"
                           }
                         >
                           {item.icon}
@@ -435,11 +435,11 @@ export function AdminNav({ permissions }: AdminNavProps) {
         <button
           type="submit"
           title={rail ? "Sign out" : undefined}
-          className={`flex w-full items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-cream)]/60 transition-colors hover:bg-white/5 hover:text-[var(--color-cream)] ${
+          className={`flex w-full items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-ink)]/65 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] ${
             rail ? "justify-center p-2.5" : "gap-3 px-3 py-2"
           }`}
         >
-          <span className="text-[var(--color-cream)]/50">{I.door}</span>
+          <span className="text-[var(--color-ink)]/50">{I.door}</span>
           {!rail && "Sign out"}
         </button>
       </form>

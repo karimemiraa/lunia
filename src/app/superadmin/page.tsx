@@ -19,15 +19,16 @@ export default async function SuperadminPage() {
   return (
     <div className="min-h-screen bg-[var(--color-page)] text-[var(--color-ink)]">
       {/* Distinct dark control-room header. */}
-      <header className="bg-[var(--color-forest)] text-[var(--color-cream)]">
+      <header className="lunia-teal-field lunia-pattern-waves lunia-pattern-multiply relative">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-5 lg:px-10">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--color-teal)]">Superadmin</span>
+          <div className="flex flex-col gap-1">
+            <span role="img" aria-label="LUNIA" className="lunia-logo mb-1 h-6 text-[var(--color-teal-ink)]" />
+            <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--color-teal-ink)]">Superadmin</span>
             <h1 className="font-[family-name:var(--font-display)] text-2xl">Platform &amp; Integrations</h1>
           </div>
           <Link
             href="/admin"
-            className="rounded-[var(--radius)] border border-[var(--color-cream)]/30 px-4 py-2 text-sm text-[var(--color-cream)] transition-colors hover:bg-[var(--color-cream)]/10"
+            className="rounded-[var(--radius)] border border-[var(--color-ink)]/20 bg-white/40 px-4 py-2 text-sm text-[var(--color-ink)] transition-colors hover:bg-white/70"
           >
             ← Back to admin
           </Link>

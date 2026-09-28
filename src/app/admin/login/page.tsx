@@ -22,13 +22,13 @@ function LockIcon() {
   );
 }
 
-// Animated circular Lunia emblem: a faint static ring, a slowly rotating
-// dashed accent ring, circular text turning the other way, and a centered
-// "Lunia" wordmark whose letters fall in one after another (then float).
+// Animated circular Lunia seal on the Luminous Teal field: a faint static
+// ring, a slowly rotating dashed accent ring, circular text turning the other
+// way, and the official emblem + wordmark (never retyped — brand rule) at the
+// center, floating gently.
 function LuniaEmblem() {
-  const letters = "Lunia".split("");
-  const teal = "color-mix(in srgb, var(--color-teal) 55%, transparent)";
-  const cream = "color-mix(in srgb, var(--color-cream) 22%, transparent)";
+  const teal = "color-mix(in srgb, var(--color-teal-ink) 45%, transparent)";
+  const cream = "color-mix(in srgb, var(--color-ink) 16%, transparent)";
   return (
     <div className="relative h-80 w-80 sm:h-[22rem] sm:w-[22rem]">
       <svg viewBox="0 0 240 240" className="absolute inset-0 h-full w-full" aria-hidden="true">
@@ -50,7 +50,7 @@ function LuniaEmblem() {
             <path id="lunia-emblem-path" d="M120,120 m-70,0 a70,70 0 1,1 140,0 a70,70 0 1,1 -140,0" />
           </defs>
           <text
-            style={{ fill: "color-mix(in srgb, var(--color-cream) 55%, transparent)", letterSpacing: "3px" }}
+            style={{ fill: "color-mix(in srgb, var(--color-ink) 55%, transparent)", letterSpacing: "3px" }}
             fontSize="8.5"
             fontFamily="Arial, Helvetica, sans-serif"
           >
@@ -60,14 +60,12 @@ function LuniaEmblem() {
           </text>
         </g>
       </svg>
-      <div className="lunia-emblem-core absolute inset-0 flex items-center justify-center">
-        <span dir="ltr" className="font-[family-name:var(--font-display)] text-5xl tracking-[0.14em] text-[var(--color-cream)] sm:text-6xl">
-          {letters.map((char, i) => (
-            <span key={i} className="lunia-drop-char" style={{ animationDelay: `${0.35 + i * 0.13}s` }}>
-              {char}
-            </span>
-          ))}
-        </span>
+      <div className="lunia-emblem-core absolute inset-0 flex flex-col items-center justify-center gap-5 text-[var(--color-teal-ink)]">
+        <span
+          aria-hidden="true"
+          className="block h-24 w-16 bg-current [mask:url(/brand/emblem-mono.svg)_center/contain_no-repeat] [-webkit-mask:url(/brand/emblem-mono.svg)_center/contain_no-repeat]"
+        />
+        <span role="img" aria-label="LUNIA — Skin & Hair" className="lunia-logo h-9" />
       </div>
     </div>
   );
@@ -79,7 +77,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="lunia-btn lunia-btn-primary mt-2 w-full py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-70"
+      className="lunia-btn lunia-btn-forest mt-2 w-full py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-70"
     >
       {pending ? (
         <>
@@ -104,7 +102,7 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* Brand panel */}
-      <section className="lunia-aurora lunia-grain relative hidden flex-col items-center justify-center p-12 text-[var(--color-cream)] lg:flex">
+      <section className="lunia-teal-field lunia-pattern-mosaic lunia-pattern-multiply relative hidden flex-col items-center justify-center p-12 lg:flex">
         <LuniaEmblem />
       </section>
 
@@ -113,9 +111,7 @@ export default function LoginPage() {
         <div className="lunia-animate-fade-up w-full max-w-sm">
           {/* Compact brand lockup for small screens */}
           <div className="mb-10 flex items-center gap-2.5 lg:hidden">
-            <span className="font-[family-name:var(--font-display)] text-xl tracking-[0.3em] text-[var(--color-ink)]">
-              LUNIA
-            </span>
+            <span role="img" aria-label="LUNIA — Skin & Hair" className="lunia-logo h-8 text-[var(--color-teal-ink)]" />
           </div>
 
           <h2 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)]">Welcome back</h2>
