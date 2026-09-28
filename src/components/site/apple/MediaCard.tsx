@@ -36,7 +36,7 @@ export function MediaCard({ media, eyebrow, title, body, href, textAt = "top", c
     </>
   );
 
-  const base = `group relative isolate flex flex-col overflow-hidden rounded-[28px] bg-[var(--color-forest)] p-7 sm:p-8 ${className}`;
+  const base = `group relative isolate flex flex-col overflow-hidden rounded-[28px] bg-[var(--color-alice)] p-7 sm:p-8 ${className}`;
   return href ? (
     <Link href={href} data-reveal className={`${base} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-4`}>
       {inner}

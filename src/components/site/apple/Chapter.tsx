@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-type Tone = "page" | "mist" | "white" | "cream" | "forest";
+type Tone = "page" | "mist" | "white" | "cream" | "teal" | "forest";
 
 interface ChapterProps {
   id?: string;
@@ -19,9 +19,11 @@ interface ChapterProps {
 
 const TONES: Record<Tone, string> = {
   page: "bg-[var(--color-page)]",
-  mist: "bg-[#e8f1ee]",
+  mist: "bg-[var(--color-mist)]",
   white: "bg-white",
   cream: "bg-[color-mix(in_srgb,var(--color-cream)_55%,var(--color-page))]",
+  // The primary brand field (Luminous Teal -> Deep Canopy -> Alice Blue).
+  teal: "lunia-teal-field",
   forest: "bg-[var(--color-forest)] text-[var(--color-cream)]",
 };
 
@@ -30,7 +32,9 @@ const TONES: Record<Tone, string> = {
 // ground so chapters read as distinct scenes.
 export function Chapter({ id, tone = "page", eyebrow, heading, lead, align = "center", bleed, pattern, className = "", children }: ChapterProps) {
   const dark = tone === "forest";
-  const patternClass = pattern ? `lunia-pattern-${pattern}${dark ? " lunia-pattern-on-dark" : ""}` : "";
+  const patternClass = pattern
+    ? `lunia-pattern-${pattern}${dark ? " lunia-pattern-on-dark" : tone === "teal" ? " lunia-pattern-multiply" : ""}`
+    : "";
   const headAlign = align === "center" ? "mx-auto items-center text-center" : "items-start text-start";
 
   return (
@@ -39,7 +43,7 @@ export function Chapter({ id, tone = "page", eyebrow, heading, lead, align = "ce
         <div className="mx-auto w-full max-w-7xl px-5 sm:px-6">
           <header className={`flex max-w-3xl flex-col ${headAlign}`}>
             {eyebrow && (
-              <span className={`lx-eyebrow lunia-scroll ${dark ? "text-[var(--color-teal)]" : ""}`}>
+              <span className={`lx-eyebrow lunia-scroll ${dark ? "text-[var(--color-teal)]" : tone === "teal" ? "text-[var(--color-teal-ink)]" : ""}`}>
                 <span aria-hidden="true" className="lunia-glow-mark" />
                 {eyebrow}
               </span>

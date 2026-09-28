@@ -10,6 +10,11 @@
   --color-teal: #9ed5d0;      /* Luminous Teal — the signature brand color */
   --color-canopy: #6fb9b1;    /* deeper teal for gradients / stronger accents */
   --color-ice: #cfeae7;       /* pale teal tint for soft glows and fills */
+  /* The two companion primaries, exactly as specified. */
+  --color-deep-canopy: #93ccc6; /* Deep Canopy */
+  --color-alice: #86bfb8;       /* Alice Blue */
+  /* A whisper of Luminous Teal for alternating light sections. */
+  --color-mist: #e2f2ef;
   /* Secondary — warm gold/cream accents (used sparingly, ~2.5% per brand). */
   --color-gold: #c0ad73;      /* Tiger Lily */
   --color-marigold: #cdbb85;  /* Wild Marigold */
@@ -334,6 +339,23 @@ body {
 /* Tone-on-tone: on a solid teal field, multiply the teal tile so the motif
    reads as a slightly deeper teal texture rather than vanishing. */
 .lunia-pattern-multiply::before { mix-blend-mode: multiply; opacity: 0.5; }
+
+/* The primary brand field: Luminous Teal washing into Deep Canopy / Alice
+   Blue (the three primaries from the guidelines), with a soft light bloom so
+   a large teal surface feels luminous rather than flat. Text on it is ink —
+   the guidelines reserve the darker teal shades for type. Pair with
+   .lunia-pattern-mosaic/-waves + .lunia-pattern-multiply for tone-on-tone
+   texture. */
+.lunia-teal-field {
+  background:
+    radial-gradient(90% 70% at 18% 0%, color-mix(in srgb, #ffffff 34%, transparent) 0%, transparent 60%),
+    radial-gradient(80% 60% at 100% 100%, color-mix(in srgb, var(--color-alice) 70%, transparent) 0%, transparent 65%),
+    linear-gradient(160deg, var(--color-teal) 0%, var(--color-deep-canopy) 55%, var(--color-alice) 100%);
+  color: var(--color-ink);
+}
+/* On a large teal field the multiplied pattern must stay a whisper. */
+.lunia-teal-field.lunia-pattern-waves.lunia-pattern-multiply::before { opacity: 0.2; }
+.lunia-teal-field.lunia-pattern-mosaic.lunia-pattern-multiply::before { opacity: 0.32; }
 
 /* The signature "Glow" motif as a decorative inline mark (eyebrows, dividers).
    Uses the brand star; color follows currentColor via a mask so it can sit in
@@ -673,12 +695,12 @@ html[dir="rtl"] .lunia-progress-bar { transform-origin: right center; }
 .lunia-timeline-line {
   position: absolute; top: 0.4rem; bottom: 0.4rem; inset-inline-start: 0.75rem;
   width: 1.5px;
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--color-canopy) 55%, transparent) 10%,
-    color-mix(in srgb, var(--color-canopy) 55%, transparent) 90%, transparent);
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--color-teal-ink) 28%, transparent) 10%,
+    color-mix(in srgb, var(--color-teal-ink) 28%, transparent) 90%, transparent);
 }
 .lunia-timeline-node {
   position: absolute; inset-inline-start: -1.375rem; inset-block-start: 0.55rem;
-  width: 0.75rem; height: 0.75rem; color: var(--color-canopy);
+  width: 0.75rem; height: 0.75rem; color: var(--color-teal-ink);
   background-color: currentColor;
   -webkit-mask: url("/brand/glow.svg") center / contain no-repeat;
   mask: url("/brand/glow.svg") center / contain no-repeat;
@@ -819,7 +841,7 @@ html[dir="rtl"] .lunia-progress-bar { transform-origin: right center; }
   .lx-snap > * { scroll-snap-align: start; }
 
   /* --- Sticky stepper (the six moments) --- */
-  .lx-steps-media { position: sticky; top: 11svh; height: 78svh; border-radius: 30px; overflow: hidden; isolation: isolate; background: #1c332f; }
+  .lx-steps-media { position: sticky; top: 11svh; height: 78svh; border-radius: 30px; overflow: hidden; isolation: isolate; background: var(--color-alice); }
   .lx-steps-media [data-step-media] {
     position: absolute; inset: 0; opacity: 0; transform: scale(1.06);
     transition: opacity .9s cubic-bezier(.16,1,.3,1), transform 1.6s cubic-bezier(.16,1,.3,1);

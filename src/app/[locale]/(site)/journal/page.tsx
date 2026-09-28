@@ -106,7 +106,7 @@ export default async function JournalPage({ params }: JournalPageProps) {
 
       <PageHero eyebrow={tHero("eyebrow")} title={tHero("heading")} lead={tHero("intro")} />
 
-      <section className="bg-[#e8f1ee] pb-[clamp(5rem,12svh,8rem)] pt-[clamp(3.5rem,8svh,5.5rem)]">
+      <section className="bg-[var(--color-mist)] pb-[clamp(5rem,12svh,8rem)] pt-[clamp(3.5rem,8svh,5.5rem)]">
         <div className="mx-auto w-full max-w-7xl px-5 sm:px-6">
           {posts.length === 0 || !featured ? (
             <p className="text-center text-base text-[var(--color-ink)]/60">{tIndex("emptyLabel")}</p>

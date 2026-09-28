@@ -199,7 +199,7 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
         aria-label={open ? t("close") : t("open")}
         aria-expanded={open}
         aria-controls="lunia-assistant-panel"
-        className={`fixed right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-forest)] text-[var(--color-cream)] shadow-[var(--shadow-lg)] transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 md:h-14 md:w-14 ${launcherBottom} ${open ? "max-md:hidden" : ""}`}
+        className={`fixed right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-teal)] text-[var(--color-ink)] shadow-[var(--shadow-glow)] ring-1 ring-white/60 transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 md:h-14 md:w-14 ${launcherBottom} ${open ? "max-md:hidden" : ""}`}
       >
         {open ? (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
@@ -224,13 +224,13 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
           dir={ar ? "rtl" : "ltr"}
           className={`lunia-animate-scale-in fixed inset-x-0 top-0 z-50 flex h-[100dvh] flex-col overflow-hidden bg-[var(--surface)] outline-none md:inset-x-auto md:top-auto md:right-5 md:h-[min(40rem,calc(100dvh-12rem))] md:w-[24.5rem] md:rounded-[var(--radius-lg)] md:border md:border-[var(--line)] md:shadow-[var(--shadow-lg)] ${panelBottom}`}
         >
-          <header className="flex items-center gap-3 bg-[var(--color-forest)] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-[var(--color-cream)]">
+          <header className="flex items-center gap-3 lunia-teal-field px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-teal)]/20">
               <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-teal)] shadow-[0_0_12px_var(--color-teal)]" />
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="truncate font-[family-name:var(--font-display)] text-lg leading-tight">{t("title")}</h2>
-              <p className="truncate text-xs text-[var(--color-cream)]/70">{t("subtitle")}</p>
+              <p className="truncate text-xs text-[var(--color-ink)]/70">{t("subtitle")}</p>
             </div>
             <button
               type="button"
@@ -238,7 +238,7 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
               disabled={busy}
               aria-label={t("restart")}
               title={t("restart")}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-cream)]/75 transition-colors hover:bg-white/10 hover:text-[var(--color-cream)] disabled:opacity-50"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-ink)]/70 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] disabled:opacity-50"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-[18px] w-[18px]" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4" />
@@ -248,7 +248,7 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
               type="button"
               onClick={close}
               aria-label={t("close")}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-cream)]/75 transition-colors hover:bg-white/10 hover:text-[var(--color-cream)]"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-ink)]/70 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)]"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
                 <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
@@ -267,7 +267,7 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
             {view?.messages.map((m) => <Message key={m.id} message={m} />)}
             {pending && (
               <div className="flex justify-end">
-                <div className="max-w-[85%] whitespace-pre-line break-words rounded-2xl rounded-ee-md bg-[var(--color-forest)] px-3.5 py-2.5 text-[0.94rem] leading-relaxed text-[var(--color-cream)]">
+                <div className="max-w-[85%] whitespace-pre-line break-words rounded-2xl rounded-ee-md bg-[var(--color-teal)] px-3.5 py-2.5 text-[0.94rem] leading-relaxed text-[var(--color-ink)]">
                   {pending.text}
                 </div>
               </div>
@@ -291,8 +291,8 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
                     onClick={() => onChip(chip)}
                     className={`min-h-10 rounded-full px-3.5 py-2 text-sm leading-tight transition-colors disabled:opacity-50 ${
                       chip.tone === "primary"
-                        ? "bg-[var(--color-forest)] text-[var(--color-cream)] hover:bg-[#32504e]"
-                        : "border border-[var(--color-forest)]/25 bg-[var(--color-ice)]/40 text-[var(--color-forest)] hover:bg-[var(--color-ice)]"
+                        ? "bg-[var(--color-ink)] text-[var(--color-page)] hover:bg-[var(--color-teal-ink)]"
+                        : "border border-[var(--color-teal-ink)]/25 bg-[var(--color-mist)] text-[var(--color-teal-ink)] hover:bg-[var(--color-ice)]"
                     }`}
                   >
                     {chip.label}
@@ -324,7 +324,7 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
               type="submit"
               disabled={busy || !draft.trim()}
               aria-label={t("send")}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-forest)] text-[var(--color-cream)] transition-opacity disabled:opacity-40"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-teal)] text-[var(--color-ink)] transition-opacity disabled:opacity-40"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-5 w-5 ${ar ? "-scale-x-100" : ""}`} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h13M13 6l6 6-6 6" />
@@ -342,7 +342,7 @@ function Message({ message }: { message: ChatMessageView }) {
   if (message.from === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] whitespace-pre-line break-words rounded-2xl rounded-ee-md bg-[var(--color-forest)] px-3.5 py-2.5 text-[0.94rem] leading-relaxed text-[var(--color-cream)]">
+        <div className="max-w-[85%] whitespace-pre-line break-words rounded-2xl rounded-ee-md bg-[var(--color-teal)] px-3.5 py-2.5 text-[0.94rem] leading-relaxed text-[var(--color-ink)]">
           {message.text}
         </div>
       </div>
@@ -362,7 +362,7 @@ function Message({ message }: { message: ChatMessageView }) {
                 {card.duration} <span aria-hidden="true">|</span> {card.price}
               </p>
               <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-ink)]/75">{card.why}</p>
-              {card.note && <p className="mt-1.5 text-xs font-medium text-[var(--color-forest)]">{card.note}</p>}
+              {card.note && <p className="mt-1.5 text-xs font-medium text-[var(--color-teal-ink)]">{card.note}</p>}
             </li>
           ))}
         </ul>
@@ -387,7 +387,7 @@ function Message({ message }: { message: ChatMessageView }) {
               key={link.href}
               href={link.href}
               {...(link.external ? { target: "_blank", rel: "noreferrer" } : {})}
-              className="inline-flex min-h-10 items-center rounded-full bg-[var(--color-forest)] px-4 py-2 text-sm text-[var(--color-cream)] transition-colors hover:bg-[#32504e]"
+              className="inline-flex min-h-10 items-center rounded-full bg-[var(--color-ink)] px-4 py-2 text-sm text-[var(--color-page)] transition-colors hover:bg-[var(--color-teal-ink)]"
             >
               {link.label}
             </a>

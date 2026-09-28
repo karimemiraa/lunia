@@ -176,7 +176,7 @@ export default async function JournalPostPage({ params }: JournalPostPageProps) 
       </article>
 
       {more.length > 0 && (
-        <section className="bg-[#e8f1ee] py-[clamp(5rem,12svh,8rem)]">
+        <section className="bg-[var(--color-mist)] py-[clamp(5rem,12svh,8rem)]">
           <div className="mx-auto w-full max-w-7xl px-5 sm:px-6">
             <h2 className="lx-display mb-8 text-[clamp(1.9rem,1.4rem+1.4vw,2.6rem)] text-[var(--color-ink)]">{tPost("moreHeading")}</h2>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

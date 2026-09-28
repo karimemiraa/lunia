@@ -38,15 +38,15 @@ export function JourneySticky({ id, eyebrow, heading, stepLabel, steps }: Journe
     <section
       id={id}
       data-steps
-      className="scroll-mt-32 lunia-pattern-waves lunia-pattern-on-dark relative bg-[var(--color-forest)] py-[clamp(6rem,14svh,10rem)] text-[var(--color-cream)]"
+      className="lunia-teal-field lunia-pattern-waves lunia-pattern-multiply relative scroll-mt-32 py-[clamp(6rem,14svh,10rem)]"
     >
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-6">
         <header className="flex max-w-3xl flex-col items-start">
-          <span className="lx-eyebrow lunia-scroll text-[var(--color-teal)]">
+          <span className="lx-eyebrow lunia-scroll text-[var(--color-teal-ink)]">
             <span aria-hidden="true" className="lunia-glow-mark" />
             {eyebrow}
           </span>
-          <h2 data-splittext className="lx-display lx-h2 mt-5 text-[var(--color-cream)]">
+          <h2 data-splittext className="lx-display lx-h2 mt-5 text-[var(--color-ink)]">
             {heading}
           </h2>
         </header>
@@ -54,7 +54,7 @@ export function JourneySticky({ id, eyebrow, heading, stepLabel, steps }: Journe
         <div className="mt-14 grid gap-12 lg:mt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-20">
           {/* Sticky media panel (desktop) */}
           <div className="hidden lg:block">
-            <div className="lx-steps-media shadow-[0_40px_90px_-50px_rgba(0,0,0,0.6)]">
+            <div className="lx-steps-media shadow-[0_40px_90px_-50px_rgba(34,63,58,0.55)]">
               {steps.map((step, i) => {
                 const m = mediaFor(i);
                 return (
@@ -70,7 +70,7 @@ export function JourneySticky({ id, eyebrow, heading, stepLabel, steps }: Journe
                   </div>
                 );
               })}
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 rounded-[30px] ring-1 ring-inset ring-white/10" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 rounded-[30px] ring-1 ring-inset ring-white/40" />
             </div>
           </div>
 
@@ -80,7 +80,7 @@ export function JourneySticky({ id, eyebrow, heading, stepLabel, steps }: Journe
             <span
               aria-hidden="true"
               data-steps-progress
-              className="lx-steps-progress absolute bottom-[0.4rem] top-[0.4rem] w-[1.5px] bg-[var(--color-teal)] [inset-inline-start:0.75rem]"
+              className="lx-steps-progress absolute bottom-[0.4rem] top-[0.4rem] w-[1.5px] bg-[var(--color-teal-ink)] [inset-inline-start:0.75rem]"
               style={{ transform: "scaleY(0)" }}
             />
             {steps.map((step, i) => {
@@ -97,14 +97,14 @@ export function JourneySticky({ id, eyebrow, heading, stepLabel, steps }: Journe
                   </div>
                   <div className="relative">
                     <span aria-hidden="true" className="lunia-timeline-node !top-[0.3rem]" />
-                    <p className="text-sm font-medium tracking-[0.22em] text-[var(--color-teal)]">
+                    <p className="text-sm font-medium tracking-[0.22em] text-[var(--color-teal-ink)]">
                       {stepLabel} {String(i + 1).padStart(2, "0")}
                     </p>
-                    <h3 className="lx-display mt-3 text-[clamp(2.1rem,1.5rem+1.8vw,3.25rem)] text-[var(--color-cream)]">
+                    <h3 className="lx-display mt-3 text-[clamp(2.1rem,1.5rem+1.8vw,3.25rem)] text-[var(--color-ink)]">
                       {step.title}
                     </h3>
                     {step.body && (
-                      <p className="mt-4 max-w-md text-[1.075rem] leading-relaxed text-[var(--color-cream)]/75">{step.body}</p>
+                      <p className="mt-4 max-w-md text-[1.075rem] leading-relaxed text-[var(--color-ink)]/75">{step.body}</p>
                     )}
                   </div>
                 </li>

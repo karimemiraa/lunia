@@ -4,23 +4,26 @@ interface StatementProps {
   /** Small supporting line under the statement. */
   note?: string;
   id?: string;
-  tone?: "light" | "dark";
+  tone?: "light" | "teal" | "dark";
 }
 
 // A single large statement whose words brighten as you read them (the same
 // scroll-highlight as the homepage manifesto, CinematicScroll's
-// [data-highlight]) — on a light ground by default. Without JS every word is
-// simply shown at full strength.
+// [data-highlight]) — on a light ground by default, or on the Luminous Teal
+// brand field ("teal"). Without JS every word is simply shown at full strength.
 export function Statement({ eyebrow, text, note, id, tone = "light" }: StatementProps) {
   const dark = tone === "dark";
+  const ground =
+    tone === "dark"
+      ? "bg-[var(--color-forest)] text-[var(--color-cream)]"
+      : tone === "teal"
+        ? "lunia-teal-field lunia-pattern-mosaic lunia-pattern-multiply relative"
+        : "bg-[var(--color-page)]";
   return (
-    <section
-      id={id}
-      className={`scroll-mt-32 py-[clamp(6rem,16svh,11rem)] ${dark ? "bg-[var(--color-forest)] text-[var(--color-cream)]" : "bg-[var(--color-page)]"}`}
-    >
+    <section id={id} className={`scroll-mt-32 py-[clamp(6rem,16svh,11rem)] ${ground}`}>
       <div className="mx-auto w-full max-w-5xl px-6">
         {eyebrow && (
-          <span className={`lx-eyebrow ${dark ? "text-[var(--color-teal)]" : ""}`}>
+          <span className={`lx-eyebrow ${dark ? "text-[var(--color-teal)]" : tone === "teal" ? "text-[var(--color-teal-ink)]" : ""}`}>
             <span aria-hidden="true" className="lunia-glow-mark" />
             {eyebrow}
           </span>

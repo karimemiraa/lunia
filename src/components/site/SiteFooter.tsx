@@ -19,10 +19,12 @@ const NAV_ITEMS = [
 ] as const;
 
 const focusRingClass =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-page)]";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-teal)]";
 
-const footerLinkClass = `rounded-sm text-sm text-[var(--color-ink)]/70 transition-colors hover:text-[var(--color-ink)] ${focusRingClass}`;
-const headingClass = "text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-ink)]/50";
+// The footer sits on the Luminous Teal brand field, so every page closes on
+// the primary color; ink type at 75% keeps it legible (AA) on the teal.
+const footerLinkClass = `rounded-sm text-sm text-[var(--color-ink)]/80 transition-colors hover:text-[var(--color-ink)] ${focusRingClass}`;
+const headingClass = "text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-teal-ink)]";
 
 function digitsOnly(value: string): string {
   return value.replace(/[^\d+]/g, "").replace(/^\+/, "");
@@ -40,7 +42,7 @@ function SocialIcon({ href, label, children }: { href: string; label: string; ch
       rel="noreferrer"
       aria-label={label}
       title={label}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-ink)]/15 text-[var(--color-ink)]/70 transition-colors hover:border-[var(--color-teal)] hover:bg-[var(--color-teal)]/10 hover:text-[var(--color-ink)] ${focusRingClass}`}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-ink)]/20 bg-white/25 text-[var(--color-ink)]/80 transition-colors hover:bg-white/55 hover:text-[var(--color-ink)] ${focusRingClass}`}
     >
       <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
         {children}
@@ -67,7 +69,7 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
   const address = business ? (isAr ? business.addressAr : business.addressEn) : null;
 
   return (
-    <footer className="border-t border-[var(--color-ink)]/10 bg-[var(--color-cream)]/60">
+    <footer className="lunia-teal-field lunia-pattern-waves lunia-pattern-multiply relative">
       <div className="mx-auto grid w-full max-w-6xl gap-12 px-6 py-16 sm:py-20 md:grid-cols-[1.4fr_1fr_1fr]">
         <div className="flex flex-col gap-4">
           <span
@@ -75,7 +77,7 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
             aria-label="LUNIA — Skin & Hair"
             className="lunia-logo h-10 self-start text-[var(--color-teal-ink)]"
           />
-          <p className="max-w-sm text-sm leading-relaxed text-[var(--color-ink)]/70">{tFooter("tagline")}</p>
+          <p className="max-w-sm text-sm leading-relaxed text-[var(--color-ink)]/80">{tFooter("tagline")}</p>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -91,11 +93,11 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
 
         <div className="flex flex-col gap-4">
           <h2 className={headingClass}>{tFooter("contactHeading")}</h2>
-          <div className="flex flex-col gap-3 text-sm text-[var(--color-ink)]/70">
+          <div className="flex flex-col gap-3 text-sm text-[var(--color-ink)]/80">
             <p className="text-[var(--color-ink)]">{businessName}</p>
             {address && <address className="not-italic leading-relaxed">{address}</address>}
             {business?.phone && (
-              <a href={`tel:${digitsOnly(business.phone)}`} className={footerLinkClass}>
+              <a href={`tel:${digitsOnly(business.phone)}`} dir="ltr" className={`self-start ${footerLinkClass}`}>
                 {business.phone}
               </a>
             )}
@@ -127,8 +129,8 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
         </div>
       </div>
 
-      <div className="border-t border-[var(--color-ink)]/10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col-reverse items-center justify-between gap-4 px-6 py-6 text-xs text-[var(--color-ink)]/60 sm:flex-row">
+      <div className="border-t border-[var(--color-ink)]/15">
+        <div className="mx-auto flex w-full max-w-6xl flex-col-reverse items-center justify-between gap-4 px-6 py-6 text-xs text-[var(--color-ink)]/75 sm:flex-row">
           <p>
             © {year} LUNIA. {tFooter("rights")}
           </p>

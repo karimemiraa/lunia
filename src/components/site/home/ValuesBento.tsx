@@ -62,24 +62,28 @@ export function ValuesBento({ eyebrow, heading, intro, purity, mastery, revelati
             <p className="mt-3 max-w-sm text-[1.05rem] leading-relaxed text-[var(--color-ink)]/75">{mastery.body}</p>
           </article>
 
-          {/* Revelation — dark film tile */}
-          <article data-reveal className="lx-tile flex min-h-[20rem] flex-col justify-end bg-[var(--color-forest)] p-8 sm:p-10 lg:col-span-5">
+          {/* Revelation — film tile, washed in deep teal */}
+          <article data-reveal className="lx-tile flex min-h-[20rem] flex-col justify-end bg-[var(--color-alice)] p-8 sm:p-10 lg:col-span-5">
             <div className="lx-tile-media">
               <video data-inview-play muted loop playsInline preload="none" poster="/media/ritual.jpg" aria-hidden="true" className="object-[50%_32%]">
                 <source src="/media/ritual.mp4" type="video/mp4" />
               </video>
             </div>
-            <div aria-hidden="true" className="absolute inset-0 -z-[1] bg-gradient-to-t from-[#12231f]/85 via-[#12231f]/25 to-transparent" />
+            <div aria-hidden="true" className="absolute inset-0 -z-[1] bg-gradient-to-t from-[#1f4a44]/85 via-[#2f5f58]/25 to-transparent" />
             <h3 className="lx-display lx-h3 text-[var(--color-cream)]">{revelation.title}</h3>
             <p className="mt-3 max-w-sm text-[1.05rem] leading-relaxed text-[var(--color-cream)]/80">{revelation.body}</p>
           </article>
 
           {/* Counters */}
-          {stats.map((s) => (
+          {stats.map((s, i) => (
             <article
               key={s.label}
               data-reveal
-              className="lx-tile flex min-h-[13rem] flex-col justify-between p-7 sm:p-8 lg:col-span-3 lg:min-h-0"
+              // The first counter sits on the Luminous Teal field so the
+              // brand color anchors the grid; the rest stay white.
+              className={`lx-tile flex min-h-[13rem] flex-col justify-between p-7 sm:p-8 lg:col-span-3 lg:min-h-0 ${
+                i === 0 ? "lunia-teal-field lunia-pattern-mosaic lunia-pattern-multiply" : ""
+              }`}
             >
               <span className="lx-stat text-[var(--color-teal-ink)]">
                 <span data-count={s.value} data-count-suffix={s.suffix ?? ""}>

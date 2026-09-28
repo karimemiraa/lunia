@@ -46,7 +46,12 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
   ));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--color-ink)]/[0.07] bg-[var(--color-page)]/80 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[var(--color-page)]/68">
+    <header className="sticky top-0 z-40 bg-[var(--color-page)]/80 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[var(--color-page)]/68">
+      {/* Brand hairline: the three primary teals, fading out at the edges. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-[linear-gradient(90deg,transparent,var(--color-teal)_18%,var(--color-deep-canopy)_50%,var(--color-alice)_82%,transparent)]"
+      />
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-5 sm:px-6">
         <Link
           href={home}
