@@ -21,6 +21,9 @@ import { redirect } from "next/navigation";
 import { upsertPreference } from "@/modules/comms/preferences";
 import { adjustPoints } from "@/modules/crm/loyalty";
 import type { CommsChannelPref } from "@prisma/client";
+import { startOrGetConversation } from "@/modules/crm/whatsapp";
+import { createCallbackRequest, assignCallback } from "@/modules/assistant/callbacks";
+import { scheduleReviewRequest } from "@/modules/reviews/reviews";
 
 export interface ClientActionState {
   error?: string;
@@ -385,6 +388,89 @@ export async function saveClinicalAction(_prev: ClientActionState | null, formDa
     summary: `Updated clinical profile, tags & consent for client "${clientProfileId}"`,
   });
 
+  revalidateClient(clientProfileId);
+  return { success: true };
+}
+
+// --- Customer 360 quick actions ---------------------------------------------
+
+// "Send message": opens (or starts) this customer's WhatsApp thread so staff
+// land in the inbox with the right conversation selected. CLIENT_MANAGE, like
+// the inbox itself.
+export async function openWhatsappAction(clientProfileId: string): Promise<{ ok: true; href: string } | { ok: false; error: string }> {
+  await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const profile = await prisma.clientProfile.findUnique({ where: { id: clientProfileId }, include: { user: { select: { phone: true } } } });
+  if (!profile) return { ok: false, error: "Customer not found." };
+  if (!profile.user.phone) return { ok: false, error: "This customer has no phone number on file." };
+  try {
+    const conversationId = await startOrGetConversation(profile.user.phone, profile.id);
+    return { ok: true, href: `/admin/whatsapp?c=${conversationId}` };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Could not open WhatsApp." };
+  }
+}
+
+const addCallbackSchema = z.object({
+  clientProfileId: z.string().min(1, "Missing customer."),
+  preferredWindow: z.enum(["asap", "morning", "afternoon", "evening"]).default("asap"),
+  topic: z.string().trim().max(200).optional(),
+  notes: z.string().trim().max(2000).optional(),
+});
+
+// Queues a call-back for this customer from their profile (source STAFF, no
+// acknowledgement message — staff decided to call, the customer did not ask).
+export async function addCallbackAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const parsed = addCallbackSchema.safeParse({
+    clientProfileId: formData.get("clientProfileId"),
+    preferredWindow: formData.get("preferredWindow") || "asap",
+    topic: formData.get("topic") || undefined,
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  const { clientProfileId, preferredWindow, topic, notes } = parsed.data;
+
+  const profile = await prisma.clientProfile.findUnique({ where: { id: clientProfileId }, include: { user: { select: { phone: true, locale: true } } } });
+  if (!profile) return { error: "Customer not found." };
+  if (!profile.user.phone) return { error: "This customer has no phone number on file." };
+
+  try {
+    const row = await createCallbackRequest({
+      name: profile.fullName,
+      phone: profile.user.phone,
+      locale: profile.user.locale === "en" ? "en" : "ar",
+      preferredWindow,
+      topic,
+      notes,
+      source: "STAFF",
+      clientProfileId,
+      acknowledge: false,
+    });
+    await assignCallback(row.id, admin.id);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to add call-back." };
+  }
+  revalidateClient(clientProfileId);
+  revalidatePath("/admin/callbacks");
+  return { success: true };
+}
+
+// "Request review": schedules the review request for the most recent
+// completed visit that has none yet (idempotent per booking).
+export async function requestReviewAction(clientProfileId: string): Promise<ClientActionState> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const booking = await prisma.booking.findFirst({
+    where: { clientProfileId, status: "COMPLETED", review: null },
+    orderBy: { createdAt: "desc" },
+    include: { appointments: { select: { serviceId: true } } },
+  });
+  if (!booking) return { error: "Every completed visit already has a review request." };
+  try {
+    await scheduleReviewRequest(booking, { completedAt: new Date() });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to request a review." };
+  }
+  await recordAudit({ actorUserId: admin.id, action: "REVIEW_REQUEST", entityType: "Booking", entityId: booking.id, summary: `Requested a review for booking "${booking.id}"` });
   revalidateClient(clientProfileId);
   return { success: true };
 }

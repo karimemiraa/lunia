@@ -2,7 +2,8 @@ import Link from "next/link";
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
-import { listClients, listClientTags, listStaffOwners, type ClientLifecycle } from "@/modules/crm/clients";
+import { listClients, listClientTags, listStaffOwners, applyRosterView, ROSTER_VIEWS, ROSTER_VIEW_LABELS, type ClientLifecycle, type RosterView } from "@/modules/crm/clients";
+import { ClientsTable, type ClientRowDTO } from "./ClientsTable";
 import { listSegments, segmentToQuery } from "@/modules/crm/segments";
 import { saveSegmentAction, deleteSegmentAction } from "./actions";
 import { listTiers } from "@/modules/iam/tiers";
@@ -10,34 +11,11 @@ import { AddLeadForm } from "./AddLeadForm";
 import { listStages } from "@/modules/crm/pipeline";
 
 interface ClientsPageProps {
-  searchParams: Promise<{ search?: string; tierKey?: string; source?: string; status?: string; tag?: string; stage?: string; ownerId?: string; direction?: string }>;
-}
-
-/** ltvCacheMinor is stored in halalas (1/100 SAR). */
-function formatSar(minor: number): string {
-  const major = minor / 100;
-  return `${major.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} SAR`;
-}
-
-const CENTER_TZ = "Asia/Riyadh";
-const dateFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, day: "numeric", month: "short", year: "numeric" });
-function formatDate(date: Date | undefined): string {
-  return date ? dateFmt.format(date) : "None";
+  searchParams: Promise<{ search?: string; tierKey?: string; source?: string; status?: string; tag?: string; stage?: string; ownerId?: string; direction?: string; view?: string }>;
 }
 
 const inputClass =
   "rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-teal)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal)]/30";
-
-const STATUS_META: Record<ClientLifecycle, { label: string; className: string }> = {
-  active: { label: "Active", className: "bg-[var(--color-teal)]/20 text-[var(--color-teal-ink)]" },
-  new: { label: "New", className: "bg-[var(--color-gold)]/25 text-[#7c6a2f]" },
-  lapsed: { label: "Lapsed", className: "bg-[var(--color-ink)]/8 text-[var(--color-ink)]/55" },
-};
-
-function StatusBadge({ status }: { status: ClientLifecycle }) {
-  const m = STATUS_META[status];
-  return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${m.className}`}>{m.label}</span>;
-}
 
 function StatCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
@@ -61,6 +39,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const stage = params.stage?.trim() ?? "";
   const ownerId = params.ownerId?.trim() ?? "";
   const direction = params.direction?.trim() ?? "";
+  const view: RosterView = (ROSTER_VIEWS as readonly string[]).includes(params.view ?? "") ? (params.view as RosterView) : "all";
 
   const canManage = user.permissions.has(PERMISSIONS.CLIENT_MANAGE);
   const [allMatching, tiers, allTags, segments, owners, stageRows] = await Promise.all([
@@ -84,21 +63,83 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     lapsed: allMatching.filter((c) => c.status === "lapsed").length,
   };
 
-  const clients = status ? allMatching.filter((c) => c.status === status) : allMatching;
+  const viewed = applyRosterView(allMatching, view, now);
+  const clients = status ? viewed.filter((c) => c.status === status) : viewed;
   const hasFilters = Boolean(search || tierKey || source || status || tag || stage || ownerId || direction);
+  const viewCounts = Object.fromEntries(ROSTER_VIEWS.map((v) => [v, applyRosterView(allMatching, v, now).length])) as Record<RosterView, number>;
+
+  // Same query string the page was rendered with, so the CSV export matches the view.
+  const filterQs = new URLSearchParams();
+  for (const [k, v] of Object.entries({ search, tierKey, source, status, tag, stage, ownerId, direction })) if (v) filterQs.set(k, v);
+  const viewHref = (v: RosterView) => {
+    const sp = new URLSearchParams(filterQs);
+    if (v !== "all") sp.set("view", v);
+    const str = sp.toString();
+    return str ? `/admin/clients?${str}` : "/admin/clients";
+  };
+  const exportQs = new URLSearchParams(filterQs);
+  if (view !== "all") exportQs.set("view", view);
+  const exportHref = `/admin/clients/export${exportQs.toString() ? `?${exportQs.toString()}` : ""}`;
+
+  const rows: ClientRowDTO[] = clients.map((c) => ({
+    id: c.clientProfileId,
+    fullName: c.fullName,
+    phone: c.phone,
+    email: c.email,
+    stage: c.stage,
+    stageLabel: stageMeta.get(c.stage)?.label ?? c.stage,
+    stageColor: stageMeta.get(c.stage)?.color ?? "",
+    ownerName: c.ownerName ?? null,
+    source: c.source ?? null,
+    tierName: c.tierName ?? null,
+    tags: c.tags,
+    ltvMinor: c.ltvMinor,
+    owedMinor: c.owedMinor,
+    bookingCount: c.bookingCount,
+    lastVisitIso: c.lastVisitAt ? c.lastVisitAt.toISOString() : null,
+    nextAppointmentIso: c.nextAppointmentAt ? c.nextAppointmentAt.toISOString() : null,
+    nextFollowUpIso: c.nextFollowUpAt ? c.nextFollowUpAt.toISOString() : null,
+    status: c.status,
+  }));
 
   return (
     <AdminShell
       user={user}
       title="Customers"
       description="The customer roster: lifetime value, visit history, upcoming appointments, and lifecycle at a glance."
-      actions={canManage ? <AddLeadForm staff={owners} /> : undefined}
+      actions={
+        <>
+          <a href={exportHref} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11" download>
+            Export CSV
+          </a>
+          {canManage && <AddLeadForm staff={owners} />}
+        </>
+      }
     >
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Total customers" value={stats.total} />
         <StatCard label="New this month" value={stats.newThisMonth} />
         <StatCard label="Active" value={stats.active} hint={`visited in last 90 days`} />
         <StatCard label="Lapsed" value={stats.lapsed} hint="due for re-engagement" />
+      </div>
+
+      <div className="mb-5 flex flex-wrap items-center gap-2" data-testid="roster-views" role="group" aria-label="Saved views">
+        {ROSTER_VIEWS.map((v) => {
+          const active = v === view;
+          return (
+            <Link
+              key={v}
+              href={viewHref(v)}
+              aria-current={active ? "page" : undefined}
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 py-1 text-sm transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] ${
+                active ? "bg-[var(--color-ink)] text-[var(--color-cream)]" : "border border-[var(--line-strong)] text-[var(--color-ink)]/75 hover:bg-[var(--surface-2)]"
+              }`}
+            >
+              {ROSTER_VIEW_LABELS[v]}
+              <span className={`rounded-full px-1.5 text-[0.65rem] font-semibold ${active ? "bg-[var(--color-cream)]/20" : "bg-[var(--color-ink)]/8 text-[var(--color-ink)]/55"}`}>{viewCounts[v]}</span>
+            </Link>
+          );
+        })}
       </div>
 
       {(segments.length > 0 || (canManage && hasFilters)) && (
@@ -151,6 +192,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
       )}
 
       <form method="get" className="mb-6 flex flex-wrap items-end gap-3" data-testid="clients-filter-form">
+        {view !== "all" && <input type="hidden" name="view" value={view} />}
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Search</span>
           <input type="search" name="search" defaultValue={search} placeholder="Name, phone or email" className={`${inputClass} w-60`} />
@@ -243,70 +285,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         </div>
       </form>
 
-      <p className="mb-3 text-sm text-[var(--color-ink)]/55">
-        Showing {clients.length} {clients.length === 1 ? "customer" : "customers"}
-        {hasFilters ? " (filtered)" : ""}.
-      </p>
-
-      <div className="overflow-x-auto lunia-card">
-        <table className="w-full text-left text-sm" data-testid="clients-table">
-          <thead>
-            <tr className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
-              <th className="px-4 py-3 font-semibold">Customer</th>
-              <th className="px-4 py-3 font-semibold">Stage</th>
-              <th className="px-4 py-3 font-semibold">Owner</th>
-              <th className="px-4 py-3 font-semibold">Source</th>
-              <th className="px-4 py-3 text-right font-semibold">LTV</th>
-              <th className="px-4 py-3 font-semibold">Next appt</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clients.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-[var(--color-ink)]/55">
-                  No customers match these filters.
-                </td>
-              </tr>
-            ) : (
-              clients.map((client) => (
-                <tr
-                  key={client.clientProfileId}
-                  className="border-t border-[var(--line)] transition-colors hover:bg-[var(--color-teal)]/[0.06]"
-                  data-testid="client-row"
-                  data-client-id={client.clientProfileId}
-                >
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/clients/${client.clientProfileId}`}
-                      className="font-medium text-[var(--color-ink)] hover:text-[var(--color-teal-ink)] hover:underline"
-                    >
-                      {client.fullName || "Unnamed customer"}
-                    </Link>
-                    <div className="text-xs text-[var(--color-ink)]/50">{client.phone ?? client.email ?? "None"}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-ink)]/[0.06] px-2.5 py-0.5 text-xs font-medium text-[var(--color-ink)]/75">
-                      <span className="h-2 w-2 rounded-full" style={{ background: stageMeta.get(client.stage)?.color || "var(--color-ink)" }} />
-                      {stageMeta.get(client.stage)?.label ?? client.stage}
-                    </span>
-                    {client.nextFollowUpAt && (
-                      <div className="mt-0.5 text-[0.7rem] text-[var(--color-ink)]/45">Follow up {formatDate(client.nextFollowUpAt)}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-ink)]/70">{client.ownerName ?? "Unassigned"}</td>
-                  <td className="px-4 py-3 text-[var(--color-ink)]/70">{client.source ?? "None"}</td>
-                  <td className="px-4 py-3 text-right font-medium text-[var(--color-ink)]">{formatSar(client.ltvMinor)}</td>
-                  <td className="px-4 py-3 text-[var(--color-ink)]/70">{formatDate(client.nextAppointmentAt)}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={client.status} />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <ClientsTable rows={rows} staff={owners} canManage={canManage} canBroadcast={user.permissions.has(PERMISSIONS.MARKETING_MANAGE)} />
     </AdminShell>
   );
 }
