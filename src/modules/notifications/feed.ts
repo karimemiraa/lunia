@@ -9,36 +9,28 @@ import { openStageKeys } from "@/modules/crm/pipeline";
 import type { PermissionKey } from "@/modules/iam/permissions";
 import { SOURCES } from "./sources";
 
-export type NotificationType =
-  | "inquiry"
-  | "whatsapp"
-  | "lead"
-  | "booking"
-  | "callback"
-  | "stock"
-  | "leave"
-  | "document"
-  | "invoice";
-
-export interface NotificationItem {
-  id: string;
-  type: NotificationType;
-  title: string;
-  subtitle: string | null;
-  href: string;
-  at: Date;
-}
-
-export interface NotificationFeed {
-  total: number;
-  counts: Partial<Record<NotificationType, number>>;
-  items: NotificationItem[];
-}
+export {
+  NOTIFICATION_TYPE_LABELS,
+  NOTIFICATION_TYPE_HREF,
+  type NotificationType,
+  type NotificationItem,
+  type NotificationFeed,
+} from "./types";
+import type { NotificationType, NotificationItem, NotificationFeed } from "./types";
 
 const NEW_LEAD_WINDOW_DAYS = 7;
 
-export async function getNotificationFeed(permissions: Set<PermissionKey> = new Set()): Promise<NotificationFeed> {
+export interface NotificationFeedOptions {
+  /** Newest items to return (default 12; the "View all" page asks for more). */
+  limit?: number;
+}
+
+export async function getNotificationFeed(
+  permissions: Set<PermissionKey> = new Set(),
+  { limit = 12 }: NotificationFeedOptions = {},
+): Promise<NotificationFeed> {
   const since = new Date(Date.now() - NEW_LEAD_WINDOW_DAYS * 86_400_000);
+  const perSource = Math.min(Math.max(5, limit), 50);
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
@@ -58,13 +50,13 @@ export async function getNotificationFeed(permissions: Set<PermissionKey> = new 
     bookings,
   ] = await Promise.all([
     prisma.contactInquiry.count({ where: { handled: false } }),
-    prisma.contactInquiry.findMany({ where: { handled: false }, orderBy: { createdAt: "desc" }, take: 5 }),
+    prisma.contactInquiry.findMany({ where: { handled: false }, orderBy: { createdAt: "desc" }, take: perSource }),
     prisma.whatsappConversation.count({ where: { unread: true } }),
-    prisma.whatsappConversation.findMany({ where: { unread: true }, orderBy: { lastMessageAt: "desc" }, take: 5, include: { client: { select: { fullName: true } } } }),
+    prisma.whatsappConversation.findMany({ where: { unread: true }, orderBy: { lastMessageAt: "desc" }, take: perSource, include: { client: { select: { fullName: true } } } }),
     prisma.clientProfile.count({ where: newLeadWhere }),
-    prisma.clientProfile.findMany({ where: newLeadWhere, orderBy: { createdAt: "desc" }, take: 5, include: { user: { select: { phone: true, email: true } } } }),
+    prisma.clientProfile.findMany({ where: newLeadWhere, orderBy: { createdAt: "desc" }, take: perSource, include: { user: { select: { phone: true, email: true } } } }),
     prisma.booking.count({ where: { createdAt: { gte: startOfToday } } }),
-    prisma.booking.findMany({ where: { createdAt: { gte: startOfToday } }, orderBy: { createdAt: "desc" }, take: 5, include: { client: { select: { fullName: true } } } }),
+    prisma.booking.findMany({ where: { createdAt: { gte: startOfToday } }, orderBy: { createdAt: "desc" }, take: perSource, include: { client: { select: { fullName: true } } } }),
   ]);
 
   const items: NotificationItem[] = [
@@ -114,13 +106,14 @@ export async function getNotificationFeed(permissions: Set<PermissionKey> = new 
   for (const result of extra) {
     if (result.status !== "fulfilled") continue;
     total += result.value.count;
-    for (const item of result.value.items) {
-      items.push(item);
-      counts[item.type] = (counts[item.type] ?? 0) + 1;
-    }
+    // Sources are homogeneous, so the source's true count belongs to the
+    // type of its items (items are capped, counts are not).
+    const type = result.value.items[0]?.type;
+    if (type) counts[type] = (counts[type] ?? 0) + result.value.count;
+    for (const item of result.value.items) items.push(item);
   }
 
   items.sort((a, b) => b.at.getTime() - a.at.getTime());
 
-  return { total, counts, items: items.slice(0, 12) };
+  return { total, counts, items: items.slice(0, limit) };
 }
