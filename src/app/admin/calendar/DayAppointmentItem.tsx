@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { BookingStatus } from "@prisma/client";
-import { AppointmentActions } from "./AppointmentActions";
+import { AppointmentMenu } from "./AppointmentMenu";
 import { saveCenterNoteAction } from "./actions";
 
 interface DayAppointmentItemProps {
@@ -23,8 +22,12 @@ interface DayAppointmentItemProps {
   customerNote: string | null;
   defaultDate: string;
   canManage: boolean;
-  /** Patient-file treatment record for this appointment (clinical:manage only). */
-  treatmentHref?: string | null;
+  canBill: boolean;
+  canClinical: boolean;
+  clientProfileId: string;
+  started: boolean;
+  invoice: { id: string; number: string; status: string } | null;
+  treatmentRecordId: string | null;
 }
 
 // Staff-authored note shown to the customer (Booking.centerNote) + read-only
@@ -169,26 +172,28 @@ export function DayAppointmentItem(props: DayAppointmentItemProps) {
             <Detail label="Staff" value={props.staffName} />
             <Detail label="Room" value={props.roomName} />
           </dl>
-          {props.treatmentHref && (
-            <Link href={props.treatmentHref} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 self-start">
-              Treatment record
-            </Link>
-          )}
           <NotesSection
             bookingId={props.bookingId}
             centerNote={props.centerNote}
             customerNote={props.customerNote}
             canManage={props.canManage}
           />
-          {props.canManage && (
-            <AppointmentActions
-              bookingId={props.bookingId}
-              appointmentId={props.appointmentId}
-              serviceId={props.serviceId}
-              status={props.status}
-              defaultDate={props.defaultDate}
-            />
-          )}
+          <AppointmentMenu
+            bookingId={props.bookingId}
+            appointmentId={props.appointmentId}
+            serviceId={props.serviceId}
+            status={props.status}
+            started={props.started}
+            defaultDate={props.defaultDate}
+            clientProfileId={props.clientProfileId}
+            clientName={props.clientName}
+            invoice={props.invoice}
+            treatmentRecordId={props.treatmentRecordId}
+            canManage={props.canManage}
+            canBill={props.canBill}
+            canClinical={props.canClinical}
+            layout="inline"
+          />
         </div>
       )}
     </div>

@@ -547,6 +547,11 @@ export interface DayAppointmentRow {
   // by staff for the customer; customerNote is written by the customer.
   centerNote: string | null;
   customerNote: string | null;
+  /** Set once the service actually started (CheckIn.seatedAt). */
+  startedAt: Date | null;
+  // Cross-links to the modules that hang off an appointment.
+  invoice: { id: string; number: string; status: string } | null;
+  treatmentRecordId: string | null;
 }
 
 /**
@@ -556,14 +561,43 @@ export interface DayAppointmentRow {
  * unlike the availability engine's ACTIVE_APPOINTMENT_FILTER.
  */
 export async function listDayAppointments(dateISO: string, staffUserId?: string): Promise<DayAppointmentRow[]> {
-  const bookings = await listBookings({ date: dateISO, staffUserId });
+  return listAppointmentRows(centerLocalToUtc(dateISO, 0), centerLocalToUtc(dateISO, 1440), staffUserId);
+}
 
-  const dayStart = centerLocalToUtc(dateISO, 0);
-  const dayEnd = centerLocalToUtc(dateISO, 1440);
+/** Center-local "YYYY-MM-DD" shifted by `deltaDays` (UTC date math, no host-TZ dependence). */
+export function shiftDateISO(dateISO: string, deltaDays: number): string {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d! + deltaDays)).toISOString().slice(0, 10);
+}
+
+/** The Sunday-start week containing `dateISO`, as 7 center-local "YYYY-MM-DD" strings. */
+export function weekDaysFor(dateISO: string): string[] {
+  const start = shiftDateISO(dateISO, -weekdayForDateISO(dateISO));
+  return Array.from({ length: 7 }, (_, i) => shiftDateISO(start, i));
+}
+
+/**
+ * One batched read for a whole (Sunday-start) week, grouped by center-local
+ * day; every day key is present so the grid can render empty columns.
+ */
+export async function listWeekAppointments(dateISO: string, staffUserId?: string): Promise<Record<string, DayAppointmentRow[]>> {
+  const days = weekDaysFor(dateISO);
+  const rows = await listAppointmentRows(centerLocalToUtc(days[0]!, 0), centerLocalToUtc(days[6]!, 1440), staffUserId);
+  const byDay: Record<string, DayAppointmentRow[]> = Object.fromEntries(days.map((d) => [d, []]));
+  for (const row of rows) byDay[utcToCenterLocal(row.startAt).dateISO]?.push(row);
+  return byDay;
+}
+
+// Shared projection behind the day/week reads: every appointment in
+// [from, to), denormalized with service/staff/room/client plus the related
+// invoice and treatment record, in a fixed number of batched queries.
+async function listAppointmentRows(from: Date, to: Date, staffUserId?: string): Promise<DayAppointmentRow[]> {
+  const bookings = await listBookings({ from, to, staffUserId });
+
   const entries = bookings.flatMap((booking) =>
     booking.appointments
       .filter((appointment) => {
-        if (appointment.startAt < dayStart || appointment.startAt >= dayEnd) return false;
+        if (appointment.startAt < from || appointment.startAt >= to) return false;
         if (staffUserId && appointment.staffUserId !== staffUserId) return false;
         return true;
       })
@@ -575,17 +609,30 @@ export async function listDayAppointments(dateISO: string, staffUserId?: string)
   const staffUserIds = [...new Set(entries.map((e) => e.appointment.staffUserId))];
   const roomIds = [...new Set(entries.map((e) => e.appointment.roomId))];
   const clientProfileIds = [...new Set(entries.map((e) => e.booking.clientProfileId))];
+  const bookingIds = entries.map((e) => e.booking.id);
+  const appointmentIds = entries.map((e) => e.appointment.id);
 
-  const [services, staff, rooms, clients] = await Promise.all([
+  const [services, staff, rooms, clients, checkIns, invoices, treatments] = await Promise.all([
     prisma.service.findMany({ where: { id: { in: serviceIds } } }),
     prisma.user.findMany({ where: { id: { in: staffUserIds } }, include: { staffProfile: true } }),
     prisma.room.findMany({ where: { id: { in: roomIds } } }),
     prisma.clientProfile.findMany({ where: { id: { in: clientProfileIds } }, include: { user: true } }),
+    prisma.checkIn.findMany({ where: { bookingId: { in: bookingIds } }, select: { bookingId: true, seatedAt: true } }),
+    prisma.invoice.findMany({
+      where: { bookingId: { in: bookingIds }, kind: "INVOICE", status: { not: "VOID" } },
+      select: { id: true, number: true, status: true, bookingId: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.treatmentRecord.findMany({ where: { appointmentId: { in: appointmentIds } }, select: { id: true, appointmentId: true } }),
   ]);
   const serviceById = new Map(services.map((s) => [s.id, s]));
   const staffById = new Map(staff.map((s) => [s.id, s]));
   const roomById = new Map(rooms.map((r) => [r.id, r]));
   const clientById = new Map(clients.map((c) => [c.id, c]));
+  const seatedByBooking = new Map(checkIns.map((c) => [c.bookingId, c.seatedAt]));
+  const invoiceByBooking = new Map<string, { id: string; number: string; status: string }>();
+  for (const inv of invoices) if (inv.bookingId && !invoiceByBooking.has(inv.bookingId)) invoiceByBooking.set(inv.bookingId, { id: inv.id, number: inv.number, status: inv.status });
+  const treatmentByAppointment = new Map(treatments.map((t) => [t.appointmentId, t.id]));
 
   const rows: DayAppointmentRow[] = entries.map(({ booking, appointment }) => {
     const client = clientById.get(booking.clientProfileId);
@@ -608,6 +655,9 @@ export async function listDayAppointments(dateISO: string, staffUserId?: string)
       clientPhone: client?.user.phone ?? null,
       centerNote: booking.centerNote,
       customerNote: booking.customerNote,
+      startedAt: seatedByBooking.get(booking.id) ?? null,
+      invoice: invoiceByBooking.get(booking.id) ?? null,
+      treatmentRecordId: treatmentByAppointment.get(appointment.id) ?? null,
     };
   });
 
@@ -728,6 +778,20 @@ export async function checkIn(bookingId: string): Promise<Booking> {
     prisma.checkIn.create({ data: { bookingId } }),
   ]);
   return updated;
+}
+
+/**
+ * Marks a checked-in customer as "in service" (CheckIn.seatedAt). Idempotent:
+ * a second call keeps the original start time. The booking status stays
+ * CHECKED_IN -- "started" is a front-desk/room signal, not a lifecycle step.
+ */
+export async function startService(bookingId: string): Promise<Booking> {
+  const booking = await getBookingOrThrow(bookingId);
+  assertTransition(booking.status, ["CHECKED_IN"], "start");
+  const existing = await prisma.checkIn.findUnique({ where: { bookingId } });
+  if (!existing) await prisma.checkIn.create({ data: { bookingId, seatedAt: new Date() } });
+  else if (!existing.seatedAt) await prisma.checkIn.update({ where: { bookingId }, data: { seatedAt: new Date() } });
+  return booking;
 }
 
 export async function complete(bookingId: string): Promise<Booking> {

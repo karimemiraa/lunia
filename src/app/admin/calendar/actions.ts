@@ -13,7 +13,9 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
-import { checkIn, complete, cancel, markNoShow, reschedule, createBooking, getServiceSlots } from "@/modules/booking/bookings";
+import { checkIn, complete, cancel, markNoShow, reschedule, createBooking, getServiceSlots, startService } from "@/modules/booking/bookings";
+import { countWaiting } from "@/modules/booking/waitlist";
+import { utcToCenterLocal } from "@/modules/booking/availability";
 import { prisma } from "@/lib/db";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -65,10 +67,35 @@ export async function completeAction(bookingId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function cancelAction(bookingId: string): Promise<ActionResult> {
+export type CancelResult = { ok: true; waitlistNotified: number; dateISO: string | null } | { ok: false; error: string };
+
+// Cancelling frees the slot; cancel() itself notifies the waitlist, so we
+// count who was WAITING for that service+day just before, and report it so
+// the calendar can surface "N people were waiting for this day".
+export async function cancelAction(bookingId: string): Promise<CancelResult> {
+  await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
+  let waiting = 0;
+  let dateISO: string | null = null;
+  try {
+    const appt = await prisma.appointment.findFirst({ where: { bookingId }, select: { serviceId: true, startAt: true } });
+    if (appt) {
+      dateISO = utcToCenterLocal(appt.startAt).dateISO;
+      waiting = await countWaiting(appt.serviceId, dateISO);
+    }
+    await cancel(bookingId);
+  } catch (err) {
+    return { ok: false, error: messageOf(err) };
+  }
+  revalidateCalendar();
+  revalidatePath("/admin/waitlist");
+  return { ok: true, waitlistNotified: waiting, dateISO };
+}
+
+// "Start": the customer is in the room (CheckIn.seatedAt).
+export async function startAction(bookingId: string): Promise<ActionResult> {
   await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
   try {
-    await cancel(bookingId);
+    await startService(bookingId);
   } catch (err) {
     return { ok: false, error: messageOf(err) };
   }

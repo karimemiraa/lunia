@@ -40,7 +40,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     <AdminShell
       user={user}
       title="Leads"
-      description="Every enquiry in one pipeline — from WhatsApp, the website, walk-ins, referrals, and more. Drag a lead between stages, or use its menu to move it. Stages are editable in the Superadmin panel."
+      description="Every enquiry in one pipeline — from WhatsApp, the website, walk-ins, referrals, and more. Drag a lead between stages or use the arrows; log a call without leaving the board."
       actions={
         canManage ? (
           <Link href="/admin/clients" className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">
@@ -67,7 +67,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         )}
       </div>
 
-      <LeadBoard stages={stages} columns={columns} counts={counts} />
+      <LeadBoard stages={stages} columns={columns} counts={counts} canManage={canManage} nowIso={new Date().toISOString()} />
     </AdminShell>
   );
 }
