@@ -13,7 +13,7 @@ function row(startMin: number, durMin: number, status: DayAppointmentRow["status
   return {
     bookingId: "b", appointmentId: "a", status, channel: "ONLINE", startAt, endAt: new Date(startAt.getTime() + durMin * 60_000),
     serviceId: "s", serviceName: "S", staffUserId: "u", staffName: "U", roomId: "r", roomName: "R", clientProfileId: "c", clientName: "C", clientPhone: null,
-    centerNote: null, customerNote: null,
+    centerNote: null, customerNote: null, startedAt: null, invoice: null, treatmentRecordId: null,
   };
 }
 
