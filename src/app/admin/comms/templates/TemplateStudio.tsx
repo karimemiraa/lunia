@@ -165,7 +165,7 @@ function Editor({ template }: { template: StudioTemplate }) {
               Reset to default
             </button>
           )}
-          {state.success && <span className="text-xs font-medium text-[var(--color-tealInk,#2f6d67)]">Saved ✓</span>}
+          {state.success && <span role="status" className="text-xs font-medium text-[var(--status-success-ink)]">Saved.</span>}
           {state.error && (
             <span role="alert" className="text-xs text-red-600">
               {state.error}

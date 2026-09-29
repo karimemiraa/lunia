@@ -3,11 +3,11 @@
 import { useActionState } from "react";
 import { updateTierAction, deleteTierAction, type TierActionState } from "./actions";
 import type { MembershipTier } from "@prisma/client";
+import { ConfirmButton } from "../_ui/ConfirmDialog";
 
 const initialState: TierActionState = {};
 
-const inputClass =
-  "w-24 rounded border border-[var(--color-ink)]/20 px-2 py-1 text-sm text-[var(--color-ink)] focus:border-[var(--color-teal)] focus:outline-none";
+const inputClass = "lunia-input min-h-11 w-24 text-base md:text-sm";
 
 // The Name/Priority/Discount inputs are spread across separate <td>s but all
 // point at the same <form> via the HTML `form` attribute (valid HTML5), so a
@@ -56,12 +56,7 @@ export function TierRow({ tier }: { tier: MembershipTier }) {
       <td className="px-4 py-2 text-[var(--color-ink)]">{tier.isSystem ? "Yes" : "No"}</td>
       <td className="px-4 py-2">
         <div className="flex flex-col items-start gap-1">
-          <button
-            type="submit"
-            form={formId}
-            disabled={updatePending}
-            className="lunia-btn lunia-btn-primary lunia-btn-sm disabled:opacity-60"
-          >
+          <button type="submit" form={formId} disabled={updatePending} aria-busy={updatePending || undefined} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-11 disabled:opacity-60">
             {updatePending ? "Saving…" : "Save"}
           </button>
           {updateState.error && (
@@ -69,37 +64,18 @@ export function TierRow({ tier }: { tier: MembershipTier }) {
               {updateState.error}
             </p>
           )}
-          {updateState.success && <p className="text-xs text-[var(--color-teal)]">Saved.</p>}
+          {updateState.success && <p role="status" className="text-xs font-medium text-[var(--status-success-ink)]">Saved.</p>}
         </div>
       </td>
       <td className="px-4 py-2">
         {tier.isSystem ? (
-          <button
-            type="button"
-            disabled
-            title="System tiers cannot be deleted"
-            className="rounded border border-[var(--color-ink)]/20 px-3 py-1.5 text-xs text-[var(--color-ink)]/40"
-          >
-            Delete
-          </button>
+          <span className="text-xs text-[var(--color-ink)]/45">System tier</span>
         ) : (
-          <form
-            action={deleteAction}
-            onSubmit={(event) => {
-              if (!confirm(`Delete tier "${tier.name}"? This cannot be undone.`)) {
-                event.preventDefault();
-              }
-            }}
-            className="flex flex-col items-start gap-1"
-          >
+          <form action={deleteAction} className="flex flex-col items-start gap-1">
             <input type="hidden" name="id" value={tier.id} />
-            <button
-              type="submit"
-              disabled={deletePending}
-              className="lunia-btn lunia-btn-danger lunia-btn-sm disabled:opacity-60"
-            >
-              {deletePending ? "Deleting…" : "Delete"}
-            </button>
+            <ConfirmButton title={`Delete tier “${tier.name}”?`} description="Customers on this tier fall back to the default tier. This cannot be undone." confirmLabel="Delete tier" pending={deletePending}>
+              Delete
+            </ConfirmButton>
             {deleteState.error && (
               <p role="alert" className="text-xs text-red-600">
                 {deleteState.error}

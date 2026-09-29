@@ -3,11 +3,11 @@
 import { useActionState } from "react";
 import type { Room } from "@prisma/client";
 import { updateRoomAction, deleteRoomAction, type RoomActionState } from "./actions";
+import { ConfirmButton } from "../../_ui/ConfirmDialog";
 
 const initialState: RoomActionState = {};
 
-const inputClass =
-  "w-24 rounded border border-[var(--color-ink)]/20 px-2 py-1 text-sm text-[var(--color-ink)] focus:border-[var(--color-teal)] focus:outline-none";
+const inputClass = "lunia-input min-h-11 w-24 text-base md:text-sm";
 
 // Mirrors admin/tiers/TierRow.tsx: the Name/Capacity/Order/Active inputs are
 // spread across separate <td>s but all point at the same <form> via the
@@ -59,17 +59,12 @@ export function RoomRow({ room }: { room: Room }) {
           form={formId}
           defaultChecked={room.isActive}
           aria-label={`${room.name} active`}
-          className="h-4 w-4"
+          className="h-5 w-5 accent-[var(--color-forest)]"
         />
       </td>
       <td className="px-4 py-2">
         <div className="flex flex-col items-start gap-1">
-          <button
-            type="submit"
-            form={formId}
-            disabled={updatePending}
-            className="lunia-btn lunia-btn-primary lunia-btn-sm disabled:opacity-60"
-          >
+          <button type="submit" form={formId} disabled={updatePending} aria-busy={updatePending || undefined} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-11 disabled:opacity-60">
             {updatePending ? "Saving…" : "Save"}
           </button>
           {updateState.error && (
@@ -77,27 +72,15 @@ export function RoomRow({ room }: { room: Room }) {
               {updateState.error}
             </p>
           )}
-          {updateState.success && <p className="text-xs text-[var(--color-teal)]">Saved.</p>}
+          {updateState.success && <p role="status" className="text-xs font-medium text-[var(--status-success-ink)]">Saved.</p>}
         </div>
       </td>
       <td className="px-4 py-2">
-        <form
-          action={deleteAction}
-          onSubmit={(event) => {
-            if (!confirm(`Delete room "${room.name}"? This cannot be undone.`)) {
-              event.preventDefault();
-            }
-          }}
-          className="flex flex-col items-start gap-1"
-        >
+        <form action={deleteAction} className="flex flex-col items-start gap-1">
           <input type="hidden" name="id" value={room.id} />
-          <button
-            type="submit"
-            disabled={deletePending}
-            className="lunia-btn lunia-btn-danger lunia-btn-sm disabled:opacity-60"
-          >
-            {deletePending ? "Deleting…" : "Delete"}
-          </button>
+          <ConfirmButton title={`Delete room “${room.name}”?`} description="Bookings already assigned to this room keep their time but lose the room. This cannot be undone." confirmLabel="Delete room" pending={deletePending}>
+            Delete
+          </ConfirmButton>
           {deleteState.error && (
             <p role="alert" className="text-xs text-red-600">
               {deleteState.error}

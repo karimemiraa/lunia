@@ -3,6 +3,8 @@ import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { listReviewsForModeration, getAggregate } from "@/modules/reviews/reviews";
 import { ReviewsTable, type ReviewRowDTO } from "./ReviewsTable";
+import { KpiCard } from "../_ui/Layout";
+import { FilterChips } from "../_ui/FilterBar";
 
 interface ReviewsPageProps {
   searchParams: Promise<{ status?: string }>;
@@ -45,34 +47,14 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
       title="Reviews"
       description="Moderate customer reviews collected after their visits. Approved + public-consent reviews feed the site's Testimonials and AggregateRating SEO data."
     >
-      <p className="mb-6 text-sm text-[var(--color-ink)]/70">
-        Public aggregate rating:{" "}
-        {aggregate.count > 0 ? (
-          <span className="font-semibold text-[var(--color-ink)]">
-            {aggregate.avg.toFixed(1)} / 5 ({aggregate.count} review{aggregate.count === 1 ? "" : "s"})
-          </span>
-        ) : (
-          <span className="text-[var(--color-ink)]/50">No published reviews yet.</span>
-        )}
-      </p>
-
-      <div className="mb-6 flex flex-wrap gap-2">
-        {STATUS_VALUES.map((status) => (
-          <a
-            key={status}
-            href={`/admin/reviews?status=${status}`}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
-              statusFilter === status
-                ? "bg-[var(--color-teal)] text-[var(--color-ink)]"
-                : "border border-[var(--color-ink)]/20 text-[var(--color-ink)]/70 hover:bg-[var(--color-ink)]/5"
-            }`}
-          >
-            {status}
-          </a>
-        ))}
+      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        <KpiCard label="Public rating" value={aggregate.count > 0 ? `${aggregate.avg.toFixed(1)} / 5` : "—"} hint={aggregate.count > 0 ? `${aggregate.count} published review${aggregate.count === 1 ? "" : "s"}` : "No published reviews yet."} />
       </div>
 
-      <ReviewsTable rows={rows} canModerate={user.permissions.has(PERMISSIONS.CMS_MANAGE)} />
+      <FilterChips base="/admin/reviews" param="status" values={STATUS_VALUES.map((s) => ({ value: s, label: s.charAt(0) + s.slice(1).toLowerCase() }))} active={statusFilter} defaultLabel="Pending" label="Review status" />
+      <div className="mt-6">
+        <ReviewsTable rows={rows} canModerate={user.permissions.has(PERMISSIONS.CMS_MANAGE)} />
+      </div>
     </AdminShell>
   );
 }

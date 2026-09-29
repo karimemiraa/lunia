@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { setUserRolesAction, deleteUserAction, type UserActionState } from "./actions";
 import type { StaffUserRow } from "@/modules/iam/users";
+import { ConfirmButton } from "../_ui/ConfirmDialog";
 
 interface RoleOption {
   id: string;
@@ -53,41 +54,36 @@ export function UserRow({
             {roles.map((role) => (
               <label
                 key={role.id}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--line-strong)] px-3 py-1.5 text-sm text-[var(--color-ink)] transition-colors hover:bg-[var(--color-forest)]/5 has-[:checked]:border-[var(--color-forest)] has-[:checked]:bg-[var(--color-forest)]/10"
+                className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-[var(--line-strong)] px-3 py-1.5 text-sm text-[var(--color-ink)] transition-colors hover:bg-[var(--color-forest)]/5 has-[:checked]:border-[var(--color-forest)] has-[:checked]:bg-[var(--color-forest)]/10"
               >
                 <input
                   type="checkbox"
                   name="roleIds"
                   value={role.id}
                   defaultChecked={user.roleIds.includes(role.id)}
-                  className="h-3.5 w-3.5 accent-[var(--color-forest)]"
+                  className="h-4 w-4 accent-[var(--color-forest)]"
                 />
                 {role.name}
               </label>
             ))}
           </div>
           <div className="flex items-center gap-3">
-            <button type="submit" disabled={rolePending} className="lunia-btn lunia-btn-forest lunia-btn-sm disabled:opacity-60">
+            <button type="submit" disabled={rolePending} aria-busy={rolePending || undefined} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-11 disabled:opacity-60">
               {rolePending ? "Saving…" : "Save roles"}
             </button>
-            {roleState.success && <span className="text-xs font-medium text-[var(--color-teal-ink)]">Saved.</span>}
-            {roleState.error && <span role="alert" className="text-xs font-medium text-red-700">{roleState.error}</span>}
+            {roleState.success && <span role="status" className="text-xs font-medium text-[var(--status-success-ink)]">Saved.</span>}
+            {roleState.error && <span role="alert" className="text-xs font-medium text-[var(--status-danger-ink)]">{roleState.error}</span>}
           </div>
         </form>
 
         {/* Delete */}
         {!isSelf && (
-          <form
-            action={deleteAction}
-            onSubmit={(e) => {
-              if (!confirm(`Delete ${user.fullName || user.email}? This cannot be undone.`)) e.preventDefault();
-            }}
-          >
+          <form action={deleteAction}>
             <input type="hidden" name="userId" value={user.id} />
-            <button type="submit" disabled={deletePending} className="lunia-btn lunia-btn-danger lunia-btn-sm disabled:opacity-60">
-              {deletePending ? "Deleting…" : "Delete user"}
-            </button>
-            {deleteState.error && <span role="alert" className="ms-2 text-xs font-medium text-red-700">{deleteState.error}</span>}
+            <ConfirmButton title={`Delete ${user.fullName || user.email}?`} description="They lose access to the staff system immediately. Their history (bookings, invoices, notes) stays. This cannot be undone." confirmLabel="Delete user" pending={deletePending}>
+              Delete user
+            </ConfirmButton>
+            {deleteState.error && <span role="alert" className="ms-2 text-xs font-medium text-[var(--status-danger-ink)]">{deleteState.error}</span>}
           </form>
         )}
       </div>

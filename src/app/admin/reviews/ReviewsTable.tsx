@@ -1,7 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { approveReviewAction, rejectReviewAction } from "./actions";
+import { DataTable, type Column } from "../_ui/DataTable";
+import { StatusPill } from "../_ui/StatusPill";
+import { formatDateTime } from "../_ui/dates";
+import { Spinner } from "../_ui/Form";
 
 export interface ReviewRowDTO {
   id: string;
@@ -22,49 +26,57 @@ interface ReviewsTableProps {
   canModerate: boolean;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  PENDING: "bg-[var(--color-gold)]/25 text-[var(--color-ink)]",
-  APPROVED: "bg-[var(--color-canopy)]/25 text-[var(--color-ink)]",
-  REJECTED: "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/60",
-};
-
-function formatDateTime(iso: string | null): string {
-  if (!iso) return "None";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
-}
-
 function Stars({ rating }: { rating: number }) {
   return (
-    <span aria-label={`${rating}/5`} className="text-[var(--color-gold)]">
-      {"★".repeat(rating)}
-      <span className="text-[var(--color-ink)]/20">{"★".repeat(5 - rating)}</span>
+    <span role="img" aria-label={`${rating} out of 5`} className="inline-flex gap-0.5">
+      {Array.from({ length: 5 }, (_, i) => (
+        <svg key={i} viewBox="0 0 24 24" aria-hidden="true" className={`h-4 w-4 ${i < rating ? "text-[var(--color-tiger-lily,#c0ad73)]" : "text-[var(--color-ink)]/15"}`} fill="currentColor">
+          <path d="m12 2.5 2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8Z" />
+        </svg>
+      ))}
     </span>
   );
 }
 
 function ModerationButtons({ reviewId }: { reviewId: string }) {
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(fn: (id: string) => Promise<{ ok: boolean; error?: string }>) {
+    setError(null);
+    const res = await fn(reviewId);
+    if (!res.ok) setError(res.error ?? "Something went wrong.");
+  }
 
   return (
-    <div className="flex gap-2">
-      <button
-        type="button"
-        disabled={isPending}
-        data-testid={`review-approve-${reviewId}`}
-        onClick={() => startTransition(async () => { await approveReviewAction(reviewId); })}
-        className="rounded border border-[var(--color-canopy)]/40 px-3 py-1.5 text-xs font-medium text-[var(--color-canopy)] hover:bg-[var(--color-canopy)]/10 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isPending ? "…" : "Approve"}
-      </button>
-      <button
-        type="button"
-        disabled={isPending}
-        data-testid={`review-reject-${reviewId}`}
-        onClick={() => startTransition(async () => { await rejectReviewAction(reviewId); })}
-        className="lunia-btn lunia-btn-ghost lunia-btn-sm disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isPending ? "…" : "Reject"}
-      </button>
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={isPending}
+          aria-busy={isPending || undefined}
+          data-testid={`review-approve-${reviewId}`}
+          onClick={() => startTransition(() => run(approveReviewAction))}
+          className="lunia-btn lunia-btn-forest lunia-btn-sm min-h-11 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isPending && <Spinner />}
+          Approve
+        </button>
+        <button
+          type="button"
+          disabled={isPending}
+          data-testid={`review-reject-${reviewId}`}
+          onClick={() => startTransition(() => run(rejectReviewAction))}
+          className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Reject
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="text-xs text-[var(--status-danger-ink)]">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -73,76 +85,50 @@ function ModerationButtons({ reviewId }: { reviewId: string }) {
 // approve/reject actions shown only for PENDING rows a CMS_MANAGE admin can
 // act on.
 export function ReviewsTable({ rows, canModerate }: ReviewsTableProps) {
-  if (rows.length === 0) {
-    return (
-      <p className="rounded border border-dashed border-[var(--color-ink)]/20 px-4 py-8 text-center text-sm text-[var(--color-ink)]/60">
-        No reviews to show.
-      </p>
-    );
+  const columns: Column<ReviewRowDTO>[] = [
+    {
+      key: "clientName",
+      header: "Customer",
+      render: (r) => (
+        <div className="flex flex-col">
+          <span>{r.clientName ?? "Unknown"}</span>
+          {r.authorDisplayName && <span className="text-xs text-[var(--color-ink)]/60">as “{r.authorDisplayName}”</span>}
+        </div>
+      ),
+    },
+    { key: "serviceName", header: "Service", render: (r) => r.serviceName ?? "None" },
+    { key: "rating", header: "Rating", render: (r) => <Stars rating={r.rating} /> },
+    {
+      key: "title",
+      header: "Review",
+      sortable: false,
+      className: "max-w-sm",
+      render: (r) => (
+        <div className="flex flex-col gap-0.5">
+          {r.title && <span className="font-medium">{r.title}</span>}
+          {r.body && <span className="text-xs leading-relaxed text-[var(--color-ink)]/70">{r.body}</span>}
+        </div>
+      ),
+    },
+    { key: "consentPublic", header: "Public", render: (r) => (r.consentPublic ? "Yes" : "No") },
+    { key: "status", header: "Status", render: (r) => <StatusPill status={r.status} /> },
+    { key: "submittedAtIso", header: "Submitted", value: (r) => r.submittedAtIso, render: (r) => (r.submittedAtIso ? formatDateTime(r.submittedAtIso) : "None") },
+  ];
+  if (canModerate) {
+    columns.push({ key: "__actions", header: <span className="sr-only">Actions</span>, sortable: false, align: "end", render: (r) => (r.status === "PENDING" ? <ModerationButtons reviewId={r.id} /> : null) });
   }
 
   return (
-    <div className="overflow-x-auto lunia-card">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-[var(--color-cream)]/60">
-          <tr>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Customer</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Service</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Rating</th>
-            <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Review</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Public?</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Status</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Submitted</th>
-            {canModerate && <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
-              key={row.id}
-              className="border-t border-[var(--color-ink)]/10 align-top"
-              data-testid="review-row"
-              data-review-id={row.id}
-              data-review-status={row.status}
-            >
-              <td className="px-4 py-3 text-[var(--color-ink)]">
-                <div className="flex flex-col">
-                  <span>{row.clientName ?? "Unknown"}</span>
-                  {row.authorDisplayName && (
-                    <span className="text-xs text-[var(--color-ink)]/60">as “{row.authorDisplayName}”</span>
-                  )}
-                </div>
-              </td>
-              <td className="px-4 py-3 text-[var(--color-ink)]">{row.serviceName ?? "None"}</td>
-              <td className="px-4 py-3">
-                <Stars rating={row.rating} />
-              </td>
-              <td className="max-w-sm px-4 py-3 text-[var(--color-ink)]">
-                <div className="flex flex-col gap-0.5">
-                  {row.title && <span className="font-medium">{row.title}</span>}
-                  {row.body && <span className="text-xs text-[var(--color-ink)]/70">{row.body}</span>}
-                </div>
-              </td>
-              <td className="px-4 py-3 text-xs text-[var(--color-ink)]/70">{row.consentPublic ? "Yes" : "No"}</td>
-              <td className="px-4 py-3">
-                <span
-                  className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${
-                    STATUS_STYLES[row.status] ?? "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/70"
-                  }`}
-                >
-                  {row.status}
-                </span>
-              </td>
-              <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--color-ink)]/70">
-                {formatDateTime(row.submittedAtIso)}
-              </td>
-              {canModerate && (
-                <td className="px-4 py-3">{row.status === "PENDING" && <ModerationButtons reviewId={row.id} />}</td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      columns={columns}
+      rows={rows}
+      rowKey={(r) => r.id}
+      search={(r) => `${r.clientName ?? ""} ${r.serviceName ?? ""} ${r.title ?? ""} ${r.body ?? ""}`}
+      searchPlaceholder="Search reviews…"
+      initialSort={{ key: "submittedAtIso", dir: "desc" }}
+      empty={{ title: "No reviews to show", description: "Reviews arrive after visits, once the customer opens the review link." }}
+      ariaLabel="Reviews"
+      cardsBelow="lg"
+    />
   );
 }

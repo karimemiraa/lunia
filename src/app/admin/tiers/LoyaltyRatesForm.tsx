@@ -72,7 +72,7 @@ export function LoyaltyRatesForm({ sarPerPoint, pointsPerSar }: LoyaltyRatesForm
         <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest disabled:opacity-60">
           {pending ? "Saving…" : "Save rates"}
         </button>
-        {state.success && <span className="text-xs font-medium text-[var(--color-teal-ink,#2f6d67)]">Saved ✓</span>}
+        {state.success && <span role="status" className="text-xs font-medium text-[var(--status-success-ink)]">Saved.</span>}
         {state.error && <span role="alert" className="text-xs text-red-600">{state.error}</span>}
       </div>
     </form>
