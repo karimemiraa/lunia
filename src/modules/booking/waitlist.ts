@@ -162,6 +162,22 @@ export async function notifyWaitlistForSlot(
   return notifiedCount;
 }
 
+/** How many people are still WAITING for `serviceId` on `dateISO` (center-local). */
+export async function countWaiting(serviceId: string, dateISO: string): Promise<number> {
+  return prisma.waitlistEntry.count({ where: { serviceId, desiredDateISO: dateISO, status: "WAITING" } });
+}
+
+/** WAITING entries per day across a set of center-local days (for calendar badges). */
+export async function countWaitingByDay(dateISOs: string[]): Promise<Record<string, number>> {
+  if (dateISOs.length === 0) return {};
+  const groups = await prisma.waitlistEntry.groupBy({
+    by: ["desiredDateISO"],
+    where: { desiredDateISO: { in: dateISOs }, status: "WAITING" },
+    _count: { _all: true },
+  });
+  return Object.fromEntries(groups.map((g) => [g.desiredDateISO, g._count._all]));
+}
+
 export interface WaitlistFilter {
   serviceId?: string;
   status?: WaitlistStatus;

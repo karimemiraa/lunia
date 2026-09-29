@@ -5,7 +5,7 @@ interface DayScheduleProps {
   rows: DayAppointmentRow[];
   date: string;
   canManage: boolean;
-  /** clinical:manage: show the "Treatment record" link on each appointment. */
+  canBill?: boolean;
   canClinical?: boolean;
 }
 
@@ -15,7 +15,7 @@ const formatTime = (d: Date) => timeFmt.format(d);
 
 // Compact, expandable list of a day's appointments for the day popup. Each row
 // is one line (time + who + status) and opens to show details + actions.
-export function DaySchedule({ rows, date, canManage, canClinical = false }: DayScheduleProps) {
+export function DaySchedule({ rows, date, canManage, canBill = false, canClinical = false }: DayScheduleProps) {
   if (rows.length === 0) {
     return (
       <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">
@@ -44,7 +44,12 @@ export function DaySchedule({ rows, date, canManage, canClinical = false }: DayS
             customerNote={row.customerNote}
             defaultDate={date}
             canManage={canManage}
-            treatmentHref={canClinical ? `/admin/clients/${row.clientProfileId}/clinical/treatment?appointmentId=${row.appointmentId}` : null}
+            canBill={canBill}
+            canClinical={canClinical}
+            clientProfileId={row.clientProfileId}
+            started={Boolean(row.startedAt)}
+            invoice={row.invoice}
+            treatmentRecordId={row.treatmentRecordId}
           />
         </li>
       ))}

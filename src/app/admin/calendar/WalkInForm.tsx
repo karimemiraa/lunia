@@ -18,6 +18,9 @@ interface WalkInFormProps {
   /** Prefill customer details (e.g. from a customer page "New booking" link). */
   defaultName?: string;
   defaultPhone?: string;
+  /** Preferred slot from a clicked calendar gap: auto-selected once that day's slots load. */
+  preferredStartAt?: string;
+  preferredStaffUserId?: string;
 }
 
 const inputClass =
@@ -31,7 +34,7 @@ const labelClass = "flex flex-col gap-1 text-sm";
 // FRONT_DESK, which bypasses the online-only onlineBookable/inCenterOnly
 // gate in createBooking while still going through its normal
 // find-or-create-client and double-booking checks.
-export function WalkInForm({ services, defaultDate, defaultName = "", defaultPhone = "" }: WalkInFormProps) {
+export function WalkInForm({ services, defaultDate, defaultName = "", defaultPhone = "", preferredStartAt, preferredStaffUserId }: WalkInFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -130,6 +133,8 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
             onSelect={setSelectedSlot}
             fetchSlots={getCalendarSlotsAction}
             dateInputId={dateInputId}
+            preferredStartAt={preferredStartAt}
+            preferredStaffUserId={preferredStaffUserId}
           />
 
           <div className="grid gap-4 sm:grid-cols-2">

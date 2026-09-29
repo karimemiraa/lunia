@@ -24,6 +24,18 @@ interface SlotResultsProps {
   fetchSlots: FetchSlots;
   selected: CalendarSlotDTO | null;
   onSelect: (slot: CalendarSlotDTO | null) => void;
+  preferredStartAt?: string;
+  preferredStaffUserId?: string;
+}
+
+// Picks the slot a clicked calendar gap asked for: exact time with that staff
+// member, else exact time with anyone, else the first slot at or after it.
+export function pickPreferredSlot(slots: CalendarSlotDTO[], preferredStartAt?: string, preferredStaffUserId?: string): CalendarSlotDTO | null {
+  if (!preferredStartAt || slots.length === 0) return null;
+  const want = Date.parse(preferredStartAt);
+  if (Number.isNaN(want)) return null;
+  const exact = slots.filter((s) => Date.parse(s.startAt) === want);
+  return exact.find((s) => s.staffUserId === preferredStaffUserId) ?? exact[0] ?? slots.find((s) => Date.parse(s.startAt) >= want) ?? null;
 }
 
 // Fetches and renders the slot buttons for one (serviceId, date) pair. Given
@@ -32,7 +44,7 @@ interface SlotResultsProps {
 // place -- so the fetch-on-mount effect below never needs to reset state
 // itself, keeping it clear of the "no setState synchronously in an effect"
 // lint rule.
-function SlotResults({ serviceId, date, fetchSlots, selected, onSelect }: SlotResultsProps) {
+function SlotResults({ serviceId, date, fetchSlots, selected, onSelect, preferredStartAt, preferredStaffUserId }: SlotResultsProps) {
   const [slots, setSlots] = useState<CalendarSlotDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -42,6 +54,8 @@ function SlotResults({ serviceId, date, fetchSlots, selected, onSelect }: SlotRe
       const result = await fetchSlots(serviceId, date);
       if (result.ok) {
         setSlots(result.slots);
+        const preferred = pickPreferredSlot(result.slots, preferredStartAt, preferredStaffUserId);
+        if (preferred) onSelect(preferred);
       } else {
         setError(result.error);
       }
@@ -91,6 +105,8 @@ interface SlotPickerProps {
   onSelect: (slot: CalendarSlotDTO | null) => void;
   fetchSlots: FetchSlots;
   dateInputId?: string;
+  preferredStartAt?: string;
+  preferredStaffUserId?: string;
 }
 
 // Date + available-time picker shared by the walk-in form and the reschedule
@@ -98,7 +114,7 @@ interface SlotPickerProps {
 // service via `fetchSlots` (a server action), then pick one. Slots already
 // carry the resolved (staffUserId, roomId) pair the underlying booking
 // engine assigned, so the caller doesn't need its own staff/room selects.
-export function SlotPicker({ serviceId, date, onDateChange, selected, onSelect, fetchSlots, dateInputId }: SlotPickerProps) {
+export function SlotPicker({ serviceId, date, onDateChange, selected, onSelect, fetchSlots, dateInputId, preferredStartAt, preferredStaffUserId }: SlotPickerProps) {
   return (
     <div className="flex flex-col gap-3">
       <label className="flex flex-col gap-1 text-sm">
@@ -117,7 +133,7 @@ export function SlotPicker({ serviceId, date, onDateChange, selected, onSelect, 
 
       {!serviceId && <p className="text-sm text-[var(--color-ink)]/60">Choose a service first.</p>}
       {serviceId && date && (
-        <SlotResults key={`${serviceId}::${date}`} serviceId={serviceId} date={date} fetchSlots={fetchSlots} selected={selected} onSelect={onSelect} />
+        <SlotResults key={`${serviceId}::${date}`} serviceId={serviceId} date={date} fetchSlots={fetchSlots} selected={selected} onSelect={onSelect} preferredStartAt={preferredStartAt} preferredStaffUserId={preferredStaffUserId} />
       )}
     </div>
   );

@@ -8,7 +8,8 @@ import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { recordAudit } from "@/modules/iam/audit";
 import { createSegment, deleteSegment, type SegmentFilter } from "@/modules/crm/segments";
-import { createLead } from "@/modules/crm/leads";
+import { createLead, assignOwner } from "@/modules/crm/leads";
+import { prisma } from "@/lib/db";
 import type { LeadDirection } from "@prisma/client";
 
 export interface RosterActionState {
@@ -79,4 +80,50 @@ export async function deleteSegmentAction(formData: FormData): Promise<void> {
     summary: `Deleted client segment "${id}"`,
   });
   revalidatePath("/admin/clients");
+}
+
+// --- Bulk actions from the roster ------------------------------------------
+
+export type BulkResult = { ok: true; count: number } | { ok: false; error: string };
+
+function cleanIds(ids: unknown): string[] {
+  return Array.isArray(ids) ? [...new Set(ids.filter((x): x is string => typeof x === "string" && x.length > 0))].slice(0, 500) : [];
+}
+
+// Adds one tag to every selected customer (idempotent per customer).
+export async function bulkAddTagAction(clientProfileIds: string[], tag: string): Promise<BulkResult> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const ids = cleanIds(clientProfileIds);
+  const clean = String(tag ?? "").trim().slice(0, 40);
+  if (ids.length === 0) return { ok: false, error: "Select at least one customer." };
+  if (!clean) return { ok: false, error: "Enter a tag." };
+
+  const rows = await prisma.clientProfile.findMany({ where: { id: { in: ids } }, select: { id: true, tags: true } });
+  const toUpdate = rows.filter((r) => !r.tags.includes(clean));
+  await prisma.$transaction(toUpdate.map((r) => prisma.clientProfile.update({ where: { id: r.id }, data: { tags: [...r.tags, clean] } })));
+  await recordAudit({ actorUserId: admin.id, action: "CLIENT_BULK_TAG", entityType: "ClientProfile", summary: `Tagged ${toUpdate.length} customer(s) with "${clean}"` });
+  revalidatePath("/admin/clients");
+  return { ok: true, count: toUpdate.length };
+}
+
+// Assigns (or clears, ownerId "") the owner on every selected customer.
+export async function bulkAssignOwnerAction(clientProfileIds: string[], ownerId: string): Promise<BulkResult> {
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const ids = cleanIds(clientProfileIds);
+  if (ids.length === 0) return { ok: false, error: "Select at least one customer." };
+  const owner = String(ownerId ?? "").trim() || null;
+  if (owner) {
+    const exists = await prisma.user.findFirst({ where: { id: owner, type: "STAFF" }, select: { id: true } });
+    if (!exists) return { ok: false, error: "Unknown staff member." };
+  }
+  const rows = await prisma.clientProfile.findMany({ where: { id: { in: ids } }, select: { id: true, ownerId: true } });
+  let count = 0;
+  for (const r of rows) {
+    if (r.ownerId === owner) continue;
+    await assignOwner(r.id, owner, admin.id);
+    count += 1;
+  }
+  await recordAudit({ actorUserId: admin.id, action: "CLIENT_BULK_ASSIGN", entityType: "ClientProfile", summary: `Assigned ${count} customer(s) to ${owner ?? "nobody"}` });
+  revalidatePath("/admin/clients");
+  return { ok: true, count };
 }

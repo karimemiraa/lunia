@@ -56,6 +56,11 @@ export interface ClientListRow {
   ownerId: string | null;
   ownerName?: string;
   nextFollowUpAt?: Date;
+  tags: string[];
+  /** Tier priority (0 = guest) so the roster can rank "VIP" without a join. */
+  tierPriority: number;
+  /** Outstanding balance across issued, unpaid invoices (minor units). */
+  owedMinor: number;
 }
 
 /** Staff (id + name) for the owner filter/assignment dropdowns. */
@@ -106,10 +111,19 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
   if (profiles.length === 0) return [];
 
   const clientProfileIds = profiles.map((p) => p.id);
-  const bookings = await prisma.booking.findMany({
-    where: { clientProfileId: { in: clientProfileIds } },
-    include: { appointments: true },
-  });
+  const [bookings, owed] = await Promise.all([
+    prisma.booking.findMany({
+      where: { clientProfileId: { in: clientProfileIds } },
+      include: { appointments: true },
+    }),
+    // Outstanding = issued invoices not yet fully paid, one grouped query.
+    prisma.invoice.groupBy({
+      by: ["clientProfileId"],
+      where: { clientProfileId: { in: clientProfileIds }, kind: "INVOICE", status: { in: ["ISSUED", "PARTIALLY_PAID"] } },
+      _sum: { totalMinor: true, paidMinor: true },
+    }),
+  ]);
+  const owedByClient = new Map(owed.map((o) => [o.clientProfileId, (o._sum.totalMinor ?? 0) - (o._sum.paidMinor ?? 0)]));
 
   // Resolve owner names in one batched lookup.
   const ownerIds = [...new Set(profiles.map((p) => p.ownerId).filter((id): id is string => !!id))];
@@ -164,6 +178,9 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
       ownerId: profile.ownerId,
       ownerName: profile.ownerId ? ownerNameById.get(profile.ownerId) : undefined,
       nextFollowUpAt: profile.nextFollowUpAt ?? undefined,
+      tags: profile.tags,
+      tierPriority: profile.membership?.tier.priority ?? 0,
+      owedMinor: Math.max(0, owedByClient.get(profile.id) ?? 0),
     };
   });
 }
@@ -173,6 +190,8 @@ export interface ClientDetailBooking {
   serviceName: string;
   startAt: Date;
   status: BookingStatus;
+  /** Clinical treatment record written for this booking's appointment, if any. */
+  treatmentRecordId: string | null;
 }
 
 export interface ClientDetail {
@@ -204,8 +223,15 @@ export async function getClientDetail(clientProfileId: string): Promise<ClientDe
   ]);
 
   const serviceIds = [...new Set(bookings.flatMap((b) => b.appointments.map((a) => a.serviceId)))];
-  const services = serviceIds.length > 0 ? await prisma.service.findMany({ where: { id: { in: serviceIds } } }) : [];
+  const appointmentIds = bookings.flatMap((b) => b.appointments.map((a) => a.id));
+  const [services, treatmentRecords] = await Promise.all([
+    serviceIds.length > 0 ? prisma.service.findMany({ where: { id: { in: serviceIds } } }) : [],
+    appointmentIds.length > 0
+      ? prisma.treatmentRecord.findMany({ where: { appointmentId: { in: appointmentIds } }, select: { id: true, appointmentId: true } })
+      : [],
+  ]);
   const serviceNameById = new Map(services.map((s) => [s.id, s.nameEn]));
+  const treatmentByAppointment = new Map(treatmentRecords.map((t) => [t.appointmentId, t.id]));
 
   const bookingRows: ClientDetailBooking[] = bookings.map((booking) => {
     const appointment = booking.appointments[0];
@@ -214,6 +240,7 @@ export async function getClientDetail(clientProfileId: string): Promise<ClientDe
       serviceName: appointment ? (serviceNameById.get(appointment.serviceId) ?? "Unknown service") : "Unknown service",
       startAt: appointment?.startAt ?? booking.createdAt,
       status: booking.status,
+      treatmentRecordId: appointment ? (treatmentByAppointment.get(appointment.id) ?? null) : null,
     };
   });
 
@@ -308,4 +335,43 @@ export async function updateClientTier(clientProfileId: string, tierId: string |
     update: { tierId },
     create: { clientId: clientProfileId, tierId },
   });
+}
+
+// --- Roster saved views -------------------------------------------------------
+
+export const ROSTER_VIEWS = ["all", "new", "lapsed", "vip", "owed"] as const;
+export type RosterView = (typeof ROSTER_VIEWS)[number];
+
+export const ROSTER_VIEW_LABELS: Record<RosterView, string> = {
+  all: "All",
+  new: "New this month",
+  lapsed: "Lapsed",
+  vip: "VIP",
+  owed: "Owed money",
+};
+
+/**
+ * Applies a saved roster view to an already-listed roster. Pure so the
+ * rules are unit-testable: "new" = created this calendar month (center
+ * time), "lapsed" = lifecycle lapsed, "vip" = on the highest-priority tier
+ * present in the roster (or any tier above guest when only one exists),
+ * "owed" = outstanding invoice balance.
+ */
+export function applyRosterView(rows: ClientListRow[], view: RosterView, now: Date = new Date()): ClientListRow[] {
+  switch (view) {
+    case "new": {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      return rows.filter((r) => r.createdAt >= monthStart);
+    }
+    case "lapsed":
+      return rows.filter((r) => r.status === "lapsed");
+    case "vip": {
+      const top = rows.reduce((m, r) => Math.max(m, r.tierPriority), 0);
+      return top > 0 ? rows.filter((r) => r.tierPriority === top) : [];
+    }
+    case "owed":
+      return rows.filter((r) => r.owedMinor > 0);
+    default:
+      return rows;
+  }
 }
