@@ -177,7 +177,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
 
       <Chapter id="team" tone="page" eyebrow={tTeam("eyebrow")} heading={tTeam("heading")} lead={tTeam("intro")}>
         <FeatureTiles tiles={teamTiles} columns={4} />
-        <p className="mx-auto mt-10 max-w-2xl text-center text-[0.95rem] leading-relaxed text-[var(--color-ink)]/55">{tTeam("note")}</p>
+        <p className="mx-auto mt-10 max-w-2xl text-center text-[0.95rem] leading-relaxed text-[var(--color-ink)]/75">{tTeam("note")}</p>
       </Chapter>
 
       <Section tone="plain">

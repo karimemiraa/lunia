@@ -42,7 +42,7 @@ export default async function ReviewTokenPage({ params }: ReviewTokenPageProps) 
             <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)]">
               {t("heading")}
             </h1>
-            <p className="text-sm leading-relaxed text-[var(--color-ink)]/65">{t("intro")}</p>
+            <p className="text-sm leading-relaxed text-[var(--color-ink)]/75">{t("intro")}</p>
           </div>
 
           {!review ? (
@@ -50,14 +50,14 @@ export default async function ReviewTokenPage({ params }: ReviewTokenPageProps) 
               <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">
                 {t("invalidHeading")}
               </h2>
-              <p className="text-sm leading-relaxed text-[var(--color-ink)]/65">{t("invalidBody")}</p>
+              <p className="text-sm leading-relaxed text-[var(--color-ink)]/75">{t("invalidBody")}</p>
             </div>
           ) : review.tokenUsedAt ? (
             <div className="lunia-card flex flex-col gap-3 p-8 text-center" data-testid="review-already-used">
               <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">
                 {t("alreadySubmittedHeading")}
               </h2>
-              <p className="text-sm leading-relaxed text-[var(--color-ink)]/65">{t("alreadySubmittedBody")}</p>
+              <p className="text-sm leading-relaxed text-[var(--color-ink)]/75">{t("alreadySubmittedBody")}</p>
             </div>
           ) : (
             <ReviewForm token={token} locale={locale} />

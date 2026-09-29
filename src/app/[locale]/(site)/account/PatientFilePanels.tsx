@@ -11,7 +11,7 @@ const fmtDate = (d: Date, locale: string) =>
   new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", { timeZone: CENTER_TZ, dateStyle: "medium" }).format(d);
 
 const primaryBtn =
-  "inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-ink)] px-6 text-sm font-medium tracking-wide text-white transition-opacity hover:opacity-90";
+  "inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-ink)] px-6 text-sm font-medium tracking-wide text-[var(--color-on-ink)] transition-opacity hover:opacity-90";
 const ghostBtn =
   "inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--color-ink)]/20 px-5 text-sm font-medium text-[var(--color-ink)] transition-colors hover:bg-[var(--color-ink)]/5";
 
@@ -21,10 +21,10 @@ export async function HealthProfileCard({ locale, lastUpdatedAt }: { locale: "ar
     <section className="lunia-card flex flex-col gap-4 p-6" data-testid="health-card">
       <div className="flex flex-col gap-2">
         <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">{t("heading")}</h2>
-        <p className="text-sm text-[var(--color-ink)]/65">{t("intro")}</p>
+        <p className="text-sm text-[var(--color-ink)]/75">{t("intro")}</p>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-[var(--color-ink)]/70">
+        <p className="text-sm text-[var(--color-ink)]/75">
           {lastUpdatedAt ? t("updated", { date: fmtDate(lastUpdatedAt, locale) }) : t("empty")}
         </p>
         <Link href={`/${locale}/account/health`} className={lastUpdatedAt ? ghostBtn : primaryBtn}>
@@ -41,10 +41,10 @@ export async function ConsentsCard({ locale, rows }: { locale: "ar" | "en"; rows
     <section className="lunia-card flex flex-col gap-4 p-6" data-testid="consents-card">
       <div className="flex flex-col gap-2">
         <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">{t("heading")}</h2>
-        <p className="text-sm text-[var(--color-ink)]/65">{t("intro")}</p>
+        <p className="text-sm text-[var(--color-ink)]/75">{t("intro")}</p>
       </div>
       {rows.length === 0 ? (
-        <p className="text-sm text-[var(--color-ink)]/60">{t("empty")}</p>
+        <p className="text-sm text-[var(--color-ink)]/75">{t("empty")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {rows.map((row) => {
@@ -54,11 +54,11 @@ export async function ConsentsCard({ locale, rows }: { locale: "ar" | "en"; rows
                 <div className="flex min-w-0 flex-col gap-1">
                   <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-[var(--color-ink)]">
                     {locale === "ar" ? row.titleAr : row.titleEn}
-                    <span className="rounded-full bg-[var(--color-ink)]/8 px-2 py-0.5 text-[0.7rem] font-medium text-[var(--color-ink)]/60">
+                    <span className="rounded-full bg-[var(--color-ink)]/8 px-2 py-0.5 text-[0.7rem] font-medium text-[var(--color-ink)]/75">
                       {row.required ? t("required") : t("optional")}
                     </span>
                   </span>
-                  <span className={`text-xs ${row.upToDate ? "text-[var(--color-teal-ink,#2f6d67)]" : "text-[var(--color-ink)]/60"}`}>
+                  <span className={`text-xs ${row.upToDate ? "text-[var(--color-teal-ink)]" : "text-[var(--color-ink)]/75"}`}>
                     {row.upToDate && row.lastSignedAt
                       ? t("signed", { date: fmtDate(row.lastSignedAt, locale) })
                       : outdated

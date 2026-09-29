@@ -72,11 +72,11 @@ function BookingCard({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-base font-medium text-[var(--color-ink)]">{booking.serviceName}</span>
-        <span className="rounded-full bg-[var(--color-ink)]/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-ink)]/70">
+        <span className="rounded-full bg-[var(--color-ink)]/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-ink)]/75">
           {t(`status.${booking.status}`)}
         </span>
       </div>
-      <p className="text-sm text-[var(--color-ink)]/65">{formatDateTime(booking.startAtIso, locale)}</p>
+      <p className="text-sm text-[var(--color-ink)]/75">{formatDateTime(booking.startAtIso, locale)}</p>
       <Link
         href={`/${locale}/account/bookings/${booking.id}`}
         data-testid="account-booking-details"
@@ -140,7 +140,7 @@ export function AccountBookings({ locale, upcoming, past }: AccountBookingsProps
   return (
     <div className="flex flex-col gap-12">
       {error && (
-        <p role="alert" className="text-sm font-medium text-red-700">
+        <p role="alert" className="text-sm font-medium text-[var(--color-danger)]">
           {error}
         </p>
       )}
@@ -158,7 +158,7 @@ export function AccountBookings({ locale, upcoming, past }: AccountBookingsProps
           </Link>
         </div>
         {upcoming.length === 0 ? (
-          <p className="text-sm text-[var(--color-ink)]/60">{t("emptyUpcoming")}</p>
+          <p className="text-sm text-[var(--color-ink)]/75">{t("emptyUpcoming")}</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {upcoming.map((booking) => (
@@ -179,7 +179,7 @@ export function AccountBookings({ locale, upcoming, past }: AccountBookingsProps
           {t("pastHeading")}
         </h2>
         {past.length === 0 ? (
-          <p className="text-sm text-[var(--color-ink)]/60">{t("emptyPast")}</p>
+          <p className="text-sm text-[var(--color-ink)]/75">{t("emptyPast")}</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {past.map((booking) => (

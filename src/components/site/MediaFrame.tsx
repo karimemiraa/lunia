@@ -33,7 +33,7 @@ export function MediaFrame({
       <div
         role="img"
         aria-label={alt}
-        className={`${shapeClass} bg-gradient-to-br from-[var(--color-cream)] to-[var(--color-teal)]/30`}
+        className={`${shapeClass} bg-[linear-gradient(135deg,var(--surface-2),color-mix(in_srgb,var(--color-teal)_30%,transparent))]`}
       />
     );
   }
@@ -45,13 +45,15 @@ export function MediaFrame({
   // shows a soft brand wash instead of a blank white box (a lightweight
   // blur-up feel without shipping per-asset placeholder data).
   return (
-    <div className={`${shapeClass} bg-gradient-to-br from-[var(--color-cream)] to-[var(--color-teal)]/25`}>
+    <div className={`${shapeClass} bg-[linear-gradient(135deg,var(--surface-2),color-mix(in_srgb,var(--color-teal)_25%,transparent))]`}>
       {kind === "VIDEO" ? (
         <video
           // "#t=0.1" makes iOS paint the first frame as a still (there's no
           // poster for uploaded films) instead of a blank box before playback.
           src={`${src}#t=0.1`}
           preload="metadata"
+          width={1280}
+          height={720}
           className="h-full w-full object-cover"
           style={{ objectPosition }}
           muted
@@ -67,6 +69,8 @@ export function MediaFrame({
           alt={alt}
           loading="lazy"
           decoding="async"
+          width={1200}
+          height={1500}
           className="h-full w-full object-cover"
           style={{ objectPosition }}
         />

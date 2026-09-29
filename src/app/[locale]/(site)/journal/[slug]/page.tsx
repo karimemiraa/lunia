@@ -142,12 +142,12 @@ export default async function JournalPostPage({ params }: JournalPostPageProps) 
         <header className="mx-auto flex max-w-4xl flex-col items-center px-6 pt-[clamp(4rem,10svh,7rem)] text-center">
           <p className="lunia-animate-fade-up text-[0.8rem] font-semibold uppercase tracking-[0.18em] text-[var(--color-teal-ink)]">
             {tIndex("category")}
-            {dateLabel && <span className="text-[var(--color-ink)]/45"> · {dateLabel}</span>}
+            {dateLabel && <span className="text-[var(--color-ink)]/75"> · {dateLabel}</span>}
           </p>
           <h1 className="lx-display lunia-animate-fade-up lunia-delay-1 mt-5 text-[clamp(2.6rem,1.5rem+4vw,5.25rem)] text-[var(--color-ink)]">{title}</h1>
           <p className="lx-lead lunia-animate-fade-up lunia-delay-2 mt-6 max-w-2xl">{localized(locale, post.excerptEn, post.excerptAr)}</p>
           {post.authorName && (
-            <p className="lunia-animate-fade-up lunia-delay-3 mt-6 text-[0.9rem] text-[var(--color-ink)]/55">
+            <p className="lunia-animate-fade-up lunia-delay-3 mt-6 text-[0.9rem] text-[var(--color-ink)]/75">
               {tPost("byLabel")} {post.authorName}
             </p>
           )}

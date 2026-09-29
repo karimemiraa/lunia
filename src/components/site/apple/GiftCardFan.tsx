@@ -49,18 +49,18 @@ function Card({ design, label }: { design: Design; label: string }) {
       );
     case "cream":
       return (
-        <div className={`${base} bg-[linear-gradient(135deg,#f6efe1,#e8d9b9)]`}>
-          <Mark src="/brand/emblem-mono.svg" className="absolute -bottom-[18%] -right-[6%] h-[110%] w-[50%] text-[#b89a5e]/25 rtl:-left-[6%] rtl:right-auto" />
+        <div className={`${base} lx-on-light bg-[linear-gradient(135deg,var(--color-cream),var(--color-dragonfruit))]`}>
+          <Mark src="/brand/emblem-mono.svg" className="absolute -bottom-[18%] -right-[6%] h-[110%] w-[50%] text-[var(--color-gold-ink)]/25 rtl:-left-[6%] rtl:right-auto" />
           <span />
-          {footer("text-[#8c7243]")}
+          {footer("text-[var(--color-gold-ink)]")}
         </div>
       );
     case "white":
       return (
-        <div className={`${base} bg-white ring-1 ring-inset ring-[var(--color-ink)]/[0.06]`}>
+        <div className={`${base} lx-on-light lx-light-stage ring-1 ring-inset ring-[var(--color-ink)]/[0.06]`}>
           <Mark src="/brand/wordmark-mono.svg" className="absolute right-[7%] top-[10%] h-[16%] w-[36%] text-[var(--color-teal)]" />
           <span />
-          <div className="flex items-end justify-between text-[var(--color-ink)]/55">
+          <div className="flex items-end justify-between text-[var(--color-ink)]/75">
             <Mark src="/brand/glow.svg" className="h-[clamp(0.8rem,1.4vw,1.1rem)] w-[clamp(0.8rem,1.4vw,1.1rem)] text-[var(--color-teal)]" />
             <span className="text-[clamp(0.5rem,0.9vw,0.7rem)] font-semibold uppercase tracking-[0.2em] rtl:tracking-normal">{label}</span>
           </div>
@@ -70,10 +70,10 @@ function Card({ design, label }: { design: Design; label: string }) {
       return (
         <div className={`${base} bg-[var(--color-ice)]`}>
           {/* eslint-disable-next-line @next/next/no-img-element -- static brand media */}
-          <img src="/media/serum-macro.webp" alt="" className="absolute inset-0 h-full w-full object-cover object-right" />
-          <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
+          <img src="/media/serum-macro.webp" alt="" width={640} height={404} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover object-right" />
+          <div aria-hidden="true" className="lx-photo-scrim absolute inset-0" />
           <span />
-          <div className="relative">{footer("text-white")}</div>
+          <div className="relative">{footer("text-[var(--color-cream)]")}</div>
         </div>
       );
   }
@@ -87,7 +87,7 @@ export function GiftCardFan({ label }: { label: string }) {
       {FAN.map((c) => (
         <div
           key={c.design}
-          className="lx-fan-card absolute left-1/2 top-[8%] aspect-[1.586] w-[clamp(10rem,34vw,24rem)] rounded-[clamp(12px,1.4vw,20px)] shadow-[0_30px_60px_-30px_rgba(34,63,58,0.55)]"
+          className="lx-fan-card absolute left-1/2 top-[8%] aspect-[1.586] w-[clamp(10rem,34vw,24rem)] rounded-[clamp(12px,1.4vw,20px)] shadow-[var(--shadow-lg)]"
           style={{ "--tx": `${c.tx}%`, "--ty": c.ty, "--r": `${c.r}deg`, "--d": `${c.d}s` } as CSSProperties}
         >
           <Card design={c.design} label={label} />

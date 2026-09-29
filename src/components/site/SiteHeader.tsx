@@ -21,7 +21,7 @@ const focusRingClass =
 
 const ctaClass = `lx-pill px-5 py-2 text-[0.875rem] ${focusRingClass}`;
 
-const navLinkClass = `rounded-sm text-[0.8125rem] font-medium tracking-[0.01em] text-[var(--color-ink)]/72 transition-colors hover:text-[var(--color-ink)] ${focusRingClass}`;
+const navLinkClass = `rounded-sm text-[0.8125rem] font-medium tracking-[0.01em] text-[var(--color-ink)]/75 transition-colors hover:text-[var(--color-ink)] ${focusRingClass}`;
 
 // The public site's chrome header: sticky, translucent-cream, generous
 // whitespace. Everything but LocaleSwitcher stays a server component — the
@@ -46,12 +46,9 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
   ));
 
   return (
-    <header className="sticky top-0 z-40 bg-[var(--color-page)]/80 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[var(--color-page)]/68">
-      {/* Brand hairline: the three primary teals, fading out at the edges. */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-[linear-gradient(90deg,transparent,var(--color-teal)_18%,var(--color-deep-canopy)_50%,var(--color-alice)_82%,transparent)]"
-      />
+    <header className="lx-chrome sticky top-0 z-40">
+      {/* Brand hairline (three primaries; gold in Midnight, iridescent in Aurora). */}
+      <span aria-hidden="true" className="lx-divider pointer-events-none absolute inset-x-0 bottom-0" />
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-5 sm:px-6">
         <Link
           href={home}
@@ -61,7 +58,7 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
           <span
             role="img"
             aria-label="LUNIA — Skin & Hair"
-            className="lunia-logo h-6 md:h-7"
+            className="lunia-logo h-[1.375rem] md:h-7"
           />
         </Link>
 
@@ -82,14 +79,15 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
         <details className="group relative md:hidden">
           <summary
             aria-label={tCommon("menu")}
-            className={`flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full text-[var(--color-ink)] transition-colors hover:bg-[var(--color-cream)] [&::-webkit-details-marker]:hidden ${focusRingClass}`}
+            aria-haspopup="true"
+            className={`flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full text-[var(--color-ink)] transition-colors hover:bg-[var(--color-ink)]/8 [&::-webkit-details-marker]:hidden ${focusRingClass}`}
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 stroke-current" fill="none" strokeWidth="1.6">
               <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
             </svg>
           </summary>
 
-          <div className="absolute end-0 top-full z-50 mt-3 w-64 rounded-2xl border border-[var(--color-ink)]/10 bg-[var(--color-cream)] p-6 shadow-xl">
+          <div className="lx-surface absolute end-0 top-full z-50 mt-3 w-64 rounded-2xl border border-[var(--line)] p-6 shadow-[var(--shadow-lg)]">
             <nav aria-label={tNav("mobileLabel")} className="flex flex-col gap-4">
               {navLinks}
               <Link href={accountHref} className={navLinkClass}>

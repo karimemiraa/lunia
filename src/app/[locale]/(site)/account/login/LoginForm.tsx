@@ -14,11 +14,11 @@ interface LoginFormProps {
 const focusRingClass =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-page)]";
 
-const inputClass = `w-full rounded-xl border border-[var(--color-ink)]/15 bg-[var(--color-page)] px-4 py-3 text-base text-[var(--color-ink)] placeholder:text-[var(--color-ink)]/40 transition-colors focus:border-[var(--color-teal)] ${focusRingClass}`;
+const inputClass = `w-full rounded-xl border border-[var(--color-ink)]/15 bg-[var(--color-page)] px-4 py-3 text-base text-[var(--color-ink)] placeholder:text-[var(--color-ink)]/55 transition-colors focus:border-[var(--color-teal)] ${focusRingClass}`;
 
 const labelClass = "text-sm font-medium text-[var(--color-ink)]";
 
-const primaryButtonClass = `inline-flex items-center justify-center whitespace-nowrap rounded-full bg-[var(--color-teal)] px-8 py-3.5 text-sm font-medium tracking-wide text-[var(--color-ink)] transition-colors hover:bg-[var(--color-canopy)] disabled:cursor-not-allowed disabled:opacity-60 ${focusRingClass}`;
+const primaryButtonClass = `inline-flex items-center justify-center whitespace-nowrap rounded-full bg-[var(--color-teal)] px-8 py-3.5 text-sm font-medium tracking-wide text-[var(--color-on-teal)] transition-colors hover:bg-[var(--color-canopy)] disabled:cursor-not-allowed disabled:opacity-60 ${focusRingClass}`;
 
 const switchLinkClass =
   "text-sm font-medium text-[var(--color-ink)] underline decoration-[var(--color-gold)] decoration-2 underline-offset-4";
@@ -151,7 +151,7 @@ export function LoginForm({ locale, identifierMode = "both" }: LoginFormProps) {
           </>
         ) : (
           <>
-            <p className="text-sm text-[var(--color-ink)]/65">{t("codeIntro", { contact: identifier })}</p>
+            <p className="text-sm text-[var(--color-ink)]/75">{t("codeIntro", { contact: identifier })}</p>
             {devCode && (
               <p data-testid="dev-otp-code" className="text-sm font-medium text-[var(--color-canopy)]">
                 {t("devCodeHint", { code: devCode })}
@@ -187,7 +187,7 @@ export function LoginForm({ locale, identifierMode = "both" }: LoginFormProps) {
                 onChange={(e) => setName(e.target.value)}
                 className={inputClass}
               />
-              <p className="text-xs text-[var(--color-ink)]/55">{t("nameHint")}</p>
+              <p className="text-xs text-[var(--color-ink)]/75">{t("nameHint")}</p>
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <button
@@ -247,7 +247,7 @@ export function LoginForm({ locale, identifierMode = "both" }: LoginFormProps) {
       )}
 
       {error && (
-        <p role="alert" className="text-sm font-medium text-red-700">
+        <p role="alert" className="text-sm font-medium text-[var(--color-danger)]">
           {error}
         </p>
       )}

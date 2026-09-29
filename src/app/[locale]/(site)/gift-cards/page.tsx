@@ -82,7 +82,7 @@ export default async function GiftCardsPage({ params }: GiftCardsPageProps) {
       <div className="bg-[var(--color-page)] px-4 pt-[clamp(4rem,10svh,7rem)] sm:px-6">
         <div data-grow className="relative mx-auto aspect-[4/5] max-w-7xl overflow-hidden rounded-[28px] bg-[var(--color-ice)] sm:aspect-[21/9]">
           {/* eslint-disable-next-line @next/next/no-img-element -- static brand media */}
-          <img src="/media/relax.webp" alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+          <img src="/media/relax.webp" alt="" width={1920} height={823} loading="lazy" decoding="async" className="h-full w-full object-cover" />
         </div>
       </div>
 

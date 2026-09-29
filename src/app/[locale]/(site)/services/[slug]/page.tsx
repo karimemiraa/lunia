@@ -224,7 +224,7 @@ export default async function DepartmentPage({ params }: DepartmentPageProps) {
         lead={tDept("servicesIntro")}
       >
         {services.length === 0 ? (
-          <p className="text-center text-base text-[var(--color-ink)]/60">{tDept("emptyServices")}</p>
+          <p className="text-center text-base text-[var(--color-ink)]/75">{tDept("emptyServices")}</p>
         ) : (
           <div className="flex flex-col gap-20 lg:gap-28">
             {services.map((service: Service, i: number) => (

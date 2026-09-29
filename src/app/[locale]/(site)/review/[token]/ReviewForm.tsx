@@ -88,7 +88,7 @@ export function ReviewForm({ token, locale }: ReviewFormProps) {
         <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">
           {alreadyUsed ? t("alreadySubmittedHeading") : t("successHeading")}
         </h2>
-        <p className="text-sm leading-relaxed text-[var(--color-ink)]/65">
+        <p className="text-sm leading-relaxed text-[var(--color-ink)]/75">
           {alreadyUsed ? t("alreadySubmittedBody") : t("successBody")}
         </p>
       </div>
@@ -100,7 +100,7 @@ export function ReviewForm({ token, locale }: ReviewFormProps) {
   return (
     <form onSubmit={handleSubmit} className="lunia-card flex flex-col gap-6 p-6 sm:p-8" data-testid="review-form">
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+        <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
           {t("ratingLabel")}
         </span>
         <div className="flex items-center gap-1" role="radiogroup" aria-label={t("ratingLabel")}>
@@ -124,7 +124,7 @@ export function ReviewForm({ token, locale }: ReviewFormProps) {
       </div>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+        <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
           {t("titleLabel")}
         </span>
         <input
@@ -138,7 +138,7 @@ export function ReviewForm({ token, locale }: ReviewFormProps) {
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+        <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
           {t("bodyLabel")}
         </span>
         <textarea
@@ -153,7 +153,7 @@ export function ReviewForm({ token, locale }: ReviewFormProps) {
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+        <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
           {t("nameLabel")}
         </span>
         <input
@@ -188,7 +188,7 @@ export function ReviewForm({ token, locale }: ReviewFormProps) {
           {isPending ? t("submittingLabel") : t("submitLabel")}
         </button>
         {error && (
-          <p role="alert" className="text-sm font-medium text-red-700">
+          <p role="alert" className="text-sm font-medium text-[var(--color-danger)]">
             {error}
           </p>
         )}

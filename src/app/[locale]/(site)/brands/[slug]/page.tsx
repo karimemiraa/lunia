@@ -122,10 +122,10 @@ export default async function BrandPage({ params }: BrandPageProps) {
             <span aria-hidden="true" className="lunia-glow-mark" />
             {tBrand("partnerLabel")}
           </span>
-          <div className="lunia-pattern-mosaic lunia-animate-scale-in mt-8 flex aspect-[16/8] w-full max-w-3xl items-center justify-center overflow-hidden rounded-[32px] bg-white shadow-[0_40px_80px_-50px_rgba(34,63,58,0.45)]">
+          <div className="lunia-pattern-mosaic lunia-animate-scale-in mt-8 flex aspect-[16/8] w-full max-w-3xl items-center justify-center overflow-hidden rounded-[32px] lx-light-stage lx-on-light shadow-[var(--shadow-lg)]">
             {logoMedia ? (
               // eslint-disable-next-line @next/next/no-img-element -- uploaded brand logo, arbitrary domain
-              <img src={`/api/media/${logoMedia.key}`} alt={brand.name} className="max-h-28 w-auto max-w-[60%] object-contain sm:max-h-36" />
+              <img src={`/api/media/${logoMedia.key}`} alt={brand.name} width={480} height={144} className="h-auto max-h-28 w-auto max-w-[60%] object-contain sm:max-h-36" />
             ) : (
               <span className="lx-display lx-h2 text-[var(--color-ink)]">{brand.name}</span>
             )}

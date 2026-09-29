@@ -21,7 +21,7 @@ export function NewsTile({ href, media, category, title, excerpt, date, featured
     <Link
       href={href}
       data-reveal
-      className={`group flex overflow-hidden rounded-[28px] bg-white transition-shadow duration-500 hover:shadow-[0_30px_60px_-35px_rgba(34,63,58,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-4 ${
+      className={`lx-surface group flex overflow-hidden rounded-[28px] transition-shadow duration-500 hover:shadow-[var(--shadow-lg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--color-page)] ${
         featured ? "flex-col lg:grid lg:grid-cols-[1.4fr_1fr]" : "flex-col"
       }`}
     >
@@ -31,8 +31,8 @@ export function NewsTile({ href, media, category, title, excerpt, date, featured
       <div className={`flex flex-1 flex-col ${featured ? "p-8 sm:p-10 lg:justify-center" : "p-7"}`}>
         <span className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[var(--color-teal-ink)]">{category}</span>
         <h3 className={`lx-display mt-3 text-[var(--color-ink)] ${featured ? "text-[clamp(2rem,1.4rem+1.8vw,3rem)] leading-[1.08]" : "text-[1.6rem] leading-[1.15]"}`}>{title}</h3>
-        {excerpt && <p className={`mt-4 leading-relaxed text-[var(--color-ink)]/65 ${featured ? "text-[1.05rem]" : "line-clamp-2 text-[0.95rem]"}`}>{excerpt}</p>}
-        {date && <span className={`text-[0.85rem] text-[var(--color-ink)]/45 ${featured ? "mt-6" : "mt-auto pt-5"}`}>{date}</span>}
+        {excerpt && <p className={`mt-4 leading-relaxed text-[var(--color-ink)]/75 ${featured ? "text-[1.05rem]" : "line-clamp-2 text-[0.95rem]"}`}>{excerpt}</p>}
+        {date && <span className={`text-[0.85rem] text-[var(--color-ink)]/75 ${featured ? "mt-6" : "mt-auto pt-5"}`}>{date}</span>}
       </div>
     </Link>
   );

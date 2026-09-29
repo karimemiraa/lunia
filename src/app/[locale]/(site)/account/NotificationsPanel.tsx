@@ -47,7 +47,7 @@ function ToggleRow({
     <label className="flex items-start justify-between gap-4 rounded-xl border border-[var(--color-ink)]/10 p-4">
       <span className="flex flex-col gap-0.5">
         <span className="text-sm font-medium text-[var(--color-ink)]">{label}</span>
-        <span className="text-xs text-[var(--color-ink)]/60">{hint}</span>
+        <span className="text-xs text-[var(--color-ink)]/75">{hint}</span>
       </span>
       <input
         type="checkbox"
@@ -93,12 +93,12 @@ export function NotificationsPanel({ locale, preference }: NotificationsPanelPro
     <section className="lunia-card flex flex-col gap-6 p-6" data-testid="notifications-panel">
       <div className="flex flex-col gap-2">
         <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">{t("heading")}</h2>
-        <p className="text-sm text-[var(--color-ink)]/65">{t("intro")}</p>
+        <p className="text-sm text-[var(--color-ink)]/75">{t("intro")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+          <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
             {t("channelLabel")}
           </span>
           <select
@@ -149,7 +149,7 @@ export function NotificationsPanel({ locale, preference }: NotificationsPanelPro
             </p>
           )}
           {error && (
-            <p role="alert" className="text-sm font-medium text-red-700">
+            <p role="alert" className="text-sm font-medium text-[var(--color-danger)]">
               {error}
             </p>
           )}

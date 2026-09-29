@@ -31,7 +31,7 @@ export function ServiceCard({ name, summary, href, media }: ServiceCardProps) {
         <h3 className="font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors duration-300 group-hover:decoration-[var(--color-gold)]">
           {name}
         </h3>
-        {summary && <p className="text-sm leading-relaxed text-[var(--color-ink)]/70">{summary}</p>}
+        {summary && <p className="text-sm leading-relaxed text-[var(--color-ink)]/75">{summary}</p>}
       </div>
     </Link>
   );

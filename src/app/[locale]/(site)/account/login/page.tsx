@@ -87,7 +87,7 @@ export default async function AccountLoginPage({ params }: AccountLoginPageProps
               <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)]">
                 {t("heading")}
               </h1>
-              <p className="text-sm leading-relaxed text-[var(--color-ink)]/65">{t("intro")}</p>
+              <p className="text-sm leading-relaxed text-[var(--color-ink)]/75">{t("intro")}</p>
             </div>
             <LoginForm locale={locale} identifierMode={identifierMode} />
           </div>

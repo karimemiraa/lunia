@@ -31,14 +31,14 @@ export default async function ConsentSignPage({ params }: ConsentSignPageProps) 
     <main className="flex flex-col">
       <Section tone="plain">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-          <Link href={`/${locale}/account`} className="text-sm text-[var(--color-ink)]/60 hover:text-[var(--color-ink)]">
+          <Link href={`/${locale}/account`} className="text-sm text-[var(--color-ink)]/75 hover:text-[var(--color-ink)]">
             {t("back")}
           </Link>
           <div className="flex flex-col gap-2">
             <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)] sm:text-4xl">{title}</h1>
-            <p className="text-sm text-[var(--color-ink)]/55">{t("version", { version: form.version })}</p>
+            <p className="text-sm text-[var(--color-ink)]/75">{t("version", { version: form.version })}</p>
           </div>
-          <p className="text-sm text-[var(--color-ink)]/70">{t("readCarefully")}</p>
+          <p className="text-sm text-[var(--color-ink)]/75">{t("readCarefully")}</p>
           <div className="lunia-card flex max-h-[28rem] flex-col gap-4 overflow-y-auto p-6 text-[0.95rem] leading-relaxed text-[var(--color-ink)]" tabIndex={0}>
             {body.split("\n\n").map((para, i) => (
               <p key={i} className="whitespace-pre-wrap">

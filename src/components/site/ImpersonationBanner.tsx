@@ -17,17 +17,17 @@ export async function ImpersonationBanner({ locale }: { locale: string }) {
     <div
       role="status"
       data-testid="impersonation-banner"
-      className="relative z-50 bg-[var(--color-ink)] px-4 py-2 text-[0.8rem] text-white"
+      className="relative z-50 bg-[var(--color-ink)] px-4 py-2 text-[0.8rem] text-[var(--color-on-ink)]"
     >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
         <p className="flex flex-wrap items-baseline gap-x-2">
           <span className="font-semibold">{t("viewingAs", { name: record.clientName })}</span>
-          <span className="text-white/70">{t("warning")}</span>
+          <span className="text-[var(--color-on-ink)]/75">{t("warning")}</span>
         </p>
         <form action={exitCustomerView}>
           <button
             type="submit"
-            className="min-h-9 rounded-full border border-white/40 px-4 py-1 font-medium transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="min-h-9 rounded-full border border-[var(--color-on-ink)]/40 px-4 py-1 font-medium transition-colors hover:bg-[var(--color-on-ink)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-on-ink)]"
           >
             {t("exit")}
           </button>

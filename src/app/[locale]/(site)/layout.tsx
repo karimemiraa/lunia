@@ -37,10 +37,15 @@ export default async function SiteLayout({
     <html lang={locale} dir={localeDirection(locale)} className={fontVariables} data-theme={theme}>
       <body className="flex min-h-screen flex-col">
         <NextIntlClientProvider messages={messages}>
+          <a href="#main-content" className="lx-skip">
+            {tCommon("skipToContent")}
+          </a>
           <CinematicScroll />
           <ImpersonationBanner locale={locale} />
           <SiteHeader locale={locale} />
-          <PageTransition className="flex-1">{children}</PageTransition>
+          <PageTransition id="main-content" className="flex-1">
+            {children}
+          </PageTransition>
           <SiteFooter locale={locale} />
           <StickyBookCta href={`/${locale}/book`} label={tCommon("bookNow")} />
           <WhatsAppFab />

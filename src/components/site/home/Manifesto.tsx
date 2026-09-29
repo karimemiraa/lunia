@@ -25,6 +25,8 @@ export function Manifesto({ id, eyebrow, text }: ManifestoProps) {
         preload="none"
         poster="/media/water.jpg"
         aria-hidden="true"
+        width={1920}
+        height={1080}
         className="absolute inset-0 -z-20 h-full w-full object-cover opacity-[0.28] mix-blend-luminosity"
       >
         <source src="/media/water.mp4" type="video/mp4" />

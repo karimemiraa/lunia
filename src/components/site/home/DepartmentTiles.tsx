@@ -30,7 +30,7 @@ export function DepartmentTiles({ eyebrow, heading, intro, id, exploreLabel, dep
   const grid = departments.length === 2 ? "lg:max-w-5xl lg:grid-cols-2" : "lg:max-w-7xl lg:grid-cols-3";
 
   return (
-    <section id={id} className={`scroll-mt-32 bg-[color-mix(in_srgb,var(--color-cream)_55%,var(--color-page))] ${heading ? "py-[clamp(6rem,14svh,10rem)]" : "pb-[clamp(5rem,12svh,8rem)] pt-4"}`}>
+    <section id={id} className={`scroll-mt-32 bg-[var(--color-mist)] ${heading ? "py-[clamp(6rem,14svh,10rem)]" : "pb-[clamp(5rem,12svh,8rem)] pt-4"}`}>
       {heading && (
         <div className="mx-auto w-full max-w-7xl px-5 sm:px-6">
           <header className="mx-auto flex max-w-3xl flex-col items-center text-center">
@@ -59,13 +59,13 @@ export function DepartmentTiles({ eyebrow, heading, intro, id, exploreLabel, dep
             <div className="lx-card-media">
               <SmartMedia media={d.media} alt="" />
             </div>
-            <div aria-hidden="true" className="absolute inset-0 -z-[1] bg-gradient-to-t from-[#10201d]/85 via-[#10201d]/25 to-transparent" />
+            <div aria-hidden="true" className="lx-photo-scrim absolute inset-0 -z-[1]" />
             <span className="text-sm font-medium tracking-[0.2em] text-[var(--color-teal)]">
               {String(i + 1).padStart(2, "0")} / {total}
             </span>
             <h3 className="lx-display mt-3 text-[2.1rem] leading-[1.05] text-[var(--color-cream)] sm:text-[2.4rem]">{d.name}</h3>
             <p className="mt-3 max-w-xs text-[0.98rem] leading-relaxed text-[var(--color-cream)]/80">{d.tagline}</p>
-            <span className="mt-6 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 text-sm font-medium text-[var(--color-cream)] backdrop-blur-md transition-colors group-hover:bg-white/25 [&_svg]:h-3.5 [&_svg]:w-3.5 rtl:[&_svg]:-scale-x-100">
+            <span className="mt-6 inline-flex w-fit items-center gap-1.5 rounded-full bg-[var(--color-cream)]/15 px-4 py-2 text-sm font-medium text-[var(--color-cream)] backdrop-blur-md transition-colors duration-200 group-hover:bg-[var(--color-cream)]/25 [&_svg]:h-3.5 [&_svg]:w-3.5 rtl:[&_svg]:-scale-x-100">
               {exploreLabel}
               <Chevron />
             </span>

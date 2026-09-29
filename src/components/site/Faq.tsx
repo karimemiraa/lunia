@@ -29,12 +29,12 @@ export function Faq({ items }: FaqProps) {
             </span>
             <span
               aria-hidden="true"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-ink)]/15 text-xl font-light leading-none text-[var(--color-ink)]/60 transition-all duration-300 group-open:rotate-45 group-open:bg-[var(--color-teal)] group-open:text-[var(--color-ink)]"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-ink)]/15 text-xl font-light leading-none text-[var(--color-on-teal)]/75 transition-all duration-300 group-open:rotate-45 group-open:bg-[var(--color-teal)] group-open:text-[var(--color-on-teal)]"
             >
               +
             </span>
           </summary>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--color-ink)]/70 sm:text-[1.075rem]">{item.a}</p>
+          <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--color-ink)]/75 sm:text-[1.075rem]">{item.a}</p>
         </details>
       ))}
     </div>

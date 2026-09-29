@@ -32,6 +32,12 @@ export async function submitInquiry(_prevState: ContactFormState, formData: Form
   const message = readField(formData, "message", MAX_LENGTHS.message);
   const sourcePage = readField(formData, "sourcePage", MAX_LENGTHS.sourcePage);
 
+  // Honeypot (the hidden "website" field): humans never fill it. Bots that do
+  // get a quiet "success" so they don't retry, and nothing is persisted.
+  if (readField(formData, "website", 200)) {
+    return { status: "success", message: t("successMessage") };
+  }
+
   try {
     await createInquiry({
       name,

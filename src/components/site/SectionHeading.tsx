@@ -28,7 +28,7 @@ export function SectionHeading({ eyebrow, heading, intro, align = "start", class
       <h2 className="font-[family-name:var(--font-display)] text-4xl leading-[1.1] tracking-tight text-[var(--color-ink)] sm:text-5xl">
         {heading}
       </h2>
-      {intro && <p className="text-base leading-relaxed text-[var(--color-ink)]/70 sm:text-lg">{intro}</p>}
+      {intro && <p className="text-base leading-relaxed text-[var(--color-ink)]/75 sm:text-lg">{intro}</p>}
     </div>
   );
 }

@@ -60,7 +60,7 @@ export function Testimonials({ eyebrow, heading, items }: TestimonialsProps) {
                   {item.quote}
                 </blockquote>
                 {item.author && (
-                  <figcaption className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-ink)]/50">
+                  <figcaption className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-ink)]/75">
                     {item.author}
                   </figcaption>
                 )}
@@ -87,7 +87,7 @@ export function Testimonials({ eyebrow, heading, items }: TestimonialsProps) {
               type="button"
               onClick={() => go(index - 1)}
               aria-label="Previous testimonial"
-              className="absolute top-1/3 -start-2 hidden h-9 w-9 items-center justify-center rounded-full border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--color-ink)]/60 transition-colors hover:text-[var(--color-ink)] sm:flex"
+              className="absolute top-1/3 -start-2 hidden h-9 w-9 items-center justify-center rounded-full border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--color-ink)]/75 transition-colors hover:text-[var(--color-ink)] sm:flex"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 rtl:-scale-x-100"><path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" /></svg>
             </button>
@@ -95,7 +95,7 @@ export function Testimonials({ eyebrow, heading, items }: TestimonialsProps) {
               type="button"
               onClick={() => go(index + 1)}
               aria-label="Next testimonial"
-              className="absolute top-1/3 -end-2 hidden h-9 w-9 items-center justify-center rounded-full border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--color-ink)]/60 transition-colors hover:text-[var(--color-ink)] sm:flex"
+              className="absolute top-1/3 -end-2 hidden h-9 w-9 items-center justify-center rounded-full border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--color-ink)]/75 transition-colors hover:text-[var(--color-ink)] sm:flex"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 rtl:-scale-x-100"><path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" /></svg>
             </button>

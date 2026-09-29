@@ -74,12 +74,12 @@ export function LoyaltyPanel({
     <section className="lunia-card flex flex-col gap-6 p-6" data-testid="loyalty-panel">
       <div className="flex flex-col gap-2">
         <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">{t("heading")}</h2>
-        <p className="text-sm text-[var(--color-ink)]/65">{t("intro")}</p>
+        <p className="text-sm text-[var(--color-ink)]/75">{t("intro")}</p>
       </div>
 
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-[var(--color-ink)]/10 bg-[var(--color-cream)]/40 p-5">
+      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-5">
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+          <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
             {t("balanceLabel")}
           </span>
           <span
@@ -88,11 +88,11 @@ export function LoyaltyPanel({
           >
             {formatPoints(balance, locale)}
           </span>
-          <span className="text-xs text-[var(--color-ink)]/60">{t("pointsUnit")}</span>
+          <span className="text-xs text-[var(--color-ink)]/75">{t("pointsUnit")}</span>
         </div>
         {currentTierName && (
           <div className="flex flex-col items-end gap-1 text-end">
-            <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+            <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
               {t("currentTierLabel")}
             </span>
             <span className="text-lg font-medium text-[var(--color-teal)]" data-testid="loyalty-current-tier">
@@ -103,7 +103,7 @@ export function LoyaltyPanel({
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between text-sm text-[var(--color-ink)]/70">
+        <div className="flex items-center justify-between text-sm text-[var(--color-ink)]/75">
           <span>{hasNextTier ? t("progressToNext", { tier: nextTierName ?? "" }) : t("topTierReached")}</span>
           {hasNextTier && (
             <span data-testid="loyalty-points-to-next">{t("pointsRemaining", { count: pointsToNextTier ?? 0 })}</span>
@@ -119,11 +119,11 @@ export function LoyaltyPanel({
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
+        <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/75">
           {t("historyHeading")}
         </h3>
         {transactions.length === 0 ? (
-          <p className="text-sm text-[var(--color-ink)]/60">{t("emptyHistory")}</p>
+          <p className="text-sm text-[var(--color-ink)]/75">{t("emptyHistory")}</p>
         ) : (
           <ul className="flex flex-col gap-2" data-testid="loyalty-transactions">
             {transactions.map((txn) => (
@@ -133,15 +133,15 @@ export function LoyaltyPanel({
               >
                 <div className="flex flex-col">
                   <span className="text-[var(--color-ink)]">{reasonLabel(txn.reason)}</span>
-                  <span className="text-xs text-[var(--color-ink)]/55">{formatDate(txn.createdAtIso, locale)}</span>
+                  <span className="text-xs text-[var(--color-ink)]/75">{formatDate(txn.createdAtIso, locale)}</span>
                 </div>
                 <span
                   className={
                     txn.deltaPoints > 0
                       ? "font-medium text-[var(--color-teal)]"
                       : txn.deltaPoints < 0
-                        ? "font-medium text-red-700"
-                        : "font-medium text-[var(--color-ink)]/60"
+                        ? "font-medium text-[var(--color-danger)]"
+                        : "font-medium text-[var(--color-ink)]/75"
                   }
                 >
                   {txn.deltaPoints > 0 ? "+" : ""}

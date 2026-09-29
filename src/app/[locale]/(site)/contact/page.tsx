@@ -125,7 +125,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
     { label: tContact("help.gift"), href: `/${locale}/gift-cards` },
   ];
 
-  const card = "flex flex-col rounded-[28px] bg-white p-8 sm:p-9";
+  const card = "lx-surface flex flex-col rounded-[28px] p-8 sm:p-9";
   const cardHeading = "text-[0.8rem] font-semibold uppercase tracking-[0.16em] text-[var(--color-teal-ink)]";
 
   return (
@@ -149,8 +149,8 @@ export default async function ContactPage({ params }: ContactPageProps) {
           </span>
           <h1 className="lx-display lx-h1 lunia-animate-fade-up lunia-delay-1 mt-5 text-[var(--color-ink)]">{tHero("heading")}</h1>
           {status && (
-            <p className="lunia-animate-fade-up lunia-delay-2 mt-6 inline-flex items-center gap-2.5 text-[1.05rem] text-[var(--color-ink)]/70">
-              <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${todayHours?.closed ? "bg-[var(--color-gold)]" : "bg-[#3fae8a] shadow-[0_0_0_4px_rgba(63,174,138,0.18)]"}`} />
+            <p className="lunia-animate-fade-up lunia-delay-2 mt-6 inline-flex items-center gap-2.5 text-[1.05rem] text-[var(--color-ink)]/75">
+              <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${todayHours?.closed ? "bg-[var(--color-gold)]" : "bg-[var(--color-success)] shadow-[0_0_0_4px_var(--color-success-soft)]"}`} />
               {businessName ? `${businessName} · ` : ""}
               {status}
             </p>
@@ -181,7 +181,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
         <div className="mx-auto mt-[clamp(3rem,8svh,5rem)] w-full max-w-7xl px-4 sm:px-6">
           <div data-grow className="relative aspect-[4/5] overflow-hidden rounded-[28px] bg-[var(--color-ice)] sm:aspect-[21/9]">
             {/* eslint-disable-next-line @next/next/no-img-element -- static brand media */}
-            <img src="/media/clinic-corridor.webp" alt="" className="h-full w-full object-cover" />
+            <img src="/media/clinic-corridor.webp" alt="" width={1920} height={823} loading="lazy" decoding="async" className="h-full w-full object-cover" />
           </div>
         </div>
       </section>
@@ -193,7 +193,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
             {business ? (
               <>
                 {businessName && <p className="lx-display mt-4 text-[1.9rem] text-[var(--color-ink)]">{businessName}</p>}
-                {address && <address className="mt-2 not-italic leading-relaxed text-[var(--color-ink)]/70">{address}</address>}
+                {address && <address className="mt-2 not-italic leading-relaxed text-[var(--color-ink)]/75">{address}</address>}
                 {business.phone && phoneHref && (
                   <a href={phoneHref} className="mt-4 text-[1.05rem] font-medium text-[var(--color-ink)]" dir="ltr">
                     {business.phone}
@@ -201,7 +201,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
                 )}
               </>
             ) : (
-              <p className="mt-4 text-sm text-[var(--color-ink)]/60">{tContact("napFallback")}</p>
+              <p className="mt-4 text-sm text-[var(--color-ink)]/75">{tContact("napFallback")}</p>
             )}
             <a href={mapsHref} target="_blank" rel="noreferrer" className="lx-link mt-auto pt-6">
               {tContact("mapLinkLabel")}
@@ -219,7 +219,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
                   return (
                     <div
                       key={key}
-                      className={`flex items-center justify-between gap-4 border-b border-[var(--color-ink)]/[0.07] py-2.5 text-[0.975rem] last:border-0 ${isToday ? "font-semibold text-[var(--color-ink)]" : "text-[var(--color-ink)]/70"}`}
+                      className={`flex items-center justify-between gap-4 border-b border-[var(--color-ink)]/[0.07] py-2.5 text-[0.975rem] last:border-0 ${isToday ? "font-semibold text-[var(--color-ink)]" : "text-[var(--color-ink)]/75"}`}
                     >
                       <dt>{dayName(locale, key)}</dt>
                       <dd dir="ltr">{h.closed ? tContact("closedLabel") : `${h.open} – ${h.close}`}</dd>
