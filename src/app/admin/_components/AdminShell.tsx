@@ -2,9 +2,16 @@ import type { ReactNode } from "react";
 import { AdminNav } from "./AdminNav";
 import { PageHeader } from "./PageHeader";
 import { NotificationBell } from "./NotificationBell";
+import { CommandPalette } from "./CommandPalette";
+import { KeyboardShortcuts } from "./KeyboardShortcuts";
+import { Breadcrumbs } from "./Breadcrumbs";
+import { Toaster } from "./Toaster";
+import { DocumentTitle } from "./DocumentTitle";
+import { visibleNavItems, paletteActionsFor } from "./navCatalog";
 import type { AdminUser } from "./requireAdmin";
-import { getNotificationFeed } from "@/modules/notifications/feed";
+import { getNotificationFeed, type NotificationFeed } from "@/modules/notifications/feed";
 import { getSetting } from "@/modules/cms/settings";
+import { PERMISSIONS } from "@/modules/iam/permissions";
 
 interface AdminShellProps {
   user: AdminUser;
@@ -12,40 +19,40 @@ interface AdminShellProps {
   description?: string;
   actions?: ReactNode;
   children: ReactNode;
+  /** A page that already loaded the feed (the dashboard) can pass it in. */
+  feed?: NotificationFeed;
 }
 
-export async function AdminShell({ user, title, description, actions, children }: AdminShellProps) {
+export async function AdminShell({ user, title, description, actions, children, feed: presetFeed }: AdminShellProps) {
   const [feed, navSetting] = await Promise.all([
-    getNotificationFeed(user.permissions),
+    presetFeed ?? getNotificationFeed(user.permissions),
     getSetting("adminNav").catch(() => null),
   ]);
+  const hiddenHrefs = navSetting?.hiddenHrefs ?? [];
+  const visible = visibleNavItems(user.permissions, hiddenHrefs);
+  const allowedHrefs = new Set(visible.map((i) => i.href));
+  const pages = visible.map((i) => ({ href: i.href, label: i.label, group: i.group, icon: i.icon, keywords: i.keywords }));
+  const paletteActions = paletteActionsFor(user.permissions, allowedHrefs);
+  const permissionList = [...user.permissions];
+
   return (
     <div className="flex min-h-screen text-[var(--color-ink)]">
-      <AdminNav permissions={user.permissions} hiddenHrefs={navSetting?.hiddenHrefs ?? []} />
+      <AdminNav permissions={user.permissions} hiddenHrefs={hiddenHrefs} />
       <div className="lunia-admin-bg relative min-w-0 flex-1 pt-14 md:pt-0">
         <main className="relative mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
-          {/* Global search + notification center. */}
+          {/* Top bar: command palette + notification center. */}
           <div className="mb-6 flex items-center gap-3">
-            <form method="get" action="/admin/search" className="flex flex-1 items-center gap-2 sm:max-w-md" role="search">
-              <div className="relative flex-1">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-[var(--color-ink)]/40" aria-hidden="true">
-                  <circle cx="11" cy="11" r="7" /><path strokeLinecap="round" d="m20 20-3.5-3.5" />
-                </svg>
-                <input
-                  type="search"
-                  name="q"
-                  placeholder="Search customers, inquiries, WhatsApp…"
-                  aria-label="Search the system"
-                  className="lunia-input w-full ps-9"
-                />
-              </div>
-            </form>
+            <CommandPalette pages={pages} actions={paletteActions} />
             <NotificationBell feed={feed} />
           </div>
+          <Breadcrumbs leafTitle={title} permissions={permissionList} hiddenHrefs={hiddenHrefs} />
           <PageHeader title={title} description={description} actions={actions} />
           <div className="lunia-animate-fade-up">{children}</div>
         </main>
       </div>
+      <KeyboardShortcuts allowedHrefs={[...allowedHrefs]} canBook={user.permissions.has(PERMISSIONS.BOOKING_MANAGE) && allowedHrefs.has("/admin/calendar")} />
+      <Toaster />
+      <DocumentTitle title={title} badge={feed.total} />
     </div>
   );
 }

@@ -1,30 +1,36 @@
 "use client";
 
+import { useRef } from "react";
+import { ConfirmDialog } from "./ConfirmDialog";
+
 interface ConfirmDeleteButtonProps {
   action: (formData: FormData) => void | Promise<void>;
   confirmMessage: string;
   label?: string;
+  /** Dialog heading; defaults to "<label>?". */
+  title?: string;
 }
 
 /**
- * A submit button that overrides its enclosing form's action (via
- * `formAction`) and asks for confirmation first. Generalizes the
- * admin/media/DeleteButton.tsx pattern for reuse across the catalog admin
- * list tables (departments, services, brands, journal).
+ * A destructive button that lives inside a form and submits that form's
+ * fields to `action` after the user confirms in a proper dialog (no
+ * window.confirm). Drop-in for the previous formAction-based version.
  */
-export function ConfirmDeleteButton({ action, confirmMessage, label = "Delete" }: ConfirmDeleteButtonProps) {
+export function ConfirmDeleteButton({ action, confirmMessage, label = "Delete", title }: ConfirmDeleteButtonProps) {
+  const anchor = useRef<HTMLSpanElement>(null);
   return (
-    <button
-      type="submit"
-      formAction={action}
-      onClick={(event) => {
-        if (!confirm(confirmMessage)) {
-          event.preventDefault();
-        }
-      }}
-      className="lunia-btn lunia-btn-danger lunia-btn-sm"
-    >
-      {label}
-    </button>
+    <span ref={anchor} className="contents">
+      <ConfirmDialog
+        title={title ?? `${label}?`}
+        description={confirmMessage}
+        verb={label}
+        onConfirm={async () => {
+          const form = anchor.current?.closest("form");
+          await action(form ? new FormData(form) : new FormData());
+        }}
+      >
+        {label}
+      </ConfirmDialog>
+    </span>
   );
 }

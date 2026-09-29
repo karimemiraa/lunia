@@ -4,6 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { PERMISSIONS, type PermissionKey } from "@/modules/iam/permissions";
+import { NAV_GROUPS, NAV_CATALOG, type NavIconKey } from "./navCatalog";
+
+export { NAV_CATALOG };
 
 interface AdminNavProps {
   permissions: Set<PermissionKey>;
@@ -24,7 +27,7 @@ interface NavGroup {
 
 // --- compact stroke icons (18px) ---------------------------------------
 const ic = "h-[1.15rem] w-[1.15rem] shrink-0";
-const I = {
+export const I: Record<NavIconKey | "door", ReactNode> = {
   receipt: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
       <path strokeLinejoin="round" d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path strokeLinecap="round" d="M9 8h6M9 12h6M9 16h3" />
@@ -147,99 +150,26 @@ const I = {
       <path strokeLinejoin="round" d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6-4.5-4.2 6.1-.7L12 3Z" />
     </svg>
   ),
+  bell: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" />
+    </svg>
+  ),
 };
 
-const GROUPS: NavGroup[] = [
-  {
-    label: "Overview",
-    items: [
-      { href: "/admin", label: "Dashboard", icon: I.dashboard },
-      { href: "/admin/dashboard", label: "Business", perm: PERMISSIONS.ANALYTICS_VIEW, icon: I.chart },
-      { href: "/admin/reports", label: "Reports", perm: PERMISSIONS.ANALYTICS_VIEW, icon: I.report },
-    ],
-  },
-  {
-    label: "Customers",
-    items: [
-      { href: "/admin/clients", label: "Customers", perm: PERMISSIONS.CLIENT_VIEW, icon: I.users },
-      { href: "/admin/leads", label: "Leads", perm: PERMISSIONS.CLIENT_VIEW, icon: I.inbox },
-      { href: "/admin/callbacks", label: "Call-backs", perm: PERMISSIONS.CLIENT_VIEW, icon: I.phone },
-      { href: "/admin/assistant", label: "Chat assistant", perm: PERMISSIONS.CLIENT_VIEW, icon: I.chat },
-      { href: "/admin/clinical/consents", label: "Consent forms", perm: PERMISSIONS.CLINICAL_MANAGE, icon: I.clipboard },
-    ],
-  },
-  {
-    label: "Scheduling",
-    items: [
-      { href: "/admin/calendar", label: "Calendar", perm: PERMISSIONS.BOOKING_VIEW, icon: I.calendar },
-      { href: "/admin/waitlist", label: "Waitlist", perm: PERMISSIONS.BOOKING_VIEW, icon: I.inbox },
-      { href: "/admin/booking/rooms", label: "Rooms", perm: PERMISSIONS.STAFF_MANAGE, icon: I.book },
-      { href: "/admin/booking/schedules", label: "Schedules", perm: PERMISSIONS.STAFF_MANAGE, icon: I.calendar },
-    ],
-  },
-  {
-    label: "Finance",
-    items: [
-      { href: "/admin/billing", label: "Invoices & payments", perm: PERMISSIONS.BILLING_MANAGE, icon: I.receipt },
-      { href: "/admin/accounting", label: "Accounting", perm: PERMISSIONS.ACCOUNTING_MANAGE, icon: I.report },
-      { href: "/admin/accounting/expenses", label: "Expenses", perm: PERMISSIONS.ACCOUNTING_MANAGE, icon: I.receipt },
-    ],
-  },
-  {
-    label: "Inventory",
-    items: [
-      { href: "/admin/inventory", label: "Products & stock", perm: PERMISSIONS.INVENTORY_MANAGE, icon: I.box },
-      { href: "/admin/inventory/purchase-orders", label: "Purchase orders", perm: PERMISSIONS.INVENTORY_MANAGE, icon: I.clipboard },
-      { href: "/admin/inventory/suppliers", label: "Suppliers", perm: PERMISSIONS.INVENTORY_MANAGE, icon: I.users },
-    ],
-  },
-  {
-    label: "Team",
-    items: [
-      { href: "/admin/me", label: "My time & leave", icon: I.clock },
-      { href: "/admin/hr", label: "Employees", perm: PERMISSIONS.HR_MANAGE, icon: I.users },
-      { href: "/admin/hr/attendance", label: "Attendance", perm: PERMISSIONS.HR_MANAGE, icon: I.clock },
-      { href: "/admin/hr/leave", label: "Leave requests", perm: PERMISSIONS.HR_MANAGE, icon: I.calendar },
-      { href: "/admin/hr/payroll", label: "Payroll", perm: PERMISSIONS.HR_MANAGE, icon: I.receipt },
-    ],
-  },
-  {
-    label: "Commerce",
-    items: [
-      { href: "/admin/commerce", label: "Gift cards & packages", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.giftcard },
-      { href: "/admin/tiers", label: "Loyalty tiers", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.tag },
-    ],
-  },
-  {
-    label: "Marketing",
-    items: [
-      { href: "/admin/marketing", label: "Campaigns", perm: PERMISSIONS.ANALYTICS_VIEW, icon: I.megaphone },
-      { href: "/admin/comms/broadcast", label: "Broadcast", perm: PERMISSIONS.MARKETING_MANAGE, icon: I.megaphone },
-      { href: "/admin/whatsapp", label: "WhatsApp", perm: PERMISSIONS.CLIENT_MANAGE, icon: I.message },
-      { href: "/admin/inquiries", label: "Inquiries", perm: PERMISSIONS.CMS_MANAGE, icon: I.inbox },
-      { href: "/admin/reviews", label: "Reviews", perm: PERMISSIONS.CMS_MANAGE, icon: I.star },
-    ],
-  },
-  {
-    label: "Content",
-    items: [
-      { href: "/admin/media", label: "Media", perm: PERMISSIONS.CMS_MANAGE, icon: I.image },
-      { href: "/admin/content", label: "Content", perm: PERMISSIONS.CMS_MANAGE, icon: I.content },
-      { href: "/admin/catalog", label: "Catalog", perm: PERMISSIONS.CMS_MANAGE, icon: I.layers },
-    ],
-  },
-  {
-    label: "System",
-    items: [
-      { href: "/admin/settings", label: "Settings", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.gear },
-      { href: "/admin/comms", label: "Communications", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.message },
-      { href: "/admin/users", label: "Users", perm: PERMISSIONS.STAFF_MANAGE, icon: I.users },
-      { href: "/admin/roles", label: "Roles", perm: PERMISSIONS.STAFF_MANAGE, icon: I.shield },
-      { href: "/admin/audit", label: "Audit log", perm: PERMISSIONS.SETTINGS_MANAGE, icon: I.shield },
-      { href: "/superadmin", label: "Superadmin", perm: PERMISSIONS.PLATFORM_MANAGE, icon: I.gear },
-    ],
-  },
-];
+const GlobeIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ic}>
+    <circle cx="12" cy="12" r="8.5" /><path strokeLinecap="round" d="M3.5 12h17M12 3.5c2.5 2.5 3.5 5.5 3.5 8.5s-1 6-3.5 8.5c-2.5-2.5-3.5-5.5-3.5-8.5s1-6 3.5-8.5Z" />
+  </svg>
+);
+
+// Sidebar groups = the shared catalog, with icons attached. Superadmin and the
+// Website link live in the footer cluster instead of the "System" group.
+const FOOTER_HREFS = new Set(["/superadmin"]);
+const GROUPS: NavGroup[] = NAV_GROUPS.map((g) => ({
+  label: g.label,
+  items: g.items.filter((i) => !FOOTER_HREFS.has(i.href)).map((i) => ({ href: i.href, label: i.label, perm: i.perm, icon: I[i.icon] })),
+}));
 
 function matches(pathname: string, href: string): boolean {
   if (href === "/admin") return pathname === "/admin";
@@ -247,13 +177,6 @@ function matches(pathname: string, href: string): boolean {
 }
 
 const ALL_HREFS = GROUPS.flatMap((g) => g.items.map((i) => i.href));
-
-// Plain catalog of the menu (no icons) for the superadmin "menu visibility"
-// editor, so it always lists exactly what the sidebar can show.
-export const NAV_CATALOG: { label: string; items: { href: string; label: string }[] }[] = GROUPS.map((g) => ({
-  label: g.label,
-  items: g.items.map((i) => ({ href: i.href, label: i.label })),
-}));
 
 // Only the most specific matching item is active, so /admin/accounting/expenses
 // highlights "Expenses" and not also "Accounting".
@@ -412,10 +335,11 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
                       <Link
                         href={item.href}
                         aria-current={active ? "page" : undefined}
-                        title={rail ? item.label : undefined}
+                        aria-label={rail ? item.label : undefined}
+                        data-tip={rail ? item.label : undefined}
                         onClick={() => setDrawerOpen(false)}
                         className={`group flex items-center rounded-[var(--radius-sm)] text-sm transition-colors duration-200 ${
-                          rail ? "justify-center p-2.5" : "gap-3 px-3 py-2.5 md:py-1.5"
+                          rail ? "lunia-tip justify-center p-2.5" : "gap-3 px-3 py-2.5 md:py-1.5"
                         } ${
                           active
                             ? "bg-white/65 font-medium text-[var(--color-ink)] shadow-[0_1px_2px_rgba(34,63,58,0.08)]"
@@ -442,18 +366,49 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
         );
       })}
 
-      <form action="/admin/logout" method="post" className="mt-auto w-full pt-3">
-        <button
-          type="submit"
-          title={rail ? "Sign out" : undefined}
-          className={`flex w-full items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-ink)]/65 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] ${
-            rail ? "justify-center p-2.5" : "gap-3 px-3 py-2"
+      {/* Footer cluster: website, superadmin (owner only), sign out. */}
+      <div className={`mt-auto flex w-full flex-col gap-0.5 border-t border-[var(--color-ink)]/10 pt-3 ${rail ? "items-center" : ""}`}>
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener"
+          aria-label={rail ? "Open website" : undefined}
+          data-tip={rail ? "Open website" : undefined}
+          className={`flex items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-ink)]/65 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] ${
+            rail ? "lunia-tip justify-center p-2.5" : "gap-3 px-3 py-2"
           }`}
         >
-          <span className="text-[var(--color-ink)]/50">{I.door}</span>
-          {!rail && "Sign out"}
-        </button>
-      </form>
+          <span className="text-[var(--color-ink)]/50">{GlobeIcon}</span>
+          {!rail && "Website"}
+        </a>
+        {permissions.has(PERMISSIONS.PLATFORM_MANAGE) && (
+          <Link
+            href="/superadmin"
+            aria-label={rail ? "Superadmin" : undefined}
+            data-tip={rail ? "Superadmin" : undefined}
+            aria-current={pathname.startsWith("/superadmin") ? "page" : undefined}
+            className={`flex items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-ink)]/65 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] ${
+              rail ? "lunia-tip justify-center p-2.5" : "gap-3 px-3 py-2"
+            }`}
+          >
+            <span className="text-[var(--color-ink)]/50">{I.gear}</span>
+            {!rail && "Superadmin"}
+          </Link>
+        )}
+        <form action="/admin/logout" method="post" className="w-full">
+          <button
+            type="submit"
+            aria-label={rail ? "Sign out" : undefined}
+            data-tip={rail ? "Sign out" : undefined}
+            className={`flex w-full items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-ink)]/65 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] ${
+              rail ? "lunia-tip justify-center p-2.5" : "gap-3 px-3 py-2"
+            }`}
+          >
+            <span className="text-[var(--color-ink)]/50">{I.door}</span>
+            {!rail && "Sign out"}
+          </button>
+        </form>
+      </div>
     </nav>
     </>
   );

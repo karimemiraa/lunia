@@ -1051,3 +1051,137 @@ html[dir="rtl"] .lunia-split-word { padding-block: 0.18em; }
    ambience, not content, so hide that glyph and let the first frame stand. */
 video::-webkit-media-controls-start-playback-button { display: none !important; -webkit-appearance: none; }
 video::-webkit-media-controls { display: none !important; }
+
+/* ---------------------------------------------------------------------------
+   Staff system shell utilities (`.lunia-*`, admin only). Semantic status
+   tokens, pills, skeletons, keyboard hints, rail tooltips and toasts. Scoped
+   under .lunia-staff so the public site's token set is untouched.
+   --------------------------------------------------------------------------- */
+.lunia-staff {
+  /* Semantic status scale: text colors keep >= 4.5:1 on their tints. */
+  --status-success: #1f7a4d;
+  --status-success-bg: color-mix(in srgb, #2f9e6a 14%, var(--surface));
+  --status-warning: #8a5a00;
+  --status-warning-bg: color-mix(in srgb, #e0a11b 16%, var(--surface));
+  --status-danger: #b42318;
+  --status-danger-bg: color-mix(in srgb, #d92d20 11%, var(--surface));
+  --status-info: #245e58;
+  --status-info-bg: color-mix(in srgb, var(--color-teal) 30%, var(--surface));
+  --status-neutral: color-mix(in srgb, var(--color-ink) 68%, transparent);
+  --status-neutral-bg: color-mix(in srgb, var(--color-ink) 6%, var(--surface));
+}
+
+/* Status pill: <span class="lunia-pill" data-tone="success|warning|danger|info|neutral"> */
+.lunia-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  color: var(--status-neutral);
+  background: var(--status-neutral-bg);
+}
+.lunia-pill::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.85;
+}
+.lunia-pill[data-tone="success"] { color: var(--status-success); background: var(--status-success-bg); }
+.lunia-pill[data-tone="warning"] { color: var(--status-warning); background: var(--status-warning-bg); }
+.lunia-pill[data-tone="danger"] { color: var(--status-danger); background: var(--status-danger-bg); }
+.lunia-pill[data-tone="info"] { color: var(--status-info); background: var(--status-info-bg); }
+
+/* Shimmer skeleton block (reserve space, no layout shift). */
+.lunia-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-ink) 7%, var(--surface));
+}
+.lunia-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 70%, transparent), transparent);
+  animation: lunia-skeleton-sweep 1.6s ease-in-out infinite;
+}
+@keyframes lunia-skeleton-sweep {
+  to { transform: translateX(100%); }
+}
+
+/* Keyboard hint chip. */
+.lunia-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.35rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  background: var(--surface);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-ink) 70%, transparent);
+}
+
+/* Icon-rail tooltip: <a class="lunia-tip" data-tip="Label">. Pure CSS so it
+   works for keyboard focus too. Only the sidebar uses it (nav is sticky, not
+   the anchor itself, so position:relative is safe here). */
+.lunia-tip { position: relative; }
+.lunia-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  inset-inline-start: calc(100% + 0.6rem);
+  top: 50%;
+  z-index: 60;
+  transform: translateY(-50%) translateX(-4px);
+  white-space: nowrap;
+  border-radius: 0.5rem;
+  background: var(--color-ink);
+  color: var(--color-page);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+}
+.lunia-tip:hover::after,
+.lunia-tip:focus-visible::after { opacity: 1; transform: translateY(-50%) translateX(0); }
+
+/* Toasts. */
+@keyframes lunia-toast-in {
+  from { opacity: 0; transform: translateY(0.75rem) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.lunia-toast { animation: lunia-toast-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Command palette / dialogs. */
+@keyframes lunia-pop-in {
+  from { opacity: 0; transform: translateY(-0.5rem) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.lunia-pop-in { animation: lunia-pop-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.lunia-tabular { font-variant-numeric: tabular-nums; }
+
+/* Live "now" dot. */
+@keyframes lunia-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.lunia-live-dot { animation: lunia-pulse 1.8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lunia-skeleton::after, .lunia-toast, .lunia-pop-in, .lunia-live-dot { animation: none; }
+  .lunia-tip::after { transition: none; }
+}
