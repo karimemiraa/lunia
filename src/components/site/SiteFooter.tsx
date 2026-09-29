@@ -23,7 +23,7 @@ const focusRingClass =
 
 // The footer sits on the Luminous Teal brand field, so every page closes on
 // the primary color; ink type at 75% keeps it legible (AA) on the teal.
-const footerLinkClass = `rounded-sm text-sm text-[var(--color-ink)]/80 transition-colors hover:text-[var(--color-ink)] ${focusRingClass}`;
+const footerLinkClass = `rounded-sm text-sm text-[var(--color-ink)]/85 transition-colors hover:text-[var(--color-ink)] ${focusRingClass}`;
 const headingClass = "text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-teal-ink)]";
 
 function digitsOnly(value: string): string {
@@ -42,7 +42,7 @@ function SocialIcon({ href, label, children }: { href: string; label: string; ch
       rel="noreferrer"
       aria-label={label}
       title={label}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-ink)]/20 bg-[var(--color-cream)]/25 text-[var(--color-ink)]/80 transition-colors duration-200 hover:bg-[var(--color-cream)]/55 hover:text-[var(--color-ink)] ${focusRingClass}`}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-ink)]/20 bg-[var(--color-cream)]/25 text-[var(--color-ink)]/85 transition-colors duration-200 hover:bg-[var(--color-cream)]/55 hover:text-[var(--color-ink)] ${focusRingClass}`}
     >
       <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
         {children}
@@ -75,7 +75,7 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
           <span className="lunia-logo-stage self-start">
             <span role="img" aria-label="LUNIA — Skin & Hair" className="lunia-logo h-7" />
           </span>
-          <p className="max-w-sm text-sm leading-relaxed text-[var(--color-ink)]/80">{tFooter("tagline")}</p>
+          <p className="max-w-sm text-sm leading-relaxed text-[var(--color-ink)]/85">{tFooter("tagline")}</p>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -91,7 +91,7 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
 
         <div className="flex flex-col gap-4">
           <h2 className={headingClass}>{tFooter("contactHeading")}</h2>
-          <div className="flex flex-col gap-3 text-sm text-[var(--color-ink)]/80">
+          <div className="flex flex-col gap-3 text-sm text-[var(--color-ink)]/85">
             <p className="text-[var(--color-ink)]">{businessName}</p>
             {address && <address className="not-italic leading-relaxed">{address}</address>}
             {business?.phone && (

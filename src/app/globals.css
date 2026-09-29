@@ -106,7 +106,7 @@
      every theme — Midnight flips --color-ink to cream, this must not flip. */
   --color-on-teal: #223f3a;
   /* Deep gold reserved for type (Tiger Lily itself is too light for text). */
-  --color-gold-ink: #8a7340;
+  --color-gold-ink: #7a6535;
   /* A surface that is always light — brand-logo stages, printable views. */
   --stage-light: #ffffff;
   /* Wash behind copy on a textured tile (ValuesBento "Mastery"). */
@@ -124,7 +124,7 @@
   --hero-glow: none;
   /* Form + status colors (never raw red on dark grounds). */
   --color-danger: #b42318;
-  --color-success: #2f7d63;
+  --color-success: #2a7159;
   /* Third-party brand colour (WhatsApp), never used for Lunia UI. */
   --color-whatsapp: #25d366;
   --color-danger-soft: color-mix(in srgb, #d92d20 10%, transparent);
@@ -295,7 +295,7 @@
   --color-teal-ink: #2f5f58;
   --color-teal-deep: #4f938b;
   --color-on-ink: #f3eee2;
-  --color-gold-ink: #8a7340;
+  --color-gold-ink: #7a6535;
   --line: color-mix(in srgb, #223f3a 10%, transparent);
   --line-strong: color-mix(in srgb, #223f3a 18%, transparent);
   color: var(--color-ink);
