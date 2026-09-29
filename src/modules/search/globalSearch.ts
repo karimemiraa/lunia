@@ -24,14 +24,6 @@ const LIMIT = 8;
 const CENTER_TZ = "Asia/Riyadh";
 const whenFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
-export function emptySearchResult(): GlobalSearchResult {
-  return Object.fromEntries(SEARCH_GROUPS.map((g) => [g, [] as SearchHit[]])) as unknown as GlobalSearchResult;
-}
-
-export function searchTotal(result: GlobalSearchResult): number {
-  return SEARCH_GROUPS.reduce((sum, g) => sum + result[g].length, 0);
-}
-
 function formatSar(minor: number): string {
   return `${(minor / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR`;
 }
