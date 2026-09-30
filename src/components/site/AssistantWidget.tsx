@@ -291,7 +291,7 @@ export function AssistantWidget({ locale, hasWhatsapp }: AssistantWidgetProps) {
                     onClick={() => onChip(chip)}
                     className={`min-h-10 rounded-full px-3.5 py-2 text-sm leading-tight transition-colors disabled:opacity-50 ${
                       chip.tone === "primary"
-                        ? "bg-[var(--color-ink)] text-[var(--color-page)] hover:bg-[var(--color-teal-ink)]"
+                        ? "bg-[var(--color-ink)] text-[var(--color-on-ink)] hover:bg-[var(--color-teal-ink)]"
                         : "border border-[var(--color-teal-ink)]/25 bg-[var(--color-mist)] text-[var(--color-teal-ink)] hover:bg-[var(--color-ice)]"
                     }`}
                   >
@@ -387,7 +387,7 @@ function Message({ message }: { message: ChatMessageView }) {
               key={link.href}
               href={link.href}
               {...(link.external ? { target: "_blank", rel: "noreferrer" } : {})}
-              className="inline-flex min-h-10 items-center rounded-full bg-[var(--color-ink)] px-4 py-2 text-sm text-[var(--color-page)] transition-colors hover:bg-[var(--color-teal-ink)]"
+              className="inline-flex min-h-10 items-center rounded-full bg-[var(--color-ink)] px-4 py-2 text-sm text-[var(--color-on-ink)] transition-colors hover:bg-[var(--color-teal-ink)]"
             >
               {link.label}
             </a>

@@ -83,13 +83,10 @@
    Teal stays the primary; only the ground it sits on changes.
    --------------------------------------------------------------------------- */
 :root {
-  /* Logo stage: the wordmark is always painted in the primary Luminous Teal
-     (brand rule: logo color = primary); the stage behind it guarantees the
-     approved teal-on-ink pairing whatever the ground. */
-  --logo-color: var(--color-teal);
-  --logo-stage: var(--color-ink);
-  --logo-stage-ring: color-mix(in srgb, var(--color-teal) 22%, transparent);
-  --logo-stage-glow: 0 10px 28px -14px color-mix(in srgb, var(--color-ink) 55%, transparent);
+  /* The wordmark sits directly on the bar (no box). It is painted in this
+     color — a deep teal that reads on the pale chrome; Midnight uses the
+     luminous teal so it glows on the dark bar. */
+  --logo-color: var(--color-teal-ink);
   /* Scrim + glass tokens so cards/overlays can adapt per theme. */
   --scrim: rgba(16, 32, 29, 0.55);
   /* Photo scrims are theme-invariant: photography is always shaded toward
@@ -151,11 +148,8 @@
   --shadow-lg: 0 24px 60px -28px rgba(0, 0, 0, 0.8);
   --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--color-teal) 45%, transparent),
     0 12px 40px -12px color-mix(in srgb, var(--color-teal) 60%, transparent);
-  /* The ink pill stays (a deeper ink than the page so it still reads as a
-     stage), ringed with a teal hairline. */
-  --logo-stage: #081210;
-  --logo-stage-ring: color-mix(in srgb, var(--color-teal) 38%, transparent);
-  --logo-stage-glow: 0 0 0 0 transparent, 0 12px 32px -14px color-mix(in srgb, var(--color-teal) 55%, transparent);
+  /* Wordmark glows in luminous teal on the dark bar. */
+  --logo-color: var(--color-teal);
   --scrim: rgba(0, 0, 0, 0.6);
   --glass: rgba(21, 48, 43, 0.72);
   --color-on-ink: #0e1d1a;
@@ -205,18 +199,19 @@
 /* --- Aurora: liquid glass. Frosted surfaces over a slow teal/ice/gold
    aurora; iridescent teal field; everything a little translucent. --- */
 :root[data-theme="aurora"] {
-  --color-page: #f4faf9;
-  --color-mist: rgba(158, 213, 208, 0.16);
-  --surface: rgba(255, 255, 255, 0.66);
-  --surface-2: rgba(255, 255, 255, 0.45);
-  --surface-3: rgba(255, 255, 255, 0.8);
+  /* Translucent page + mist: every section becomes frosted glass over the
+     fixed aurora ground below, which is what makes this theme distinct. The
+     aurora gradient lives on <html> so it shows through the translucent body. */
+  --color-page: rgba(248, 252, 251, 0.46);
+  --color-mist: rgba(255, 255, 255, 0.3);
+  --surface: rgba(255, 255, 255, 0.62);
+  --surface-2: rgba(255, 255, 255, 0.4);
+  --surface-3: rgba(255, 255, 255, 0.82);
   --line: rgba(255, 255, 255, 0.75);
   --line-strong: color-mix(in srgb, var(--color-ink) 14%, transparent);
   --shadow-md: 0 10px 30px -14px color-mix(in srgb, var(--color-ink) 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.8);
   --shadow-lg: 0 30px 70px -30px color-mix(in srgb, var(--color-ink) 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.85);
-  --logo-stage: color-mix(in srgb, var(--color-ink) 90%, transparent);
-  --logo-stage-ring: rgba(255, 255, 255, 0.55);
-  --logo-stage-glow: 0 12px 32px -14px color-mix(in srgb, var(--color-ink) 45%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --logo-color: var(--color-teal-ink);
   --glass: rgba(255, 255, 255, 0.55);
   --glass-blur: 18px;
   --stage-light: rgba(255, 255, 255, 0.92);
@@ -228,7 +223,18 @@
   /* Iridescent hairline: the three primaries plus a whisper of the warm secondaries. */
   --divider: linear-gradient(90deg, transparent, var(--color-teal) 14%, var(--color-alice) 34%, var(--color-dragonfruit) 50%, var(--color-ice) 66%, var(--color-deep-canopy) 86%, transparent);
   --hero-stage: #d7ece8;
-  --body-bg: var(--color-page);
+  /* A vivid, always-visible aurora as the page ground (teal / ice / dragonfruit
+     / marigold over a light base). The animated ::before drifts on top. */
+  /* The aurora ground on the body (scrolls with content — safe with the hero's
+     transform). Translucent sections above reveal it as frosted glass. Base is
+     opaque so nothing ever shows through to black. */
+  --body-bg:
+    radial-gradient(46% 40% at 12% 12%, color-mix(in srgb, var(--color-teal) 60%, transparent), transparent 60%),
+    radial-gradient(44% 40% at 88% 6%, color-mix(in srgb, var(--color-ice) 85%, transparent), transparent 60%),
+    radial-gradient(52% 46% at 82% 42%, color-mix(in srgb, var(--color-dragonfruit) 52%, transparent), transparent 58%),
+    radial-gradient(46% 42% at 14% 62%, color-mix(in srgb, var(--color-alice) 68%, transparent), transparent 58%),
+    radial-gradient(40% 34% at 60% 88%, color-mix(in srgb, var(--color-marigold) 34%, transparent), transparent 60%),
+    linear-gradient(160deg, #e6f4f1, #efe9f5 55%, #eaf6f0);
 }
 /* Two drifting aurora layers (a fast one and a slower counter-drift) plus a
    large-scale mosaic so the aurora has real presence behind the frosted cards. */
@@ -288,6 +294,44 @@
     linear-gradient(150deg, var(--color-teal) 0%, var(--color-ice) 40%, var(--color-deep-canopy) 75%, var(--color-alice) 100%);
 }
 
+/* --- Dune: warm luxury. Ivory/sand ground, warm-white cards, soft gold
+   hairlines, deep teal accents + teal CTAs (still Lunia — teal is the accent,
+   cream & gold are the brand's own warm neutrals). --- */
+:root[data-theme="dune"] {
+  --color-page: #f4eee1;
+  --color-ink: #33302a;
+  --color-mist: #efe6d4;
+  --color-ice: #e7dcc4;
+  --color-cream: #f7f1e4;
+  --color-teal-deep: #3f7d75;
+  --color-teal-ink: #2f5f58;
+  --surface: #fbf6ec;
+  --surface-2: #f1e8d6;
+  --surface-3: #fdfaf3;
+  --line: color-mix(in srgb, #6b5a34 16%, transparent);
+  --line-strong: color-mix(in srgb, #6b5a34 26%, transparent);
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #5c4a24 10%, transparent);
+  --shadow-md: 0 6px 24px -12px color-mix(in srgb, #5c4a24 26%, transparent);
+  --shadow-lg: 0 24px 60px -28px color-mix(in srgb, #5c4a24 34%, transparent);
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--color-teal) 40%, transparent),
+    0 12px 40px -12px color-mix(in srgb, var(--color-teal) 45%, transparent);
+  --logo-color: var(--color-teal-ink);
+  --color-on-ink: #f7f1e4;
+  --color-gold-ink: #8a6d2f;
+  --tile-wash: #efe4cf;
+  --wash-cream: #efe6d3;
+  --chrome: rgba(244, 238, 225, 0.82);
+  --chrome-line: color-mix(in srgb, #6b5a34 12%, transparent);
+  /* Gold-forward divider, warmed toward the sand ground. */
+  --divider: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-gold) 65%, transparent) 22%, var(--color-gold) 50%, color-mix(in srgb, var(--color-gold) 65%, transparent) 78%, transparent);
+  --hero-stage: #e7dcc4;
+  --wash-cream: #efe5d1;
+  --body-bg:
+    radial-gradient(60% 45% at 100% 0%, color-mix(in srgb, var(--color-gold) 14%, transparent), transparent 60%),
+    radial-gradient(55% 45% at 0% 100%, color-mix(in srgb, var(--color-teal) 12%, transparent), transparent 60%),
+    var(--color-page);
+}
+
 /* A surface that is ALWAYS light (a photo card's cream scrim, a white gift
    card): re-scope the text tokens so dark themes don't paint light type on it. */
 .lx-on-light {
@@ -325,24 +369,16 @@
 .lx-divider { height: 2px; background: var(--divider); }
 .lx-divider-thin { height: 1px; background: var(--divider); opacity: 0.8; }
 
-/* Logo stage: the wordmark's optical bounds sit slightly high (the glow star
-   rises above the cap line), so the block padding is a touch heavier below;
-   the inline padding is symmetric and logical, so RTL mirrors for free. */
+/* The wordmark sits directly on the bar — no box. Just the teal mark, with a
+   gentle hover lift and a proper focus ring on the link. */
 .lunia-logo-stage {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding-block: 0.42rem 0.46rem;
-  padding-inline: 0.95rem;
-  background: var(--logo-stage);
-  box-shadow: inset 0 0 0 1px var(--logo-stage-ring), var(--logo-stage-glow);
   color: var(--logo-color);
-  transition: background 0.3s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-a.lunia-logo-stage:hover {
-  transform: translateY(-1px);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-teal) 55%, transparent), var(--shadow-glow);
-}
+a.lunia-logo-stage:hover { opacity: 0.82; }
 a.lunia-logo-stage:focus-visible { outline: none; box-shadow: var(--ring); }
 
 /* Skip-to-content: visually hidden until it takes keyboard focus. */
@@ -389,6 +425,7 @@ html[dir="rtl"] {
 
 body {
   background: var(--body-bg, var(--color-page));
+  background-attachment: var(--body-bg-attachment, scroll);
   color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;

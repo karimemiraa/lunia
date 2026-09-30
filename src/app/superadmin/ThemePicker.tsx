@@ -12,24 +12,37 @@ interface ThemeOption {
   swatch: { page: string; surface: string; accent: string; text: string; glow?: string };
 }
 
+
 const THEMES: ThemeOption[] = [
   {
     key: "luminous",
     name: "Luminous",
-    tagline: "Pale mint ground, teal fields, ink type. The guideline look.",
+    tagline: "Pale mint ground, teal fields, ink serif. Light and airy — the signature look.",
     swatch: { page: "#f1f7f5", surface: "#ffffff", accent: "#9ed5d0", text: "#223f3a" },
   },
   {
     key: "midnight",
     name: "Midnight",
-    tagline: "Deep ink ground with the teal glowing against it. Evening luxury.",
-    swatch: { page: "#0e1d1a", surface: "#15302b", accent: "#9ed5d0", text: "#eef5f3", glow: "rgba(158,213,208,0.35)" },
+    tagline: "Deep teal-ink ground, the teal glowing against it, cream type. Evening luxury.",
+    swatch: { page: "#0e1d1a", surface: "#15302b", accent: "#9ed5d0", text: "#eef5f3", glow: "radial-gradient(70% 70% at 75% 25%, rgba(158,213,208,0.5), transparent 70%)" },
   },
   {
     key: "aurora",
     name: "Aurora",
-    tagline: "Liquid glass: frosted cards over a slow teal, ice and gold aurora.",
-    swatch: { page: "#f4faf9", surface: "rgba(255,255,255,0.6)", accent: "#9ed5d0", text: "#223f3a", glow: "rgba(217,204,163,0.55)" },
+    tagline: "Liquid glass: frosted cards floating over a living teal, ice and rose aurora.",
+    swatch: {
+      page: "#eaf3f4",
+      surface: "rgba(255,255,255,0.62)",
+      accent: "#9ed5d0",
+      text: "#223f3a",
+      glow: "radial-gradient(40% 42% at 15% 20%, rgba(158,213,208,0.85), transparent 66%), radial-gradient(40% 40% at 85% 18%, rgba(207,234,231,0.95), transparent 66%), radial-gradient(46% 46% at 78% 85%, rgba(217,204,163,0.7), transparent 66%), radial-gradient(40% 40% at 22% 90%, rgba(134,191,184,0.7), transparent 66%)",
+    },
+  },
+  {
+    key: "dune",
+    name: "Dune",
+    tagline: "Warm ivory and sand, soft gold hairlines, deep teal accents. Calm, warm luxury.",
+    swatch: { page: "#f4eee1", surface: "#fbf6ec", accent: "#c0ad73", text: "#33302a", glow: "radial-gradient(70% 70% at 80% 20%, rgba(192,173,115,0.28), transparent 70%)" },
   },
 ];
 
@@ -72,7 +85,7 @@ export function ThemePicker({ current }: { current: ThemeKey }) {
         </a>
       </div>
 
-      <div role="radiogroup" aria-label="Website theme" className="mt-5 grid gap-4 sm:grid-cols-3">
+      <div role="radiogroup" aria-label="Website theme" className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {THEMES.map((t) => {
           const selected = t.key === active;
           return (
@@ -94,9 +107,7 @@ export function ThemePicker({ current }: { current: ThemeKey }) {
                 aria-hidden="true"
                 className="relative h-32 w-full overflow-hidden"
                 style={{
-                  background: t.swatch.glow
-                    ? `radial-gradient(60% 60% at 80% 20%, ${t.swatch.glow}, transparent 70%), ${t.swatch.page}`
-                    : t.swatch.page,
+                  background: t.swatch.glow ? `${t.swatch.glow}, ${t.swatch.page}` : t.swatch.page,
                 }}
               >
                 <div className="absolute inset-x-0 top-0 flex h-6 items-center gap-1.5 px-3" style={{ background: t.swatch.surface }}>

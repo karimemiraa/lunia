@@ -56,7 +56,7 @@ export function BookingNoteForm({ locale, bookingId, initialNote }: BookingNoteF
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-[var(--color-ink)] px-6 py-2.5 text-sm font-medium tracking-wide text-[var(--color-page)] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-page)]"
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-[var(--color-ink)] px-6 py-2.5 text-sm font-medium tracking-wide text-[var(--color-on-ink)] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-page)]"
         >
           {isPending ? t("saving") : t("save")}
         </button>

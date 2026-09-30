@@ -112,7 +112,7 @@ export type TaxSettings = z.infer<typeof taxSettingsSchema>;
 // Website appearance: which of the built-in themes the public site wears.
 // Themes are pure token sets in globals.css ([data-theme=...]), so switching
 // is one setting write + revalidate — no rebuild.
-export const THEME_KEYS = ["luminous", "midnight", "aurora"] as const;
+export const THEME_KEYS = ["luminous", "midnight", "aurora", "dune"] as const;
 export type ThemeKey = (typeof THEME_KEYS)[number];
 const appearanceSettingsSchema = z.object({
   theme: z.enum(THEME_KEYS).default("luminous"),
