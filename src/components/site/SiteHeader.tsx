@@ -46,7 +46,7 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
   ));
 
   return (
-    <header className="lx-chrome sticky top-0 z-40">
+    <header className="lx-chrome-dark sticky top-0 z-40">
       {/* Brand hairline (three primaries; gold in Midnight, iridescent in Aurora). */}
       <span aria-hidden="true" className="lx-divider pointer-events-none absolute inset-x-0 bottom-0" />
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-5 sm:px-6">
@@ -87,7 +87,7 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
             </svg>
           </summary>
 
-          <div className="lx-surface absolute end-0 top-full z-50 mt-3 w-64 rounded-2xl border border-[var(--line)] p-6 shadow-[var(--shadow-lg)]">
+          <div className="lx-menu-dark absolute end-0 top-full z-50 mt-3 w-64 rounded-2xl border border-[var(--line)] p-6">
             <nav aria-label={tNav("mobileLabel")} className="flex flex-col gap-4">
               {navLinks}
               <Link href={accountHref} className={navLinkClass}>

@@ -69,7 +69,7 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
   const address = business ? (isAr ? business.addressAr : business.addressEn) : null;
 
   return (
-    <footer className="lunia-teal-field lunia-pattern-waves lunia-pattern-multiply relative">
+    <footer className="lx-footer-dark lunia-pattern-waves lunia-pattern-on-dark">
       <div className="mx-auto grid w-full max-w-6xl gap-12 px-6 py-16 sm:py-20 md:grid-cols-[1.4fr_1fr_1fr]">
         <div className="flex flex-col gap-4">
           <span className="lunia-logo-stage self-start">

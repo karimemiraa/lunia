@@ -83,10 +83,10 @@
    Teal stays the primary; only the ground it sits on changes.
    --------------------------------------------------------------------------- */
 :root {
-  /* The wordmark sits directly on the bar (no box). It is painted in this
-     color — a deep teal that reads on the pale chrome; Midnight uses the
-     luminous teal so it glows on the dark bar. */
-  --logo-color: var(--color-teal-ink);
+  /* The logo is always the primary Luminous Teal (#9FD5D0). It needs a dark
+     ground to read, so the header + footer are a deep teal-ink frame; on a
+     teal field the mono ink mark is used instead (see .lunia-teal-field). */
+  --logo-color: #9FD5D0;
   /* Scrim + glass tokens so cards/overlays can adapt per theme. */
   --scrim: rgba(16, 32, 29, 0.55);
   /* Photo scrims are theme-invariant: photography is always shaded toward
@@ -130,26 +130,24 @@
 
 /* --- Midnight: the same teal, luminous against deep ink. Cream type. --- */
 :root[data-theme="midnight"] {
-  --color-page: #0e1d1a;
-  --color-ink: #eef5f3;
+  --color-page: #091613;
+  --color-ink: #eaf4f1;
   --color-cream: #f3eee2;
-  --color-mist: #132824;
-  --color-ice: #1f3d38;
-  --color-forest: #16302b;
+  --color-mist: #0e221e;
+  --color-ice: #1b3a35;
+  --color-forest: #123029;
   --color-teal-deep: #8fd0c9;
-  --color-teal-ink: #a9ddd7;
-  --surface: #15302b;
-  --surface-2: #112622;
-  --surface-3: #1c3a34;
-  --line: rgba(255, 255, 255, 0.09);
-  --line-strong: rgba(255, 255, 255, 0.16);
+  --color-teal-ink: #a6e0d9;
+  --surface: #12302a;
+  --surface-2: #0e231f;
+  --surface-3: #184039;
+  --line: rgba(174, 221, 215, 0.12);
+  --line-strong: rgba(174, 221, 215, 0.22);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 6px 24px -12px rgba(0, 0, 0, 0.7);
   --shadow-lg: 0 24px 60px -28px rgba(0, 0, 0, 0.8);
   --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--color-teal) 45%, transparent),
     0 12px 40px -12px color-mix(in srgb, var(--color-teal) 60%, transparent);
-  /* Wordmark glows in luminous teal on the dark bar. */
-  --logo-color: var(--color-teal);
   --scrim: rgba(0, 0, 0, 0.6);
   --glass: rgba(21, 48, 43, 0.72);
   --color-on-ink: #0e1d1a;
@@ -169,11 +167,28 @@
   --color-danger-soft: rgba(255, 120, 110, 0.14);
   --color-success-soft: rgba(159, 220, 201, 0.14);
   --body-bg:
-    radial-gradient(70% 50% at 100% 0%, color-mix(in srgb, var(--color-teal) 14%, transparent), transparent 60%),
-    radial-gradient(60% 45% at 0% 100%, color-mix(in srgb, var(--color-gold) 10%, transparent), transparent 60%),
-    var(--color-page);
+    radial-gradient(90% 60% at 50% -10%, color-mix(in srgb, var(--color-teal) 20%, transparent), transparent 55%),
+    radial-gradient(70% 50% at 100% 12%, color-mix(in srgb, var(--color-deep-canopy) 16%, transparent), transparent 55%),
+    radial-gradient(60% 50% at 0% 100%, color-mix(in srgb, var(--color-gold) 9%, transparent), transparent 60%),
+    linear-gradient(180deg, #0b1b17 0%, #081210 100%);
   color-scheme: dark;
 }
+:root[data-theme="midnight"] .lx-surface,
+:root[data-theme="midnight"] .lunia-card,
+:root[data-theme="midnight"] .lx-tile,
+:root[data-theme="midnight"] .lx-glass {
+  background: linear-gradient(180deg, #163a33 0%, #10302a 100%);
+  box-shadow: inset 0 1px 0 rgba(174, 221, 215, 0.08), 0 30px 60px -40px rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(174, 221, 215, 0.1);
+}
+:root[data-theme="midnight"] .lx-chrome {
+  background: rgba(9, 22, 19, 0.72);
+}
+/* Primary CTA pill keeps its bright teal in the dark — add a soft halo. */
+:root[data-theme="midnight"] .lx-pill {
+  box-shadow: 0 0 0 1px rgba(174, 221, 215, 0.25), 0 10px 30px -10px color-mix(in srgb, var(--color-teal) 55%, transparent);
+}
+
 /* Midnight: a soft teal glow behind the hero stage. */
 :root[data-theme="midnight"] .lx-hero-viewport::before {
   content: "";
@@ -211,7 +226,6 @@
   --line-strong: color-mix(in srgb, var(--color-ink) 14%, transparent);
   --shadow-md: 0 10px 30px -14px color-mix(in srgb, var(--color-ink) 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.8);
   --shadow-lg: 0 30px 70px -30px color-mix(in srgb, var(--color-ink) 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.85);
-  --logo-color: var(--color-teal-ink);
   --glass: rgba(255, 255, 255, 0.55);
   --glass-blur: 18px;
   --stage-light: rgba(255, 255, 255, 0.92);
@@ -315,7 +329,6 @@
   --shadow-lg: 0 24px 60px -28px color-mix(in srgb, #5c4a24 34%, transparent);
   --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--color-teal) 40%, transparent),
     0 12px 40px -12px color-mix(in srgb, var(--color-teal) 45%, transparent);
-  --logo-color: var(--color-teal-ink);
   --color-on-ink: #f7f1e4;
   --color-gold-ink: #8a6d2f;
   --tile-wash: #efe4cf;
@@ -368,6 +381,35 @@
 /* Brand hairline (three primaries in Luminous/Aurora, gold in Midnight). */
 .lx-divider { height: 2px; background: var(--divider); }
 .lx-divider-thin { height: 1px; background: var(--divider); opacity: 0.8; }
+
+/* Deep teal-ink frame (header + footer) so the bright teal logo + light nav
+   read in every theme. Re-scoping the text/line tokens flips all child copy to
+   light without touching the components. Backgrounds use fixed hex (not the
+   re-scoped tokens). */
+.lx-chrome-dark,
+.lx-footer-dark {
+  --color-ink: #eef5f3;
+  --color-teal-ink: #9FD5D0;
+  --color-on-ink: #0b1a17;
+  --color-gold-ink: #dcc98d;
+  --line: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.2);
+  --logo-color: #9FD5D0;
+  color: var(--color-ink);
+}
+.lx-chrome-dark {
+  background: linear-gradient(180deg, #10241f, #0d201c);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+/* The header's mobile dropdown sits on a slightly lifted dark panel. */
+.lx-menu-dark { background: #163a33; box-shadow: var(--shadow-lg); }
+.lx-footer-dark {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(120% 80% at 50% 0%, #143029 0%, transparent 60%),
+    linear-gradient(180deg, #102823 0%, #0b1b17 100%);
+}
 
 /* The wordmark sits directly on the bar — no box. Just the teal mark, with a
    gentle hover lift and a proper focus ring on the link. */
@@ -692,6 +734,7 @@ body {
     radial-gradient(80% 60% at 100% 100%, color-mix(in srgb, var(--color-alice) 70%, transparent) 0%, transparent 65%),
     linear-gradient(160deg, var(--color-teal) 0%, var(--color-deep-canopy) 55%, var(--color-alice) 100%);
   color: var(--color-ink);
+  --logo-color: var(--color-on-teal);
 }
 /* On a large teal field the multiplied pattern must stay a whisper. */
 .lunia-teal-field.lunia-pattern-waves.lunia-pattern-multiply::before { opacity: 0.2; }
