@@ -750,6 +750,62 @@ body {
   background: currentColor;
   -webkit-mask: url("/brand/glow.svg") center / contain no-repeat;
   mask: url("/brand/glow.svg") center / contain no-repeat;
+  animation: lunia-twinkle 5.5s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes lunia-twinkle {
+  0%, 100% { opacity: 0.78; transform: scale(0.94); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+
+/* --- Adaptive brand lockup: emblem + wordmark, condensing to the emblem on
+   scroll, with a twinkling star and a soft glow bloom on hover. --- */
+.lunia-emblem {
+  display: inline-block;
+  height: 1em;
+  aspect-ratio: 375 / 549;
+  background: currentColor;
+  -webkit-mask: url("/brand/emblem-mono.svg") center / contain no-repeat;
+  mask: url("/brand/emblem-mono.svg") center / contain no-repeat;
+}
+.lunia-brand {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--logo-color);
+}
+/* Soft teal bloom behind the mark on hover (pure delight, no layout shift). */
+.lunia-brand::before {
+  content: "";
+  position: absolute;
+  inset: -40% -8%;
+  z-index: -1;
+  border-radius: 999px;
+  background: radial-gradient(60% 80% at 14% 50%, color-mix(in srgb, var(--color-teal) 40%, transparent), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.lunia-brand:hover::before { opacity: 1; }
+/* The wordmark collapses away when the header condenses; the emblem remains. */
+.lunia-brand-word {
+  max-width: 7.5rem;
+  overflow: hidden;
+  transition: max-width 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, margin 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lunia-brand[data-condensed="true"] .lunia-brand-word {
+  max-width: 0;
+  opacity: 0;
+  margin-inline-start: -0.6rem;
+}
+/* The emblem's own star twinkles a touch brighter when you hover the brand. */
+.lunia-brand:hover .lunia-emblem { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color-teal) 55%, transparent)); }
+
+.lx-eyebrow:nth-of-type(even) .lunia-glow-mark { animation-delay: -2.75s; }
+@media (prefers-reduced-motion: reduce) {
+  .lunia-glow-mark { animation: none; }
+  .lunia-brand-word { transition: none; }
 }
 
 /* ---------------------------------------------------------------------------

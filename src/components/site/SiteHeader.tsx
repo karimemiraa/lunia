@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HeaderBrand } from "./HeaderBrand";
 import { getTranslations } from "next-intl/server";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 
@@ -50,17 +51,7 @@ export async function SiteHeader({ locale }: SiteHeaderProps) {
       {/* Brand hairline (three primaries; gold in Midnight, iridescent in Aurora). */}
       <span aria-hidden="true" className="lx-divider pointer-events-none absolute inset-x-0 bottom-0" />
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-5 sm:px-6">
-        <Link
-          href={home}
-          className={`lunia-logo-stage ${focusRingClass}`}
-          aria-label={tNav("home")}
-        >
-          <span
-            role="img"
-            aria-label="LUNIA — Skin & Hair"
-            className="lunia-logo h-[1.375rem] md:h-7"
-          />
-        </Link>
+        <HeaderBrand href={home} label={tNav("home")} className={focusRingClass} />
 
         <nav aria-label={tNav("primaryLabel")} className="hidden items-center gap-8 md:flex">
           {navLinks}
