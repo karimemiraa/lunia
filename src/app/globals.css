@@ -1573,3 +1573,37 @@ video::-webkit-media-controls { display: none !important; }
   .lunia-skeleton::after, .lunia-toast, .lunia-pop-in, .lunia-live-dot { animation: none; }
   .lunia-tip::after { transition: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   Serene Edition (/v2 preview): a calmer, booking-first page system in the
+   Soft-UI direction (softer depth, bigger radii, very clear hierarchy). Pure
+   tokens, so it inherits every theme. Brand fonts + teal unchanged.
+   --------------------------------------------------------------------------- */
+.srn-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 40%, transparent) inset, var(--shadow-md);
+}
+.srn-lift { transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s ease; }
+.srn-lift:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+.srn-chip {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  border-radius: 999px; padding: 0.45rem 0.85rem;
+  background: var(--color-mist); color: var(--color-teal-ink);
+  font-size: 0.8rem; font-weight: 500; line-height: 1;
+  border: 1px solid var(--line);
+}
+.srn-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 2.5rem; width: 2.5rem; border-radius: 999px;
+  background: var(--color-teal); color: var(--color-on-teal);
+  font-family: var(--font-display); font-size: 1.25rem; font-weight: 600;
+  box-shadow: var(--shadow-glow);
+}
+.srn-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 3rem; width: 3rem; border-radius: 18px;
+  background: color-mix(in srgb, var(--color-teal) 22%, transparent);
+  color: var(--color-teal-ink);
+}
