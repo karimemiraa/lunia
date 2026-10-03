@@ -1607,3 +1607,88 @@ video::-webkit-media-controls { display: none !important; }
   background: color-mix(in srgb, var(--color-teal) 22%, transparent);
   color: var(--color-teal-ink);
 }
+
+/* ===========================================================================
+   Serene Edition chrome (/v2): a whole different header — airy at the top,
+   morphing into a floating glass pill on scroll — a medallion logo, animated
+   nav underlines, and a full-screen mobile menu. All reduced-motion safe.
+   =========================================================================== */
+.srn-head { position: fixed; inset-inline: 0; top: 0; z-index: 50; transition: padding 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
+.srn-head-inner {
+  margin-inline: auto; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem;
+  border: 1px solid transparent; border-radius: 999px;
+  transition: max-width 0.55s cubic-bezier(0.16, 1, 0.3, 1), padding 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+}
+.srn-head[data-scrolled="false"] { padding: clamp(0.9rem, 2.5vw, 1.5rem) clamp(1rem, 4vw, 2.5rem); }
+.srn-head[data-scrolled="false"] .srn-head-inner { max-width: 80rem; padding-inline: 0.25rem; background: transparent; }
+.srn-head[data-scrolled="true"] { padding: 0.55rem clamp(1rem, 4vw, 2.5rem); }
+.srn-head[data-scrolled="true"] .srn-head-inner {
+  max-width: 58rem; padding: 0.5rem 0.6rem 0.5rem 1.1rem;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  border-color: var(--line); box-shadow: var(--shadow-lg);
+}
+
+/* Medallion logo: the emblem inside a bright-teal coin + the wordmark. */
+.srn-brand { display: inline-flex; align-items: center; gap: 0.7rem; color: var(--color-teal-ink); }
+.srn-medallion {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 2.5rem; width: 2.5rem; border-radius: 999px;
+  background: radial-gradient(120% 120% at 30% 20%, color-mix(in srgb, #fff 45%, var(--color-teal)), var(--color-teal));
+  color: var(--color-forest);
+  box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.srn-brand:hover .srn-medallion { transform: rotate(-6deg) scale(1.05); }
+.srn-medallion .lunia-emblem { height: 1.3rem; }
+.srn-wordmark { height: 1.15rem; transition: max-width 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease; max-width: 7rem; overflow: hidden; }
+
+/* Animated nav underline. */
+.srn-navlink { position: relative; font-size: 0.86rem; font-weight: 500; letter-spacing: 0.01em; color: var(--color-ink); opacity: 0.78; transition: opacity 0.2s ease; padding-block: 0.25rem; }
+.srn-navlink:hover, .srn-navlink:focus-visible { opacity: 1; outline: none; }
+.srn-navlink::after {
+  content: ""; position: absolute; inset-inline-start: 0; bottom: 0; height: 1.5px; width: 100%;
+  background: var(--color-teal-ink); transform: scaleX(0); transform-origin: inline-start;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.srn-navlink:hover::after, .srn-navlink:focus-visible::after { transform: scaleX(1); }
+
+/* Header entrance: logo + items stagger in on load. */
+.srn-head-enter > * { opacity: 0; animation: lunia-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.srn-head-enter > *:nth-child(1) { animation-delay: 0.05s; }
+.srn-head-enter > *:nth-child(2) { animation-delay: 0.18s; }
+.srn-head-enter > *:nth-child(3) { animation-delay: 0.3s; }
+
+/* Full-screen mobile menu overlay. */
+.srn-overlay {
+  position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column;
+  padding: clamp(1.25rem, 6vw, 2.5rem);
+  background: linear-gradient(160deg, var(--color-teal) 0%, var(--color-deep-canopy) 60%, var(--color-alice) 100%);
+  color: var(--color-on-teal);
+  opacity: 0; visibility: hidden; transform: translateY(-1.5%);
+  transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.4s;
+}
+.srn-overlay[data-open="true"] { opacity: 1; visibility: visible; transform: translateY(0); }
+.srn-overlay-link {
+  font-family: var(--font-display); font-size: clamp(2rem, 1.4rem + 4vw, 3.25rem); line-height: 1.1;
+  color: var(--color-on-teal); opacity: 0; transform: translateY(1rem);
+}
+.srn-overlay[data-open="true"] .srn-overlay-link { animation: lunia-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.srn-overlay[data-open="true"] .srn-overlay-link:nth-child(1) { animation-delay: 0.08s; }
+.srn-overlay[data-open="true"] .srn-overlay-link:nth-child(2) { animation-delay: 0.14s; }
+.srn-overlay[data-open="true"] .srn-overlay-link:nth-child(3) { animation-delay: 0.2s; }
+.srn-overlay[data-open="true"] .srn-overlay-link:nth-child(4) { animation-delay: 0.26s; }
+.srn-overlay[data-open="true"] .srn-overlay-link:nth-child(5) { animation-delay: 0.32s; }
+.srn-overlay[data-open="true"] .srn-overlay-link:nth-child(6) { animation-delay: 0.38s; }
+.srn-overlay[data-open="true"] .srn-overlay-link:nth-child(7) { animation-delay: 0.44s; }
+
+/* Soft floating animation for the hero media card. */
+@keyframes srn-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.srn-float { animation: srn-float 7s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .srn-head-enter > *, .srn-overlay[data-open="true"] .srn-overlay-link { animation: none; opacity: 1; transform: none; }
+  .srn-float { animation: none; }
+  .srn-head-inner, .srn-overlay { transition: none; }
+}
