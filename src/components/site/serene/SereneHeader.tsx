@@ -29,7 +29,7 @@ export function SereneHeader({ locale }: SereneHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const raf = useRef(0);
-  const home = `/${locale}/v2`;
+  const home = `/${locale}`;
   const href = (p: string) => `/${locale}/${p}`;
 
   useEffect(() => {
@@ -119,7 +119,7 @@ export function SereneHeader({ locale }: SereneHeaderProps) {
           </button>
         </div>
         <nav aria-label={t("mobileLabel")} className="mt-[8svh] flex flex-1 flex-col justify-center gap-5">
-          {[{ key: "home", path: "v2" }, ...NAV, { key: "account", path: "account" }].map((item) => (
+          {[{ key: "home", path: "" }, ...NAV, { key: "account", path: "account" }].map((item) => (
             <Link key={item.key} href={href(item.path)} onClick={() => setOpen(false)} className="srn-overlay-link">
               {t(item.key)}
             </Link>
