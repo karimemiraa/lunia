@@ -1692,3 +1692,45 @@ video::-webkit-media-controls { display: none !important; }
   .srn-float { animation: none; }
   .srn-head-inner, .srn-overlay { transition: none; }
 }
+
+/* ===========================================================================
+   Motion Edition (/v4): brand-flagship scroll choreography (Nike/Samsung-style)
+   — a full-bleed kinetic hero, a pinned HORIZONTAL journey track, scrubbed
+   statement reveals and a marquee. Progressive enhancement: the markup is a
+   safe vertical stack by default; the GSAP engine opts into horizontal/pin only
+   when JS runs and motion is allowed.
+   =========================================================================== */
+.mo-hero { position: relative; min-height: 100svh; display: flex; align-items: flex-end; overflow: hidden; }
+.mo-hero-media { position: absolute; inset: -12% 0 0; z-index: -2; }
+.mo-hero-media > * { width: 100%; height: 112%; object-fit: cover; }
+.mo-hero-scrim { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(8,18,16,0.35) 0%, rgba(8,18,16,0.15) 40%, rgba(8,18,16,0.82) 100%); }
+.mo-kinetic { font-family: var(--font-display); font-weight: 600; line-height: 0.92; letter-spacing: -0.02em; font-size: clamp(3.2rem, 9vw, 10rem); color: #fff; }
+.mo-kinetic .mo-word { display: inline-block; overflow: hidden; vertical-align: top; }
+.mo-kinetic .mo-char { display: inline-block; will-change: transform; }
+
+/* Horizontal journey track (default = safe vertical stack). */
+.mo-track { display: flex; flex-direction: column; }
+.mo-track.mo-horizontal { flex-direction: row; width: max-content; flex-wrap: nowrap; }
+.mo-panel { position: relative; width: 100%; min-height: 62svh; overflow: hidden; display: flex; align-items: flex-end; }
+.mo-track.mo-horizontal .mo-panel { width: 100vw; height: 100svh; flex: 0 0 100vw; }
+.mo-panel-media { position: absolute; inset: 0; z-index: -2; }
+.mo-panel-media > * { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s cubic-bezier(.16,1,.3,1); }
+.mo-panel-scrim { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 30%, rgba(8,18,16,0.85) 100%); }
+
+/* Section progress rail (horizontal track). */
+.mo-rail { height: 2px; background: color-mix(in srgb, var(--color-ink) 12%, transparent); overflow: hidden; }
+.mo-rail-fill { height: 100%; width: 100%; transform-origin: left; transform: scaleX(0); background: var(--color-teal); }
+
+/* Pinned statement. */
+.mo-statement { min-height: 100svh; display: flex; align-items: center; justify-content: center; text-align: center; }
+
+/* Marquee (GSAP-driven; CSS fallback via animation). */
+.mo-marquee { overflow: hidden; white-space: nowrap; }
+.mo-marquee-inner { display: inline-flex; gap: 2.5rem; padding-inline: 1.25rem; will-change: transform; }
+.mo-marquee-item { font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 3.2rem); color: var(--color-teal-ink); display: inline-flex; align-items: center; gap: 2.5rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mo-track.mo-horizontal { flex-direction: column; width: 100%; }
+  .mo-track.mo-horizontal .mo-panel { width: 100%; height: auto; min-height: 62svh; flex: none; }
+  .mo-marquee-inner { animation: none; }
+}
