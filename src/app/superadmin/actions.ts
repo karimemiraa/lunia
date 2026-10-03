@@ -11,7 +11,7 @@ import {
   deleteCustomCredential,
 } from "@/modules/platform/secrets";
 import { createStage, updateStage, deleteStage, reorderStage, type StageKind } from "@/modules/crm/pipeline";
-import { getSetting, setSetting, THEME_KEYS, type ThemeKey } from "@/modules/cms/settings";
+import { getSetting, setSetting, THEME_KEYS, type ThemeKey, EDITION_KEYS, type EditionKey } from "@/modules/cms/settings";
 
 export interface PlatformActionState {
   error?: string;
@@ -160,8 +160,9 @@ export async function reorderStageAction(id: string, dir: -1 | 1): Promise<Platf
 export async function setThemeAction(theme: string): Promise<PlatformActionState> {
   const admin = await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
   if (!(THEME_KEYS as readonly string[]).includes(theme)) return { error: "Unknown theme." };
-  const current = (await getSetting("appearance").catch(() => null))?.theme ?? "luminous";
-  await setSetting("appearance", { theme: theme as ThemeKey });
+  const appearance = await getSetting("appearance").catch(() => null);
+  const current = appearance?.theme ?? "luminous";
+  await setSetting("appearance", { theme: theme as ThemeKey, edition: appearance?.edition ?? "classic" });
   await recordAudit({
     actorUserId: admin.id,
     action: "WEBSITE_THEME_CHANGE",
@@ -190,6 +191,26 @@ export async function saveNavVisibilityAction(hiddenHrefs: string[]): Promise<Pl
     summary: clean.length ? `Hidden menu items: ${clean.join(", ")}` : "All menu items visible",
   });
   revalidatePath("/admin", "layout");
+  revalidatePath("/superadmin");
+  return { success: true };
+}
+
+// --- Website edition (homepage design) --------------------------------------
+
+export async function setEditionAction(edition: string): Promise<PlatformActionState> {
+  const admin = await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
+  if (!(EDITION_KEYS as readonly string[]).includes(edition)) return { error: "Unknown edition." };
+  const appearance = await getSetting("appearance").catch(() => null);
+  const current = appearance?.edition ?? "classic";
+  await setSetting("appearance", { theme: appearance?.theme ?? "luminous", edition: edition as EditionKey });
+  await recordAudit({
+    actorUserId: admin.id,
+    action: "WEBSITE_EDITION_CHANGE",
+    entityType: "SiteSetting",
+    entityId: "appearance",
+    summary: `Homepage edition: ${current} -> ${edition}`,
+  });
+  revalidatePath("/", "layout");
   revalidatePath("/superadmin");
   return { success: true };
 }

@@ -114,8 +114,14 @@ export type TaxSettings = z.infer<typeof taxSettingsSchema>;
 // is one setting write + revalidate — no rebuild.
 export const THEME_KEYS = ["luminous", "midnight", "aurora", "dune"] as const;
 export type ThemeKey = (typeof THEME_KEYS)[number];
+// Homepage / site "edition" — the design & chrome: classic (the original
+// cinematic site), cinematic (that body + the Serene glass nav), soft (the
+// Soft-UI booking-first design), or motion (the flagship scroll experience).
+export const EDITION_KEYS = ["classic", "cinematic", "soft", "motion"] as const;
+export type EditionKey = (typeof EDITION_KEYS)[number];
 const appearanceSettingsSchema = z.object({
   theme: z.enum(THEME_KEYS).default("luminous"),
+  edition: z.enum(EDITION_KEYS).default("classic"),
 });
 export type AppearanceSettings = z.infer<typeof appearanceSettingsSchema>;
 

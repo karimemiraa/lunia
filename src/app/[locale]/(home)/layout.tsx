@@ -2,20 +2,27 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import { localeDirection } from "@/i18n/routing";
 import { fontVariables } from "@/app/fonts";
-import { CinematicScroll } from "@/components/site/CinematicScroll";
+import { SiteHeader } from "@/components/site/SiteHeader";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { SereneHeader } from "@/components/site/serene/SereneHeader";
 import { SereneFooter } from "@/components/site/serene/SereneFooter";
+import { StickyBookCta } from "@/components/site/StickyBookCta";
+import { WhatsAppFab } from "@/components/site/WhatsAppFab";
+import { PageTransition } from "@/components/site/PageTransition";
+import { CinematicScroll } from "@/components/site/CinematicScroll";
 import { AssistantWidget } from "@/components/site/AssistantWidget";
+import { ImpersonationBanner } from "@/components/site/ImpersonationBanner";
 import { Tracker } from "@/components/analytics/Tracker";
 import { getSetting } from "@/modules/cms/settings";
 import "@/app/globals.css";
 
 export const dynamic = "force-dynamic";
 
-// The Motion Edition's chrome: the Serene glass nav + footer, but WITHOUT the
-// site's CinematicScroll engine — the MotionEdition page runs its own GSAP +
-// Lenis choreography, so there must be exactly one smooth-scroll driver.
-export default async function MotionLayout({
+// The homepage layout chooses its chrome from the "edition" setting: classic
+// keeps the original site header/footer (identical to before); every other
+// edition uses the Serene glass nav + footer. One shared CinematicScroll engine
+// drives all of them (the Motion body builds its timelines on top of it).
+export default async function HomeLayout({
   children,
   params,
 }: {
@@ -30,15 +37,25 @@ export default async function MotionLayout({
     getSetting("appearance").catch(() => null),
   ]);
   const theme = appearance?.theme ?? "luminous";
+  const edition = appearance?.edition ?? "classic";
+  const classic = edition === "classic";
+
   return (
     <html lang={locale} dir={localeDirection(locale)} className={fontVariables} data-theme={theme}>
       <body className="flex min-h-screen flex-col bg-[var(--color-page)]">
         <NextIntlClientProvider messages={messages}>
           <a href="#main-content" className="lx-skip">{tCommon("skipToContent")}</a>
           <CinematicScroll />
-          <SereneHeader locale={locale} />
-          <main id="main-content" className="flex-1">{children}</main>
-          <SereneFooter locale={locale} />
+          <ImpersonationBanner locale={locale} />
+          {classic ? <SiteHeader locale={locale} /> : <SereneHeader locale={locale} />}
+          {classic ? (
+            <PageTransition id="main-content" className="flex-1">{children}</PageTransition>
+          ) : (
+            <main id="main-content" className="flex-1">{children}</main>
+          )}
+          {classic ? <SiteFooter locale={locale} /> : <SereneFooter locale={locale} />}
+          {classic && <StickyBookCta href={`/${locale}/book`} label={tCommon("bookNow")} />}
+          {classic && <WhatsAppFab />}
           <AssistantWidget locale={locale} hasWhatsapp={!!business?.whatsapp} />
         </NextIntlClientProvider>
         <Tracker />

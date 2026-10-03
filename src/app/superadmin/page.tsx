@@ -7,6 +7,7 @@ import { SecretsForm } from "./SecretsForm";
 import { CustomCredentials } from "./CustomCredentials";
 import { PipelineStagesEditor } from "./PipelineStagesEditor";
 import { ThemePicker } from "./ThemePicker";
+import { EditionPicker } from "./EditionPicker";
 import { NavVisibilityEditor } from "./NavVisibilityEditor";
 import { NAV_CATALOG } from "../admin/_components/AdminNav";
 import { getSetting } from "@/modules/cms/settings";
@@ -52,6 +53,8 @@ export default async function SuperadminPage() {
         </p>
 
         <ThemePicker current={appearance?.theme ?? "luminous"} />
+
+        <EditionPicker current={appearance?.edition ?? "classic"} />
 
         <NavVisibilityEditor catalog={NAV_CATALOG} hidden={adminNav?.hiddenHrefs ?? []} />
 

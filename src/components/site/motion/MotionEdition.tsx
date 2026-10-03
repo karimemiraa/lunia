@@ -64,21 +64,13 @@ export function MotionEdition(p: MotionEditionProps) {
     let killed = false;
 
     (async () => {
-      const [{ default: Lenis }, gsapMod, stMod] = await Promise.all([
-        import("lenis"),
-        import("gsap"),
-        import("gsap/ScrollTrigger"),
-      ]);
+      // Smooth scroll + ScrollTrigger.update are provided by the site's shared
+      // CinematicScroll engine (ambient) so there's only ever one Lenis.
+      const [gsapMod, stMod] = await Promise.all([import("gsap"), import("gsap/ScrollTrigger")]);
       if (killed) return;
       const gsap = gsapMod.default ?? gsapMod;
       const ScrollTrigger = stMod.ScrollTrigger;
       gsap.registerPlugin(ScrollTrigger);
-
-      const lenis = new Lenis({ duration: 1.1, smoothWheel: true });
-      lenis.on("scroll", ScrollTrigger.update);
-      const ticker = (time: number) => lenis.raf(time * 1000);
-      gsap.ticker.add(ticker);
-      gsap.ticker.lagSmoothing(0);
 
       const q = gsap.utils.selector(el);
       const ctx = gsap.context(() => {
@@ -152,7 +144,7 @@ export function MotionEdition(p: MotionEditionProps) {
         ScrollTrigger.refresh();
       }, el);
 
-      cleanup = () => { ctx.revert(); gsap.ticker.remove(ticker); lenis.destroy(); };
+      cleanup = () => { ctx.revert(); };
     })();
 
     return () => { killed = true; cleanup?.(); };
