@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
 export default async function Home({ params }: HomePageProps) {
   const { locale: rawLocale } = await params;
   const locale: PublicLocale = isPublicLocale(rawLocale) ? rawLocale : "ar";
-  const edition = (await getSetting("appearance").catch(() => null))?.edition ?? "classic";
+  const edition = (await getSetting("appearance").catch(() => null))?.edition ?? "cinematic";
 
   if (edition === "soft") return <SereneHome locale={locale} />;
   if (edition === "motion") return <MotionHome locale={locale} />;

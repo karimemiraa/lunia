@@ -54,7 +54,7 @@ export default async function SuperadminPage() {
 
         <ThemePicker current={appearance?.theme ?? "luminous"} />
 
-        <EditionPicker current={appearance?.edition ?? "classic"} />
+        <EditionPicker current={appearance?.edition ?? "cinematic"} />
 
         <NavVisibilityEditor catalog={NAV_CATALOG} hidden={adminNav?.hiddenHrefs ?? []} />
 

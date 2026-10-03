@@ -162,7 +162,7 @@ export async function setThemeAction(theme: string): Promise<PlatformActionState
   if (!(THEME_KEYS as readonly string[]).includes(theme)) return { error: "Unknown theme." };
   const appearance = await getSetting("appearance").catch(() => null);
   const current = appearance?.theme ?? "luminous";
-  await setSetting("appearance", { theme: theme as ThemeKey, edition: appearance?.edition ?? "classic" });
+  await setSetting("appearance", { theme: theme as ThemeKey, edition: appearance?.edition ?? "cinematic" });
   await recordAudit({
     actorUserId: admin.id,
     action: "WEBSITE_THEME_CHANGE",
@@ -201,7 +201,7 @@ export async function setEditionAction(edition: string): Promise<PlatformActionS
   const admin = await requireAdmin(PERMISSIONS.PLATFORM_MANAGE);
   if (!(EDITION_KEYS as readonly string[]).includes(edition)) return { error: "Unknown edition." };
   const appearance = await getSetting("appearance").catch(() => null);
-  const current = appearance?.edition ?? "classic";
+  const current = appearance?.edition ?? "cinematic";
   await setSetting("appearance", { theme: appearance?.theme ?? "luminous", edition: edition as EditionKey });
   await recordAudit({
     actorUserId: admin.id,

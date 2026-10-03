@@ -37,7 +37,7 @@ export default async function HomeLayout({
     getSetting("appearance").catch(() => null),
   ]);
   const theme = appearance?.theme ?? "luminous";
-  const edition = appearance?.edition ?? "classic";
+  const edition = appearance?.edition ?? "cinematic";
   const classic = edition === "classic";
 
   return (

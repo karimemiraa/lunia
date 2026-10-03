@@ -40,7 +40,7 @@ export default async function SiteLayout({
   // (so the homepage and inner pages match). The floating header overlays
   // content, so inner pages get a top spacer (the homepage bodies are
   // full-bleed and sit under it by design — they live in the (home) group).
-  const serene = (appearance?.edition ?? "classic") !== "classic";
+  const serene = (appearance?.edition ?? "cinematic") !== "classic";
 
   return (
     <html lang={locale} dir={localeDirection(locale)} className={fontVariables} data-theme={theme} data-chrome={serene ? "serene" : "classic"}>

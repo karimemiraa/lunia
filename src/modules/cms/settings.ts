@@ -121,7 +121,7 @@ export const EDITION_KEYS = ["classic", "cinematic", "soft", "motion"] as const;
 export type EditionKey = (typeof EDITION_KEYS)[number];
 const appearanceSettingsSchema = z.object({
   theme: z.enum(THEME_KEYS).default("luminous"),
-  edition: z.enum(EDITION_KEYS).default("classic"),
+  edition: z.enum(EDITION_KEYS).default("cinematic"),
 });
 export type AppearanceSettings = z.infer<typeof appearanceSettingsSchema>;
 
