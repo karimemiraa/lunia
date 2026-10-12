@@ -6,6 +6,7 @@ import { Field } from "../../../_components/Field";
 import { LocalizedField, type LocalizedValue } from "../../../_components/LocalizedField";
 import { MediaPicker, type MediaOption } from "../../../_components/MediaPicker";
 import { updateDepartmentAction, type DepartmentActionState } from "../actions";
+import { InlineStatus } from "../../../_ui/Form";
 
 const initialState: DepartmentActionState = {};
 
@@ -57,12 +58,8 @@ export function EditDepartmentForm({ department, media }: EditDepartmentFormProp
         >
           {pending ? "Saving…" : "Save"}
         </button>
-        {state.success && <p className="text-sm text-[var(--color-teal)]">Saved.</p>}
-        {state.error && (
-          <p role="alert" className="text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
+        <InlineStatus success={state.success ? "Saved." : undefined} />
+        <InlineStatus error={state.error} />
       </div>
     </form>
   );

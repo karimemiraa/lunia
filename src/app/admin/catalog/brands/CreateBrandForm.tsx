@@ -5,6 +5,7 @@ import { Field } from "../../_components/Field";
 import { LocalizedField } from "../../_components/LocalizedField";
 import { MediaPicker, type MediaOption } from "../../_components/MediaPicker";
 import { createBrandAction, type BrandActionState } from "./actions";
+import { InlineStatus } from "../../_ui/Form";
 
 const initialState: BrandActionState = {};
 
@@ -48,12 +49,8 @@ export function CreateBrandForm({ media }: { media: MediaOption[] }) {
         >
           {pending ? "Creating…" : "Create brand"}
         </button>
-        {state.success && <p className="text-sm text-[var(--color-teal)]">Created.</p>}
-        {state.error && (
-          <p role="alert" className="text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
+        <InlineStatus success={state.success ? "Created." : undefined} />
+        <InlineStatus error={state.error} />
       </div>
     </form>
   );

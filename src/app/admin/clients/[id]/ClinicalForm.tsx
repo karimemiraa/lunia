@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { saveClinicalAction, type ClientActionState } from "./actions";
+import { InlineStatus } from "../../_ui/Form";
 
 interface ClinicalFormProps {
   clientProfileId: string;
@@ -98,8 +99,8 @@ export function ClinicalForm({
         <button type="submit" disabled={pending} className="lunia-btn lunia-btn-primary disabled:opacity-60">
           {pending ? "Saving…" : "Save clinical profile"}
         </button>
-        {state.success && <span className="text-sm font-medium text-[var(--color-teal-ink)]">Saved.</span>}
-        {state.error && <span className="text-sm font-medium text-red-700">{state.error}</span>}
+        <InlineStatus size="sm" success={state.success ? "Saved." : undefined} />
+        <InlineStatus size="sm" error={state.error} />
       </div>
     </form>
   );

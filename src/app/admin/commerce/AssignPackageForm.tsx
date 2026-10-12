@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useRef } from "react";
 import { assignPackageAction, type CommerceActionState } from "./actions";
+import { InlineStatus } from "../_ui/Form";
 
 interface ClientOption {
   clientProfileId: string;
@@ -81,12 +82,8 @@ export function AssignPackageForm({ clients, packages }: { clients: ClientOption
       >
         {pending ? "Recording…" : "Record purchase"}
       </button>
-      {state.error && (
-        <p role="alert" className="w-full text-sm text-red-600">
-          {state.error}
-        </p>
-      )}
-      {state.success && <p className="w-full text-sm text-[var(--color-teal)]">Saved.</p>}
+      <InlineStatus error={state.error} className="w-full" />
+      <InlineStatus success={state.success ? "Saved." : undefined} className="w-full" />
     </form>
   );
 }

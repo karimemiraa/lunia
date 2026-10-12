@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "../_components/Modal";
 import { createUserAction, type UserActionState } from "./actions";
+import { onActionSuccess } from "../_components/onActionSuccess";
+import { InlineStatus } from "../_ui/Form";
 
 interface RoleOption {
   id: string;
@@ -17,16 +19,15 @@ const initialState: UserActionState = {};
 export function CreateUserForm({ roles }: { roles: RoleOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [state, action, pending] = useActionState(createUserAction, initialState);
-  const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (state.success && open) {
+  const [state, action, pending] = useActionState(
+    onActionSuccess(createUserAction, () => {
       setOpen(false);
       router.refresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.success]);
+    }),
+    initialState,
+  );
+  const formRef = useRef<HTMLFormElement>(null);
+
 
   return (
     <>
@@ -80,11 +81,7 @@ export function CreateUserForm({ roles }: { roles: RoleOption[] }) {
               <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest w-fit disabled:opacity-60">
                 {pending ? "Adding…" : "Add team member"}
               </button>
-              {state.error && (
-                <p role="alert" className="text-sm font-medium text-red-700">
-                  {state.error}
-                </p>
-              )}
+              <InlineStatus error={state.error} />
             </div>
           </form>
         </Modal>

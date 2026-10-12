@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cancelPurchaseOrderAction, markOrderedAction, receivePurchaseOrderAction } from "../actions";
 import { labelText } from "./ui";
+import { useConfirm } from "../../_ui/ConfirmDialog";
 
 export interface ReceiveLine {
   id: string;
@@ -104,12 +105,13 @@ export function PoReceiveForm({ poId, lines }: { poId: string; lines: ReceiveLin
 }
 
 export function PoStatusActions({ poId, status }: { poId: string; status: string }) {
+  const [confirm, confirmDialog] = useConfirm();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function run(action: (id: string) => Promise<{ ok: boolean; error?: string }>, confirmText?: string) {
-    if (confirmText && !confirm(confirmText)) return;
+  async function run(action: (id: string) => Promise<{ ok: boolean; error?: string }>, confirmText?: string) {
+    if (confirmText && !(await confirm({ title: confirmText, danger: /^cancel/i.test(confirmText) }))) return;
     setError(null);
     startTransition(async () => {
       const result = await action(poId);
@@ -120,6 +122,7 @@ export function PoStatusActions({ poId, status }: { poId: string; status: string
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {confirmDialog}
       {status === "DRAFT" && (
         <button type="button" disabled={isPending} onClick={() => run(markOrderedAction, "Mark this order as sent to the supplier? Lines can no longer be edited.")} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
           Mark as ordered

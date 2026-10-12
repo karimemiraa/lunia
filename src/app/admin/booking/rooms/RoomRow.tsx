@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import type { Room } from "@prisma/client";
 import { updateRoomAction, deleteRoomAction, type RoomActionState } from "./actions";
 import { ConfirmButton } from "../../_ui/ConfirmDialog";
+import { InlineStatus } from "../../_ui/Form";
 
 const initialState: RoomActionState = {};
 
@@ -67,12 +68,8 @@ export function RoomRow({ room }: { room: Room }) {
           <button type="submit" form={formId} disabled={updatePending} aria-busy={updatePending || undefined} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-11 disabled:opacity-60">
             {updatePending ? "Saving…" : "Save"}
           </button>
-          {updateState.error && (
-            <p role="alert" className="text-xs text-red-600">
-              {updateState.error}
-            </p>
-          )}
-          {updateState.success && <p role="status" className="text-xs font-medium text-[var(--status-success-ink)]">Saved.</p>}
+          <InlineStatus size="sm" error={updateState.error} />
+          <InlineStatus size="sm" success={updateState.success ? "Saved." : undefined} />
         </div>
       </td>
       <td className="px-4 py-2">
@@ -81,11 +78,7 @@ export function RoomRow({ room }: { room: Room }) {
           <ConfirmButton title={`Delete room “${room.name}”?`} description="Bookings already assigned to this room keep their time but lose the room. This cannot be undone." confirmLabel="Delete room" pending={deletePending}>
             Delete
           </ConfirmButton>
-          {deleteState.error && (
-            <p role="alert" className="text-xs text-red-600">
-              {deleteState.error}
-            </p>
-          )}
+          <InlineStatus size="sm" error={deleteState.error} />
         </form>
       </td>
     </tr>

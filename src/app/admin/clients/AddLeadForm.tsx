@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "../_components/Modal";
 import { createLeadAction, type RosterActionState } from "./actions";
+import { onActionSuccess } from "../_components/onActionSuccess";
+import { InlineStatus } from "../_ui/Form";
 
 interface StaffOption {
   id: string;
@@ -17,15 +19,14 @@ const initial: RosterActionState = {};
 export function AddLeadForm({ staff }: { staff: StaffOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [state, action, pending] = useActionState(createLeadAction, initial);
-
-  useEffect(() => {
-    if (state.success && open) {
+  const [state, action, pending] = useActionState(
+    onActionSuccess(createLeadAction, () => {
       setOpen(false);
       router.refresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.success]);
+    }),
+    initial,
+  );
+
 
   return (
     <>
@@ -75,7 +76,7 @@ export function AddLeadForm({ staff }: { staff: StaffOption[] }) {
               <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest w-fit disabled:opacity-60">
                 {pending ? "Adding…" : "Add lead"}
               </button>
-              {state.error && <span role="alert" className="text-sm font-medium text-red-700">{state.error}</span>}
+              <InlineStatus size="sm" error={state.error} />
             </div>
           </form>
         </Modal>

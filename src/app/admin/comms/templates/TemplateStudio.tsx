@@ -14,6 +14,7 @@ import {
   sampleRecipientName,
   subjectForTemplate,
 } from "@/modules/comms/templateCatalog";
+import { InlineStatus } from "../../_ui/Form";
 
 export interface StudioTemplate {
   kind: string;
@@ -165,12 +166,8 @@ function Editor({ template }: { template: StudioTemplate }) {
               Reset to default
             </button>
           )}
-          {state.success && <span role="status" className="text-xs font-medium text-[var(--status-success-ink)]">Saved.</span>}
-          {state.error && (
-            <span role="alert" className="text-xs text-red-600">
-              {state.error}
-            </span>
-          )}
+          <InlineStatus size="sm" success={state.success ? "Saved." : undefined} />
+          <InlineStatus size="sm" error={state.error} />
         </div>
       </form>
 

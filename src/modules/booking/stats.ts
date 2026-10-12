@@ -64,29 +64,45 @@ type BookingForStats = Prisma.BookingGetPayload<{ include: { appointments: true 
  * next month is attributed to today) into the counts/revenue/breakdowns the
  * Stage-5 dashboards need.
  */
-export async function bookingStats({ from, to }: BookingStatsInput): Promise<BookingStats> {
+export async function bookingStats(range: BookingStatsInput): Promise<BookingStats> {
+  const [stats] = await bookingStatsForRanges([range]);
+  return stats!;
+}
+
+/**
+ * The same aggregates for several (typically overlapping) ranges from ONE
+ * booking fetch over their union plus two lookups — e.g. the business
+ * dashboard's today / this week / this month / last 30 days — instead of
+ * re-querying the same bookings (and every client's history) per range.
+ */
+export async function bookingStatsForRanges(ranges: BookingStatsInput[]): Promise<BookingStats[]> {
+  if (ranges.length === 0) return [];
+  const from = new Date(Math.min(...ranges.map((r) => r.from.getTime())));
+  const to = new Date(Math.max(...ranges.map((r) => r.to.getTime())));
   const bookings = await prisma.booking.findMany({
     where: { createdAt: { gte: from, lt: to }, client: NOT_TEST_CLIENT },
     include: { appointments: true },
   });
+  const [firstBookingIdByClient, serviceNameById] = await Promise.all([firstBookingIds(bookings), serviceNames(bookings)]);
 
-  const byStatus: Record<string, number> = {};
-  for (const booking of bookings) {
-    byStatus[booking.status] = (byStatus[booking.status] ?? 0) + 1;
-  }
-
-  const { newClients, returningBookings } = await classifyNewVsReturning(bookings);
-
-  return {
-    totalBookings: bookings.length,
-    byStatus,
-    revenueMinor: bookings.reduce((sum, b) => sum + bookingRevenue(b), 0),
-    newClients,
-    returningBookings,
-    byDay: buildByDay(bookings),
-    byService: await buildByService(bookings),
-    bySource: buildBySource(bookings),
-  };
+  return ranges.map((range) => {
+    const inRange = bookings.filter((b) => b.createdAt >= range.from && b.createdAt < range.to);
+    const byStatus: Record<string, number> = {};
+    for (const booking of inRange) {
+      byStatus[booking.status] = (byStatus[booking.status] ?? 0) + 1;
+    }
+    const { newClients, returningBookings } = classifyNewVsReturning(inRange, firstBookingIdByClient);
+    return {
+      totalBookings: inRange.length,
+      byStatus,
+      revenueMinor: inRange.reduce((sum, b) => sum + bookingRevenue(b), 0),
+      newClients,
+      returningBookings,
+      byDay: buildByDay(inRange),
+      byService: buildByService(inRange, serviceNameById),
+      bySource: buildBySource(inRange),
+    };
+  });
 }
 
 function isRealized(status: BookingStatus): boolean {
@@ -99,30 +115,35 @@ function bookingRevenue(booking: BookingForStats): number {
 }
 
 /**
- * For every distinct client represented in `bookings`, looks up that
- * client's ENTIRE booking history (any date) to find their true earliest
- * booking, then classifies each in-range booking as "new" (it IS that
- * earliest booking) or "returning" (it isn't).
+ * Each client's true earliest booking (any date), one row per client — not
+ * their whole history. Ties on createdAt break by id so the answer is stable.
  */
-async function classifyNewVsReturning(
-  bookings: BookingForStats[],
-): Promise<{ newClients: number; returningBookings: number }> {
-  if (bookings.length === 0) return { newClients: 0, returningBookings: 0 };
-
+async function firstBookingIds(bookings: BookingForStats[]): Promise<Map<string, string>> {
   const clientProfileIds = [...new Set(bookings.map((b) => b.clientProfileId))];
-  const history = await prisma.booking.findMany({
-    where: { clientProfileId: { in: clientProfileIds } },
-    select: { id: true, clientProfileId: true, createdAt: true },
-    orderBy: { createdAt: "asc" },
-  });
+  if (clientProfileIds.length === 0) return new Map();
+  const rows = await prisma.$queryRaw<{ clientProfileId: string; id: string }[]>`
+    SELECT DISTINCT ON ("clientProfileId") "clientProfileId", "id"
+    FROM "Booking"
+    WHERE "clientProfileId" = ANY(${clientProfileIds})
+    ORDER BY "clientProfileId", "createdAt" ASC, "id" ASC`;
+  return new Map(rows.map((r) => [r.clientProfileId, r.id]));
+}
 
-  const firstBookingIdByClient = new Map<string, string>();
-  for (const row of history) {
-    if (!firstBookingIdByClient.has(row.clientProfileId)) {
-      firstBookingIdByClient.set(row.clientProfileId, row.id);
-    }
-  }
+async function serviceNames(bookings: BookingForStats[]): Promise<Map<string, string>> {
+  const serviceIds = [...new Set(bookings.flatMap((b) => b.appointments.map((a) => a.serviceId)))];
+  if (serviceIds.length === 0) return new Map();
+  const services = await prisma.service.findMany({ where: { id: { in: serviceIds } }, select: { id: true, nameEn: true } });
+  return new Map(services.map((s) => [s.id, s.nameEn]));
+}
 
+/**
+ * Classifies each in-range booking as "new" (it IS that client's earliest
+ * booking ever) or "returning" (it isn't).
+ */
+function classifyNewVsReturning(
+  bookings: BookingForStats[],
+  firstBookingIdByClient: Map<string, string>,
+): { newClients: number; returningBookings: number } {
   let newClients = 0;
   for (const booking of bookings) {
     if (firstBookingIdByClient.get(booking.clientProfileId) === booking.id) {
@@ -144,7 +165,7 @@ function buildByDay(bookings: BookingForStats[]): DayStat[] {
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
-async function buildByService(bookings: BookingForStats[]): Promise<ServiceStat[]> {
+function buildByService(bookings: BookingForStats[], nameById: Map<string, string>): ServiceStat[] {
   const byService = new Map<string, { bookings: number; revenueMinor: number }>();
   for (const booking of bookings) {
     for (const appointment of booking.appointments) {
@@ -156,11 +177,6 @@ async function buildByService(bookings: BookingForStats[]): Promise<ServiceStat[
   }
 
   const serviceIds = [...byService.keys()];
-  if (serviceIds.length === 0) return [];
-
-  const services = await prisma.service.findMany({ where: { id: { in: serviceIds } } });
-  const nameById = new Map(services.map((s) => [s.id, s.nameEn]));
-
   return serviceIds
     .map((serviceId) => {
       const entry = byService.get(serviceId)!;

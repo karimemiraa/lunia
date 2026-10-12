@@ -19,7 +19,7 @@ test("comms: provider status shows logged-only in dev, log table renders, no sec
   const statusPanel = page.getByTestId("comms-provider-status");
   await expect(statusPanel).toBeVisible();
   await expect(page.getByTestId("comms-provider-none")).toHaveText(
-    "No provider configured — messages are logged only (dev/stub).",
+    "No provider configured. Messages are logged only (dev/stub).",
   );
 
   // No secret-shaped value should ever be rendered anywhere on the page.
@@ -38,35 +38,53 @@ test("comms: provider status shows logged-only in dev, log table renders, no sec
   await expect(logSection.locator("thead")).toContainText("Status");
 });
 
+// The template studio shows one message at a time: pick it in the dropdown
+// (option value "KIND|locale|channel"), then edit it in the form below.
+async function openTemplate(page: Page, key: string) {
+  await page.getByTestId("template-picker").selectOption(key);
+  const form = page.getByTestId(`template-form-${key}`);
+  await expect(form).toBeVisible();
+  return form;
+}
+
 test("comms templates: edit a template body and it persists after reload", async ({ page }) => {
   await signInAsOwner(page);
 
   await page.goto("/admin/comms/templates");
   await expect(page.getByRole("heading", { name: "Message Templates" })).toBeVisible();
 
-  const card = page.getByTestId("template-CONFIRMATION-en-whatsapp");
-  await expect(card).toBeVisible();
+  const key = "CONFIRMATION|en|whatsapp";
+  const form = await openTemplate(page, key);
+  const bodyField = form.getByLabel("Template body");
+  const originalBody = await bodyField.inputValue();
 
   const stamp = Date.now();
   const distinctiveBody = `E2E updated confirmation body {{serviceName}} at {{dateTime}} #${stamp}`;
 
-  const bodyField = card.getByLabel("CONFIRMATION en whatsapp body");
-  await bodyField.fill(distinctiveBody);
+  try {
+    await bodyField.fill(distinctiveBody);
 
-  // Ensure the template stays active: the edit form must send isActive
-  // explicitly so a save can never silently flip an inactive template back
-  // on (or, here, flip an active one off) -- check it stays checked.
-  const activeCheckbox = card.getByLabel("CONFIRMATION en whatsapp active");
-  await expect(activeCheckbox).toBeChecked();
+    // Ensure the template stays active: the edit form must send isActive
+    // explicitly so a save can never silently flip an inactive template back
+    // on (or, here, flip an active one off) -- check it stays checked.
+    await expect(form.getByLabel("Active (send this template)")).toBeChecked();
 
-  await card.getByRole("button", { name: "Save" }).click();
-  await expect(card.getByText("Saved.")).toBeVisible();
+    await form.getByRole("button", { name: "Save template" }).click();
+    await expect(form.getByText("Saved.")).toBeVisible();
 
-  await page.reload();
+    await page.reload();
 
-  const reloadedCard = page.getByTestId("template-CONFIRMATION-en-whatsapp");
-  await expect(reloadedCard.getByLabel("CONFIRMATION en whatsapp body")).toHaveValue(distinctiveBody);
-  await expect(reloadedCard.getByLabel("CONFIRMATION en whatsapp active")).toBeChecked();
+    const reloaded = await openTemplate(page, key);
+    await expect(reloaded.getByLabel("Template body")).toHaveValue(distinctiveBody);
+    await expect(reloaded.getByLabel("Active (send this template)")).toBeChecked();
+  } finally {
+    // Restore the original body so re-runs and other specs see the seeded copy.
+    await page.goto("/admin/comms/templates");
+    const restore = await openTemplate(page, key);
+    await restore.getByLabel("Template body").fill(originalBody);
+    await restore.getByRole("button", { name: "Save template" }).click();
+    await expect(restore.getByText("Saved.")).toBeVisible();
+  }
 });
 
 test("comms templates: deactivating a template persists isActive=false (no silent reactivation)", async ({ page }) => {
@@ -76,24 +94,24 @@ test("comms templates: deactivating a template persists isActive=false (no silen
 
   // OTP/en/sms is a real seeded row (see prisma/seed.ts), unlike
   // CONFIRMATION/en/sms which is only ever seeded on whatsapp.
-  const card = page.getByTestId("template-OTP-en-sms");
-  await expect(card).toBeVisible();
+  const key = "OTP|en|sms";
+  const form = await openTemplate(page, key);
 
-  const activeCheckbox = card.getByLabel("OTP en sms active");
+  const activeCheckbox = form.getByLabel("Active (send this template)");
   await expect(activeCheckbox).toBeChecked();
   await activeCheckbox.uncheck();
 
-  await card.getByRole("button", { name: "Save" }).click();
-  await expect(card.getByText("Saved.")).toBeVisible();
+  await form.getByRole("button", { name: "Save template" }).click();
+  await expect(form.getByText("Saved.")).toBeVisible();
 
   await page.reload();
 
-  const reloadedCard = page.getByTestId("template-OTP-en-sms");
-  await expect(reloadedCard.getByLabel("OTP en sms active")).not.toBeChecked();
+  const reloaded = await openTemplate(page, key);
+  await expect(reloaded.getByLabel("Active (send this template)")).not.toBeChecked();
 
   // Restore to active so this test doesn't leave the real OTP template
   // disabled for other runs/specs that might rely on it.
-  await reloadedCard.getByLabel("OTP en sms active").check();
-  await reloadedCard.getByRole("button", { name: "Save" }).click();
-  await expect(reloadedCard.getByText("Saved.")).toBeVisible();
+  await reloaded.getByLabel("Active (send this template)").check();
+  await reloaded.getByRole("button", { name: "Save template" }).click();
+  await expect(reloaded.getByText("Saved.")).toBeVisible();
 });

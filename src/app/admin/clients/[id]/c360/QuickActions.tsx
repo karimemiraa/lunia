@@ -7,6 +7,8 @@ import { Modal } from "../../../_components/Modal";
 import { addCallbackAction, openWhatsappAction, requestReviewAction, type ClientActionState } from "../actions";
 import { SELECT_TAB_EVENT } from "./ProfileTabs";
 import { Icon } from "./icons";
+import { InlineStatus } from "../../../_ui/Form";
+import { useConfirm } from "../../../_ui/ConfirmDialog";
 
 interface QuickActionsProps {
   clientProfileId: string;
@@ -27,6 +29,7 @@ const label = "text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-
 // prefilled deep link or a small server action; nothing here duplicates a
 // module's own form.
 export function QuickActions({ clientProfileId, bookHref, checkoutHref, hasPhone, canManage, canWriteNotes, reviewableVisits }: QuickActionsProps) {
+  const [confirm, confirmDialog] = useConfirm();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [pending, setPending] = useState<"whatsapp" | "review" | null>(null);
@@ -53,8 +56,8 @@ export function QuickActions({ clientProfileId, bookHref, checkoutHref, hasPhone
     });
   }
 
-  function requestReview() {
-    if (!confirm("Send this customer a review request for their latest visit?")) return;
+  async function requestReview() {
+    if (!(await confirm({ title: "Send a review request?", description: "The customer is asked to review their latest visit.", confirmLabel: "Send request", danger: false }))) return;
     setNotice(null);
     setPending("review");
     startTransition(async () => {
@@ -74,6 +77,7 @@ export function QuickActions({ clientProfileId, bookHref, checkoutHref, hasPhone
 
   return (
     <div className="flex flex-col gap-2" data-testid="quick-actions">
+      {confirmDialog}
       <div className="flex flex-wrap gap-2">
         <Link href={bookHref} className="lunia-btn lunia-btn-forest lunia-btn-sm min-h-11">
           <Icon name="calendar" /> Book
@@ -131,11 +135,7 @@ export function QuickActions({ clientProfileId, bookHref, checkoutHref, hasPhone
               <span className={label}>Notes</span>
               <textarea name="notes" rows={3} maxLength={2000} className="lunia-input" />
             </label>
-            {cbState.error && (
-              <p role="alert" className="text-sm text-red-700">
-                {cbState.error}
-              </p>
-            )}
+            <InlineStatus error={cbState.error} />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setCallbackOpen(false)} className="lunia-btn lunia-btn-ghost min-h-11">
                 Cancel

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deletePhotoAction, updatePhotoAction } from "../actions";
 import type { PhotoKind } from "@/modules/clinical/photos";
+import { useConfirm } from "../../../../_ui/ConfirmDialog";
 
 export interface PhotoDTO {
   id: string;
@@ -98,6 +99,7 @@ function PhotoCard({
   onSelect: () => void;
   recordLabel: string | null;
 }) {
+  const [confirm, confirmDialog] = useConfirm();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [kind, setKind] = useState<PhotoKind>(photo.kind);
@@ -114,8 +116,8 @@ function PhotoCard({
         router.refresh();
       } else setError(r.error);
     });
-  const remove = () => {
-    if (!window.confirm("Delete this photo permanently?")) return;
+  const remove = async () => {
+    if (!(await confirm({ title: "Delete this photo permanently?", confirmLabel: "Delete" }))) return;
     startTransition(async () => {
       const r = await deletePhotoAction(photo.id);
       if (r.ok) router.refresh();
@@ -125,6 +127,7 @@ function PhotoCard({
 
   return (
     <li id={`photo-${photo.id}`} className={`lunia-card flex flex-col overflow-hidden ${selected ? "ring-2 ring-[var(--color-teal)]" : ""}`}>
+      {confirmDialog}
       <a href={src(photo.id)} target="_blank" rel="noreferrer" className="relative block bg-black/5">
         <img src={src(photo.id)} alt={`${KIND_LABEL[photo.kind]} ${photo.area ?? ""}`} loading="lazy" className="aspect-[4/5] w-full object-cover" />
         <span className="absolute start-2 top-2 rounded bg-black/55 px-2 py-0.5 text-[0.65rem] font-semibold uppercase text-white">{KIND_LABEL[photo.kind]}</span>

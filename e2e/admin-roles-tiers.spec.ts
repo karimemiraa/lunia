@@ -56,8 +56,9 @@ test("tiers: create a tier, see it listed, then delete it", async ({ page }) => 
   await expect(row).toBeVisible();
   await expect(row.getByLabel(`${key} name`)).toHaveValue(name);
 
-  page.once("dialog", (dialog) => dialog.accept());
+  // Deletes go through the in-app confirm dialog (no native window.confirm).
   await row.getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete tier" }).click();
 
   await expect(page.locator(`tr[data-testid="tier-row"][data-tier-key="${key}"]`)).toHaveCount(0);
 });

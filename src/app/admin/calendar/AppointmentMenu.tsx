@@ -7,6 +7,7 @@ import type { BookingStatus } from "@prisma/client";
 import { Modal } from "../_components/Modal";
 import { checkInAction, startAction, completeAction, cancelAction, noShowAction, rescheduleAction, getCalendarSlotsAction, type CalendarSlotDTO } from "./actions";
 import { SlotPicker } from "./SlotPicker";
+import { useConfirm } from "../_ui/ConfirmDialog";
 
 export interface AppointmentMenuProps {
   bookingId: string;
@@ -42,6 +43,7 @@ const item = "flex min-h-10 w-full items-center gap-2 rounded-[var(--radius-sm)]
 // clinical (treatment record), reschedule (modal), and the customer. All
 // mutations go through the calendar server actions and refresh the route.
 export function AppointmentMenu(props: AppointmentMenuProps) {
+  const [confirm, confirmDialog] = useConfirm();
   const { bookingId, appointmentId, serviceId, status, started, defaultDate, clientProfileId, invoice, treatmentRecordId, canManage, canBill, canClinical, layout = "menu", hubLink = true } = props;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -98,8 +100,8 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
     });
   }
 
-  function doCancel() {
-    if (!confirm(`Cancel this appointment for ${props.clientName}?`)) return;
+  async function doCancel() {
+    if (!(await confirm({ title: `Cancel this appointment for ${props.clientName}?`, confirmLabel: "Cancel appointment" }))) return;
     run("cancel", async () => {
       const result = await cancelAction(bookingId);
       if (result.ok && result.waitlistNotified > 0) {
@@ -171,8 +173,8 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
         <button
           type="button"
           disabled={isPending}
-          onClick={() => {
-            if (confirm("Mark this appointment as a no-show?")) run("no-show", () => noShowAction(bookingId));
+          onClick={async () => {
+            if (await confirm({ title: "Mark this appointment as a no-show?", confirmLabel: "Mark no-show" })) run("no-show", () => noShowAction(bookingId));
           }}
           className={layout === "inline" ? btnOutline : item}
         >
@@ -192,6 +194,7 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
 
   return (
     <div ref={rootRef} className="relative flex flex-col gap-2" data-testid="appointment-menu">
+      {confirmDialog}
       {layout === "inline" ? (
         <div className="flex flex-wrap gap-2">
           {primary}

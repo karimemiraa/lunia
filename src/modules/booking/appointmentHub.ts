@@ -185,14 +185,14 @@ export async function getAppointmentHub(appointmentId: string): Promise<Appointm
   const staffIds = [...new Set(booking.appointments.map((a) => a.staffUserId))];
   const roomIds = [...new Set(booking.appointments.map((a) => a.roomId))];
 
-  const [staff, rooms, invoiceRow, treatments, notes, otherBookings, documents] = await Promise.all([
+  const [staff, rooms, invoiceRow, treatments, notes, otherBookings, documents, totalBookings, completedVisits, lastVisit] = await Promise.all([
     prisma.user.findMany({ where: { id: { in: staffIds } }, select: { id: true, staffProfile: { select: { fullName: true } } } }),
     prisma.room.findMany({ where: { id: { in: roomIds } }, select: { id: true, name: true } }),
-    // The visit's live (non-void) invoice, with lines and payments.
+    // The visit's live (non-void) invoice, with lines.
     prisma.invoice.findFirst({
       where: { bookingId: booking.id, kind: "INVOICE", status: { not: "VOID" } },
       orderBy: { createdAt: "desc" },
-      include: { lines: { orderBy: { sortOrder: "asc" } }, payments: { select: { amountMinor: true, status: true } } },
+      include: { lines: { orderBy: { sortOrder: "asc" } } },
     }),
     // Treatment records across every appointment in this visit.
     prisma.treatmentRecord.findMany({
@@ -218,24 +218,45 @@ export async function getAppointmentHub(appointmentId: string): Promise<Appointm
       orderBy: { createdAt: "desc" },
       select: { id: true, fileName: true, mime: true, sizeBytes: true, category: true, note: true, createdAt: true },
     }),
+    // Customer stats over their whole history (the visit list above is capped at 24).
+    prisma.booking.count({ where: { clientProfileId } }),
+    prisma.booking.count({ where: { clientProfileId, status: "COMPLETED" } }),
+    prisma.appointment.aggregate({ _max: { startAt: true }, where: { booking: { clientProfileId, status: "COMPLETED", id: { not: booking.id } } } }),
   ]);
 
   const staffName = new Map(staff.map((s) => [s.id, s.staffProfile?.fullName ?? "Unknown staff"]));
   const roomName = new Map(rooms.map((r) => [r.id, r.name]));
   const treatmentByAppt = new Map(treatments.map((t) => [t.appointmentId, t]));
 
-  // Names of the staff who performed treatments (soft ref), batched.
+  // Second wave, all in parallel (each depends only on the first batch):
+  // performer names + treatment service names (soft refs), the visit's clinical
+  // photos, and comment author names.
   const performerIds = [...new Set(treatments.map((t) => t.performedById))];
-  const performers = performerIds.length
-    ? await prisma.user.findMany({ where: { id: { in: performerIds } }, select: { id: true, email: true, staffProfile: { select: { fullName: true } } } })
-    : [];
-  const performerName = new Map(performers.map((p) => [p.id, p.staffProfile?.fullName ?? p.email ?? "Staff"]));
-
-  // Service names for treatment records (soft ref), batched.
   const treatmentServiceIds = [...new Set(treatments.map((t) => t.serviceId).filter((v): v is string => Boolean(v)))];
-  const treatmentServices = treatmentServiceIds.length
-    ? await prisma.service.findMany({ where: { id: { in: treatmentServiceIds } }, select: { id: true, nameEn: true } })
-    : [];
+  const treatmentIds = treatments.map((t) => t.id);
+  const authorIds = [...new Set(notes.map((n) => n.authorUserId))];
+  const [performers, treatmentServices, photoRows, authors] = await Promise.all([
+    performerIds.length
+      ? prisma.user.findMany({ where: { id: { in: performerIds } }, select: { id: true, email: true, staffProfile: { select: { fullName: true } } } })
+      : [],
+    treatmentServiceIds.length ? prisma.service.findMany({ where: { id: { in: treatmentServiceIds } }, select: { id: true, nameEn: true } }) : [],
+    // Documents: clinical photos attached to any of this visit's treatment
+    // records. (Photos not tied to a record live on the customer profile.)
+    treatmentIds.length
+      ? prisma.clinicalPhoto.findMany({
+          where: { treatmentRecordId: { in: treatmentIds } },
+          orderBy: { takenAt: "desc" },
+          select: { id: true, kind: true, area: true, note: true, takenAt: true },
+        })
+      : [],
+    authorIds.length
+      ? prisma.user.findMany({
+          where: { id: { in: authorIds } },
+          select: { id: true, staffProfile: { select: { fullName: true } }, clientProfile: { select: { fullName: true } } },
+        })
+      : [],
+  ]);
+  const performerName = new Map(performers.map((p) => [p.id, p.staffProfile?.fullName ?? p.email ?? "Staff"]));
   const treatmentServiceName = new Map(treatmentServices.map((s) => [s.id, s.nameEn]));
 
   const toTreatment = (t: (typeof treatments)[number]): HubTreatment => ({
@@ -251,22 +272,6 @@ export async function getAppointmentHub(appointmentId: string): Promise<Appointm
     photoCount: t._count.photos,
   });
 
-  // Documents: clinical photos attached to any of this visit's treatment
-  // records. (Photos not tied to a record live on the customer profile.)
-  const treatmentIds = treatments.map((t) => t.id);
-  const photoRows = treatmentIds.length
-    ? await prisma.clinicalPhoto.findMany({
-        where: { treatmentRecordId: { in: treatmentIds } },
-        orderBy: { takenAt: "desc" },
-        select: { id: true, kind: true, area: true, note: true, takenAt: true },
-      })
-    : [];
-
-  // Author names for comments, batched.
-  const authorIds = [...new Set(notes.map((n) => n.authorUserId))];
-  const authors = authorIds.length
-    ? await prisma.user.findMany({ where: { id: { in: authorIds } }, include: { staffProfile: true, clientProfile: true } })
-    : [];
   const authorName = new Map(authors.map((u) => [u.id, u.staffProfile?.fullName ?? u.clientProfile?.fullName]));
 
   const siblings: HubSiblingAppointment[] = booking.appointments.map((a) => ({
@@ -314,10 +319,7 @@ export async function getAppointmentHub(appointmentId: string): Promise<Appointm
     })
     .filter((v): v is HubHistoryVisit => v !== null);
 
-  const completedVisits = history.filter((h) => h.status === "COMPLETED").length;
-  const lastVisitAt = history
-    .filter((h) => h.status === "COMPLETED" && !h.isCurrent)
-    .reduce<Date | null>((max, h) => (!max || h.startAt > max ? h.startAt : max), null);
+  const lastVisitAt = lastVisit._max.startAt ?? null;
 
   return {
     appointmentId,
@@ -364,6 +366,6 @@ export async function getAppointmentHub(appointmentId: string): Promise<Appointm
     documents,
     comments: notes.map((n) => ({ id: n.id, body: n.body, authorName: authorName.get(n.authorUserId) ?? undefined, authorUserId: n.authorUserId, createdAt: n.createdAt, pinned: n.pinned })),
     history,
-    stats: { completedVisits, totalBookings: history.length, lastVisitAt },
+    stats: { completedVisits, totalBookings, lastVisitAt },
   };
 }

@@ -186,3 +186,40 @@ export function ConfirmButton({ title, description, confirmLabel, danger = true,
     </>
   );
 }
+
+export interface ConfirmOptions {
+  title: string;
+  description?: ReactNode;
+  confirmLabel?: string;
+  /** Defaults to true (destructive). Pass false for approvals/sends. */
+  danger?: boolean;
+}
+
+/**
+ * Promise-based confirm for imperative handlers — the drop-in replacement for
+ * `if (!confirm("…")) return;`:
+ *
+ *   const [confirm, confirmDialog] = useConfirm();
+ *   async function remove() { if (!(await confirm({ title: "Delete?" }))) return; … }
+ *   return <>…{confirmDialog}</>;
+ */
+export function useConfirm(): [(options: ConfirmOptions) => Promise<boolean>, ReactNode] {
+  const [request, setRequest] = useState<(ConfirmOptions & { resolve: (ok: boolean) => void }) | null>(null);
+  const confirm = useCallback((options: ConfirmOptions) => new Promise<boolean>((resolve) => setRequest({ ...options, resolve })), []);
+  const settle = (ok: boolean) => {
+    request?.resolve(ok);
+    setRequest(null);
+  };
+  const dialog = (
+    <ConfirmDialog
+      open={request !== null}
+      title={request?.title ?? ""}
+      description={request?.description}
+      confirmLabel={request?.confirmLabel ?? "Confirm"}
+      danger={request?.danger ?? true}
+      onConfirm={() => settle(true)}
+      onCancel={() => settle(false)}
+    />
+  );
+  return [confirm, dialog];
+}

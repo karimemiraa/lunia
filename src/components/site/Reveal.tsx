@@ -25,8 +25,8 @@ export function Reveal({ children, delay = 0, as: Tag = "div", className = "" }:
     if (!node) return;
     // If IntersectionObserver is unavailable, reveal immediately.
     if (typeof IntersectionObserver === "undefined") {
-      setVisible(true);
-      return;
+      const frame = requestAnimationFrame(() => setVisible(true));
+      return () => cancelAnimationFrame(frame);
     }
     const observer = new IntersectionObserver(
       (entries) => {

@@ -3,7 +3,7 @@ import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { listGiftCards } from "@/modules/commerce/giftcards";
 import { listPackages, listPackagePurchases } from "@/modules/commerce/packages";
-import { listClients } from "@/modules/crm/clients";
+import { prisma } from "@/lib/db";
 import { listServices } from "@/modules/catalog/services";
 import { IssueGiftCardForm } from "./IssueGiftCardForm";
 import { GiftCardsTable, type GiftCardRowDTO } from "./GiftCardsTable";
@@ -21,11 +21,13 @@ export default async function CommercePage() {
     listGiftCards(),
     listPackages(),
     listPackagePurchases(),
-    listClients(),
+    // Just id/name/phone for the pickers + gift-card names (not the full roster aggregates).
+    prisma.clientProfile.findMany({ select: { id: true, fullName: true, user: { select: { phone: true } } }, orderBy: { fullName: "asc" } }),
     listServices(undefined, { publishedOnly: false }),
   ]);
 
   const serviceNameById = new Map(services.map((service) => [service.id, service.nameEn]));
+  const clientNameById = new Map(clients.map((c) => [c.id, c.fullName]));
 
   const giftCardRows: GiftCardRowDTO[] = giftCards.map((card) => ({
     id: card.id,
@@ -35,7 +37,7 @@ export default async function CommercePage() {
     currency: card.currency,
     status: card.status,
     issuedToClientName: card.issuedToClientId
-      ? (clients.find((c) => c.clientProfileId === card.issuedToClientId)?.fullName ?? "Unknown customer")
+      ? (clientNameById.get(card.issuedToClientId) ?? "Unknown customer")
       : null,
     expiresAtIso: card.expiresAt ? card.expiresAt.toISOString() : null,
     redemptionCount: card.redemptions.length,
@@ -62,7 +64,7 @@ export default async function CommercePage() {
     createdAtIso: purchase.createdAt.toISOString(),
   }));
 
-  const clientOptions = clients.map((c) => ({ clientProfileId: c.clientProfileId, fullName: c.fullName, phone: c.phone }));
+  const clientOptions = clients.map((c) => ({ clientProfileId: c.id, fullName: c.fullName, phone: c.user.phone }));
   const activePackageOptions = packages
     .filter((pkg) => pkg.isActive)
     .map((pkg) => ({ id: pkg.id, nameEn: pkg.nameEn, sessionsTotal: pkg.sessionsTotal }));

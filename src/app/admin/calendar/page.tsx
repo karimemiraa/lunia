@@ -112,7 +112,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
   const chip = (active: boolean) =>
     `inline-flex min-h-9 items-center rounded-full px-3 py-1 text-sm transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] ${
-      active ? "bg-[var(--color-ink)] text-[var(--color-cream)]" : "border border-[var(--line-strong)] text-[var(--color-ink)]/75 hover:bg-[var(--surface-2)]"
+      active ? "bg-[var(--color-ink)] text-[var(--color-on-ink)]" : "border border-[var(--line-strong)] text-[var(--color-ink)]/75 hover:bg-[var(--surface-2)]"
     }`;
 
   const walkIn = canManage && (
@@ -137,7 +137,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 rounded-full border border-[var(--line-strong)] p-0.5" role="group" aria-label="Calendar view">
             {VIEWS.map((v) => (
-              <Link key={v} href={viewHref(v)} aria-current={view === v ? "page" : undefined} className={`inline-flex min-h-8 items-center rounded-full px-3 text-sm capitalize transition-colors duration-200 ease-out ${view === v ? "bg-[var(--color-ink)] text-[var(--color-cream)]" : "text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]"}`}>
+              <Link key={v} href={viewHref(v)} aria-current={view === v ? "page" : undefined} className={`inline-flex min-h-8 items-center rounded-full px-3 text-sm capitalize transition-colors duration-200 ease-out ${view === v ? "bg-[var(--color-ink)] text-[var(--color-on-ink)]" : "text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]"}`}>
                 {v}
               </Link>
             ))}
@@ -159,7 +159,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
           {view === "day" && (
             <div className="flex items-center gap-1 rounded-full border border-[var(--line-strong)] p-0.5" role="group" aria-label="Columns">
               {(["staff", "room"] as const).map((c) => (
-                <Link key={c} href={qs({ ...base, day: focusDay, cols: c === "room" ? "room" : undefined })} aria-current={cols === c ? "page" : undefined} className={`inline-flex min-h-8 items-center rounded-full px-3 text-xs capitalize ${cols === c ? "bg-[var(--color-ink)] text-[var(--color-cream)]" : "text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]"}`}>
+                <Link key={c} href={qs({ ...base, day: focusDay, cols: c === "room" ? "room" : undefined })} aria-current={cols === c ? "page" : undefined} className={`inline-flex min-h-8 items-center rounded-full px-3 text-xs capitalize ${cols === c ? "bg-[var(--color-ink)] text-[var(--color-on-ink)]" : "text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]"}`}>
                   By {c}
                 </Link>
               ))}

@@ -1,6 +1,7 @@
 "use client";
 import { useActionState } from "react";
 import { uploadMedia, type UploadState } from "./actions";
+import { InlineStatus } from "../_ui/Form";
 
 const initialState: UploadState = {};
 
@@ -23,11 +24,7 @@ export function UploadForm() {
       >
         {pending ? "Uploading…" : "Upload"}
       </button>
-      {state?.error && (
-        <p role="alert" className="w-full text-sm text-red-600">
-          {state.error}
-        </p>
-      )}
+      <InlineStatus error={state?.error} className="w-full" />
     </form>
   );
 }

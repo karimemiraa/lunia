@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { FormState } from "../_components/ActionForm";
+import { InlineStatus } from "../../_ui/Form";
 
 // Approve / reject with an optional note. Two submit buttons share one form so
 // the note travels with whichever decision is clicked.
@@ -18,12 +19,8 @@ export function DecisionForm({ action }: { action: (prev: FormState, formData: F
           Reject
         </button>
       </div>
-      {state.error && (
-        <span role="alert" className="text-sm font-medium text-red-700">
-          {state.error}
-        </span>
-      )}
-      {state.success && <span className="text-sm font-medium text-[var(--color-teal-ink)]">{state.success}</span>}
+      <InlineStatus size="sm" error={state.error} />
+      <InlineStatus size="sm" success={state.success} />
     </form>
   );
 }

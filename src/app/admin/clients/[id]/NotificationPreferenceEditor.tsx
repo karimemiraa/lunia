@@ -3,6 +3,7 @@
 import { useActionState, useId } from "react";
 import { updateNotificationPreferenceAction, type ClientActionState } from "./actions";
 import type { CommsChannelPref } from "@prisma/client";
+import { InlineStatus } from "../../_ui/Form";
 
 interface NotificationPreferenceEditorProps {
   clientProfileId: string;
@@ -73,12 +74,8 @@ export function NotificationPreferenceEditor({ clientProfileId, preference }: No
         >
           {pending ? "Saving…" : "Save preferences"}
         </button>
-        {state.success && <p className="text-sm text-[var(--color-teal)]">Saved.</p>}
-        {state.error && (
-          <p role="alert" className="text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
+        <InlineStatus success={state.success ? "Saved." : undefined} />
+        <InlineStatus error={state.error} />
       </div>
     </form>
   );

@@ -99,3 +99,94 @@ export function ShellSkeleton({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+// ---- Page-shaped skeletons ---------------------------------------------------
+// Drop-in default exports for route loading.tsx files, so every section shows a
+// placeholder in the shape of what is coming (table, board, form, ...) instead
+// of the dashboard-shaped fallback in admin/loading.tsx.
+
+/** List pages: a filter/search row above a table. */
+export function ListPageSkeleton() {
+  return (
+    <ShellSkeleton>
+      <div aria-hidden="true" className="flex flex-wrap gap-3">
+        <div className="lunia-skeleton h-11 w-64" />
+        <div className="lunia-skeleton h-11 w-36" />
+        <div className="lunia-skeleton h-11 w-28" />
+      </div>
+      <SkeletonTable />
+    </ShellSkeleton>
+  );
+}
+
+/** Kanban-style boards (leads pipeline). */
+export function BoardPageSkeleton() {
+  return (
+    <ShellSkeleton>
+      <div aria-hidden="true" className="flex gap-4 overflow-hidden">
+        {Array.from({ length: 4 }, (_, c) => (
+          <div key={c} className="flex w-72 shrink-0 flex-col gap-3 rounded-[var(--radius-lg)] bg-[var(--surface-2)] p-3">
+            <div className="lunia-skeleton h-4 w-1/2" />
+            {Array.from({ length: 4 - (c % 2) }, (_, r) => (
+              <div key={r} className="lunia-card flex flex-col gap-2 p-4">
+                <div className="lunia-skeleton h-3.5 w-3/4" />
+                <div className="lunia-skeleton h-3 w-1/2" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** Two-pane inbox layouts (WhatsApp): conversation list + thread. */
+export function SplitPageSkeleton() {
+  return (
+    <ShellSkeleton>
+      <div aria-hidden="true" className="grid gap-4 lg:grid-cols-[20rem_1fr]">
+        <SkeletonCard rows={7} />
+        <div className="lunia-card flex min-h-[24rem] flex-col gap-4 p-5">
+          {Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className={`lunia-skeleton h-10 ${i % 2 ? "ms-auto w-1/2" : "w-2/3"}`} />
+          ))}
+        </div>
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** Settings / profile forms: stacked labelled fields. */
+export function FormPageSkeleton() {
+  return (
+    <ShellSkeleton>
+      <div aria-hidden="true" className="lunia-card flex max-w-3xl flex-col gap-5 p-6">
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="flex flex-col gap-2">
+            <div className="lunia-skeleton h-3 w-28" />
+            <div className="lunia-skeleton h-11 w-full" />
+          </div>
+        ))}
+        <div className="lunia-skeleton h-11 w-32" />
+      </div>
+    </ShellSkeleton>
+  );
+}
+
+/** Record pages (customer 360, appointment hub, invoice): summary + stat row + tabs + body. */
+export function DetailPageSkeleton() {
+  return (
+    <ShellSkeleton>
+      <SkeletonStatRow />
+      <div aria-hidden="true" className="flex gap-2 border-b border-[var(--line)] pb-2">
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="lunia-skeleton h-8 w-24" />
+        ))}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+        <SkeletonCard rows={6} />
+        <SkeletonCard rows={3} />
+      </div>
+    </ShellSkeleton>
+  );
+}

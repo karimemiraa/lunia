@@ -8,7 +8,6 @@ import { Chevron } from "@/components/site/home/AppleHero";
 import { CtaBand } from "@/components/site/CtaBand";
 
 import { getHomeHero, type PublicLocale } from "@/modules/cms/publicContent";
-import { getSetting } from "@/modules/cms/settings";
 import { listDepartments } from "@/modules/catalog/departments";
 import { localized } from "@/modules/catalog/localize";
 import { departmentStill, serviceStill } from "@/lib/siteMedia";

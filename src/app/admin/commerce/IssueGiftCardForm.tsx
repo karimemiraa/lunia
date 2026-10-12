@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useRef } from "react";
 import { issueGiftCardAction, type CommerceActionState } from "./actions";
+import { InlineStatus } from "../_ui/Form";
 
 interface ClientOption {
   clientProfileId: string;
@@ -64,11 +65,7 @@ export function IssueGiftCardForm({ clients }: { clients: ClientOption[] }) {
         >
           {pending ? "Issuing…" : "Issue gift card"}
         </button>
-        {state.error && (
-          <p role="alert" className="text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
+        <InlineStatus error={state.error} />
       </div>
 
       {state.success && state.issuedCode && (

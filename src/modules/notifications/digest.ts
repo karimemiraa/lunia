@@ -24,7 +24,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "";
 function buildEmailBody(name: string, lines: DigestLine[]): string {
   const first = name.trim().split(/\s+/)[0] || "there";
   const bullets = lines.map((l) => `• ${l.label}${BASE_URL ? `\n${BASE_URL}${l.href}` : ""}`).join("\n\n");
-  return `You have ${lines.length} item${lines.length === 1 ? "" : "s"} waiting in Lunia:\n\n${bullets}\n\nOpen the admin to follow up.`;
+  return `Hi ${first},\n\nYou have ${lines.length} item${lines.length === 1 ? "" : "s"} waiting in Lunia:\n\n${bullets}\n\nOpen the admin to follow up.`;
 }
 
 export async function sendAssigneeDigests(): Promise<DigestSendResult> {

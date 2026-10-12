@@ -6,7 +6,7 @@
 import { prisma } from "@/lib/db";
 import { PERMISSIONS, type PermissionKey } from "@/modules/iam/permissions";
 import { centerLocalToUtc, utcToCenterLocal, weekdayForDateISO } from "@/modules/booking/availability";
-import { listDayAppointments, listMonthAppointments, type DayAppointmentRow } from "@/modules/booking/bookings";
+import { listDayAppointments, type DayAppointmentRow } from "@/modules/booking/bookings";
 import { getSetting } from "@/modules/cms/settings";
 import { NOT_TEST_CLIENT } from "@/modules/crm/testCustomers";
 import { NOTIFICATION_TYPE_HREF, NOTIFICATION_TYPE_LABELS, type NotificationFeed, type NotificationType } from "@/modules/notifications/feed";
@@ -151,16 +151,27 @@ const weekdayFmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", w
 export async function weekStrip(todayISO: string): Promise<WeekDay[]> {
   const sundayISO = addDaysISO(todayISO, -weekdayForDateISO(todayISO));
   const days = Array.from({ length: 7 }, (_, i) => addDaysISO(sundayISO, i));
-  const months = [...new Set(days.map((d) => d.slice(0, 7)))];
-  const [hours, ...cells] = await Promise.all([getSetting("hours").catch(() => null), ...months.map((m) => listMonthAppointments(m))]);
-  const merged = Object.assign({}, ...cells) as Record<string, { count: number }>;
+  // One narrow query over the 7 days (all statuses, like the calendar's month
+  // cells) instead of loading one or two whole months of bookings + clients.
+  const [hours, rows] = await Promise.all([
+    getSetting("hours").catch(() => null),
+    prisma.appointment.findMany({
+      where: { startAt: { gte: centerLocalToUtc(days[0]!, 0), lt: centerLocalToUtc(days[6]!, 1440) } },
+      select: { startAt: true },
+    }),
+  ]);
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    const d = utcToCenterLocal(r.startAt).dateISO;
+    counts.set(d, (counts.get(d) ?? 0) + 1);
+  }
   return days.map((dateISO) => {
     const key = HOURS_KEY[weekdayForDateISO(dateISO)]!;
     return {
       dateISO,
       weekday: weekdayFmt.format(centerLocalToUtc(dateISO, 720)),
       dayOfMonth: Number(dateISO.slice(8, 10)),
-      count: merged[dateISO]?.count ?? 0,
+      count: counts.get(dateISO) ?? 0,
       isToday: dateISO === todayISO,
       closed: hours ? Boolean(hours[key]?.closed) : false,
     };
@@ -205,14 +216,15 @@ export interface TodayViewer {
   permissions: Set<PermissionKey>;
 }
 
-export async function getTodayDashboard(viewer: TodayViewer, feed: NotificationFeed, now: Date = new Date()): Promise<TodayDashboard> {
+/** `feed` may be passed as a promise so the page can start it in parallel with these queries. */
+export async function getTodayDashboard(viewer: TodayViewer, feed: NotificationFeed | Promise<NotificationFeed>, now: Date = new Date()): Promise<TodayDashboard> {
   const p = viewer.permissions;
   const todayISO = utcToCenterLocal(now).dateISO;
   const canBookings = p.has(PERMISSIONS.BOOKING_VIEW);
   const canMoney = p.has(PERMISSIONS.BILLING_MANAGE) || p.has(PERMISSIONS.ACCOUNTING_MANAGE) || p.has(PERMISSIONS.ANALYTICS_VIEW);
   const canCustomers = p.has(PERMISSIONS.CLIENT_VIEW) || p.has(PERMISSIONS.ANALYTICS_VIEW);
 
-  const [arrivals, now_, week, spark, revenue, newCustomers, openMin] = await Promise.all([
+  const [arrivals, now_, week, spark, revenue, newCustomers, openMin, resolvedFeed] = await Promise.all([
     canBookings ? listDayAppointments(todayISO) : Promise.resolve(null),
     nowStrip(now, todayISO, canBookings),
     canBookings ? weekStrip(todayISO) : Promise.resolve(null),
@@ -220,6 +232,7 @@ export async function getTodayDashboard(viewer: TodayViewer, feed: NotificationF
     canMoney ? revenueCollectedToday(todayISO) : Promise.resolve(null),
     canCustomers ? newCustomersToday(todayISO) : Promise.resolve(null),
     canBookings ? openMinutesFor(todayISO) : Promise.resolve(null),
+    feed,
   ]);
 
   const liveArrivals = arrivals?.filter((a) => a.status !== "CANCELLED" && a.status !== "NO_SHOW") ?? null;
@@ -228,7 +241,7 @@ export async function getTodayDashboard(viewer: TodayViewer, feed: NotificationF
     todayISO,
     now: now_,
     arrivals,
-    attention: attentionCards(feed),
+    attention: attentionCards(resolvedFeed),
     kpis: {
       revenueTodayMinor: revenue,
       appointmentsToday: liveArrivals ? liveArrivals.length : null,

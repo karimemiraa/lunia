@@ -59,7 +59,7 @@ export function AdjustmentForm({ productId, unit, stockQty }: { productId: strin
             aria-checked={kind === k.value}
             onClick={() => setKind(k.value)}
             className={`min-h-11 rounded-full px-4 text-sm transition-colors ${
-              kind === k.value ? "bg-[var(--color-forest)] text-[var(--color-cream)]" : "border border-[var(--line-strong)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
+              kind === k.value ? "bg-[var(--color-forest)] text-[var(--color-on-ink)]" : "border border-[var(--line-strong)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
             }`}
           >
             {k.label}

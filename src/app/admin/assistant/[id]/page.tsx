@@ -37,7 +37,7 @@ export default async function AssistantSessionPage({ params }: { params: Promise
                 <div
                   dir="auto"
                   className={`max-w-[85%] whitespace-pre-line break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                    m.from === "user" ? "bg-[var(--color-forest)] text-[var(--color-cream)]" : "bg-[var(--surface-2)] text-[var(--color-ink)]"
+                    m.from === "user" ? "bg-[var(--color-forest)] text-[var(--color-on-ink)]" : "bg-[var(--surface-2)] text-[var(--color-ink)]"
                   }`}
                 >
                   {m.text}

@@ -1,25 +1,26 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "../_components/Modal";
 import { Field } from "../_components/Field";
 import { createRoleAction, type RoleActionState } from "./actions";
+import { onActionSuccess } from "../_components/onActionSuccess";
+import { InlineStatus } from "../_ui/Form";
 
 const initialState: RoleActionState = {};
 
 export function CreateRoleForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [state, action, pending] = useActionState(createRoleAction, initialState);
-
-  useEffect(() => {
-    if (state.success && open) {
+  const [state, action, pending] = useActionState(
+    onActionSuccess(createRoleAction, () => {
       setOpen(false);
       router.refresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.success]);
+    }),
+    initialState,
+  );
+
 
   return (
     <>
@@ -44,7 +45,7 @@ export function CreateRoleForm() {
               <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest w-fit disabled:opacity-60">
                 {pending ? "Creating…" : "Create role"}
               </button>
-              {state.error && <p role="alert" className="text-sm text-red-600">{state.error}</p>}
+              <InlineStatus error={state.error} />
             </div>
           </form>
         </Modal>

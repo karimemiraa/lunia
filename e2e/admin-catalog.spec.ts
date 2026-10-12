@@ -34,20 +34,22 @@ test("catalog: editing a service's English name via admin updates the public ser
 
   try {
     await nameEnInput.fill(distinctiveName);
-    await page.getByRole("button", { name: "Save" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
 
     // The department detail page renders each published service's English
     // name in an <h3> (see src/app/[locale]/(site)/services/[slug]/page.tsx).
     await page.goto("/en/services/skin");
-    await expect(page.getByRole("heading", { name: distinctiveName, level: 3 })).toBeVisible();
+    // The service also appears in the department's featured card, so assert on
+    // its own section (anchored by slug).
+    await expect(page.locator("#diagnostic-skin-analysis").getByRole("heading", { name: distinctiveName, level: 3 })).toBeVisible();
   } finally {
     // Restore the original name so re-runs and other suites see stable seed
     // data (mirrors the "self-contained, leaves no lasting change" style of
     // the other admin-* e2e specs).
     await page.goto(editUrl);
     await page.locator('input[name="name.en"]').fill(originalName);
-    await page.getByRole("button", { name: "Save" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
   }
 });
@@ -58,7 +60,8 @@ test("catalog: creating a published journal post via admin makes it appear on th
   await signInAsOwner(page);
 
   await page.goto("/admin/catalog/journal");
-  await expect(page.getByRole("heading", { name: "Journal", exact: true })).toBeVisible();
+  // The admin calls the journal "Blog" (catalog hub + page title).
+  await expect(page.getByRole("heading", { name: "Blog", exact: true })).toBeVisible();
 
   const stamp = Date.now();
   const slug = `e2e-post-${stamp}`;
@@ -80,7 +83,8 @@ test("catalog: creating a published journal post via admin makes it appear on th
 
   try {
     await page.goto("/en/journal");
-    await expect(page.getByRole("heading", { name: titleEn, level: 2 })).toBeVisible();
+    // Post titles are h3s under the listing's "Latest" h2 (NewsTile).
+    await expect(page.getByRole("heading", { name: titleEn, level: 3 })).toBeVisible();
   } finally {
     // Clean up: find the created post in the admin list and delete it.
     await page.goto("/admin/catalog/journal");
@@ -88,8 +92,9 @@ test("catalog: creating a published journal post via admin makes it appear on th
     const row = page.locator("tr", { hasText: slug });
     await expect(row).toBeVisible();
 
-    page.once("dialog", (dialog) => dialog.accept());
+    // Deletes go through the in-app ConfirmDialog (no native window.confirm).
     await row.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
     await expect(page.locator("tr", { hasText: slug })).toHaveCount(0);
   }
 });

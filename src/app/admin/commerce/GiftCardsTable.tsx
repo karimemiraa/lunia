@@ -8,6 +8,7 @@ import { DataTable, type Column } from "../_ui/DataTable";
 import { StatusPill } from "../_ui/StatusPill";
 import { formatSar } from "../_ui/money";
 import { formatDate } from "../_ui/dates";
+import { InlineStatus } from "../_ui/Form";
 
 export interface GiftCardRowDTO {
   id: string;
@@ -32,11 +33,7 @@ function VoidButton({ card }: { card: GiftCardRowDTO }) {
       <ConfirmButton title="Void this gift card?" description={`${card.code} still holds ${formatSar(card.balanceMinor)}. Voiding cannot be undone.`} confirmLabel="Void gift card" pending={pending}>
         Void
       </ConfirmButton>
-      {state.error && (
-        <p role="alert" className="text-xs text-[var(--status-danger-ink)]">
-          {state.error}
-        </p>
-      )}
+      <InlineStatus size="sm" error={state.error} />
     </form>
   );
 }

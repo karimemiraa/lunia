@@ -86,12 +86,12 @@ export default async function WhatsappPage({ searchParams }: WhatsappPageProps) 
                       <div
                         className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm ${
                           m.direction === "OUT"
-                            ? "bg-[var(--color-forest)] text-[var(--color-cream)]"
+                            ? "bg-[var(--color-forest)] text-[var(--color-on-ink)]"
                             : "bg-[var(--surface-2)] text-[var(--color-ink)]"
                         }`}
                       >
                         <p className="whitespace-pre-wrap">{m.body}</p>
-                        <p className={`mt-1 text-[0.65rem] ${m.direction === "OUT" ? "text-[var(--color-cream)]/60" : "text-[var(--color-ink)]/45"}`}>
+                        <p className={`mt-1 text-[0.65rem] ${m.direction === "OUT" ? "text-[var(--color-on-ink)]/60" : "text-[var(--color-ink)]/45"}`}>
                           {m.direction === "OUT" ? (m.authorName ? `${m.authorName} · ` : "") : ""}
                           {timeFmt.format(m.createdAt)}
                         </p>

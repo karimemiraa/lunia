@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Field } from "../_components/Field";
 import { createTierAction, type TierActionState } from "./actions";
+import { InlineStatus } from "../_ui/Form";
 
 const initialState: TierActionState = {};
 
@@ -30,12 +31,8 @@ export function CreateTierForm() {
         >
           {pending ? "Creating…" : "Create tier"}
         </button>
-        {state.success && <p className="text-sm text-[var(--color-teal)]">Created.</p>}
-        {state.error && (
-          <p role="alert" className="text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
+        <InlineStatus success={state.success ? "Created." : undefined} />
+        <InlineStatus error={state.error} />
       </div>
     </form>
   );

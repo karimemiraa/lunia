@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useRef } from "react";
 import { addNoteAction, type ClientActionState } from "./actions";
+import { InlineStatus } from "../../_ui/Form";
 
 interface VisitNoteFormProps {
   clientProfileId: string;
@@ -43,12 +44,8 @@ export function VisitNoteForm({ clientProfileId }: VisitNoteFormProps) {
         >
           {pending ? "Saving…" : "Add comment"}
         </button>
-        {state.success && <p className="text-sm text-[var(--color-teal)]">Comment added.</p>}
-        {state.error && (
-          <p role="alert" className="text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
+        <InlineStatus success={state.success ? "Comment added." : undefined} />
+        <InlineStatus error={state.error} />
       </div>
     </form>
   );

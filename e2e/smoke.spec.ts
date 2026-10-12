@@ -17,5 +17,6 @@ test("owner can sign in", async ({ page }) => {
   await page.fill('input[name="password"]', process.env.SEED_OWNER_PASSWORD ?? "ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+  // The staff home is the "Today" page.
+  await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
 });

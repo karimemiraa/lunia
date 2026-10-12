@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { assignInquiryAction, linkCustomerAction, replyInquiryAction, type InquiryActionState } from "./actions";
+import { InlineStatus } from "../_ui/Form";
 
 interface StaffOption {
   id: string;
@@ -45,8 +46,8 @@ export function InquiryPanel({ id, email, assignedToId, clientProfileId, replied
               {assignPending ? "Saving…" : "Save"}
             </button>
           </div>
-          {assignState.success && <span className="text-xs font-medium text-[var(--color-teal-ink)]">Saved.</span>}
-          {assignState.error && <span role="alert" className="text-xs text-red-700">{assignState.error}</span>}
+          <InlineStatus size="sm" success={assignState.success ? "Saved." : undefined} />
+          <InlineStatus size="sm" error={assignState.error} />
         </form>
 
         <div className="flex flex-col gap-2 lunia-card p-4">
@@ -61,7 +62,7 @@ export function InquiryPanel({ id, email, assignedToId, clientProfileId, replied
               <button type="submit" disabled={linkPending} className="lunia-btn lunia-btn-forest lunia-btn-sm disabled:opacity-60">
                 {linkPending ? "Linking…" : "Link to a customer"}
               </button>
-              {linkState.error && <span role="alert" className="ms-2 text-xs text-red-700">{linkState.error}</span>}
+              <InlineStatus size="sm" error={linkState.error} className="ms-2" />
             </form>
           )}
         </div>
@@ -90,8 +91,8 @@ export function InquiryPanel({ id, email, assignedToId, clientProfileId, replied
               <button type="submit" disabled={replyPending} className="lunia-btn lunia-btn-forest w-fit disabled:opacity-60">
                 {replyPending ? "Sending…" : "Send email reply"}
               </button>
-              {replyState.success && <span className="text-sm font-medium text-[var(--color-teal-ink)]">Sent.</span>}
-              {replyState.error && <span role="alert" className="text-sm text-red-700">{replyState.error}</span>}
+              <InlineStatus size="sm" success={replyState.success ? "Sent." : undefined} />
+              <InlineStatus size="sm" error={replyState.error} />
             </div>
           </form>
         ) : (

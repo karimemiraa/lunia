@@ -25,7 +25,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
   const stages = stageRows.map((s) => ({ key: s.key, label: s.label, color: s.color }));
   const chip = (active: boolean) =>
-    `rounded-full px-3 py-1.5 text-sm transition-colors ${active ? "bg-[var(--color-forest)] text-[var(--color-cream)]" : "border border-[var(--line)] text-[var(--color-ink)]/70 hover:bg-[var(--color-ink)]/[0.04]"}`;
+    `rounded-full px-3 py-1.5 text-sm transition-colors ${active ? "bg-[var(--color-forest)] text-[var(--color-on-ink)]" : "border border-[var(--line)] text-[var(--color-ink)]/70 hover:bg-[var(--color-ink)]/[0.04]"}`;
   const qs = (next: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
     const d = next.direction ?? direction;

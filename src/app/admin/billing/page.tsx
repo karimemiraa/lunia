@@ -32,7 +32,8 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
   const q = params.q?.trim().slice(0, 80) || undefined;
   const todayISO = toISODate();
 
-  const { rows, totals } = await listInvoices({
+  // unpaidCount spans the whole filter, not just the (capped) rows shown below.
+  const { rows, totals, unpaidCount } = await listInvoices({
     status,
     kind,
     q,
@@ -55,7 +56,6 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
 
   const current = { status, kind, from, to, q };
   const chipValues = [...STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))];
-  const unpaidCount = rows.filter((r) => r.kind === "INVOICE" && (r.status === "ISSUED" || r.status === "PARTIALLY_PAID")).length;
 
   return (
     <AdminShell
@@ -78,7 +78,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
           <KpiCard label="Invoiced (net of credits)" value={formatSar(totals.totalMinor)} hint="Incl. VAT, for this filter" />
           <KpiCard label="VAT" value={formatSar(totals.vatMinor)} />
           <KpiCard label="Collected" value={formatSar(totals.paidMinor)} tone="success" />
-          <KpiCard label="Awaiting payment" value={unpaidCount} tone={unpaidCount > 0 ? "warning" : "neutral"} hint={unpaidCount > 0 ? "Open invoices in this list" : "Nothing outstanding"} href={unpaidCount > 0 ? "/admin/billing?status=ISSUED" : undefined} />
+          <KpiCard label="Awaiting payment" value={unpaidCount} tone={unpaidCount > 0 ? "warning" : "neutral"} hint={unpaidCount > 0 ? "Open invoices matching these filters" : "Nothing outstanding"} href={unpaidCount > 0 ? "/admin/billing?status=ISSUED" : undefined} />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

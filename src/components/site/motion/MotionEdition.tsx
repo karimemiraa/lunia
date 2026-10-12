@@ -155,7 +155,6 @@ export function MotionEdition(p: MotionEditionProps) {
       {/* 1 — Kinetic full-bleed hero */}
       <section className="mo-hero">
         <div className="mo-hero-media" aria-hidden="true">
-          {/* eslint-disable-next-line @next/next/no-img-element -- poster decoration behind the video */}
           <video autoPlay muted loop playsInline preload="metadata" poster={p.heroVideo.poster}>
             <source src={p.heroVideo.mobileSrc} type="video/mp4" media="(max-width: 767px)" />
             <source src={p.heroVideo.src} type="video/mp4" />

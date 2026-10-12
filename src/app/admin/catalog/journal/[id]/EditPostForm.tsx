@@ -6,6 +6,7 @@ import { Field } from "../../../_components/Field";
 import { LocalizedField, type LocalizedValue } from "../../../_components/LocalizedField";
 import { MediaPicker, type MediaOption } from "../../../_components/MediaPicker";
 import { updatePostAction, type PostActionState } from "../actions";
+import { InlineStatus } from "../../../_ui/Form";
 
 const initialState: PostActionState = {};
 
@@ -58,12 +59,8 @@ export function EditPostForm({ post, media }: EditPostFormProps) {
         >
           {pending ? "Saving…" : "Save"}
         </button>
-        {state.success && <p className="text-sm text-[var(--color-teal)]">Saved.</p>}
-        {state.error && (
-          <p role="alert" className="text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
+        <InlineStatus success={state.success ? "Saved." : undefined} />
+        <InlineStatus error={state.error} />
       </div>
     </form>
   );

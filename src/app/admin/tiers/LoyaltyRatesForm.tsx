@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { saveLoyaltyRatesAction, type TierActionState } from "./actions";
+import { InlineStatus } from "../_ui/Form";
 
 const initialState: TierActionState = {};
 
@@ -19,7 +20,6 @@ export function LoyaltyRatesForm({ sarPerPoint, pointsPerSar }: LoyaltyRatesForm
   const [earn, setEarn] = useState(String(sarPerPoint));
   const [redeem, setRedeem] = useState(String(pointsPerSar));
 
-  const earnNum = Number(earn);
   const redeemNum = Number(redeem);
   const pointValueSar = Number.isFinite(redeemNum) && redeemNum >= 1 ? (1 / redeemNum).toFixed(3) : "—";
 
@@ -72,8 +72,8 @@ export function LoyaltyRatesForm({ sarPerPoint, pointsPerSar }: LoyaltyRatesForm
         <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest disabled:opacity-60">
           {pending ? "Saving…" : "Save rates"}
         </button>
-        {state.success && <span role="status" className="text-xs font-medium text-[var(--status-success-ink)]">Saved.</span>}
-        {state.error && <span role="alert" className="text-xs text-red-600">{state.error}</span>}
+        <InlineStatus size="sm" success={state.success ? "Saved." : undefined} />
+        <InlineStatus size="sm" error={state.error} />
       </div>
     </form>
   );

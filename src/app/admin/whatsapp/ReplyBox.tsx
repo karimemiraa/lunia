@@ -2,6 +2,7 @@
 
 import { useActionState, useRef } from "react";
 import { sendReplyAction, type WhatsappActionState } from "./actions";
+import { InlineStatus } from "../_ui/Form";
 
 const initial: WhatsappActionState = {};
 
@@ -29,7 +30,7 @@ export function ReplyBox({ conversationId }: { conversationId: string }) {
       <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest lunia-btn-sm disabled:opacity-60">
         {pending ? "Sending…" : "Send"}
       </button>
-      {state.error && <span role="alert" className="text-xs text-red-700">{state.error}</span>}
+      <InlineStatus size="sm" error={state.error} />
     </form>
   );
 }

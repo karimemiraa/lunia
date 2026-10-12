@@ -106,7 +106,7 @@ export function TimelineFeed({ entries, canSeePhotos = false }: TimelineFeedProp
           }}
           aria-pressed={kinds.length === 0}
           className={`min-h-9 rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] ${
-            kinds.length === 0 ? "bg-[var(--color-ink)] text-[var(--color-cream)]" : "border border-[var(--line-strong)] text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]"
+            kinds.length === 0 ? "bg-[var(--color-ink)] text-[var(--color-on-ink)]" : "border border-[var(--line-strong)] text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]"
           }`}
         >
           All ({all.length})

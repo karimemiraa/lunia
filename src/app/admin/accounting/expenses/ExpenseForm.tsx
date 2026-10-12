@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import type { PaymentMethod } from "@prisma/client";
 import { saveExpenseAction, type ExpenseFormState } from "./actions";
+import { InlineStatus } from "../../_ui/Form";
 
 export interface ExpenseFormValues {
   id?: string;
@@ -172,11 +173,7 @@ export function ExpenseForm({ initial, categories, methods, receiptAccept }: Exp
         </div>
       </div>
 
-      {state?.error && (
-        <p role="alert" className="text-sm text-[#b42318]">
-          {state.error}
-        </p>
-      )}
+      <InlineStatus error={state?.error} />
 
       <div className="flex flex-wrap gap-3">
         <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">

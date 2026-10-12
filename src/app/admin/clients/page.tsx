@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
-import { listClients, listClientTags, listStaffOwners, applyRosterView, ROSTER_VIEWS, ROSTER_VIEW_LABELS, type ClientLifecycle, type RosterView } from "@/modules/crm/clients";
+import { listClients, listClientTags, listStaffOwners, applyRosterView, centerMonthStart, ROSTER_VIEWS, ROSTER_VIEW_LABELS, type ClientLifecycle, type RosterView } from "@/modules/crm/clients";
 import { ClientsTable, type ClientRowDTO } from "./ClientsTable";
 import { listSegments, segmentToQuery } from "@/modules/crm/segments";
 import { saveSegmentAction, deleteSegmentAction } from "./actions";
@@ -55,7 +55,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   // KPIs computed over the search/tier/source result (the whole roster when no
   // filters are set); the status dropdown then narrows the table itself.
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthStart = centerMonthStart(now);
   const stats = {
     total: allMatching.length,
     newThisMonth: allMatching.filter((c) => c.createdAt >= monthStart).length,
@@ -132,7 +132,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
               href={viewHref(v)}
               aria-current={active ? "page" : undefined}
               className={`inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 py-1 text-sm transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] ${
-                active ? "bg-[var(--color-ink)] text-[var(--color-cream)]" : "border border-[var(--line-strong)] text-[var(--color-ink)]/75 hover:bg-[var(--surface-2)]"
+                active ? "bg-[var(--color-ink)] text-[var(--color-on-ink)]" : "border border-[var(--line-strong)] text-[var(--color-ink)]/75 hover:bg-[var(--surface-2)]"
               }`}
             >
               {ROSTER_VIEW_LABELS[v]}

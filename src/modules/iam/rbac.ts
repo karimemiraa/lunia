@@ -28,8 +28,9 @@ export async function getCurrentUser(token: string | undefined) {
   if (!token) return null;
   const session = await getSession(token);
   if (!session) return null;
-  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  // Both lookups only need the session's userId, so run them together.
+  const [user, permissions] = await Promise.all([prisma.user.findUnique({ where: { id: session.userId } }), getUserPermissions(session.userId)]);
   if (!user || user.isActive === false) return null;
   if (user.type !== "STAFF") return null;
-  return { id: session.userId, permissions: await getUserPermissions(session.userId) };
+  return { id: session.userId, permissions };
 }

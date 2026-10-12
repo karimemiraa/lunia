@@ -1740,3 +1740,13 @@ video::-webkit-media-controls { display: none !important; }
   .mo-track.mo-horizontal .mo-panel { width: 100%; height: auto; min-height: 62svh; flex: none; }
   .mo-marquee-inner { animation: none; }
 }
+
+/* Staff console in Arabic: only the shell is RTL (the document and page content
+   stay LTR/English), so the html[dir="rtl"] font swap above doesn't apply —
+   give RTL regions the Arabic faces directly, and English islands back Inter. */
+.lunia-staff [dir="rtl"] {
+  font-family: var(--font-body-ar), var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+.lunia-staff [dir="rtl"] [dir="ltr"] {
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}

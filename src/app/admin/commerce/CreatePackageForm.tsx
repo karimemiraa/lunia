@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useRef } from "react";
 import { createPackageAction, type CommerceActionState } from "./actions";
+import { InlineStatus } from "../_ui/Form";
 
 interface ServiceOption {
   id: string;
@@ -82,12 +83,8 @@ export function CreatePackageForm({ services }: { services: ServiceOption[] }) {
         >
           {pending ? "Creating…" : "Create package"}
         </button>
-        {state.error && (
-          <p role="alert" className="text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
-        {state.success && <p className="text-sm text-[var(--color-teal)]">Saved.</p>}
+        <InlineStatus error={state.error} />
+        <InlineStatus success={state.success ? "Saved." : undefined} />
       </div>
     </form>
   );

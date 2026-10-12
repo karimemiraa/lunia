@@ -6,6 +6,7 @@
 
 import { prisma } from "@/lib/db";
 import { openStageKeys } from "@/modules/crm/pipeline";
+import { centerLocalToUtc, utcToCenterLocal } from "@/modules/booking/availability";
 import type { PermissionKey } from "@/modules/iam/permissions";
 import { SOURCES } from "./sources";
 
@@ -31,32 +32,33 @@ export async function getNotificationFeed(
 ): Promise<NotificationFeed> {
   const since = new Date(Date.now() - NEW_LEAD_WINDOW_DAYS * 86_400_000);
   const perSource = Math.min(Math.max(5, limit), 50);
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  // "Today" is the center's day (Asia/Riyadh), not the server's.
+  const startOfToday = centerLocalToUtc(utcToCenterLocal(new Date()).dateISO, 0);
 
+  // Everything runs in one parallel wave (this feed renders on every admin page):
+  // module sources start immediately, and only the lead queries wait on the stage keys.
+  const extraPromise = Promise.allSettled(SOURCES.map((source) => source(permissions)));
   // "New leads" = recently created and still in an open stage (not won/lost),
   // so it survives renaming/adding stages in Superadmin.
-  const openKeys = await openStageKeys();
-  const newLeadWhere = { stage: { in: openKeys }, createdAt: { gte: since } };
+  const leadsPromise = openStageKeys().then(async (openKeys) => {
+    const newLeadWhere = { stage: { in: openKeys }, createdAt: { gte: since } };
+    const [count, rows] = await Promise.all([
+      prisma.clientProfile.count({ where: newLeadWhere }),
+      prisma.clientProfile.findMany({ where: newLeadWhere, orderBy: { createdAt: "desc" }, take: perSource, include: { user: { select: { phone: true, email: true } } } }),
+    ]);
+    return { count, rows };
+  });
 
-  const [
-    inquiryCount,
-    inquiries,
-    whatsappCount,
-    conversations,
-    leadCount,
-    leads,
-    bookingCount,
-    bookings,
-  ] = await Promise.all([
-    prisma.contactInquiry.count({ where: { handled: false } }),
-    prisma.contactInquiry.findMany({ where: { handled: false }, orderBy: { createdAt: "desc" }, take: perSource }),
-    prisma.whatsappConversation.count({ where: { unread: true } }),
-    prisma.whatsappConversation.findMany({ where: { unread: true }, orderBy: { lastMessageAt: "desc" }, take: perSource, include: { client: { select: { fullName: true } } } }),
-    prisma.clientProfile.count({ where: newLeadWhere }),
-    prisma.clientProfile.findMany({ where: newLeadWhere, orderBy: { createdAt: "desc" }, take: perSource, include: { user: { select: { phone: true, email: true } } } }),
-    prisma.booking.count({ where: { createdAt: { gte: startOfToday } } }),
-    prisma.booking.findMany({ where: { createdAt: { gte: startOfToday } }, orderBy: { createdAt: "desc" }, take: perSource, include: { client: { select: { fullName: true } } } }),
+  const [[inquiryCount, inquiries, whatsappCount, conversations, bookingCount, bookings], { count: leadCount, rows: leads }] = await Promise.all([
+    Promise.all([
+      prisma.contactInquiry.count({ where: { handled: false } }),
+      prisma.contactInquiry.findMany({ where: { handled: false }, orderBy: { createdAt: "desc" }, take: perSource }),
+      prisma.whatsappConversation.count({ where: { unread: true } }),
+      prisma.whatsappConversation.findMany({ where: { unread: true }, orderBy: { lastMessageAt: "desc" }, take: perSource, include: { client: { select: { fullName: true } } } }),
+      prisma.booking.count({ where: { createdAt: { gte: startOfToday } } }),
+      prisma.booking.findMany({ where: { createdAt: { gte: startOfToday } }, orderBy: { createdAt: "desc" }, take: perSource, include: { client: { select: { fullName: true } } } }),
+    ]),
+    leadsPromise,
   ]);
 
   const items: NotificationItem[] = [
@@ -102,7 +104,7 @@ export async function getNotificationFeed(
   let total = inquiryCount + whatsappCount + leadCount + bookingCount;
 
   // Module-contributed sources; one failing source never breaks the bell.
-  const extra = await Promise.allSettled(SOURCES.map((source) => source(permissions)));
+  const extra = await extraPromise;
   for (const result of extra) {
     if (result.status !== "fulfilled") continue;
     total += result.value.count;

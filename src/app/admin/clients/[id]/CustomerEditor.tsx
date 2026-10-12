@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "../../_components/Modal";
 import { updateCustomerAction, deleteCustomerAction, type ClientActionState } from "./actions";
@@ -8,6 +8,9 @@ import { useActionState } from "react";
 import { TierEditor } from "./TierEditor";
 import { NotificationPreferenceEditor } from "./NotificationPreferenceEditor";
 import type { MembershipTier, CommsChannelPref } from "@prisma/client";
+import { onActionSuccess } from "../../_components/onActionSuccess";
+import { InlineStatus } from "../../_ui/Form";
+import { ConfirmButton } from "../../_ui/ConfirmDialog";
 
 interface CustomerEditorProps {
   clientProfileId: string;
@@ -27,17 +30,15 @@ const initialState: ClientActionState = {};
 export function CustomerEditor({ clientProfileId, fullName, phone, email, source, currentTierId, tiers, preference }: CustomerEditorProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [saveState, saveAction, savePending] = useActionState(updateCustomerAction, initialState);
-  const [deleteState, deleteAction, deletePending] = useActionState(deleteCustomerAction, initialState);
-
-  // Close + refresh once a save succeeds.
-  useEffect(() => {
-    if (saveState.success && open) {
+  const [saveState, saveAction, savePending] = useActionState(
+    onActionSuccess(updateCustomerAction, () => {
       setOpen(false);
       router.refresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saveState.success]);
+    }),
+    initialState,
+  );
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteCustomerAction, initialState);
+
 
   return (
     <>
@@ -71,7 +72,7 @@ export function CustomerEditor({ clientProfileId, fullName, phone, email, source
                 <button type="submit" disabled={savePending} className="lunia-btn lunia-btn-forest w-fit disabled:opacity-60">
                   {savePending ? "Saving…" : "Save details"}
                 </button>
-                {saveState.error && <span role="alert" className="text-sm font-medium text-red-700">{saveState.error}</span>}
+                <InlineStatus size="sm" error={saveState.error} />
               </div>
             </form>
 
@@ -91,19 +92,19 @@ export function CustomerEditor({ clientProfileId, fullName, phone, email, source
 
             <hr className="border-[var(--line)]" />
 
-            <form
-              action={deleteAction}
-              onSubmit={(e) => {
-                if (!confirm("Delete this customer and all their bookings and history? This cannot be undone.")) e.preventDefault();
-              }}
-              className="flex flex-wrap items-center gap-3"
-            >
+            <form action={deleteAction} className="flex flex-wrap items-center gap-3">
               <input type="hidden" name="clientProfileId" value={clientProfileId} />
-              <button type="submit" disabled={deletePending} className="lunia-btn lunia-btn-danger lunia-btn-sm disabled:opacity-60">
+              <ConfirmButton
+                title="Delete this customer?"
+                description="Their bookings and entire history are removed permanently. This cannot be undone."
+                confirmLabel="Delete customer"
+                pending={deletePending}
+                className="lunia-btn lunia-btn-danger lunia-btn-sm"
+              >
                 {deletePending ? "Deleting…" : "Delete customer"}
-              </button>
+              </ConfirmButton>
               <span className="text-xs text-[var(--color-ink)]/50">Removes the customer and their entire history permanently.</span>
-              {deleteState.error && <span role="alert" className="text-sm font-medium text-red-700">{deleteState.error}</span>}
+              <InlineStatus size="sm" error={deleteState.error} />
             </form>
           </div>
         </Modal>

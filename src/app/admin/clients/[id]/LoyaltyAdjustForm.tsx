@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useRef } from "react";
 import { adjustLoyaltyPointsAction, type ClientActionState } from "./actions";
+import { InlineStatus } from "../../_ui/Form";
 
 interface LoyaltyAdjustFormProps {
   clientProfileId: string;
@@ -55,12 +56,8 @@ export function LoyaltyAdjustForm({ clientProfileId }: LoyaltyAdjustFormProps) {
       >
         {pending ? "Saving…" : "Apply adjustment"}
       </button>
-      {state.success && <p className="text-sm text-[var(--color-teal)]">Saved.</p>}
-      {state.error && (
-        <p role="alert" className="text-sm text-red-600">
-          {state.error}
-        </p>
-      )}
+      <InlineStatus success={state.success ? "Saved." : undefined} />
+      <InlineStatus error={state.error} />
     </form>
   );
 }

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { PERMISSIONS, type PermissionKey } from "@/modules/iam/permissions";
 import { NAV_GROUPS, NAV_CATALOG, type NavIconKey } from "./navCatalog";
+import { st, type StaffLocale } from "../_i18n/staffLocale";
 
 export { NAV_CATALOG };
 
@@ -12,6 +13,8 @@ interface AdminNavProps {
   permissions: Set<PermissionKey>;
   /** Menu hrefs the superadmin has hidden from everyone without platform:manage. */
   hiddenHrefs?: string[];
+  /** Staff console language (labels translated; English when absent). */
+  locale?: StaffLocale;
 }
 
 interface NavItem {
@@ -206,7 +209,8 @@ const RailIcon = (
   </svg>
 );
 
-export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
+export function AdminNav({ permissions, hiddenHrefs = [], locale = "en" }: AdminNavProps) {
+  const t = (text: string) => st(text, locale);
   // The superadmin always sees the whole menu (they're the one hiding things).
   const hidden = permissions.has(PERMISSIONS.PLATFORM_MANAGE) ? new Set<string>() : new Set(hiddenHrefs);
   // usePathname can be null (e.g. outside a router context in unit tests);
@@ -225,6 +229,7 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem("lunia-nav-collapsed");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration of persisted preferences
       setCollapsed(saved === null ? window.innerWidth < 1024 : saved === "1");
       const raw = localStorage.getItem("lunia-nav-closed");
       if (raw) setClosed(JSON.parse(raw) as Record<string, boolean>);
@@ -258,7 +263,7 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
       <button
         type="button"
         onClick={() => setDrawerOpen(true)}
-        aria-label="Open menu"
+        aria-label={t("Open menu")}
         aria-expanded={drawerOpen}
         className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-white/35"
       >
@@ -272,9 +277,9 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
       <div aria-hidden="true" onClick={() => setDrawerOpen(false)} className="fixed inset-0 z-40 bg-black/40 md:hidden" />
     )}
     <nav
-      aria-label="Admin navigation"
+      aria-label={t("Admin navigation")}
       className={`fixed inset-y-0 start-0 z-50 flex h-[100dvh] w-72 shrink-0 flex-col gap-0.5 overflow-y-auto overflow-x-hidden lunia-teal-field border-e border-[var(--color-ink)]/10 px-3 py-4 transition-transform duration-300 md:sticky md:top-0 md:z-auto md:h-screen md:translate-x-0 md:transition-[width] ${
-        drawerOpen ? "translate-x-0" : "-translate-x-full rtl:translate-x-full"
+        drawerOpen ? "translate-x-0" : "-translate-x-full rtl:translate-x-full md:rtl:translate-x-0"
       } ${collapsed ? "md:w-[4.25rem] md:items-center md:px-2" : "md:w-60 md:px-3"}`}
     >
       {/* Brand + collapse toggle */}
@@ -283,14 +288,14 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
           <>
             <span className="lunia-logo-stage !py-1.5 !px-3"><span role="img" aria-label="LUNIA" className="lunia-logo h-5" /></span>
             <span className="ms-auto rounded-full bg-white/55 px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-widest text-[var(--color-teal-ink)]">
-              Admin
+              {t("Admin")}
             </span>
           </>
         )}
         <button
           type="button"
           onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={t(collapsed ? "Expand sidebar" : "Collapse sidebar")}
           className={`hidden rounded-md p-1.5 text-[var(--color-ink)]/60 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] md:inline-flex ${rail ? "" : "ms-1"}`}
         >
           {RailIcon}
@@ -298,7 +303,7 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
         <button
           type="button"
           onClick={() => setDrawerOpen(false)}
-          aria-label="Close menu"
+          aria-label={t("Close menu")}
           className="ms-1 flex h-10 w-10 items-center justify-center rounded-md text-[var(--color-ink)]/70 hover:bg-white/35 md:hidden"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
@@ -322,7 +327,7 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
                 aria-expanded={open}
                 className="mt-3 flex w-full items-center justify-between rounded px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-teal-ink)]/80 transition-colors hover:text-[var(--color-ink)]"
               >
-                {group.label}
+                {t(group.label)}
                 <Chevron open={open} />
               </button>
             )}
@@ -335,8 +340,8 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
                       <Link
                         href={item.href}
                         aria-current={active ? "page" : undefined}
-                        aria-label={rail ? item.label : undefined}
-                        data-tip={rail ? item.label : undefined}
+                        aria-label={rail ? t(item.label) : undefined}
+                        data-tip={rail ? t(item.label) : undefined}
                         onClick={() => setDrawerOpen(false)}
                         className={`group flex items-center rounded-[var(--radius-sm)] text-sm transition-colors duration-200 ${
                           rail ? "lunia-tip justify-center p-2.5" : "gap-3 px-3 py-2.5 md:py-1.5"
@@ -355,7 +360,7 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
                         >
                           {item.icon}
                         </span>
-                        {!rail && item.label}
+                        {!rail && t(item.label)}
                       </Link>
                     </li>
                   );
@@ -372,40 +377,40 @@ export function AdminNav({ permissions, hiddenHrefs = [] }: AdminNavProps) {
           href="/"
           target="_blank"
           rel="noopener"
-          aria-label={rail ? "Open website" : undefined}
-          data-tip={rail ? "Open website" : undefined}
+          aria-label={rail ? t("Open website") : undefined}
+          data-tip={rail ? t("Open website") : undefined}
           className={`flex items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-ink)]/65 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] ${
             rail ? "lunia-tip justify-center p-2.5" : "gap-3 px-3 py-2"
           }`}
         >
           <span className="text-[var(--color-ink)]/50">{GlobeIcon}</span>
-          {!rail && "Website"}
+          {!rail && t("Website")}
         </a>
         {permissions.has(PERMISSIONS.PLATFORM_MANAGE) && (
           <Link
             href="/superadmin"
-            aria-label={rail ? "Superadmin" : undefined}
-            data-tip={rail ? "Superadmin" : undefined}
+            aria-label={rail ? t("Superadmin") : undefined}
+            data-tip={rail ? t("Superadmin") : undefined}
             aria-current={pathname.startsWith("/superadmin") ? "page" : undefined}
             className={`flex items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-ink)]/65 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] ${
               rail ? "lunia-tip justify-center p-2.5" : "gap-3 px-3 py-2"
             }`}
           >
             <span className="text-[var(--color-ink)]/50">{I.gear}</span>
-            {!rail && "Superadmin"}
+            {!rail && t("Superadmin")}
           </Link>
         )}
         <form action="/admin/logout" method="post" className="w-full">
           <button
             type="submit"
-            aria-label={rail ? "Sign out" : undefined}
-            data-tip={rail ? "Sign out" : undefined}
+            aria-label={rail ? t("Sign out") : undefined}
+            data-tip={rail ? t("Sign out") : undefined}
             className={`flex w-full items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-ink)]/65 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] ${
               rail ? "lunia-tip justify-center p-2.5" : "gap-3 px-3 py-2"
             }`}
           >
             <span className="text-[var(--color-ink)]/50">{I.door}</span>
-            {!rail && "Sign out"}
+            {!rail && t("Sign out")}
           </button>
         </form>
       </div>

@@ -1,7 +1,7 @@
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
-import { bookingStats, upcomingAppointmentsCount, type DayStat } from "@/modules/booking/stats";
+import { bookingStatsForRanges, upcomingAppointmentsCount, type DayStat } from "@/modules/booking/stats";
 import { centerLocalToUtc, utcToCenterLocal, weekdayForDateISO } from "@/modules/booking/availability";
 import { StatCard } from "@/components/admin/charts/StatCard";
 import { BarChart, type BarChartDatum } from "@/components/admin/charts/BarChart";
@@ -60,11 +60,14 @@ export default async function BusinessDashboardPage() {
   const last30StartISO = addDaysISO(todayISO, -(LAST_N_DAYS - 1));
   const last30From = centerLocalToUtc(last30StartISO, 0);
 
-  const [todayStats, weekStats, monthStats, last30Stats, upcoming] = await Promise.all([
-    bookingStats({ from: todayFrom, to: todayTo }),
-    bookingStats({ from: weekFrom, to: todayTo }),
-    bookingStats({ from: monthFrom, to: todayTo }),
-    bookingStats({ from: last30From, to: todayTo }),
+  // One booking fetch for all four windows (they overlap), sliced in memory.
+  const [[todayStats, weekStats, monthStats, last30Stats], upcoming] = await Promise.all([
+    bookingStatsForRanges([
+      { from: todayFrom, to: todayTo },
+      { from: weekFrom, to: todayTo },
+      { from: monthFrom, to: todayTo },
+      { from: last30From, to: todayTo },
+    ]),
     upcomingAppointmentsCount(now),
   ]);
 

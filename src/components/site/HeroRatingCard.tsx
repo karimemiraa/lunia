@@ -38,7 +38,7 @@ function Star() {
 // aggregate rating (never shown when there are no reviews — the caller gates
 // on count) rendered as a number + proportional stars + a review count. Adds
 // social proof and Clingr-style depth to the opener without any new media.
-export function HeroRatingCard({ avg, count, summary }: HeroRatingCardProps) {
+export function HeroRatingCard({ avg, summary }: HeroRatingCardProps) {
   return (
     <div className="lx-surface pointer-events-auto flex items-center gap-4 rounded-2xl border border-[var(--line)] px-5 py-4 shadow-[var(--shadow-lg)] backdrop-blur-md">
       <span className="font-[family-name:var(--font-display)] text-4xl font-medium leading-none text-[var(--color-ink)]">

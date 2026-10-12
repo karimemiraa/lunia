@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { openPalette } from "./CommandPalette";
+import { st, type StaffLocale } from "../_i18n/staffLocale";
 
 interface KeyboardShortcutsProps {
   /** Hrefs the viewer may open (permission + hidden-menu filtered). */
   allowedHrefs: string[];
   canBook: boolean;
+  locale?: StaffLocale;
 }
 
 interface Shortcut {
@@ -33,7 +35,8 @@ function isTypingTarget(el: EventTarget | null): boolean {
  *   n b new booking · / search · ? this sheet · Esc closes the sheet
  * Ignored while typing in a field or when a modifier is held.
  */
-export function KeyboardShortcuts({ allowedHrefs, canBook }: KeyboardShortcutsProps) {
+export function KeyboardShortcuts({ allowedHrefs, canBook, locale = "en" }: KeyboardShortcutsProps) {
+  const t = (text: string) => st(text, locale);
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
   const pending = useRef<{ key: string; at: number } | null>(null);
@@ -107,19 +110,21 @@ export function KeyboardShortcuts({ allowedHrefs, canBook }: KeyboardShortcutsPr
         role="dialog"
         aria-modal="true"
         aria-labelledby="lunia-shortcuts-title"
+        dir={locale === "ar" ? "rtl" : "ltr"}
+        lang={locale}
         className="lunia-pop-in w-full max-w-lg rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[var(--shadow-lg)]"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="lunia-shortcuts-title" className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">
-              Keyboard shortcuts
+              {t("Keyboard shortcuts")}
             </h2>
-            <p className="mt-1 text-sm text-[var(--color-ink)]/60">Press the keys in sequence, outside a text field.</p>
+            <p className="mt-1 text-sm text-[var(--color-ink)]/60">{t("Press the keys in sequence, outside a text field.")}</p>
           </div>
           <button
             type="button"
             onClick={() => setSheetOpen(false)}
-            aria-label="Close"
+            aria-label={t("Close")}
             autoFocus
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--color-ink)]/[0.06] focus-visible:outline-none focus-visible:shadow-[var(--ring)]"
           >
@@ -130,14 +135,14 @@ export function KeyboardShortcuts({ allowedHrefs, canBook }: KeyboardShortcutsPr
         </div>
         <dl className="mt-5 grid gap-y-2.5 sm:grid-cols-[auto_1fr] sm:gap-x-6">
           <dt className="flex items-center gap-1"><kbd className="lunia-kbd">⌘</kbd><span className="text-xs text-[var(--color-ink)]/40">/</span><kbd className="lunia-kbd">Ctrl</kbd><kbd className="lunia-kbd">K</kbd></dt>
-          <dd className="text-sm text-[var(--color-ink)]/80">Search or jump to anything</dd>
+          <dd className="text-sm text-[var(--color-ink)]/80">{t("Search or jump to anything")}</dd>
           {shortcuts
             .filter((s) => s.enabled)
             .map((s) => (
-              <FragmentRow key={s.label} keys={s.keys} label={s.label} />
+              <FragmentRow key={s.label} keys={s.keys} label={t(s.label)} />
             ))}
           <dt className="flex items-center gap-1"><kbd className="lunia-kbd">Esc</kbd></dt>
-          <dd className="text-sm text-[var(--color-ink)]/80">Close dialogs</dd>
+          <dd className="text-sm text-[var(--color-ink)]/80">{t("Close dialogs")}</dd>
         </dl>
       </div>
     </div>,

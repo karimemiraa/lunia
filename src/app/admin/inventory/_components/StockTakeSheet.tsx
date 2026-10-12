@@ -6,6 +6,7 @@ import { postStockTakeAction, previewStockTakeAction } from "../actions";
 import { formatSarMinor } from "@/modules/inventory/money";
 import type { StockTakeVariance } from "@/modules/inventory/ledger";
 import { labelClass, labelText } from "./ui";
+import { useConfirm } from "../../_ui/ConfirmDialog";
 
 export interface StockTakeProduct {
   id: string;
@@ -23,6 +24,7 @@ const DRAFT_KEY = "lunia:inventory:stocktake-draft";
 // the variances, then post them all as adjustments in one transaction. The
 // in-progress count is kept in localStorage so a reload doesn't lose it.
 export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
+  const [confirm, confirmDialog] = useConfirm();
   const router = useRouter();
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [q, setQ] = useState("");
@@ -103,10 +105,10 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
     });
   }
 
-  function post() {
+  async function post() {
     if (!preview) return;
     const changes = preview.filter((v) => v.variance !== 0).length;
-    if (!confirm(`Post ${changes} adjustment(s) from this count? This updates stock immediately.`)) return;
+    if (!(await confirm({ title: `Post ${changes} adjustment(s) from this count?`, description: "This updates stock immediately.", confirmLabel: "Post adjustments", danger: false }))) return;
     setError(null);
     startTransition(async () => {
       const result = await postStockTakeAction({ counts: entries, note: note.trim() || undefined });
@@ -130,6 +132,7 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
 
   return (
     <div className="flex flex-col gap-6">
+      {confirmDialog}
       <div className="lunia-card grid gap-3 p-4 sm:grid-cols-[1fr_14rem_auto] sm:items-end">
         <label className={labelClass}>
           <span className={labelText}>Find or scan</span>

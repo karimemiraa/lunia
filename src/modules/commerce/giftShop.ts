@@ -35,7 +35,7 @@ export type PurchaseGiftResult =
 // call the provider; everywhere else it approves with a synthetic ref so the
 // flow is fully exercisable. Returns a failure only when a real gateway is
 // expected but not usable.
-async function chargeGiftCard(orderId: string, amountMinor: number): Promise<{ ok: boolean; ref: string }> {
+async function chargeGiftCard(orderId: string, _amountMinor: number): Promise<{ ok: boolean; ref: string }> {
   const provider = await getSecret("PAYMENT_PROVIDER").catch(() => null);
   const secretKey = await getSecret("PAYMENT_SECRET_KEY").catch(() => null);
   if (process.env.NODE_ENV === "production" && provider && secretKey) {

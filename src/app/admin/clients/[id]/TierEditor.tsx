@@ -3,6 +3,7 @@
 import { useActionState, useId } from "react";
 import { updateTierAction, type ClientActionState } from "./actions";
 import type { MembershipTier } from "@prisma/client";
+import { InlineStatus } from "../../_ui/Form";
 
 interface TierEditorProps {
   clientProfileId: string;
@@ -43,12 +44,8 @@ export function TierEditor({ clientProfileId, currentTierId, tiers }: TierEditor
       >
         {pending ? "Saving…" : "Save tier"}
       </button>
-      {state.success && <p className="text-sm text-[var(--color-teal)]">Saved.</p>}
-      {state.error && (
-        <p role="alert" className="text-sm text-red-600">
-          {state.error}
-        </p>
-      )}
+      <InlineStatus success={state.success ? "Saved." : undefined} />
+      <InlineStatus error={state.error} />
     </form>
   );
 }

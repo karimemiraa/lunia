@@ -41,7 +41,7 @@ export function WeekView({ days, todayISO, leaveByDay, waitingByDay, dayHref }: 
           return (
             <div key={d} className={`flex min-h-[18rem] flex-col gap-1 rounded-[var(--radius-sm)] border p-1.5 ${isToday ? "border-[var(--color-teal)] bg-[var(--color-teal)]/[0.05]" : "border-[var(--line)] bg-[var(--surface)]"}`} data-date={d}>
               <Link href={dayHref(d)} className="flex items-center justify-between gap-1 rounded-[var(--radius-sm)] px-1.5 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)]">
-                <span className={isToday ? "rounded-full bg-[var(--color-ink)] px-2 py-0.5 text-[var(--color-cream)]" : ""}>{headFmt.format(new Date(`${d}T00:00:00Z`))}</span>
+                <span className={isToday ? "rounded-full bg-[var(--color-ink)] px-2 py-0.5 text-[var(--color-on-ink)]" : ""}>{headFmt.format(new Date(`${d}T00:00:00Z`))}</span>
                 <span className="text-[0.65rem] font-medium text-[var(--color-ink)]/45">{rows.length}</span>
               </Link>
               {(off.length > 0 || waiting > 0) && (

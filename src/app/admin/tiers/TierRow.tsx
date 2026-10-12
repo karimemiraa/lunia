@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { updateTierAction, deleteTierAction, type TierActionState } from "./actions";
 import type { MembershipTier } from "@prisma/client";
 import { ConfirmButton } from "../_ui/ConfirmDialog";
+import { InlineStatus } from "../_ui/Form";
 
 const initialState: TierActionState = {};
 
@@ -59,12 +60,8 @@ export function TierRow({ tier }: { tier: MembershipTier }) {
           <button type="submit" form={formId} disabled={updatePending} aria-busy={updatePending || undefined} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-11 disabled:opacity-60">
             {updatePending ? "Saving…" : "Save"}
           </button>
-          {updateState.error && (
-            <p role="alert" className="text-xs text-red-600">
-              {updateState.error}
-            </p>
-          )}
-          {updateState.success && <p role="status" className="text-xs font-medium text-[var(--status-success-ink)]">Saved.</p>}
+          <InlineStatus size="sm" error={updateState.error} />
+          <InlineStatus size="sm" success={updateState.success ? "Saved." : undefined} />
         </div>
       </td>
       <td className="px-4 py-2">
@@ -76,11 +73,7 @@ export function TierRow({ tier }: { tier: MembershipTier }) {
             <ConfirmButton title={`Delete tier “${tier.name}”?`} description="Customers on this tier fall back to the default tier. This cannot be undone." confirmLabel="Delete tier" pending={deletePending}>
               Delete
             </ConfirmButton>
-            {deleteState.error && (
-              <p role="alert" className="text-xs text-red-600">
-                {deleteState.error}
-              </p>
-            )}
+            <InlineStatus size="sm" error={deleteState.error} />
           </form>
         )}
       </td>

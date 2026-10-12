@@ -77,7 +77,7 @@ export function ThemePicker({ current }: { current: ThemeKey }) {
         <div>
           <h2 className="font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)]">Website theme</h2>
           <p className="mt-1 text-sm text-[var(--color-ink)]/60">
-            Switch the public website's look with one click. Content, logo and the brand teal stay the same.
+            Switch the public website&apos;s look with one click. Content, logo and the brand teal stay the same.
           </p>
         </div>
         <a href="/ar" target="_blank" rel="noreferrer" className="lunia-btn lunia-btn-ghost lunia-btn-sm">

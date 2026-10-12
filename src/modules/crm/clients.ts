@@ -8,6 +8,7 @@
 import { prisma } from "@/lib/db";
 import type { Prisma, ClientProfile, MembershipTier, BookingStatus } from "@prisma/client";
 import { listVisitNotes, type VisitNoteWithAuthor } from "@/modules/crm/visitNotes";
+import { centerLocalToUtc, utcToCenterLocal } from "@/modules/booking/availability";
 
 export interface ListClientsFilter {
   search?: string;
@@ -69,12 +70,18 @@ export async function listStaffOwners(): Promise<{ id: string; name: string }[]>
   return staff.map((s) => ({ id: s.id, name: s.staffProfile?.fullName ?? s.email ?? "Staff" }));
 }
 
+/** Start of the current month in the center's time zone (Asia/Riyadh), as a UTC instant. */
+export function centerMonthStart(now: Date = new Date()): Date {
+  return centerLocalToUtc(`${utcToCenterLocal(now).dateISO.slice(0, 7)}-01`, 0);
+}
+
 /**
  * Lists clients matching the given filters. `search` matches (case
  * insensitively) against either the client's fullName or their linked
- * User.phone. Booking counts and "last visit" (the most recent appointment
- * start time among COMPLETED bookings) are computed from a single batched
- * Booking query, not one query per client.
+ * User.phone. Booking counts, "last visit" (the most recent appointment
+ * start time among COMPLETED bookings) and the next live appointment come from
+ * two aggregate queries (one row per client), never from loading every booking
+ * and appointment the clinic has ever had.
  */
 export async function listClients(filter: ListClientsFilter = {}): Promise<ClientListRow[]> {
   const where: Prisma.ClientProfileWhereInput = {};
@@ -105,17 +112,27 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
 
   const profiles = await prisma.clientProfile.findMany({
     where,
-    include: { user: true, membership: { include: { tier: true } } },
+    include: {
+      user: { select: { phone: true, email: true } },
+      membership: { select: { tier: { select: { name: true, priority: true } } } },
+    },
     orderBy: { fullName: "asc" },
   });
   if (profiles.length === 0) return [];
 
+  const now = new Date();
   const clientProfileIds = profiles.map((p) => p.id);
-  const [bookings, owed] = await Promise.all([
-    prisma.booking.findMany({
-      where: { clientProfileId: { in: clientProfileIds } },
-      include: { appointments: true },
-    }),
+  const [bookingCounts, visits, owed] = await Promise.all([
+    prisma.booking.groupBy({ by: ["clientProfileId"], where: { clientProfileId: { in: clientProfileIds } }, _count: { _all: true } }),
+    // Last completed visit + next live appointment per client, in one pass.
+    prisma.$queryRaw<{ clientProfileId: string; lastVisitAt: Date | null; nextAt: Date | null }[]>`
+      SELECT b."clientProfileId",
+             MAX(a."startAt") FILTER (WHERE b."status" = 'COMPLETED') AS "lastVisitAt",
+             MIN(a."startAt") FILTER (WHERE b."status" IN ('REQUESTED', 'CONFIRMED', 'CHECKED_IN') AND a."startAt" > ${now}) AS "nextAt"
+      FROM "Booking" b
+      JOIN "Appointment" a ON a."bookingId" = b."id"
+      WHERE b."clientProfileId" = ANY(${clientProfileIds})
+      GROUP BY b."clientProfileId"`,
     // Outstanding = issued invoices not yet fully paid, one grouped query.
     prisma.invoice.groupBy({
       by: ["clientProfileId"],
@@ -130,31 +147,14 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
   const owners = ownerIds.length > 0 ? await prisma.staffProfile.findMany({ where: { userId: { in: ownerIds } }, select: { userId: true, fullName: true } }) : [];
   const ownerNameById = new Map(owners.map((o) => [o.userId, o.fullName]));
 
-  const now = new Date();
   const activeCutoff = new Date(now.getTime() - ACTIVE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  const bookingCountByClient = new Map<string, number>();
+  const bookingCountByClient = new Map(bookingCounts.map((b) => [b.clientProfileId, b._count._all]));
   const lastVisitByClient = new Map<string, Date>();
+  // Upcoming appointment: earliest future start among live (non-terminal) bookings.
   const nextApptByClient = new Map<string, Date>();
-  for (const booking of bookings) {
-    bookingCountByClient.set(booking.clientProfileId, (bookingCountByClient.get(booking.clientProfileId) ?? 0) + 1);
-    for (const appointment of booking.appointments) {
-      if (booking.status === "COMPLETED") {
-        const current = lastVisitByClient.get(booking.clientProfileId);
-        if (!current || appointment.startAt > current) {
-          lastVisitByClient.set(booking.clientProfileId, appointment.startAt);
-        }
-      }
-      // Upcoming appointment: earliest future start among live (non-terminal) bookings.
-      if (
-        (booking.status === "REQUESTED" || booking.status === "CONFIRMED" || booking.status === "CHECKED_IN") &&
-        appointment.startAt > now
-      ) {
-        const current = nextApptByClient.get(booking.clientProfileId);
-        if (!current || appointment.startAt < current) {
-          nextApptByClient.set(booking.clientProfileId, appointment.startAt);
-        }
-      }
-    }
+  for (const v of visits) {
+    if (v.lastVisitAt) lastVisitByClient.set(v.clientProfileId, v.lastVisitAt);
+    if (v.nextAt) nextApptByClient.set(v.clientProfileId, v.nextAt);
   }
 
   return profiles.map((profile) => {
@@ -363,7 +363,7 @@ export const ROSTER_VIEW_LABELS: Record<RosterView, string> = {
 export function applyRosterView(rows: ClientListRow[], view: RosterView, now: Date = new Date()): ClientListRow[] {
   switch (view) {
     case "new": {
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthStart = centerMonthStart(now);
       return rows.filter((r) => r.createdAt >= monthStart);
     }
     case "lapsed":

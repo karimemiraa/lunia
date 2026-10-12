@@ -16,7 +16,7 @@ export default async function InquiriesPage() {
 
   return (
     <AdminShell user={user} title="Inquiries" description="Contact form submissions from the public site, newest first.">
-      <div className="mb-6 flex items-center justify-between gap-4 rounded-[var(--radius-lg)] bg-[var(--color-forest)] px-6 py-5 text-[var(--color-cream)] shadow-[var(--shadow-sm)]">
+      <div className="mb-6 flex items-center justify-between gap-4 rounded-[var(--radius-lg)] bg-[var(--color-forest)] px-6 py-5 text-[var(--color-on-ink)] shadow-[var(--shadow-sm)]">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-teal)]">Inbox</p>
           <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">{bannerLine}</p>

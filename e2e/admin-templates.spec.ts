@@ -35,5 +35,10 @@ test("templates: studio picks a template, edits it, previews it as the customer,
 
   // Save creates/updates the row.
   await page.getByRole("button", { name: "Save template" }).click();
-  await expect(page.getByText("Saved ✓")).toBeVisible();
+  await expect(page.getByText("Saved.")).toBeVisible();
+
+  // Clean up: put the default copy back so the marker never lingers in the template.
+  await page.getByRole("button", { name: "Reset to default" }).click();
+  await page.getByRole("button", { name: "Save template" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
 });

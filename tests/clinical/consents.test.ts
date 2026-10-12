@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll } from "vitest";
+import { describe, it, expect, afterAll, beforeAll } from "vitest";
 import { prisma } from "@/lib/db";
 import {
   CONSENT_KEYS,
@@ -8,10 +8,26 @@ import {
   signConsent,
   updateConsentForm,
 } from "@/modules/clinical/consents";
+import { DEFAULT_CONSENT_TEMPLATES } from "@/modules/clinical/consentDefaults";
 import { cleanupUsers, makeClient, TINY_PNG_DATA_URL } from "./helpers";
 
 const users: string[] = [];
 const formIds: string[] = [];
+
+// ensureDefaultConsentForms() only seeds an EMPTY table (so a clinic that
+// deliberately deleted a default doesn't get it back). This file creates its
+// own forms before the timestamp test runs, so on a fresh DB the defaults would
+// never be seeded — make sure both default keys exist up front, and clean up
+// any we had to create.
+beforeAll(async () => {
+  for (const t of DEFAULT_CONSENT_TEMPLATES) {
+    if (await prisma.consentForm.findUnique({ where: { key: t.key } })) continue;
+    const created = await prisma.consentForm.create({
+      data: { key: t.key, titleEn: t.titleEn, titleAr: t.titleAr, bodyEn: t.bodyEn, bodyAr: t.bodyAr, serviceIds: [] },
+    });
+    formIds.push(created.id);
+  }
+});
 
 afterAll(async () => {
   await prisma.consentSignature.deleteMany({ where: { consentFormId: { in: formIds } } });

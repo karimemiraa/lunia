@@ -47,10 +47,12 @@ export default async function AdminHome() {
   const user = await requireAdmin();
   const p = user.permissions;
   const now = new Date();
-  const feed = await getNotificationFeed(p);
-  const [staff, today] = await Promise.all([
+  // The feed, the greeting lookup and the dashboard queries all run in parallel.
+  const feedPromise = getNotificationFeed(p);
+  const [staff, today, feed] = await Promise.all([
     prisma.staffProfile.findUnique({ where: { userId: user.id }, select: { fullName: true } }),
-    getTodayDashboard({ permissions: p }, feed, now),
+    getTodayDashboard({ permissions: p }, feedPromise, now),
+    feedPromise,
   ]);
 
   const firstName = staff?.fullName?.trim().split(/\s+/)[0] ?? "";

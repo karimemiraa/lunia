@@ -17,7 +17,7 @@ export function HrTabs({ active }: { active: (typeof TABS)[number]["key"] }) {
           aria-current={tab.key === active ? "page" : undefined}
           className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium transition-colors ${
             tab.key === active
-              ? "bg-[var(--color-forest)] text-[var(--color-cream)]"
+              ? "bg-[var(--color-forest)] text-[var(--color-on-ink)]"
               : "border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--color-ink)]/75 hover:bg-[var(--surface-2)]"
           }`}
         >

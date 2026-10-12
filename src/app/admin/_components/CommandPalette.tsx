@@ -7,6 +7,7 @@ import { SEARCH_GROUPS, SEARCH_GROUP_LABELS, type GlobalSearchResult, type Searc
 import { paletteSearchAction } from "./search.actions";
 import { I } from "./AdminNav";
 import type { NavIconKey, PaletteAction } from "./navCatalog";
+import { st, type StaffLocale } from "../_i18n/staffLocale";
 
 export type { PaletteAction };
 
@@ -31,6 +32,8 @@ interface PaletteItem {
 interface CommandPaletteProps {
   pages: PalettePage[];
   actions: PaletteAction[];
+  /** Staff console language for the palette's own chrome (labels arrive translated). */
+  locale?: StaffLocale;
 }
 
 export const PALETTE_OPEN_EVENT = "lunia:palette:open";
@@ -95,7 +98,8 @@ function isMac(): boolean {
   return typeof navigator === "undefined" ? true : /Mac|iPhone|iPad/.test(navigator.userAgent);
 }
 
-export function CommandPalette({ pages, actions }: CommandPaletteProps) {
+export function CommandPalette({ pages, actions, locale = "en" }: CommandPaletteProps) {
+  const t = (text: string) => st(text, locale);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -275,7 +279,7 @@ export function CommandPalette({ pages, actions }: CommandPaletteProps) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4 shrink-0" aria-hidden="true">
           <circle cx="11" cy="11" r="7" /><path strokeLinecap="round" d="m20 20-3.5-3.5" />
         </svg>
-        <span className="flex-1 truncate text-start">Search or jump to…</span>
+        <span className="flex-1 truncate text-start">{t("Search or jump to…")}</span>
         <span className="hidden items-center gap-1 sm:inline-flex" aria-hidden="true">
           <kbd className="lunia-kbd" suppressHydrationWarning>{mac ? "⌘" : "Ctrl"}</kbd>
           <kbd className="lunia-kbd">K</kbd>
@@ -293,7 +297,10 @@ export function CommandPalette({ pages, actions }: CommandPaletteProps) {
             <div
               role="dialog"
               aria-modal="true"
-              aria-label="Search and jump to"
+              aria-label={t("Search and jump to")}
+              // Portaled to <body> (outside the shell), so carry the staff language's direction.
+              dir={locale === "ar" ? "rtl" : "ltr"}
+              lang={locale}
               className="lunia-pop-in flex max-h-[76vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-lg)]"
             >
               <div className="flex items-center gap-3 border-b border-[var(--line)] px-4">
@@ -307,7 +314,7 @@ export function CommandPalette({ pages, actions }: CommandPaletteProps) {
                   aria-controls={listId}
                   aria-autocomplete="list"
                   aria-activedescendant={items[active] ? `${listId}-${items[active].id}` : undefined}
-                  aria-label="Search customers, bookings, invoices, products, pages and actions"
+                  aria-label={t("Search customers, bookings, invoices, products, pages and actions")}
                   value={query}
                   onChange={(e) => {
                     const v = e.target.value;
@@ -321,22 +328,22 @@ export function CommandPalette({ pages, actions }: CommandPaletteProps) {
                     }
                   }}
                   onKeyDown={onKeyDown}
-                  placeholder="Type a name, phone, invoice number, SKU, or a page…"
+                  placeholder={t("Type a name, phone, invoice number, SKU, or a page…")}
                   autoComplete="off"
                   spellCheck={false}
                   className="h-14 min-w-0 flex-1 bg-transparent text-base text-[var(--color-ink)] placeholder:text-[var(--color-ink)]/40 focus:outline-none"
                 />
                 {loading && <span className="lunia-live-dot h-2 w-2 rounded-full bg-[var(--color-teal-ink)]" aria-hidden="true" />}
-                <button type="button" onClick={close} className="lunia-kbd" aria-label="Close">
+                <button type="button" onClick={close} className="lunia-kbd" aria-label={t("Close")}>
                   Esc
                 </button>
               </div>
 
-              <ul ref={listRef} id={listId} role="listbox" aria-label="Results" className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
+              <ul ref={listRef} id={listId} role="listbox" aria-label={t("Results")} className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
                 {sections.map((section) => (
                   <li key={section.name} role="presentation">
-                    <div className="px-4 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/45">{section.name}</div>
-                    <ul role="group" aria-label={section.name}>
+                    <div className="px-4 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/45">{t(section.name)}</div>
+                    <ul role="group" aria-label={t(section.name)}>
                       {section.items.map(({ item, index }) => {
                         const selected = index === active;
                         return (
@@ -369,8 +376,8 @@ export function CommandPalette({ pages, actions }: CommandPaletteProps) {
 
                 {items.length === 0 && !loading && (
                   <li role="presentation" className="px-6 py-10 text-center">
-                    <p className="text-sm font-medium text-[var(--color-ink)]">No matches for “{q}”</p>
-                    <p className="mt-1 text-xs text-[var(--color-ink)]/55">Try a customer name or phone, an invoice number, a product SKU or barcode, or a page name.</p>
+                    <p className="text-sm font-medium text-[var(--color-ink)]">{t("No matches for")} “{q}”</p>
+                    <p className="mt-1 text-xs text-[var(--color-ink)]/55">{t("Try a customer name or phone, an invoice number, a product SKU or barcode, or a page name.")}</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -379,12 +386,12 @@ export function CommandPalette({ pages, actions }: CommandPaletteProps) {
                       }}
                       className="lunia-btn lunia-btn-forest-outline lunia-btn-sm mt-4"
                     >
-                      Open full search
+                      {t("Open full search")}
                     </button>
                   </li>
                 )}
                 {searching && loading && items.every((i) => i.section === "Actions" || i.section === "Pages") && (
-                  <li role="presentation" className="px-4 py-2 text-xs text-[var(--color-ink)]/50">Searching records…</li>
+                  <li role="presentation" className="px-4 py-2 text-xs text-[var(--color-ink)]/50">{t("Searching records…")}</li>
                 )}
                 {noRecordHits && items.length > 0 && !loading && (
                   <li role="presentation" className="px-4 py-2 text-xs text-[var(--color-ink)]/50">No customers, bookings, invoices or products match — showing pages and actions.</li>
@@ -392,9 +399,9 @@ export function CommandPalette({ pages, actions }: CommandPaletteProps) {
               </ul>
 
               <div className="flex items-center gap-4 border-t border-[var(--line)] px-4 py-2 text-[0.68rem] text-[var(--color-ink)]/50">
-                <span className="inline-flex items-center gap-1"><kbd className="lunia-kbd">↑</kbd><kbd className="lunia-kbd">↓</kbd> navigate</span>
-                <span className="inline-flex items-center gap-1"><kbd className="lunia-kbd">↵</kbd> open</span>
-                <span className="ms-auto hidden sm:inline">Press <kbd className="lunia-kbd">?</kbd> for all shortcuts</span>
+                <span className="inline-flex items-center gap-1"><kbd className="lunia-kbd">↑</kbd><kbd className="lunia-kbd">↓</kbd> {t("navigate")}</span>
+                <span className="inline-flex items-center gap-1"><kbd className="lunia-kbd">↵</kbd> {t("open")}</span>
+                <span className="ms-auto hidden sm:inline">{t("Press")} <kbd className="lunia-kbd">?</kbd> {t("for all shortcuts")}</span>
               </div>
             </div>
           </div>,

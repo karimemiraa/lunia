@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { setUserRolesAction, deleteUserAction, type UserActionState } from "./actions";
 import type { StaffUserRow } from "@/modules/iam/users";
 import { ConfirmButton } from "../_ui/ConfirmDialog";
+import { InlineStatus } from "../_ui/Form";
 
 interface RoleOption {
   id: string;
@@ -71,8 +72,8 @@ export function UserRow({
             <button type="submit" disabled={rolePending} aria-busy={rolePending || undefined} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-11 disabled:opacity-60">
               {rolePending ? "Saving…" : "Save roles"}
             </button>
-            {roleState.success && <span role="status" className="text-xs font-medium text-[var(--status-success-ink)]">Saved.</span>}
-            {roleState.error && <span role="alert" className="text-xs font-medium text-[var(--status-danger-ink)]">{roleState.error}</span>}
+            <InlineStatus size="sm" success={roleState.success ? "Saved." : undefined} />
+            <InlineStatus size="sm" error={roleState.error} />
           </div>
         </form>
 
@@ -83,7 +84,7 @@ export function UserRow({
             <ConfirmButton title={`Delete ${user.fullName || user.email}?`} description="They lose access to the staff system immediately. Their history (bookings, invoices, notes) stays. This cannot be undone." confirmLabel="Delete user" pending={deletePending}>
               Delete user
             </ConfirmButton>
-            {deleteState.error && <span role="alert" className="ms-2 text-xs font-medium text-[var(--status-danger-ink)]">{deleteState.error}</span>}
+            <InlineStatus size="sm" error={deleteState.error} className="ms-2" />
           </form>
         )}
       </div>

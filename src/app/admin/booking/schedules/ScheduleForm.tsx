@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { StaffScheduleEntryInput } from "@/modules/booking/staffSchedules";
 import { updateScheduleAction, type ScheduleActionState } from "./actions";
+import { InlineStatus } from "../../_ui/Form";
 
 const initialState: ScheduleActionState = {};
 
@@ -94,12 +95,8 @@ export function ScheduleForm({ staffUserId, schedule }: ScheduleFormProps) {
         >
           {pending ? "Saving…" : "Save schedule"}
         </button>
-        {state.success && <p className="text-sm text-[var(--color-teal)]">Saved.</p>}
-        {state.error && (
-          <p role="alert" className="text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
+        <InlineStatus success={state.success ? "Saved." : undefined} />
+        <InlineStatus error={state.error} />
       </div>
     </form>
   );

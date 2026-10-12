@@ -5,6 +5,7 @@ import { Field } from "../../_components/Field";
 import { LocalizedField } from "../../_components/LocalizedField";
 import { MediaPicker, type MediaOption } from "../../_components/MediaPicker";
 import { createDepartmentAction, type DepartmentActionState } from "./actions";
+import { InlineStatus } from "../../_ui/Form";
 
 const initialState: DepartmentActionState = {};
 
@@ -45,12 +46,8 @@ export function CreateDepartmentForm({ media }: { media: MediaOption[] }) {
         >
           {pending ? "Creating…" : "Create department"}
         </button>
-        {state.success && <p className="text-sm text-[var(--color-teal)]">Created.</p>}
-        {state.error && (
-          <p role="alert" className="text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
+        <InlineStatus success={state.success ? "Created." : undefined} />
+        <InlineStatus error={state.error} />
       </div>
     </form>
   );

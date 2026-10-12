@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "../_components/Modal";
 import { createCallbackAction, type CreateCallbackState } from "./actions";
+import { InlineStatus } from "../_ui/Form";
 
 const initial: CreateCallbackState = {};
 
@@ -69,11 +70,7 @@ export function NewCallbackForm() {
               <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest min-h-11 w-fit disabled:opacity-60">
                 {pending ? "Adding…" : "Add call-back"}
               </button>
-              {state.error && (
-                <span role="alert" className="text-sm font-medium text-red-700">
-                  {state.error}
-                </span>
-              )}
+              <InlineStatus size="sm" error={state.error} />
             </div>
           </form>
         </Modal>

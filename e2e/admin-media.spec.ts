@@ -47,8 +47,9 @@ test("media library: upload, edit alt text, and delete", async ({ page }) => {
   await expect(updatedItem.locator('input[name="altAr"]')).toHaveValue("عينة اختبار");
 
   // Delete it and confirm it's removed from the grid.
-  page.once("dialog", (dialog) => dialog.accept());
+  // Deletes go through the in-app confirm dialog (no native window.confirm).
   await updatedItem.getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
 
   await expect(page.getByTestId("media-item")).toHaveCount(itemsBefore);
 });

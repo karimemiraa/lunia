@@ -58,8 +58,8 @@ export function NavVisibilityEditor({ catalog, hidden }: Props) {
         <div>
           <h2 className="font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)]">Staff menu</h2>
           <p className="mt-1 max-w-2xl text-sm text-[var(--color-ink)]/60">
-            Untick anything the team shouldn't see in the sidebar. You always see the full menu. This tidies the menu;
-            access itself is still decided by each user's role.
+            Untick anything the team shouldn&apos;t see in the sidebar. You always see the full menu. This tidies the menu;
+            access itself is still decided by each user&apos;s role.
           </p>
         </div>
         <div className="flex items-center gap-3">

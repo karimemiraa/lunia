@@ -678,7 +678,7 @@ export function invoiceWhere(f: ListInvoicesFilter): Prisma.InvoiceWhereInput {
 
 export async function listInvoices(f: ListInvoicesFilter = {}) {
   const where = invoiceWhere(f);
-  const [rows, sums] = await Promise.all([
+  const [rows, sums, unpaidCount] = await Promise.all([
     prisma.invoice.findMany({
       where,
       orderBy: [{ issuedAt: { sort: "desc", nulls: "first" } }, { createdAt: "desc" }],
@@ -705,10 +705,13 @@ export async function listInvoices(f: ListInvoicesFilter = {}) {
       where: { AND: [where, { status: { notIn: ["DRAFT", "VOID"] } }] },
       _sum: { totalMinor: true, vatMinor: true, paidMinor: true },
     }),
+    // Open invoices across the whole filter (the row list above is capped).
+    prisma.invoice.count({ where: { AND: [where, { kind: "INVOICE", status: { in: ["ISSUED", "PARTIALLY_PAID"] } }] } }),
   ]);
   const sum = (kind: string, k: "totalMinor" | "vatMinor" | "paidMinor") => sums.find((s) => s.kind === kind)?._sum[k] ?? 0;
   return {
     rows,
+    unpaidCount,
     totals: {
       totalMinor: sum("INVOICE", "totalMinor") - sum("CREDIT_NOTE", "totalMinor"),
       vatMinor: sum("INVOICE", "vatMinor") - sum("CREDIT_NOTE", "vatMinor"),

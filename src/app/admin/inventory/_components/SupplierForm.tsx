@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createSupplierAction, deleteSupplierAction, updateSupplierAction } from "../actions";
 import { labelClass, labelText } from "./ui";
+import { useConfirm } from "../../_ui/ConfirmDialog";
 
 export interface SupplierFormValues {
   id?: string;
@@ -19,6 +20,7 @@ export interface SupplierFormValues {
 export const EMPTY_SUPPLIER: SupplierFormValues = { name: "", contactName: "", phone: "", email: "", vatNumber: "", notes: "", isActive: true };
 
 export function SupplierForm({ initial, canDelete = false }: { initial: SupplierFormValues; canDelete?: boolean }) {
+  const [confirm, confirmDialog] = useConfirm();
   const router = useRouter();
   const isNew = !initial.id;
   const [v, setV] = useState(initial);
@@ -49,8 +51,8 @@ export function SupplierForm({ initial, canDelete = false }: { initial: Supplier
     });
   }
 
-  function remove() {
-    if (!initial.id || !confirm("Delete this supplier? Products linked to it will keep existing without a supplier.")) return;
+  async function remove() {
+    if (!initial.id || !(await confirm({ title: "Delete this supplier?", description: "Products linked to it will keep existing without a supplier.", confirmLabel: "Delete" }))) return;
     startTransition(async () => {
       const result = await deleteSupplierAction(initial.id!);
       if (!result.ok) return setError(result.error);
@@ -60,6 +62,7 @@ export function SupplierForm({ initial, canDelete = false }: { initial: Supplier
 
   return (
     <form onSubmit={submit} className="lunia-card flex flex-col gap-4 p-5">
+      {confirmDialog}
       <h3 className="text-base font-semibold">{isNew ? "Add a supplier" : "Supplier details"}</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={labelClass}>

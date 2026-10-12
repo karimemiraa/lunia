@@ -115,6 +115,9 @@ test("clients: search creates client appears, add visit note, and edit tier pers
   await row.getByRole("link", { name }).click();
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
 
+  // Comments live on the Customer 360 "Notes" tab (URL-addressable via ?tab=notes).
+  await page.getByRole("tab", { name: /Notes/ }).click();
+
   // Add a comment.
   const noteBody = `E2E comment ${Date.now()}`;
   const noteForm = page.getByTestId("visit-note-form");
@@ -162,7 +165,8 @@ test("clients: search creates client appears, add visit note, and edit tier pers
   // Deleting the note we just added exercises the delete-own path (owner is
   // both the author and holds CLIENT_MANAGE here, but the button reflects
   // the same UI either way).
-  page.once("dialog", (dialog) => dialog.accept());
+  // Deletes go through the in-app ConfirmDialog (no native window.confirm).
   await noteItem.getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
   await expect(page.locator('[data-testid="visit-note"]', { hasText: noteBody })).toHaveCount(0);
 });

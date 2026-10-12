@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { login } from "./actions";
+import { InlineStatus } from "../_ui/Form";
 
 function MailIcon() {
   return (
@@ -145,14 +146,7 @@ export default function LoginPage() {
               </span>
             </label>
 
-            {state?.error && (
-              <p
-                role="alert"
-                className="lunia-animate-fade-in rounded-[var(--radius-sm)] border border-red-300/60 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
-              >
-                {state.error}
-              </p>
-            )}
+            <InlineStatus error={state?.error} />
 
             <SubmitButton />
           </form>

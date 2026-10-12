@@ -4,6 +4,8 @@ import { useActionState, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadDocumentAction, deleteDocumentAction, type HubActionState } from "./actions";
 import type { HubDocument } from "@/modules/booking/appointmentHub";
+import { InlineStatus } from "../../_ui/Form";
+import { ConfirmButton } from "../../_ui/ConfirmDialog";
 
 interface HubDocumentsProps {
   appointmentId: string;
@@ -129,13 +131,13 @@ export function HubDocuments({ appointmentId, bookingId, clientProfileId, docume
 function DeleteButton({ appointmentId, documentId }: { appointmentId: string; documentId: string }) {
   const [state, action, pending] = useActionState(deleteDocumentAction, initialState);
   return (
-    <form action={action} onSubmit={(e) => { if (!confirm("Delete this document? This cannot be undone.")) e.preventDefault(); }}>
+    <form action={action}>
       <input type="hidden" name="appointmentId" value={appointmentId} />
       <input type="hidden" name="documentId" value={documentId} />
-      <button type="submit" disabled={pending} className="lunia-btn lunia-btn-ghost lunia-btn-sm text-red-700 disabled:opacity-60">
+      <ConfirmButton title="Delete this document?" description="This cannot be undone." confirmLabel="Delete" pending={pending} className="lunia-btn lunia-btn-ghost lunia-btn-sm text-red-700">
         {pending ? "Deleting…" : "Delete"}
-      </button>
-      {state.error && <span role="alert" className="ms-2 text-xs text-red-600">{state.error}</span>}
+      </ConfirmButton>
+      <InlineStatus size="sm" error={state.error} className="ms-2" />
     </form>
   );
 }

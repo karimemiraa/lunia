@@ -12,7 +12,7 @@ export { FilterBar, FilterChips, Pagination, type FilterDef, type FilterOption }
 export { DateRangeFields, DateRangeShortcuts, rangeShortcuts } from "./DateRangePicker";
 export { Field, TextareaField, SelectField, CheckboxField, FieldShell, FieldError } from "./Field";
 export { Form, SubmitButton, InlineStatus, Notice, Spinner, focusFirstInvalid, useUnsavedChanges } from "./Form";
-export { ConfirmDialog, ConfirmButton } from "./ConfirmDialog";
+export { ConfirmDialog, ConfirmButton, useConfirm, type ConfirmOptions } from "./ConfirmDialog";
 export { RowMenu, type MenuItem } from "./RowMenu";
 export { DataTable, toCsv, type Column, type DataTableProps, type SortDir } from "./DataTable";
 export { MoneyInput } from "./MoneyInput";

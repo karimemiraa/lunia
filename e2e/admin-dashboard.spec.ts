@@ -37,8 +37,8 @@ test("business dashboard: owner sees revenue, top services, and new/returning br
   await expect(page.getByRole("img", { name: /Top Services \(This Month\)/ })).toBeVisible();
 
   // Revenue-by-day line chart section.
-  await expect(page.getByRole("heading", { name: /Revenue.*Last 30 Days/ })).toBeVisible();
-  await expect(page.getByRole("img", { name: /Revenue.*Last 30 Days/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Revenue.*last 30 days/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /Revenue.*last 30 days/i })).toBeVisible();
 
   // The "Business" nav link is present (ANALYTICS_VIEW-gated) and points here.
   await expect(page.getByRole("link", { name: "Business" })).toHaveAttribute("href", "/admin/dashboard");

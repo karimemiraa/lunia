@@ -33,7 +33,7 @@ export function ProfileTabs({ tabs, initialTab }: { tabs: ProfileTabDef[]; initi
     try {
       const url = new URL(window.location.href);
       url.searchParams.set("tab", id);
-      window.history.replaceState(window.history.state, "", url);
+      window.history.replaceState(null, "", url);
     } catch {
       // Non-browser or restricted context: tab state stays in memory only.
     }

@@ -233,6 +233,8 @@ model ClientProfile {
   callbackRequests       CallbackRequest[]
   invoices               Invoice[]
   reviews                Review[]
+
+  @@index([createdAt])
 }
 
 // A saved client segment: a named filter over the roster for targeted
@@ -776,6 +778,7 @@ model Booking {
   discountMinor   Int            @default(0)
 
   @@index([createdAt])
+  @@index([clientProfileId, createdAt])
 }
 
 model Appointment {
@@ -794,6 +797,8 @@ model Appointment {
 
   @@index([staffUserId, startAt])
   @@index([roomId, startAt])
+  @@index([bookingId])
+  @@index([startAt])
 }
 
 model CheckIn {
@@ -851,6 +856,9 @@ model CommunicationLog {
   @@index([toPhone])
   @@index([toEmail])
   @@index([bookingId])
+  @@index([createdAt])
+  @@index([kind, createdAt])
+  @@index([status, createdAt])
 }
 
 // Free-text clinical/CRM notes attached to a client, optionally tied to the

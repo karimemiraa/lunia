@@ -48,7 +48,7 @@ export function PostsTable({ posts }: { posts: BlogPost[] }) {
       search={(p) => `${p.titleEn} ${p.slug}`}
       searchPlaceholder="Search posts..."
       empty="No posts yet."
-      ariaLabel="Journal posts"
+      ariaLabel="Blog posts"
     />
   );
 }

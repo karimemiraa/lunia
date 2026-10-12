@@ -80,7 +80,7 @@ export function Toaster() {
       const next = new URLSearchParams(searchParams.toString());
       next.delete("toast");
       const qs = next.toString();
-      window.history.replaceState(window.history.state, "", `${pathname}${qs ? `?${qs}` : ""}`);
+      window.history.replaceState(null, "", `${pathname}${qs ? `?${qs}` : ""}`);
     }
   }, [pathname, searchParams, push]);
 

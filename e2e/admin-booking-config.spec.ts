@@ -112,7 +112,7 @@ test("service booking settings: edit duration/price/online-bookable via the cata
       await onlineCheckbox.check();
     }
 
-    await page.getByRole("button", { name: "Save" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
 
     await page.reload();
@@ -131,7 +131,7 @@ test("service booking settings: edit duration/price/online-bookable via the cata
         await page.getByLabel("Online bookable").uncheck();
       }
     }
-    await page.getByRole("button", { name: "Save" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
   }
 });

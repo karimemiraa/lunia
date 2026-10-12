@@ -113,7 +113,7 @@ export function MonthView({ monthISO, selectedDateISO, todayISO, days, staffUser
               <div className="flex items-center justify-between">
                 <span
                   className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                    isToday ? "bg-[var(--color-ink)] text-[var(--color-cream)]" : "text-[var(--color-ink)]/70"
+                    isToday ? "bg-[var(--color-ink)] text-[var(--color-on-ink)]" : "text-[var(--color-ink)]/70"
                   }`}
                 >
                   {dayNum}

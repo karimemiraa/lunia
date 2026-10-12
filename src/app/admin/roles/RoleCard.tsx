@@ -1,28 +1,29 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "../_components/Modal";
 import { ConfirmButton } from "../_ui/ConfirmDialog";
 import { saveRolePermissions, deleteRoleAction, type RoleActionState } from "./actions";
 import type { RoleWithPermissions } from "@/modules/iam/roles";
 import { PERMISSION_GROUPS, PERMISSION_LABELS, ALL_PERMISSION_KEYS } from "@/modules/iam/permissions";
+import { onActionSuccess } from "../_components/onActionSuccess";
+import { InlineStatus } from "../_ui/Form";
 
 const initial: RoleActionState = {};
 
 export function RoleCard({ role }: { role: RoleWithPermissions }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [saveState, saveAction, savePending] = useActionState(saveRolePermissions, initial);
-  const [deleteState, deleteAction, deletePending] = useActionState(deleteRoleAction, initial);
-
-  useEffect(() => {
-    if (saveState.success && open) {
+  const [saveState, saveAction, savePending] = useActionState(
+    onActionSuccess(saveRolePermissions, () => {
       setOpen(false);
       router.refresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saveState.success]);
+    }),
+    initial,
+  );
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteRoleAction, initial);
+
 
   // Count only assignable (editor-visible) permissions; the owner-only
   // platform:manage grant is excluded from ALL_PERMISSION_KEYS.
@@ -71,12 +72,14 @@ export function RoleCard({ role }: { role: RoleWithPermissions }) {
             </ConfirmButton>
           </form>
         )}
-        {deleteState.error && <span role="alert" className="text-xs text-[var(--status-danger-ink)]">{deleteState.error}</span>}
+        <InlineStatus size="sm" error={deleteState.error} />
       </div>
 
       {open && (
         <Modal title={`Edit ${role.name}`} onClose={() => setOpen(false)}>
-          <form action={saveAction} className="flex flex-col gap-5">
+          {/* Keyed on the saved permissions: if the popup is reopened before the
+              post-save refresh lands, the form remounts with fresh defaults once it does. */}
+          <form key={role.permissionKeys.join(",")} action={saveAction} className="flex flex-col gap-5">
             <input type="hidden" name="roleId" value={role.id} />
             {PERMISSION_GROUPS.map((group) => (
               <fieldset key={group.label} className="flex flex-col gap-2">
@@ -95,7 +98,7 @@ export function RoleCard({ role }: { role: RoleWithPermissions }) {
               <button type="submit" disabled={savePending} aria-busy={savePending || undefined} className="lunia-btn lunia-btn-forest min-h-11 w-fit disabled:opacity-60">
                 {savePending ? "Saving…" : "Save permissions"}
               </button>
-              {saveState.error && <span role="alert" className="text-sm font-medium text-[var(--status-danger-ink)]">{saveState.error}</span>}
+              <InlineStatus size="sm" error={saveState.error} />
             </div>
           </form>
         </Modal>

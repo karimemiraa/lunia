@@ -3,6 +3,8 @@
 import { useActionState, useId, useRef } from "react";
 import { addHubCommentAction, deleteHubCommentAction, toggleHubCommentPinAction, type HubActionState } from "./actions";
 import type { HubComment } from "@/modules/booking/appointmentHub";
+import { InlineStatus } from "../../_ui/Form";
+import { ConfirmButton } from "../../_ui/ConfirmDialog";
 
 interface HubCommentsProps {
   appointmentId: string;
@@ -56,8 +58,8 @@ export function HubComments({ appointmentId, bookingId, clientProfileId, comment
             <button type="submit" disabled={addPending} className="w-fit lunia-btn lunia-btn-primary disabled:opacity-60">
               {addPending ? "Saving…" : "Add comment"}
             </button>
-            {addState.success && <p className="text-sm text-[var(--color-teal)]">Comment added.</p>}
-            {addState.error && <p role="alert" className="text-sm text-red-600">{addState.error}</p>}
+            <InlineStatus success={addState.success ? "Comment added." : undefined} />
+            <InlineStatus error={addState.error} />
           </div>
         </form>
       )}
@@ -108,17 +110,17 @@ function CommentRow({ note, appointmentId, canDelete, canWrite }: { note: HubCom
             </form>
           )}
           {canDelete && (
-            <form action={deleteAction} onSubmit={(e) => { if (!confirm("Delete this comment? This cannot be undone.")) e.preventDefault(); }}>
+            <form action={deleteAction}>
               <input type="hidden" name="appointmentId" value={appointmentId} />
               <input type="hidden" name="noteId" value={note.id} />
-              <button type="submit" disabled={deletePending} className="lunia-btn lunia-btn-danger lunia-btn-sm disabled:opacity-60">
+              <ConfirmButton title="Delete this comment?" description="This cannot be undone." confirmLabel="Delete" pending={deletePending} className="lunia-btn lunia-btn-danger lunia-btn-sm">
                 {deletePending ? "Deleting…" : "Delete"}
-              </button>
+              </ConfirmButton>
             </form>
           )}
         </div>
       </div>
-      {deleteState.error && <p role="alert" className="text-xs text-red-600">{deleteState.error}</p>}
+      <InlineStatus size="sm" error={deleteState.error} />
     </li>
   );
 }

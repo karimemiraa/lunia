@@ -2,6 +2,7 @@
 
 import { useActionState, useRef } from "react";
 import { updateLeadAction, logLeadActivityAction, type ClientActionState } from "./actions";
+import { InlineStatus } from "../../_ui/Form";
 
 interface StaffOption {
   id: string;
@@ -91,8 +92,8 @@ export function LeadPanel({ clientProfileId, stage, ownerId, direction, source, 
           <button type="submit" disabled={savePending} className="lunia-btn lunia-btn-forest w-fit disabled:opacity-60">
             {savePending ? "Saving…" : "Save pipeline"}
           </button>
-          {saveState.success && <span className="text-sm font-medium text-[var(--color-teal-ink)]">Saved.</span>}
-          {saveState.error && <span role="alert" className="text-sm font-medium text-red-700">{saveState.error}</span>}
+          <InlineStatus size="sm" success={saveState.success ? "Saved." : undefined} />
+          <InlineStatus size="sm" error={saveState.error} />
         </div>
       </form>
 
@@ -122,7 +123,7 @@ export function LeadPanel({ clientProfileId, stage, ownerId, direction, source, 
           <button type="submit" disabled={logPending} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm w-fit disabled:opacity-60">
             {logPending ? "Adding…" : "Add activity"}
           </button>
-          {logState.error && <span role="alert" className="text-sm font-medium text-red-700">{logState.error}</span>}
+          <InlineStatus size="sm" error={logState.error} />
         </div>
       </form>
 

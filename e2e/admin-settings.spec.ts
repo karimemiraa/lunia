@@ -41,12 +41,24 @@ test("site settings: update the OTP channel default and persist (A4)", async ({ 
 
   const otpSelect = page.getByTestId("otp-channel-select");
   await expect(otpSelect).toBeVisible();
-  await expect(page.getByTestId("booking-channel-readonly")).toBeVisible();
+  // The default booking channel is now an editable select (was read-only).
+  await expect(page.getByTestId("booking-channel-select")).toBeVisible();
 
-  await otpSelect.selectOption("EMAIL");
-  await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Saved.")).toBeVisible();
+  const original = await otpSelect.inputValue();
+  const target = original === "EMAIL" ? "SMS" : "EMAIL";
+  try {
+    await otpSelect.selectOption(target);
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Saved.")).toBeVisible();
 
-  await page.reload();
-  await expect(page.getByTestId("otp-channel-select")).toHaveValue("EMAIL");
+    await page.reload();
+    await expect(page.getByTestId("otp-channel-select")).toHaveValue(target);
+  } finally {
+    // Restore: the OTP channel also restricts the website login identifier, so
+    // leaving it changed would break the public sign-in specs on the next run.
+    await page.goto("/admin/settings");
+    await page.getByTestId("otp-channel-select").selectOption(original);
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Saved.")).toBeVisible();
+  }
 });

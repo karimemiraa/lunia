@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { deleteNoteAction, toggleNotePinAction, type ClientActionState } from "./actions";
+import { ConfirmDeleteButton } from "../../_components/ConfirmDeleteButton";
+import { InlineStatus } from "../../_ui/Form";
 
 export interface VisitNoteRowData {
   id: string;
@@ -34,7 +36,7 @@ function formatNoteDate(date: Date): string {
 // regardless (see actions.ts), so this is a UI convenience, not the security
 // boundary. Pinning is available to anyone who can write comments.
 export function VisitNoteRow({ note, clientProfileId, currentUserId, canManage, canWrite }: VisitNoteRowProps) {
-  const [deleteState, deleteAction, deletePending] = useActionState(deleteNoteAction, initialState);
+  const [deleteState, deleteAction] = useActionState(deleteNoteAction, initialState);
   const [, pinAction, pinPending] = useActionState(toggleNotePinAction, initialState);
   const canDelete = canManage || note.authorUserId === currentUserId;
 
@@ -74,32 +76,15 @@ export function VisitNoteRow({ note, clientProfileId, currentUserId, canManage, 
             </form>
           )}
           {canDelete && (
-            <form
-              action={deleteAction}
-              onSubmit={(event) => {
-                if (!confirm("Delete this comment? This cannot be undone.")) {
-                  event.preventDefault();
-                }
-              }}
-            >
+            <form>
               <input type="hidden" name="noteId" value={note.id} />
               <input type="hidden" name="clientProfileId" value={clientProfileId} />
-              <button
-                type="submit"
-                disabled={deletePending}
-                className="lunia-btn lunia-btn-danger lunia-btn-sm disabled:opacity-60"
-              >
-                {deletePending ? "Deleting…" : "Delete"}
-              </button>
+              <ConfirmDeleteButton action={deleteAction} title="Delete this comment?" confirmMessage="This cannot be undone." />
             </form>
           )}
         </div>
       </div>
-      {deleteState.error && (
-        <p role="alert" className="text-xs text-red-600">
-          {deleteState.error}
-        </p>
-      )}
+      <InlineStatus size="sm" error={deleteState.error} />
     </li>
   );
 }
