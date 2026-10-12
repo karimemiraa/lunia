@@ -1,6 +1,6 @@
 "use client";
 
-import { DataTable, type DataTableColumn } from "../_components/DataTable";
+import { DataTable, type Column, type CellValue } from "../_ui/DataTable";
 import type { ReportColumn } from "@/modules/reports/reports";
 
 interface ReportRowWithKey {
@@ -16,15 +16,18 @@ interface ReportTableProps {
 /**
  * Thin client wrapper around the shared admin DataTable: report columns/rows
  * are plain, fully-computed data from the server (see reports.ts), so this
- * component only needs to translate {key,label} columns into DataTable's
- * {key,header} shape and give each row a stable React key. Reports have no
- * natural row id, so rows are keyed by their position in the (already
- * server-sorted) result.
+ * component only translates {key,label} columns into the DataTable column
+ * shape and gives each row a stable React key. Reports have no natural row id,
+ * so rows are keyed by their position in the (already server-sorted) result.
+ * The header-level sort/paging below is purely presentational; CSV export is
+ * handled by the page's own range-aware export link, not DataTable.
  */
 export function ReportTable({ columns, rows }: ReportTableProps) {
-  const dataTableColumns: DataTableColumn<ReportRowWithKey>[] = columns.map((column) => ({
+  const dataTableColumns: Column<ReportRowWithKey>[] = columns.map((column, index) => ({
     key: column.key,
     header: column.label,
+    primary: index === 0,
+    value: (row) => (row[column.key] ?? "") as CellValue,
   }));
 
   const keyedRows: ReportRowWithKey[] = rows.map((row, index) => ({ ...row, __key: String(index) }));
@@ -35,9 +38,11 @@ export function ReportTable({ columns, rows }: ReportTableProps) {
         columns={dataTableColumns}
         rows={keyedRows}
         rowKey={(row) => row.__key}
-        searchAccessor={(row) => columns.map((column) => String(row[column.key] ?? "")).join(" ")}
+        cards={false}
+        search={(row) => columns.map((column) => String(row[column.key] ?? "")).join(" ")}
         searchPlaceholder="Search rows..."
-        emptyMessage="No rows for this report and range."
+        empty="No rows for this report and range."
+        ariaLabel="Report rows"
       />
     </div>
   );

@@ -8,6 +8,7 @@ import { getInventoryDashboard } from "@/modules/inventory/dashboard";
 import { formatSarMinor, PRODUCT_KINDS } from "@/modules/inventory/money";
 import { ScanBox } from "./_components/ScanBox";
 import { Badge, InventorySubnav, MovementBadge, ResponsiveTable, Section, StatCard, formatDate, formatDateTime, labelClass, labelText } from "./_components/ui";
+import { ProductsTable, type ProductRow } from "./ProductsTable";
 
 interface Props {
   searchParams: Promise<{ q?: string; kind?: string; category?: string; supplier?: string; low?: string; inactive?: string }>;
@@ -33,6 +34,22 @@ export default async function InventoryPage({ searchParams }: Props) {
     getInventoryDashboard(),
   ]);
   const expiringCount = dash.expiring.length;
+
+  // Slim, serializable rows for the client products table (sort + pagination).
+  const productRows: ProductRow[] = products.map((p) => ({
+    id: p.id,
+    nameEn: p.nameEn,
+    brandName: p.brandName,
+    sku: p.sku,
+    category: p.category,
+    kind: p.kind,
+    stockQty: p.stockQty,
+    unit: p.unit,
+    reorderLevel: p.reorderLevel,
+    costMinor: p.costMinor,
+    priceMinor: p.priceMinor,
+    isActive: p.isActive,
+  }));
 
   return (
     <AdminShell
@@ -118,50 +135,7 @@ export default async function InventoryPage({ searchParams }: Props) {
       </div>
 
       <Section title={`Products (${products.length})`}>
-        <ResponsiveTable
-          rows={products}
-          rowKey={(p) => p.id}
-          empty={filtered ? "No products match these filters." : "No products yet. Create your first product to start tracking stock."}
-          columns={[
-            {
-              key: "name",
-              header: "Product",
-              render: (p) => (
-                <div className="flex flex-col">
-                  <Link href={`/admin/inventory/products/${p.id}`} className="font-medium text-[var(--color-ink)] hover:text-[var(--color-teal-ink)] hover:underline">
-                    {p.nameEn}
-                  </Link>
-                  <span className="text-xs text-[var(--color-ink)]/55">
-                    {[p.brandName, p.sku, p.category].filter(Boolean).join(" · ") || "—"}
-                  </span>
-                  {!p.isActive && (
-                    <span className="mt-1">
-                      <Badge>Inactive</Badge>
-                    </span>
-                  )}
-                </div>
-              ),
-            },
-            { key: "kind", header: "Type", render: (p) => <span className="text-xs">{p.kind.toLowerCase()}</span> },
-            {
-              key: "stock",
-              header: "In stock",
-              align: "right",
-              render: (p) => {
-                const low = p.stockQty < 0 || (p.reorderLevel > 0 && p.stockQty <= p.reorderLevel);
-                return (
-                  <span className={low ? "font-semibold text-red-700" : ""}>
-                    {p.stockQty} {p.unit}
-                  </span>
-                );
-              },
-            },
-            { key: "reorder", header: "Reorder at", align: "right", render: (p) => (p.reorderLevel ? `${p.reorderLevel} ${p.unit}` : "—") },
-            { key: "cost", header: "Cost", align: "right", render: (p) => formatSarMinor(p.costMinor) },
-            { key: "price", header: "Price excl. VAT", align: "right", render: (p) => (p.priceMinor ? formatSarMinor(p.priceMinor) : "—") },
-            { key: "value", header: "Stock value", align: "right", render: (p) => formatSarMinor(Math.max(p.stockQty, 0) * p.costMinor) },
-          ]}
-        />
+        <ProductsTable rows={productRows} filtered={filtered} />
       </Section>
 
       <Section title="Expiring soon" id="expiring">

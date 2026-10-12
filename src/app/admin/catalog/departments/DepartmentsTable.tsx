@@ -1,19 +1,20 @@
 "use client";
 
 import type { Department } from "@prisma/client";
-import { DataTable, type DataTableColumn } from "../../_components/DataTable";
+import { DataTable, type Column } from "../../_ui/DataTable";
 import { ConfirmDeleteButton } from "../../_components/ConfirmDeleteButton";
 import { deleteDepartmentAction } from "./actions";
 
 export function DepartmentsTable({ departments }: { departments: Department[] }) {
-  const columns: DataTableColumn<Department>[] = [
-    { key: "nameEn", header: "Name", render: (d) => d.nameEn },
-    { key: "slug", header: "Slug" },
-    { key: "order", header: "Order" },
-    { key: "isPublished", header: "Published", render: (d) => (d.isPublished ? "Yes" : "No") },
+  const columns: Column<Department>[] = [
+    { key: "nameEn", header: "Name", primary: true, value: (d) => d.nameEn, render: (d) => d.nameEn },
+    { key: "slug", header: "Slug", value: (d) => d.slug },
+    { key: "order", header: "Order", numeric: true, value: (d) => d.order },
+    { key: "isPublished", header: "Published", value: (d) => (d.isPublished ? "Yes" : "No") },
     {
       key: "edit",
       header: "",
+      sortable: false,
       render: (d) => (
         <a href={`/admin/catalog/departments/${d.id}`} className="text-sm font-medium text-[var(--color-teal)] hover:underline">
           Edit
@@ -23,6 +24,7 @@ export function DepartmentsTable({ departments }: { departments: Department[] })
     {
       key: "delete",
       header: "",
+      sortable: false,
       render: (d) => (
         <form>
           <input type="hidden" name="id" value={d.id} />
@@ -40,9 +42,11 @@ export function DepartmentsTable({ departments }: { departments: Department[] })
       columns={columns}
       rows={departments}
       rowKey={(d) => d.id}
-      searchAccessor={(d) => `${d.nameEn} ${d.slug}`}
+      initialSort={{ key: "order", dir: "asc" }}
+      search={(d) => `${d.nameEn} ${d.slug}`}
       searchPlaceholder="Search departments..."
-      emptyMessage="No departments yet."
+      empty="No departments yet."
+      ariaLabel="Departments"
     />
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Department, Service } from "@prisma/client";
-import { DataTable, type DataTableColumn } from "../../_components/DataTable";
+import { DataTable, type Column } from "../../_ui/DataTable";
 import { ConfirmDeleteButton } from "../../_components/ConfirmDeleteButton";
 import { deleteServiceAction } from "./actions";
 
@@ -11,15 +11,16 @@ interface ServicesTableProps {
 }
 
 export function ServicesTable({ services, departmentsById }: ServicesTableProps) {
-  const columns: DataTableColumn<Service>[] = [
-    { key: "nameEn", header: "Name", render: (s) => s.nameEn },
-    { key: "department", header: "Department", render: (s) => departmentsById[s.departmentId]?.nameEn ?? "None" },
-    { key: "slug", header: "Slug" },
-    { key: "order", header: "Order" },
-    { key: "isPublished", header: "Published", render: (s) => (s.isPublished ? "Yes" : "No") },
+  const columns: Column<Service>[] = [
+    { key: "nameEn", header: "Name", primary: true, value: (s) => s.nameEn, render: (s) => s.nameEn },
+    { key: "department", header: "Department", value: (s) => departmentsById[s.departmentId]?.nameEn ?? "None" },
+    { key: "slug", header: "Slug", value: (s) => s.slug },
+    { key: "order", header: "Order", numeric: true, value: (s) => s.order },
+    { key: "isPublished", header: "Published", value: (s) => (s.isPublished ? "Yes" : "No") },
     {
       key: "edit",
       header: "",
+      sortable: false,
       render: (s) => (
         <a href={`/admin/catalog/services/${s.id}`} className="text-sm font-medium text-[var(--color-teal)] hover:underline">
           Edit
@@ -29,6 +30,7 @@ export function ServicesTable({ services, departmentsById }: ServicesTableProps)
     {
       key: "delete",
       header: "",
+      sortable: false,
       render: (s) => (
         <form>
           <input type="hidden" name="id" value={s.id} />
@@ -46,9 +48,11 @@ export function ServicesTable({ services, departmentsById }: ServicesTableProps)
       columns={columns}
       rows={services}
       rowKey={(s) => s.id}
-      searchAccessor={(s) => `${s.nameEn} ${s.slug}`}
+      initialSort={{ key: "nameEn", dir: "asc" }}
+      search={(s) => `${s.nameEn} ${s.slug}`}
       searchPlaceholder="Search services..."
-      emptyMessage="No services yet."
+      empty="No services yet."
+      ariaLabel="Services"
     />
   );
 }

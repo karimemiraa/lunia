@@ -1,23 +1,25 @@
 "use client";
 
 import type { BlogPost } from "@prisma/client";
-import { DataTable, type DataTableColumn } from "../../_components/DataTable";
+import { DataTable, type Column } from "../../_ui/DataTable";
 import { ConfirmDeleteButton } from "../../_components/ConfirmDeleteButton";
 import { deletePostAction } from "./actions";
 
 export function PostsTable({ posts }: { posts: BlogPost[] }) {
-  const columns: DataTableColumn<BlogPost>[] = [
-    { key: "titleEn", header: "Title", render: (p) => p.titleEn },
-    { key: "slug", header: "Slug" },
+  const columns: Column<BlogPost>[] = [
+    { key: "titleEn", header: "Title", primary: true, value: (p) => p.titleEn, render: (p) => p.titleEn },
+    { key: "slug", header: "Slug", value: (p) => p.slug },
     {
       key: "publishedAt",
       header: "Published at",
+      value: (p) => (p.publishedAt ? new Date(p.publishedAt) : null),
       render: (p) => (p.publishedAt ? new Date(p.publishedAt).toLocaleDateString() : "None"),
     },
-    { key: "isPublished", header: "Published", render: (p) => (p.isPublished ? "Yes" : "No") },
+    { key: "isPublished", header: "Published", value: (p) => (p.isPublished ? "Yes" : "No") },
     {
       key: "edit",
       header: "",
+      sortable: false,
       render: (p) => (
         <a href={`/admin/catalog/journal/${p.id}`} className="text-sm font-medium text-[var(--color-teal)] hover:underline">
           Edit
@@ -27,6 +29,7 @@ export function PostsTable({ posts }: { posts: BlogPost[] }) {
     {
       key: "delete",
       header: "",
+      sortable: false,
       render: (p) => (
         <form>
           <input type="hidden" name="id" value={p.id} />
@@ -41,9 +44,11 @@ export function PostsTable({ posts }: { posts: BlogPost[] }) {
       columns={columns}
       rows={posts}
       rowKey={(p) => p.id}
-      searchAccessor={(p) => `${p.titleEn} ${p.slug}`}
+      initialSort={{ key: "publishedAt", dir: "desc" }}
+      search={(p) => `${p.titleEn} ${p.slug}`}
       searchPlaceholder="Search posts..."
-      emptyMessage="No posts yet."
+      empty="No posts yet."
+      ariaLabel="Journal posts"
     />
   );
 }

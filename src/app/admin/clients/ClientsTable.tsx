@@ -34,6 +34,7 @@ interface ClientsTableProps {
 }
 
 type ColumnKey = "stage" | "owner" | "source" | "tier" | "tags" | "ltv" | "owed" | "visits" | "lastVisit" | "nextAppt" | "status";
+type SortKey = "name" | ColumnKey;
 const ALL_COLUMNS: { key: ColumnKey; label: string; align?: "end" }[] = [
   { key: "stage", label: "Stage" },
   { key: "owner", label: "Owner" },
@@ -50,6 +51,7 @@ const ALL_COLUMNS: { key: ColumnKey; label: string; align?: "end" }[] = [
 const DEFAULT_COLUMNS: ColumnKey[] = ["stage", "owner", "source", "ltv", "nextAppt", "status"];
 const COLUMNS_KEY = "lunia.clients.columns.v1";
 const DENSITY_KEY = "lunia.clients.density.v1";
+const PAGE_SIZE = 25;
 
 const CENTER_TZ = "Asia/Riyadh";
 const dateFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, day: "numeric", month: "short", year: "numeric" });
@@ -61,6 +63,29 @@ const STATUS_META = {
   new: { label: "New", className: "bg-[var(--color-gold)]/25 text-[#7c6a2f]" },
   lapsed: { label: "Lapsed", className: "bg-[var(--color-ink)]/8 text-[var(--color-ink)]/55" },
 };
+
+// Sort accessors: a plain comparable value per sortable key (null sorts last).
+const SORT_VALUE: Record<SortKey, (r: ClientRowDTO) => string | number | null> = {
+  name: (r) => r.fullName || "",
+  stage: (r) => r.stageLabel,
+  owner: (r) => r.ownerName,
+  source: (r) => r.source,
+  tier: (r) => r.tierName,
+  tags: (r) => r.tags.length,
+  ltv: (r) => r.ltvMinor,
+  owed: (r) => r.owedMinor,
+  visits: (r) => r.bookingCount,
+  lastVisit: (r) => (r.lastVisitIso ? new Date(r.lastVisitIso).getTime() : null),
+  nextAppt: (r) => (r.nextAppointmentIso ? new Date(r.nextAppointmentIso).getTime() : null),
+  status: (r) => r.status,
+};
+
+function compareValues(a: string | number | null, b: string | number | null): number {
+  if (a === null || a === undefined) return b === null || b === undefined ? 0 : 1;
+  if (b === null || b === undefined) return -1;
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
+}
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -78,9 +103,49 @@ function writeJson(key: string, value: unknown) {
   }
 }
 
+function SortGlyph({ dir }: { dir: "asc" | "desc" | null }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-3 w-3 shrink-0 transition-opacity ${dir ? "opacity-90" : "opacity-0 group-hover:opacity-40"}`}>
+      {dir === "desc" ? <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /> : <path strokeLinecap="round" strokeLinejoin="round" d="m6 15 6-6 6 6" />}
+    </svg>
+  );
+}
+
+function SortableTh({
+  sortKey,
+  label,
+  alignEnd,
+  cell,
+  sort,
+  onSort,
+}: {
+  sortKey: SortKey;
+  label: string;
+  alignEnd?: boolean;
+  cell: string;
+  sort: { key: SortKey; dir: "asc" | "desc" } | null;
+  onSort: (key: SortKey) => void;
+}) {
+  const active = sort?.key === sortKey;
+  const dir = active ? sort!.dir : null;
+  return (
+    <th aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"} className={`${cell} font-semibold ${alignEnd ? "text-end" : ""}`}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`group inline-flex min-h-8 items-center gap-1 rounded-sm uppercase tracking-[0.08em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] ${alignEnd ? "flex-row-reverse" : ""}`}
+      >
+        <span>{label}</span>
+        <SortGlyph dir={dir} />
+      </button>
+    </th>
+  );
+}
+
 // The roster: table on md+ (cards below), with a persisted column chooser,
-// density toggle, keyboard row navigation (arrows / j / k, Enter opens, Space
-// selects) and a bulk-selection bar wired to the tag/owner server actions.
+// density toggle, sortable headers, client-side pagination, keyboard row
+// navigation (arrows / j / k, Enter opens, Space selects) and a
+// bulk-selection bar wired to the tag/owner server actions.
 export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTableProps) {
   const router = useRouter();
   const [columns, setColumns] = useState<ColumnKey[]>(DEFAULT_COLUMNS);
@@ -93,6 +158,8 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
   const [isPending, startTransition] = useTransition();
   const [tag, setTag] = useState("");
   const [owner, setOwner] = useState("");
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" } | null>(null);
+  const [page, setPage] = useState(1);
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Preferences live in localStorage; read once after mount so SSR markup matches.
@@ -119,7 +186,33 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
     });
   }
 
+  function toggleSort(key: SortKey) {
+    setSort((s) => (!s || s.key !== key ? { key, dir: "asc" } : s.dir === "asc" ? { key, dir: "desc" } : null));
+  }
+
   const visible = useMemo(() => ALL_COLUMNS.filter((c) => columns.includes(c.key)), [columns]);
+
+  const sorted = useMemo(() => {
+    if (!sort) return rows;
+    const accessor = SORT_VALUE[sort.key];
+    const factor = sort.dir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => compareValues(accessor(a), accessor(b)) * factor);
+  }, [rows, sort]);
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const pageRows = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  // Reset to page 1 (and clear the keyboard cursor) when the result set or sort
+  // changes — adjusting state during render per React's guidance.
+  const pageKey = `${rows.length}|${sort?.key ?? ""}|${sort?.dir ?? ""}`;
+  const [prevPageKey, setPrevPageKey] = useState(pageKey);
+  if (pageKey !== prevPageKey) {
+    setPrevPageKey(pageKey);
+    setPage(1);
+    setCursor(-1);
+  }
+
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
   function toggleSelect(id: string) {
@@ -135,19 +228,19 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    if (rows.length === 0) return;
+    if (pageRows.length === 0) return;
     const target = e.target as HTMLElement;
     if (["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName) && target.getAttribute("type") !== "checkbox") return;
     let next = cursor;
-    if (e.key === "ArrowDown" || e.key === "j") next = Math.min(rows.length - 1, cursor + 1);
+    if (e.key === "ArrowDown" || e.key === "j") next = Math.min(pageRows.length - 1, cursor + 1);
     else if (e.key === "ArrowUp" || e.key === "k") next = Math.max(0, cursor - 1);
     else if (e.key === "Enter" && cursor >= 0) {
       e.preventDefault();
-      router.push(`/admin/clients/${rows[cursor]!.id}`);
+      router.push(`/admin/clients/${pageRows[cursor]!.id}`);
       return;
     } else if (e.key === " " && cursor >= 0 && canManage) {
       e.preventDefault();
-      toggleSelect(rows[cursor]!.id);
+      toggleSelect(pageRows[cursor]!.id);
       return;
     } else return;
     e.preventDefault();
@@ -169,6 +262,8 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
 
   const cell = dense ? "px-3 py-1.5" : "px-4 py-3";
   const ids = [...selected];
+  const rangeStart = sorted.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(safePage * PAGE_SIZE, sorted.length);
 
   return (
     <div className="flex flex-col gap-3">
@@ -273,11 +368,9 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
                   <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all" className="h-4 w-4 accent-[var(--color-teal-ink)]" />
                 </th>
               )}
-              <th className={`${cell} font-semibold`}>Customer</th>
+              <SortableTh sortKey="name" label="Customer" cell={cell} sort={sort} onSort={toggleSort} />
               {visible.map((c) => (
-                <th key={c.key} className={`${cell} font-semibold ${c.align === "end" ? "text-end" : ""}`}>
-                  {c.label}
-                </th>
+                <SortableTh key={c.key} sortKey={c.key} label={c.label} alignEnd={c.align === "end"} cell={cell} sort={sort} onSort={toggleSort} />
               ))}
             </tr>
           </thead>
@@ -289,7 +382,7 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
                 </td>
               </tr>
             ) : (
-              rows.map((r, i) => (
+              pageRows.map((r, i) => (
                 <tr
                   key={r.id}
                   data-row
@@ -326,7 +419,7 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
         {rows.length === 0 ? (
           <li className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-10 text-center text-sm text-[var(--color-ink)]/55">No customers match this view.</li>
         ) : (
-          rows.map((r) => (
+          pageRows.map((r) => (
             <li key={r.id} className="lunia-card flex items-start gap-3 px-4 py-3">
               {canManage && <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} aria-label={`Select ${r.fullName}`} className="mt-1 h-5 w-5 accent-[var(--color-teal-ink)]" />}
               <Link href={`/admin/clients/${r.id}`} className="flex min-w-0 flex-1 flex-col gap-1">
@@ -346,6 +439,26 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
           ))
         )}
       </ul>
+
+      {/* Pagination */}
+      {sorted.length > PAGE_SIZE && (
+        <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-ink)]/65">
+          <span className="tabular-nums">
+            {rangeStart}–{rangeEnd} of {sorted.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-40" aria-label="Previous page">
+              Previous
+            </button>
+            <span className="px-2 tabular-nums" aria-current="page">
+              {safePage} / {pageCount}
+            </span>
+            <button type="button" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={safePage >= pageCount} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-40" aria-label="Next page">
+              Next
+            </button>
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

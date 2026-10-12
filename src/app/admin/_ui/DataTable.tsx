@@ -61,6 +61,9 @@ export interface DataTableProps<T> {
   dense?: boolean;
   /** Below this breakpoint rows become cards ("md" default, "lg" for wide tables). */
   cardsBelow?: "md" | "lg";
+  /** Stacked card view on narrow screens. Set false for dense data grids that
+   * should always stay a (horizontally scrollable) table — e.g. reports. */
+  cards?: boolean;
   className?: string;
   /** Sort/page callbacks for URL-driven state. */
   onSortChange?: (sort: { key: string; dir: SortDir } | null) => void;
@@ -141,6 +144,7 @@ export function DataTable<T>({
   ariaLabel,
   dense = false,
   cardsBelow = "md",
+  cards = true,
   className = "",
   onSortChange,
   onSelectionChange,
@@ -215,7 +219,7 @@ export function DataTable<T>({
   const primary = columns.find((c) => c.primary) ?? columns[0]!;
   const cardCols = columns.filter((c) => c !== primary && !c.hideOnCard);
   const hasTools = !!search || !!toolbar || !!exportCsv;
-  const hideClass = cardsBelow === "lg" ? "hidden lg:block" : "hidden md:block";
+  const hideClass = !cards ? "" : cardsBelow === "lg" ? "hidden lg:block" : "hidden md:block";
   const showClass = cardsBelow === "lg" ? "lg:hidden" : "md:hidden";
   const pad = dense ? "px-3 py-2" : "px-4 py-3";
 
@@ -339,6 +343,7 @@ export function DataTable<T>({
             </table>
           </div>
 
+          {cards && (
           <ul className={`${showClass} flex flex-col gap-3`}>
             {visible.map((row) => {
               const k = rowKey(row);
@@ -377,6 +382,7 @@ export function DataTable<T>({
               );
             })}
           </ul>
+          )}
 
           {size > 0 && (sorted.length > pageSizes[0]! || pageCount > 1) && (
             <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-ink)]/65">

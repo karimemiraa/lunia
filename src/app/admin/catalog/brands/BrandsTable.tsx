@@ -1,19 +1,20 @@
 "use client";
 
 import type { Brand } from "@prisma/client";
-import { DataTable, type DataTableColumn } from "../../_components/DataTable";
+import { DataTable, type Column } from "../../_ui/DataTable";
 import { ConfirmDeleteButton } from "../../_components/ConfirmDeleteButton";
 import { deleteBrandAction } from "./actions";
 
 export function BrandsTable({ brands }: { brands: Brand[] }) {
-  const columns: DataTableColumn<Brand>[] = [
-    { key: "name", header: "Name", render: (b) => b.name },
-    { key: "slug", header: "Slug" },
-    { key: "order", header: "Order" },
-    { key: "isPublished", header: "Published", render: (b) => (b.isPublished ? "Yes" : "No") },
+  const columns: Column<Brand>[] = [
+    { key: "name", header: "Name", primary: true, value: (b) => b.name, render: (b) => b.name },
+    { key: "slug", header: "Slug", value: (b) => b.slug },
+    { key: "order", header: "Order", numeric: true, value: (b) => b.order },
+    { key: "isPublished", header: "Published", value: (b) => (b.isPublished ? "Yes" : "No") },
     {
       key: "edit",
       header: "",
+      sortable: false,
       render: (b) => (
         <a href={`/admin/catalog/brands/${b.id}`} className="text-sm font-medium text-[var(--color-teal)] hover:underline">
           Edit
@@ -23,6 +24,7 @@ export function BrandsTable({ brands }: { brands: Brand[] }) {
     {
       key: "delete",
       header: "",
+      sortable: false,
       render: (b) => (
         <form>
           <input type="hidden" name="id" value={b.id} />
@@ -37,9 +39,11 @@ export function BrandsTable({ brands }: { brands: Brand[] }) {
       columns={columns}
       rows={brands}
       rowKey={(b) => b.id}
-      searchAccessor={(b) => `${b.name} ${b.slug}`}
+      initialSort={{ key: "order", dir: "asc" }}
+      search={(b) => `${b.name} ${b.slug}`}
       searchPlaceholder="Search brands..."
-      emptyMessage="No brands yet."
+      empty="No brands yet."
+      ariaLabel="Brands"
     />
   );
 }
