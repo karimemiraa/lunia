@@ -18,19 +18,34 @@ test("editing the home hero in admin updates the public home in both locales", a
   await page.goto("/admin/content/home");
   await expect(page.getByRole("heading", { name: "Content: Home" })).toBeVisible();
 
-  await page.locator('input[name="headline.en"]').fill(headlineEn);
-  await page.locator('input[name="headline.ar"]').fill(headlineAr);
-  await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Saved.")).toBeVisible();
+  const enInput = page.locator('input[name="headline.en"]');
+  const arInput = page.locator('input[name="headline.ar"]');
+  const originalEn = await enInput.inputValue();
+  const originalAr = await arInput.inputValue();
 
-  // Log out so we prove the public pages render this for anonymous visitors,
-  // not just for the signed-in admin session.
-  await page.context().clearCookies();
+  try {
+    await enInput.fill(headlineEn);
+    await arInput.fill(headlineAr);
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Saved.")).toBeVisible();
 
-  await page.goto("/en");
-  await expect(page.getByRole("heading", { level: 1, name: headlineEn })).toBeVisible();
+    // Log out so we prove the public pages render this for anonymous visitors,
+    // not just for the signed-in admin session.
+    await page.context().clearCookies();
 
-  await page.goto("/ar");
-  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-  await expect(page.getByRole("heading", { level: 1, name: headlineAr })).toBeVisible();
+    await page.goto("/en");
+    await expect(page.getByRole("heading", { level: 1, name: headlineEn })).toBeVisible();
+
+    await page.goto("/ar");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByRole("heading", { level: 1, name: headlineAr })).toBeVisible();
+  } finally {
+    // Put the real hero headline back (this edits live CMS content).
+    await signInAsOwner(page);
+    await page.goto("/admin/content/home");
+    await page.locator('input[name="headline.en"]').fill(originalEn);
+    await page.locator('input[name="headline.ar"]').fill(originalAr);
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Saved.")).toBeVisible();
+  }
 });

@@ -10,7 +10,8 @@ export type NotificationType =
   | "stock"
   | "leave"
   | "document"
-  | "invoice";
+  | "invoice"
+  | "request";
 
 export interface NotificationItem {
   id: string;
@@ -38,6 +39,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   leave: "Leave requests",
   document: "Expiring documents",
   invoice: "Unpaid invoices",
+  request: "Edit requests",
 };
 
 // Where "see all" of a type lives.
@@ -51,4 +53,5 @@ export const NOTIFICATION_TYPE_HREF: Record<NotificationType, string> = {
   leave: "/admin/hr/leave",
   document: "/admin/hr",
   invoice: "/admin/billing?status=ISSUED",
+  request: "/admin/requests",
 };

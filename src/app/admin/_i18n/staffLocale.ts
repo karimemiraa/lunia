@@ -71,6 +71,7 @@ const AR: Record<string, string> = {
   Users: "المستخدمون",
   Roles: "الأدوار",
   "Audit log": "سجل التدقيق",
+  "Edit requests": "طلبات التعديل",
   Superadmin: "المشرف العام",
   // Quick actions (palette)
   "New booking": "حجز جديد",
@@ -134,7 +135,7 @@ const AR: Record<string, string> = {
   Admin: "الإدارة",
   "Opens today in the calendar": "يفتح تقويم اليوم",
   "Blank invoice for a walk-in sale": "فاتورة فارغة لبيع مباشر",
-  "Customers, then the Add lead button": "العملاء، ثم زر «إضافة عميل محتمل»",
+  "Opens the Add lead form": "يفتح نموذج «إضافة عميل محتمل»",
   "Opens in a new tab": "يفتح في علامة تبويب جديدة",
   // Display menu
   Display: "العرض",
@@ -143,6 +144,32 @@ const AR: Record<string, string> = {
   "Match device": "حسب الجهاز",
   Light: "فاتح",
   Dark: "داكن",
+  // Ask Lunia (team assistant)
+  "Ask Lunia": "اسأل لونيا",
+  "Team assistant": "مساعد الفريق",
+  "Open the team assistant": "فتح مساعد الفريق",
+  "Close the assistant": "إغلاق المساعد",
+  "Ask about a page, a task or a number…": "اسأل عن صفحة أو مهمة أو رقم…",
+  Send: "إرسال",
+  "Ask a question…": "اكتب سؤالك…",
+  "Thinking…": "جارٍ التفكير…",
+  "Clear chat": "مسح المحادثة",
+  "Request an edit": "طلب تعديل",
+  "What should change?": "ما الذي يجب تغييره؟",
+  "Short title": "عنوان مختصر",
+  Details: "التفاصيل",
+  Priority: "الأولوية",
+  Low: "منخفضة",
+  Normal: "عادية",
+  High: "عالية",
+  "Send request": "إرسال الطلب",
+  Cancel: "إلغاء",
+  "Request sent — the owners will review it.": "تم إرسال الطلب — سيراجعه المسؤولون.",
+  "Hi! I can take you to any page, explain how to do something, give you live numbers, or send an edit request to the owners.":
+    "مرحبًا! أستطيع نقلك إلى أي صفحة، وشرح طريقة تنفيذ أي مهمة، وعرض الأرقام الحالية، أو إرسال طلب تعديل للمسؤولين.",
+  "Answered by Claude": "الإجابة من Claude",
+  "Steps": "الخطوات",
+  "Opening…": "جارٍ الفتح…",
 };
 
 /** Translate a chrome string for the staff locale; unknown strings fall back to English. */

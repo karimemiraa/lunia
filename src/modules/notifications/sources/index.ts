@@ -11,6 +11,7 @@ import { leaveSource } from "./leave";
 import { documentSource } from "./documents";
 import { callbackSource } from "./callbacks";
 import { unpaidInvoicesSource } from "./invoices";
+import { editRequestSource } from "./editRequests";
 
 export interface NotificationSourceResult {
   count: number;
@@ -19,4 +20,4 @@ export interface NotificationSourceResult {
 
 export type NotificationSource = (permissions: Set<PermissionKey>) => Promise<NotificationSourceResult>;
 
-export const SOURCES: NotificationSource[] = [stockSource, cashDrawerSource, leaveSource, documentSource, callbackSource, unpaidInvoicesSource];
+export const SOURCES: NotificationSource[] = [stockSource, cashDrawerSource, leaveSource, documentSource, callbackSource, unpaidInvoicesSource, editRequestSource];

@@ -4,6 +4,10 @@ import "./_ui/staffDark.css";
 import { fontVariables } from "@/app/fonts";
 import { getStaffDisplay } from "./_i18n/display";
 import { SYSTEM_THEME_SCRIPT, ThemeSync } from "./_components/ThemeSync";
+import { AskLunia } from "./_components/AskLunia";
+import { cookies } from "next/headers";
+import { getCurrentUser } from "@/modules/iam/rbac";
+import { getAssistantApiKey } from "@/modules/staffAssistant/assistant";
 
 // Staff can "Add to Home Screen" on the front-desk iPad: its own manifest so
 // the installed app opens straight into /admin, full screen.
@@ -21,9 +25,14 @@ export const dynamic = "force-dynamic";
 // dialog/toast) is English. Staff who pick Arabic in the Display menu get a
 // mirrored RTL *shell* (sidebar, top bar, breadcrumbs, menus) — see AdminShell.
 // The theme (light / dark / match device) is a cookie, so data-theme is right on
-// the first byte. Fonts: the brand variables (The Seasons/Cormorant + Inter).
+// the first byte. Fonts: Inter (Latin) + IBM Plex Sans Arabic, self-hosted.
+//
+// The Ask Lunia team assistant lives here (not in each page's AdminShell) so it
+// stays mounted across navigations: the chat and an in-flight answer survive
+// "take me to…" jumps and route loading skeletons.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { theme } = await getStaffDisplay();
+  const [{ theme, locale }, staff] = await Promise.all([getStaffDisplay(), cookies().then((c) => getCurrentUser(c.get("lunia_session")?.value))]);
+  const aiEnabled = staff ? Boolean(await getAssistantApiKey().catch(() => null)) : false;
   return (
     <html
       lang="en"
@@ -36,6 +45,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <head>{theme === "system" && <script dangerouslySetInnerHTML={{ __html: SYSTEM_THEME_SCRIPT }} />}</head>
       <body className="lunia-staff bg-[var(--surface-2)] text-[var(--color-ink)]">
         {children}
+        {staff && <AskLunia locale={locale} aiEnabled={aiEnabled} />}
         <ThemeSync theme={theme} />
       </body>
     </html>

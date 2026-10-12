@@ -56,7 +56,7 @@ export function Testimonials({ eyebrow, heading, items }: TestimonialsProps) {
           >
             {items.map((item, i) => (
               <figure key={i} className="flex w-full shrink-0 flex-col items-center gap-6 px-6 text-center" aria-hidden={i !== index}>
-                <blockquote className="font-[family-name:var(--font-display)] text-[clamp(1.7rem,1.2rem+1.9vw,2.9rem)] italic leading-[1.2] text-[var(--color-ink)]">
+                <blockquote className="font-[family-name:var(--font-display)] text-[clamp(1.7rem,1.2rem+1.9vw,2.9rem)] leading-[1.2] text-[var(--color-ink)]">
                   {item.quote}
                 </blockquote>
                 {item.author && (

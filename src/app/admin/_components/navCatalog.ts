@@ -132,6 +132,7 @@ export const NAV_GROUPS: NavCatalogGroup[] = [
       { href: "/admin/users", label: "Users", perm: PERMISSIONS.STAFF_MANAGE, icon: "users", keywords: "accounts logins" },
       { href: "/admin/roles", label: "Roles", perm: PERMISSIONS.STAFF_MANAGE, icon: "shield", keywords: "permissions" },
       { href: "/admin/audit", label: "Audit log", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "shield" },
+      { href: "/admin/requests", label: "Edit requests", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "inbox", keywords: "change requests suggestions team feedback" },
       { href: "/superadmin", label: "Superadmin", perm: PERMISSIONS.PLATFORM_MANAGE, icon: "gear", keywords: "platform integrations" },
     ],
   },
@@ -173,7 +174,7 @@ export function paletteActionsFor(permissions: Set<PermissionKey>, allowedHrefs:
     actions.push({ id: "new-invoice", label: "New walk-in invoice", href: "/admin/billing/new", keywords: "checkout sale bill pos", hint: "Blank invoice for a walk-in sale" });
   }
   if (permissions.has(PERMISSIONS.CLIENT_MANAGE) && allowedHrefs.has("/admin/clients")) {
-    actions.push({ id: "add-lead", label: "Add lead", href: "/admin/clients", keywords: "new customer prospect", hint: "Customers, then the Add lead button" });
+    actions.push({ id: "add-lead", label: "Add lead", href: "/admin/clients?add=lead", keywords: "new customer prospect", hint: "Opens the Add lead form" });
   }
   if (allowedHrefs.has("/admin/me")) {
     actions.push({ id: "clock", label: "Clock in / out", href: "/admin/me", keywords: "attendance time shift", hint: "My time & leave" });

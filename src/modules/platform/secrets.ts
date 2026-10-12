@@ -76,6 +76,21 @@ export const SECRET_GROUPS: SecretGroup[] = [
       { key: "AI_MODEL", label: "Model", secret: false, placeholder: "claude-opus-4-8" },
     ],
   },
+  {
+    id: "staffAssistant",
+    title: "Team assistant (Ask Lunia)",
+    description:
+      "Optional Claude (Anthropic) key for the staff assistant inside the admin. Without it, Ask Lunia uses its built-in answers; with it, Claude answers free-form questions using the same permission-checked, read-only data tools.",
+    fields: [
+      {
+        key: "ANTHROPIC_API_KEY",
+        label: "Anthropic API key",
+        help: "Create one at console.anthropic.com → API keys. Clear the field to switch the assistant back to built-in answers.",
+        secret: true,
+        placeholder: "sk-ant-…",
+      },
+    ],
+  },
 ];
 
 const CUSTOM_PREFIX = "custom:";

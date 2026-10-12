@@ -27,9 +27,11 @@
      surfaces (admin banners, primary actions, inquiry headers). */
   --color-forest: #2b4d47;
 
-  --font-display: "Cormorant Garamond", "The Seasons", serif;
+  /* Headings use the same clean families as body text (Inter / IBM Plex Sans
+     Arabic); hierarchy comes from size and weight, not a decorative face. */
+  --font-display: var(--font-body);
   --font-body: "Inter", system-ui, sans-serif;
-  --font-display-ar: "Noto Kufi Arabic", "F37 Wicklow", serif;
+  --font-display-ar: var(--font-body-ar);
   --font-body-ar: "IBM Plex Sans Arabic", system-ui, sans-serif;
 }
 
@@ -1749,4 +1751,21 @@ video::-webkit-media-controls { display: none !important; }
 }
 .lunia-staff [dir="rtl"] [dir="ltr"] {
   font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Figures: always lining (even height on the baseline); big stats, times and
+   prices are also tabular so digits don't jitter or misalign in columns. */
+body {
+  font-variant-numeric: lining-nums;
+}
+.lx-stat,
+.tabular-nums,
+[class*="font-[family-name:var(--font-display)]"] {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* Inter is drawn for text sizes; tighten it slightly at display sizes. Latin
+   only — letter-spacing breaks Arabic letter joining. */
+html:not([dir="rtl"]) :is(.lx-display, .lx-stat, [class*="font-[family-name:var(--font-display)]"]):not([dir="rtl"] *) {
+  letter-spacing: -0.02em;
 }

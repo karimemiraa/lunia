@@ -1,52 +1,30 @@
-import { Cormorant_Garamond, IBM_Plex_Sans_Arabic, Inter, Noto_Kufi_Arabic } from "next/font/google";
+import { IBM_Plex_Sans_Arabic, Inter } from "next/font/google";
 
-// Real, self-hosted web fonts (next/font/google downloads + subsets them at
-// build time, so there is no runtime request to Google's CDN and no layout
-// shift beyond the `swap` window). Each font's `variable` name matches a
-// CSS custom property already declared as a fallback stack in
-// src/app/globals.css's `@theme` block — loading the font here simply
-// upgrades that variable's value from a generic fallback to the real
-// typeface; nothing that already reads `var(--font-display)` etc. needs to
-// change.
-//
-// Display (serif, headlines/pull-quotes):
-export const fontDisplay = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  variable: "--font-display",
-  display: "swap",
-});
+// Two clean, highly legible families — one per script — used for EVERYTHING:
+// body copy, headings, figures, times and prices. (The previous decorative
+// display faces, Cormorant Garamond and Noto Kufi Arabic, had old-style
+// numerals and heavy Kufi shapes that made times/numbers hard to read.)
+// next/font self-hosts and subsets them at build time: no runtime request to
+// Google, minimal layout shift. Headings keep their hierarchy through size and
+// weight; --font-display / --font-display-ar now resolve to these same
+// families (see the @theme block in globals.css), so nothing that reads them
+// needs to change.
 
-// Body (sans, running text/nav) — Latin:
+// Latin — Inter (variable weight; lining, tabular-capable figures).
 export const fontBody = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   variable: "--font-body",
   display: "swap",
 });
 
-// Display (Arabic headlines):
-export const fontDisplayAr = Noto_Kufi_Arabic({
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-display-ar",
-  display: "swap",
-});
-
-// Body (Arabic running text/nav):
+// Arabic — IBM Plex Sans Arabic (pairs with Inter; includes matching Latin).
 export const fontBodyAr = IBM_Plex_Sans_Arabic({
   subsets: ["arabic"],
-  weight: ["400", "500", "600"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-body-ar",
   display: "swap",
 });
 
-// Applied together on <html> in the (site) layout so all four brand font
-// variables resolve for both locales regardless of which script is active.
-export const fontVariables = [
-  fontDisplay.variable,
-  fontBody.variable,
-  fontDisplayAr.variable,
-  fontBodyAr.variable,
-].join(" ");
+// Applied together on <html> in every layout so both variables resolve for
+// either locale regardless of which script is active.
+export const fontVariables = [fontBody.variable, fontBodyAr.variable].join(" ");

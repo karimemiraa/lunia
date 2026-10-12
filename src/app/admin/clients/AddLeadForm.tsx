@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "../_components/Modal";
 import { createLeadAction, type RosterActionState } from "./actions";
@@ -16,9 +16,18 @@ const initial: RosterActionState = {};
 
 // "Add lead" opens a popup so telesales can log someone they're reaching out to
 // (outbound) or a new inbound enquiry, without leaving the roster.
-export function AddLeadForm({ staff }: { staff: StaffOption[] }) {
+// `autoOpen` (from ?add=lead — the palette, shortcuts and Ask Lunia link here)
+// opens the popup straight away.
+export function AddLeadForm({ staff, autoOpen = false }: { staff: StaffOption[]; autoOpen?: boolean }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
+  // Drop ?add=lead once used so a refresh/back doesn't pop the form again.
+  useEffect(() => {
+    if (!autoOpen) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("add");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+  }, [autoOpen]);
   const [state, action, pending] = useActionState(
     onActionSuccess(createLeadAction, () => {
       setOpen(false);

@@ -11,7 +11,7 @@ import { AddLeadForm } from "./AddLeadForm";
 import { listStages } from "@/modules/crm/pipeline";
 
 interface ClientsPageProps {
-  searchParams: Promise<{ search?: string; tierKey?: string; source?: string; status?: string; tag?: string; stage?: string; ownerId?: string; direction?: string; view?: string }>;
+  searchParams: Promise<{ search?: string; tierKey?: string; source?: string; status?: string; tag?: string; stage?: string; ownerId?: string; direction?: string; view?: string; add?: string }>;
 }
 
 const inputClass =
@@ -112,7 +112,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
           <a href={exportHref} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11" download>
             Export CSV
           </a>
-          {canManage && <AddLeadForm staff={owners} />}
+          {canManage && <AddLeadForm staff={owners} autoOpen={params.add === "lead"} />}
         </>
       }
     >

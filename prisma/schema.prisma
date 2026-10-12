@@ -1529,3 +1529,29 @@ model Payslip {
 
   @@unique([payrollRunId, userId])
 }
+
+/// A change/edit request filed by staff (usually from the "Ask Lunia" team
+/// assistant): "please change X on page Y". Reviewed by owners/admins in
+/// /admin/requests. The requester is a soft reference + name snapshot, like
+/// other audit-style records.
+model EditRequest {
+  id             String    @id @default(cuid())
+  createdById    String
+  createdByName  String
+  /// Admin page the request was filed from (e.g. "/admin/billing/new").
+  pagePath       String?
+  title          String
+  details        String
+  /// LOW | NORMAL | HIGH
+  priority       String    @default("NORMAL")
+  /// OPEN | IN_PROGRESS | DONE | DECLINED
+  status         String    @default("OPEN")
+  resolutionNote String?
+  resolvedById   String?
+  resolvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  @@index([status, createdAt])
+  @@index([createdById, createdAt])
+}

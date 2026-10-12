@@ -29,6 +29,7 @@ const ATTENTION_ICON: Record<AttentionCard["type"], string> = {
   document: "M6 3h8l4 4v14H6zM14 3v4h4M12 11v4M12 17.5v.5",
   lead: "M12 4v16M4 12h16",
   booking: "M3.5 5h17v16h-17zM3.5 9h17M8 3v4M16 3v4",
+  request: "M4 5h16v11H8l-4 4zM8 9h8M8 12h5",
 };
 
 function KpiTile({ label, value, sub, children }: { label: string; value: string; sub?: string; children?: React.ReactNode }) {
