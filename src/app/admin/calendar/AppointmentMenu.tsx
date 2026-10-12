@@ -25,6 +25,8 @@ export interface AppointmentMenuProps {
   canClinical: boolean;
   /** "inline" renders every action as buttons (day modal); "menu" is a compact popover (grid cards). */
   layout?: "inline" | "menu";
+  /** Show the "Open appointment page" link (the hub). Off when the menu is rendered on the hub itself. */
+  hubLink?: boolean;
 }
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -40,7 +42,7 @@ const item = "flex min-h-10 w-full items-center gap-2 rounded-[var(--radius-sm)]
 // clinical (treatment record), reschedule (modal), and the customer. All
 // mutations go through the calendar server actions and refresh the route.
 export function AppointmentMenu(props: AppointmentMenuProps) {
-  const { bookingId, appointmentId, serviceId, status, started, defaultDate, clientProfileId, invoice, treatmentRecordId, canManage, canBill, canClinical, layout = "menu" } = props;
+  const { bookingId, appointmentId, serviceId, status, started, defaultDate, clientProfileId, invoice, treatmentRecordId, canManage, canBill, canClinical, layout = "menu", hubLink = true } = props;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [pendingIntent, setPendingIntent] = useState<string | null>(null);
@@ -133,6 +135,11 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
 
   const secondary = (
     <>
+      {hubLink && (
+        <Link href={`/admin/calendar/${appointmentId}`} className={layout === "inline" ? btnOutline : item}>
+          Open appointment page
+        </Link>
+      )}
       {canComplete && (canCheckIn || canStart) && (
         <button type="button" disabled={isPending} onClick={() => run("complete", () => completeAction(bookingId))} className={layout === "inline" ? btnOutline : item}>
           {label("complete", "Complete", "Completing…")}

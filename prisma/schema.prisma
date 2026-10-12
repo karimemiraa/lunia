@@ -228,6 +228,7 @@ model ClientProfile {
   consentSignatures      ConsentSignature[]
   treatmentRecords       TreatmentRecord[]
   clinicalPhotos         ClinicalPhoto[]
+  visitDocuments         VisitDocument[]
   chatSessions           ChatSession[]
   callbackRequests       CallbackRequest[]
   invoices               Invoice[]
@@ -1054,6 +1055,33 @@ model ClinicalPhoto {
   createdAt         DateTime         @default(now())
 
   @@index([clientProfileId, takenAt])
+}
+
+// A file attached to a visit (booking) and optionally a specific appointment:
+// receipts, lab results, signed forms, reports, IDs. PRIVATE — bytes live
+// under the "documents/" storage prefix, served only by the permission-checked
+// /admin/documents/[id] route (never the public /api/media route). bookingId /
+// appointmentId are soft references (like Invoice.bookingId) so the Appointment
+// Hub can scope documents to one visit without a hard FK on Booking.
+model VisitDocument {
+  id              String        @id @default(cuid())
+  clientProfileId String
+  client          ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  bookingId       String?
+  appointmentId   String?
+  storageKey      String
+  /// Original file name, sanitized for display/download.
+  fileName        String
+  mime            String
+  sizeBytes       Int
+  /// RECEIPT | LAB | FORM | REPORT | ID | OTHER
+  category        String        @default("OTHER")
+  note            String?
+  uploadedById    String
+  createdAt       DateTime      @default(now())
+
+  @@index([clientProfileId])
+  @@index([bookingId])
 }
 
 // ===========================================================================

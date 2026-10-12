@@ -59,7 +59,7 @@ function asSettings(raw: unknown): TreatmentSetting[] {
   if (raw && typeof raw === "object") return Object.entries(raw).map(([key, value]) => ({ key, value: String(value) }));
   return [];
 }
-function asProducts(raw: unknown): TreatmentProduct[] {
+export function asProducts(raw: unknown): TreatmentProduct[] {
   return Array.isArray(raw) ? raw.filter((r): r is TreatmentProduct => typeof r?.name === "string") : [];
 }
 

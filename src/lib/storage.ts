@@ -39,7 +39,7 @@ function assertSafeKey(key: string): void {
 // routes -- never by the public /api/media route. The check normalizes the key
 // first ("./clinical/x", "Clinical/x" on a case-insensitive disk, "//clinical")
 // so a variant spelling can't reach the same file.
-export const PRIVATE_STORAGE_PREFIXES = ["finance/", "clinical/"] as const;
+export const PRIVATE_STORAGE_PREFIXES = ["finance/", "clinical/", "documents/"] as const;
 
 export function isPrivateStorageKey(key: string): boolean {
   const normalized = path.posix

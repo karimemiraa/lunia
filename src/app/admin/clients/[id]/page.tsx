@@ -285,9 +285,15 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
                   </td>
                   <td className="px-4 py-3">
                     <span className="flex flex-wrap gap-1.5">
-                      <Chip icon="calendar" href={`/admin/calendar?day=${dateISOFor(booking.startAt)}`}>
-                        Calendar
-                      </Chip>
+                      {booking.appointmentId ? (
+                        <Chip icon="calendar" href={`/admin/calendar/${booking.appointmentId}`} tone="teal">
+                          Open appointment
+                        </Chip>
+                      ) : (
+                        <Chip icon="calendar" href={`/admin/calendar?day=${dateISOFor(booking.startAt)}`}>
+                          Calendar
+                        </Chip>
+                      )}
                       {inv && (
                         <Chip icon="receipt" href={`/admin/billing/${inv.id}`} tone="teal">
                           {inv.status === "DRAFT" ? "Draft invoice" : inv.number}

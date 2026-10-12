@@ -187,6 +187,8 @@ export async function listClients(filter: ListClientsFilter = {}): Promise<Clien
 
 export interface ClientDetailBooking {
   id: string;
+  /** The booking's primary appointment — the Appointment Hub is keyed by it. */
+  appointmentId: string | null;
   serviceName: string;
   startAt: Date;
   status: BookingStatus;
@@ -237,6 +239,7 @@ export async function getClientDetail(clientProfileId: string): Promise<ClientDe
     const appointment = booking.appointments[0];
     return {
       id: booking.id,
+      appointmentId: appointment?.id ?? null,
       serviceName: appointment ? (serviceNameById.get(appointment.serviceId) ?? "Unknown service") : "Unknown service",
       startAt: appointment?.startAt ?? booking.createdAt,
       status: booking.status,

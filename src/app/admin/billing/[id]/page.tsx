@@ -4,6 +4,7 @@ import { requireAdmin } from "../../_components/requireAdmin";
 import { AdminShell } from "../../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { creditableLines, getInvoiceDetail } from "@/modules/billing/invoices";
+import { primaryAppointmentId } from "@/modules/booking/appointmentHub";
 import { getTaxSettings, taxSettingsIssues } from "@/modules/billing/settings";
 import { quickPicks } from "@/modules/billing/lookup";
 import { invoiceBalance } from "@/modules/billing/settlement";
@@ -28,6 +29,9 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
   if (!detail) notFound();
   const { invoice, creditNotes, original } = detail;
   const settings = await getTaxSettings();
+  // Back-link to the Appointment Hub: an invoice is tied to a booking (soft
+  // bookingId); its hub is keyed by that booking's primary appointment.
+  const hubApptId = invoice.bookingId ? await primaryAppointmentId(invoice.bookingId) : null;
 
   if (invoice.status === "DRAFT") {
     const lines: EditorLine[] = invoice.lines.map((l) => {
@@ -58,6 +62,7 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
         user={user}
         title="Draft invoice"
         description={invoice.bookingId ? "Checkout for a booking — review the lines, then issue." : "Review the lines, then issue."}
+        actions={hubApptId ? <Link href={`/admin/calendar/${hubApptId}`} className="lunia-btn lunia-btn-ghost min-h-11">← Appointment</Link> : undefined}
       >
         <InvoiceEditor
           invoiceId={invoice.id}
@@ -249,6 +254,11 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
                 {invoice.clientProfileId && (
                   <Link href={`/admin/clients/${invoice.clientProfileId}`} className="mt-1 inline-flex min-h-11 items-center text-[var(--color-teal-ink)] underline-offset-4 hover:underline">
                     Open customer profile
+                  </Link>
+                )}
+                {hubApptId && (
+                  <Link href={`/admin/calendar/${hubApptId}`} className="inline-flex min-h-11 items-center text-[var(--color-teal-ink)] underline-offset-4 hover:underline">
+                    Open appointment page
                   </Link>
                 )}
                 {original && (
