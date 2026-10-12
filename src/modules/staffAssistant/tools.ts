@@ -14,6 +14,7 @@ import { getNotificationFeed } from "@/modules/notifications/feed";
 import { NOTIFICATION_TYPE_LABELS, NOTIFICATION_TYPE_HREF, type NotificationType } from "@/modules/notifications/types";
 import { listMyEditRequests } from "@/modules/editRequests/editRequests";
 import { receivablesAging } from "@/modules/accounting/reports";
+import { staffPerformanceReport } from "@/modules/reports/teamReports";
 import { PERIODS, periodRange, formatSar, type Period } from "./periods";
 import type { AssistantLink, AssistantStat, AssistantViewer } from "./types";
 
@@ -122,6 +123,24 @@ export const TOOLS = [
         ],
         links: [{ label: "Business dashboard", href: "/admin/dashboard", kind: "page" }],
         summary: `${label}: ${n(s!.totalBookings)} booking${s!.totalBookings === 1 ? "" : "s"} made (${n(s!.newClients)} from new clients).`,
+      };
+    },
+  }),
+  defineTool({
+    name: "staff_performance",
+    description:
+      "Per staff member for a period (Riyadh time): completed visits, revenue (completed appointments), no-show rate and utilisation (booked ÷ scheduled hours). Same figures as the Staff performance report.",
+    anyOf: [PERMISSIONS.ANALYTICS_VIEW],
+    input: z.object({ period: z.enum(PERIODS).default("this_month") }),
+    async run({ period }, _viewer, now) {
+      const { from, to, label } = periodRange(period as Period, now);
+      const { rows } = await staffPerformanceReport({ from, to });
+      const top = rows.filter((r) => r.appointments > 0).slice(0, 5);
+      return {
+        title: `Staff performance — ${label}`,
+        stats: top.map((r) => ({ label: r.staff, value: `${r.revenueSAR} SAR · ${r.completed} visits${r.utilisation ? ` · ${r.utilisation} booked` : ""}` })),
+        links: [{ label: "Staff performance report", href: `/admin/reports?type=staff`, kind: "page" }],
+        summary: top.length ? `${label}: ${top[0]!.staff} leads with ${top[0]!.revenueSAR} SAR from ${top[0]!.completed} completed visit${top[0]!.completed === 1 ? "" : "s"}.` : `${label}: no appointments yet.`,
       };
     },
   }),

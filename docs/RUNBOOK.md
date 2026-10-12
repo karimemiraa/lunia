@@ -135,6 +135,43 @@ service (the `migrator` build target — see section 2), then
 to run without a `.env.prod` present. Take a `backup.sh` snapshot first if
 the migration is non-trivial.
 
+### 3.1 CI gate (GitHub Actions)
+
+Pushing to `main` runs `.github/workflows/deploy.yml`. Its `verify` job runs
+on a fresh Postgres 16 and Redis: migrate, seed, `tsc`, `eslint` and the full
+`vitest` suite. The `build-and-deploy` job runs **only if `verify` passes**,
+so a red test blocks the deploy (the live site keeps running the previous
+version). To ship a hotfix, fix the test or the code. Don't bypass the gate.
+
+### 3.2 Scheduled automations (worker)
+
+The `worker` service runs the daily jobs in `src/modules/automation/jobs.ts`
+on every tick (Riyadh time). Each job runs at most once a day, because it
+claims a unique `JobRun(job, day)` row first; this holds even with several
+replicas or restarts.
+
+| Job | Time | Default | What it does |
+|---|---|---|---|
+| waitlist-expiry | 01:00 | on | Waitlist entries for past dates → EXPIRED |
+| package-expiry | 01:00 | on | Package purchases past `expiresAt` → EXPIRED |
+| staff-digest | 08:00 | **off** | Emails each assignee their open items |
+| package-reminders | 10:00 | on | "Your package expires soon" to the customer (once per purchase) |
+| win-back | 11:00 | **off** | "We miss you" to customers with no visit in N days and nothing booked |
+
+- **Where to toggle them:** owners switch jobs on or off, and set the thresholds, under **Settings → Automations**. The last run and its result are shown there too, from the `JobRun` table.
+- **Delivery:** customer messages go through the normal outbox, so opt-outs apply. Win-back is marketing and is skipped for customers who opted out of offers. Each customer gets win-back at most once every 180 days, and there's a daily cap.
+- **Wording:** edit it under Communications → Message templates (*Package expiring soon*, *We miss you*).
+
+### 3.3 Website results gallery (patient photos)
+
+Clinical photos are private. A before/after pair appears on `/results` only when **all** of these are true:
+
+1. Staff ticked "Customer consented to show it on the website" on **both** photos. Only do this with the customer's written consent.
+2. The pair is one customer's Before and After.
+3. The pair is published (Website → Results gallery).
+
+The public image route `/api/results/[id]/[side]` re-checks this on every request and caches for at most 5 minutes. Withdrawing consent on a photo unpublishes its pairs immediately. Deleting a photo deletes its pairs. Names and dates are never sent to the public site.
+
 ## 4. Backup
 
 ```bash

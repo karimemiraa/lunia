@@ -10,7 +10,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
-import { getBooking, cancel } from "@/modules/booking/bookings";
+import { getBooking, cancel, getServiceSlots, reschedule } from "@/modules/booking/bookings";
+import { utcToCenterLocal } from "@/modules/booking/availability";
 import {
   getClientSessionUser,
   destroyClientSession,
@@ -85,6 +86,79 @@ export async function cancelMyBooking(bookingId: string, locale: string): Promis
     return { ok: false, error: t("generic") };
   }
 
+  return { ok: true };
+}
+
+// ---- Self-service reschedule ------------------------------------------------
+// Same policy as cancelling: the client's own booking, still upcoming, and
+// more than MIN_HOURS_BEFORE_CANCEL hours away. The new time must be a slot
+// the live availability engine offers right now (re-checked again inside
+// reschedule()'s serializable transaction). The same specialist is kept when
+// they're free at the new time.
+
+const MAX_RESCHEDULE_DAYS_AHEAD = 60;
+const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+async function ownReschedulableBooking(bookingId: string, locale: string) {
+  const t = await getTranslations({ locale: asAccountLocale(locale), namespace: "account.errors" });
+  const clientProfileId = await requireClientProfileId();
+  if (!clientProfileId) return { error: t("notAuthenticated") } as const;
+  const booking = await getBooking(bookingId);
+  if (!booking || booking.clientProfileId !== clientProfileId) return { error: t("notFound") } as const;
+  const appointment = booking.appointments[0];
+  if (!appointment || (booking.status !== "CONFIRMED" && booking.status !== "REQUESTED")) return { error: t("notFound") } as const;
+  if ((appointment.startAt.getTime() - Date.now()) / 3_600_000 < MIN_HOURS_BEFORE_CANCEL) return { error: t("tooLateToReschedule") } as const;
+  return { booking, appointment, t } as const;
+}
+
+function inWindow(dateISO: string): boolean {
+  if (!DATE_ISO.test(dateISO)) return false;
+  const today = utcToCenterLocal(new Date()).dateISO;
+  const last = utcToCenterLocal(new Date(Date.now() + MAX_RESCHEDULE_DAYS_AHEAD * 86_400_000)).dateISO;
+  return dateISO >= today && dateISO <= last;
+}
+
+export type RescheduleSlotsResult = { ok: true; times: { startAtIso: string; label: string }[] } | { ok: false; error: string };
+
+export async function getMyRescheduleSlots(bookingId: string, dateISO: string, locale: string): Promise<RescheduleSlotsResult> {
+  const own = await ownReschedulableBooking(bookingId, locale);
+  if ("error" in own) return { ok: false, error: own.error! };
+  if (!inWindow(dateISO)) return { ok: true, times: [] };
+  try {
+    const slots = await getServiceSlots(own.appointment.serviceId, dateISO, own.appointment.id);
+    const minStart = Date.now() + MIN_HOURS_BEFORE_CANCEL * 3_600_000;
+    const byTime = new Map<number, string>();
+    for (const slot of slots) if (slot.startAt.getTime() >= minStart && slot.startAt.getTime() !== own.appointment.startAt.getTime()) byTime.set(slot.startAt.getTime(), slot.startAt.toISOString());
+    const fmt = new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", { timeZone: "Asia/Riyadh", hour: "numeric", minute: "2-digit" });
+    return {
+      ok: true,
+      times: [...byTime.entries()].sort((a, b) => a[0] - b[0]).map(([ms, iso]) => ({ startAtIso: iso, label: fmt.format(new Date(ms)) })),
+    };
+  } catch {
+    return { ok: false, error: own.t("generic") };
+  }
+}
+
+export type RescheduleBookingResult = { ok: true } | { ok: false; error: string };
+
+export async function rescheduleMyBooking(bookingId: string, newStartAtIso: string, locale: string): Promise<RescheduleBookingResult> {
+  const own = await ownReschedulableBooking(bookingId, locale);
+  if ("error" in own) return { ok: false, error: own.error! };
+  const newStart = new Date(newStartAtIso);
+  if (Number.isNaN(newStart.getTime())) return { ok: false, error: own.t("generic") };
+  const dateISO = utcToCenterLocal(newStart).dateISO;
+  if (!inWindow(dateISO) || newStart.getTime() < Date.now() + MIN_HOURS_BEFORE_CANCEL * 3_600_000) return { ok: false, error: own.t("slotUnavailable") };
+
+  const slots = await getServiceSlots(own.appointment.serviceId, dateISO, own.appointment.id).catch(() => []);
+  const atTime = slots.filter((s) => s.startAt.getTime() === newStart.getTime());
+  if (atTime.length === 0) return { ok: false, error: own.t("slotUnavailable") };
+  const sameStaff = atTime.find((s) => s.staffUserId === own.appointment.staffUserId);
+  const pick = sameStaff ?? atTime[0]!;
+  try {
+    await reschedule(bookingId, newStart, pick.staffUserId, pick.roomId);
+  } catch {
+    return { ok: false, error: own.t("slotUnavailable") };
+  }
   return { ok: true };
 }
 

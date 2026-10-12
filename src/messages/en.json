@@ -449,7 +449,11 @@
           "body": "Nothing is shared without your explicit, written consent."
         }
       ]
-    }
+    },
+    "before": "Before",
+    "after": "After",
+    "compareLabel": "Drag to compare before and after",
+    "consentNoteReal": "Shared with each customer's written consent; names are never shown. Individual results vary."
   },
   "journalIndex": {
     "meta": {
@@ -781,7 +785,9 @@
       "notAuthenticated": "Please sign in to manage your bookings.",
       "notFound": "We couldn't find that booking.",
       "tooLateToCancel": "This booking can no longer be cancelled online, please contact us.",
-      "generic": "Something went wrong, please try again."
+      "generic": "Something went wrong, please try again.",
+      "tooLateToReschedule": "This booking is less than 24 hours away and can no longer be moved online — please contact us.",
+      "slotUnavailable": "That time was just taken. Please pick another one."
     },
     "notifications": {
       "heading": "Notifications",
@@ -878,6 +884,18 @@
       "save": "Save note",
       "saving": "Saving…",
       "saved": "Saved"
+    },
+    "reschedule": {
+      "heading": "Change the time",
+      "hint": "Pick a new day and time. You can move your appointment up to 24 hours before it starts.",
+      "date": "New date",
+      "noTimes": "No free times on this day — try another date.",
+      "loading": "Finding free times…",
+      "confirm": "Move my appointment",
+      "moving": "Moving…",
+      "done": "Done — your appointment has been moved.",
+      "chooseTime": "Choose a time",
+      "policy": "Online changes close 24 hours before your appointment."
     }
   },
   "review": {

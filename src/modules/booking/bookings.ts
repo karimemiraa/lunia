@@ -165,6 +165,50 @@ function formatCenterLocalDateTime(date: Date, locale: string): string {
   );
 }
 
+// Pending visit messages follow the booking: cancelled/no-show bookings
+// must not get a reminder or a "thank you for visiting", and a moved booking's
+// reminder must go out (and quote) the NEW time. Best-effort by design.
+const VISIT_MESSAGE_KINDS = ["REMINDER_24H", "POST_VISIT"] as const;
+
+export async function skipPendingVisitMessages(bookingId: string, kinds: readonly ("REMINDER_24H" | "POST_VISIT")[] = VISIT_MESSAGE_KINDS): Promise<number> {
+  const { count } = await prisma.scheduledMessage.updateMany({
+    where: { bookingId, status: "PENDING", kind: { in: [...kinds] } },
+    data: { status: "SKIPPED" },
+  });
+  return count;
+}
+
+export async function retimeVisitMessages(bookingId: string, startAt: Date, endAt: Date, now: Date = new Date()): Promise<void> {
+  const pending = await prisma.scheduledMessage.findMany({ where: { bookingId, status: "PENDING", kind: { in: [...VISIT_MESSAGE_KINDS] } } });
+  for (const m of pending) {
+    const payload = { ...((m.payload ?? {}) as Record<string, unknown>), dateTime: formatCenterLocalDateTime(startAt, m.locale) };
+    const sendAt = m.kind === "REMINDER_24H" ? new Date(startAt.getTime() - 24 * 3_600_000) : new Date(endAt.getTime() + 2 * 3_600_000);
+    // A reminder that would now land in the past (moved to within 24h) is dropped, same rule as createBooking.
+    const tooLate = m.kind === "REMINDER_24H" && sendAt.getTime() <= now.getTime();
+    await prisma.scheduledMessage.updateMany({
+      where: { id: m.id, status: "PENDING" },
+      data: tooLate ? { status: "SKIPPED" } : { sendAt, payload: payload as Prisma.InputJsonValue },
+    });
+  }
+  // Moved from within 24h to further out: the reminder may never have been scheduled — add it.
+  const reminderAt = new Date(startAt.getTime() - 24 * 3_600_000);
+  if (reminderAt.getTime() > now.getTime() && !pending.some((m) => m.kind === "REMINDER_24H")) {
+    const template = pending[0] ?? (await prisma.scheduledMessage.findFirst({ where: { bookingId, kind: "CONFIRMATION" } }));
+    if (template && (template.toPhone || template.toEmail)) {
+      await scheduleMessage({
+        bookingId,
+        kind: "REMINDER_24H",
+        toPhone: template.toPhone ?? undefined,
+        toEmail: template.toEmail ?? undefined,
+        clientProfileId: template.clientProfileId ?? undefined,
+        locale: template.locale,
+        sendAt: reminderAt,
+        payload: { ...((template.payload ?? {}) as Record<string, unknown>), dateTime: formatCenterLocalDateTime(startAt, template.locale) },
+      });
+    }
+  }
+}
+
 function coerceDate(value: Date | string, label: string): Date {
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) {
@@ -850,6 +894,12 @@ export async function cancel(bookingId: string): Promise<Booking> {
   }
   const updated = await prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED" } });
 
+  try {
+    await skipPendingVisitMessages(bookingId);
+  } catch (err) {
+    console.error(`Failed to skip pending messages for cancelled booking "${bookingId}"`, err);
+  }
+
   // Best-effort, same pattern as complete()'s LTV refresh: cancelling frees
   // this booking's appointment slot(s), so check whether anyone is waiting
   // for that service on that day and notify them. Must never fail/block the
@@ -870,7 +920,13 @@ export async function cancel(bookingId: string): Promise<Booking> {
 export async function markNoShow(bookingId: string): Promise<Booking> {
   const booking = await getBookingOrThrow(bookingId);
   assertTransition(booking.status, ["CONFIRMED", "CHECKED_IN"], "mark no-show for");
-  return prisma.booking.update({ where: { id: bookingId }, data: { status: "NO_SHOW" } });
+  const updated = await prisma.booking.update({ where: { id: bookingId }, data: { status: "NO_SHOW" } });
+  try {
+    await skipPendingVisitMessages(bookingId);
+  } catch (err) {
+    console.error(`Failed to skip pending messages for no-show booking "${bookingId}"`, err);
+  }
+  return updated;
 }
 
 // Moves a booking's (single) appointment to a new time/staff/room,
@@ -915,6 +971,12 @@ export async function reschedule(
   });
 
   const result = await getBookingOrThrow(bookingId);
+
+  try {
+    await retimeVisitMessages(bookingId, startAt, endAt);
+  } catch (err) {
+    console.error(`Failed to move pending messages for rescheduled booking "${bookingId}"`, err);
+  }
 
   // Best-effort, same pattern as cancel() above: moving the appointment
   // frees its old slot, so check whether anyone is waiting for that service

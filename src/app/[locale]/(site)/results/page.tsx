@@ -3,6 +3,8 @@ import { getTranslations } from "next-intl/server";
 
 import { Section } from "@/components/site/Section";
 import { ResultsGallery } from "@/components/site/ResultsGallery";
+import { BeforeAfterGallery } from "@/components/site/BeforeAfterGallery";
+import { listPublishedShowcases, SHOWCASE_CATEGORIES } from "@/modules/clinical/showcase";
 import { CtaBand } from "@/components/site/CtaBand";
 import { LocalNav } from "@/components/site/apple/LocalNav";
 import { PageHero } from "@/components/site/apple/PageHero";
@@ -70,6 +72,12 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
   const categories = tResults.raw("categories") as string[];
   const beforeAfterLabel = tResults("beforeAfterLabel");
 
+  // Real, consented before/after pairs (published from the admin). Until the
+  // first one is published, the placeholder grid below stands in.
+  const showcases = await listPublishedShowcases();
+  const categoryLabel = (key: string) => categories[SHOWCASE_CATEGORIES.findIndex((c) => c.key === key)] ?? categories[0] ?? "";
+  const pairs = showcases.map((sc) => ({ id: sc.id, category: categoryLabel(sc.category), caption: (locale === "ar" ? sc.captionAr || sc.captionEn : sc.captionEn || sc.captionAr) || categoryLabel(sc.category) }));
+
   // No real client photography yet — each category gets a couple of
   // consent-flagged placeholder slots so the grid reads as intentional
   // (not broken) while real before/after media is pending upload.
@@ -117,13 +125,25 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
       <Statement eyebrow={tResults("moment.eyebrow")} text={tResults("moment.headline")} />
 
       <Chapter id="gallery" tone="mist">
-        <ResultsGallery
-          items={items}
-          categories={categories}
-          allLabel={tResults("allLabel")}
-          consentNote={tResults("consentNote")}
-          emptyLabel={tResults("emptyLabel")}
-        />
+        {pairs.length > 0 ? (
+          <BeforeAfterGallery
+            items={pairs}
+            categories={categories}
+            allLabel={tResults("allLabel")}
+            beforeLabel={tResults("before")}
+            afterLabel={tResults("after")}
+            compareLabel={tResults("compareLabel")}
+            consentNote={tResults("consentNoteReal")}
+          />
+        ) : (
+          <ResultsGallery
+            items={items}
+            categories={categories}
+            allLabel={tResults("allLabel")}
+            consentNote={tResults("consentNote")}
+            emptyLabel={tResults("emptyLabel")}
+          />
+        )}
       </Chapter>
 
       <Chapter id="measure" eyebrow={tResults("measure.eyebrow")} heading={tResults("measure.heading")}>

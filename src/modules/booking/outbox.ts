@@ -26,8 +26,9 @@ import { resolveDeliveryChannel } from "@/modules/comms/preferences";
 // live ESM binding is resolved at call time. Same pattern as the templates.ts
 // cycle above.
 import { resolveSenderForChannel } from "@/modules/comms/sender";
+import { defaultBody, interpolateTemplate } from "@/modules/comms/templateCatalog";
 
-const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "WAITLIST_OPEN", "REVIEW_REQUEST", "CALLBACK_ACK", "INVOICE"]);
+const msgKindSchema = z.enum(["CONFIRMATION", "REMINDER_24H", "POST_VISIT", "WAITLIST_OPEN", "REVIEW_REQUEST", "CALLBACK_ACK", "INVOICE", "PACKAGE_EXPIRING", "WIN_BACK"]);
 export type MsgKind = z.infer<typeof msgKindSchema>;
 
 // Payload is a free-form JSON object (message-template data); Prisma's Json
@@ -172,6 +173,14 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
         ? `فاتورتك من لونيا ${number} جاهزة: ${link}${payLine}`
         : `Your Lunia invoice ${number} is ready: ${link}${payLine}`;
     }
+    case "PACKAGE_EXPIRING":
+    case "WIN_BACK": {
+      // Automation messages: the studio's default wording (with {{name}},
+      // {{link}}…) until the owner saves their own template.
+      const params: Record<string, string> = {};
+      for (const [k, v] of Object.entries(payload)) if (v !== null && v !== undefined) params[k] = String(v);
+      return interpolateTemplate(defaultBody(kind, locale), params).trim();
+    }
     default:
       return isAr ? `رسالة من لونيا${ref}.` : `A message from Lunia${ref}.`;
   }
@@ -288,9 +297,11 @@ async function finalizeSkipped(message: ScheduledMessage): Promise<boolean> {
 }
 
 // Whether the client has opted out of this (non-transactional) message kind.
-function isOptedOut(kind: string, pref: { remindersOptIn: boolean; postVisitOptIn: boolean } | null): boolean {
+function isOptedOut(kind: string, pref: { remindersOptIn: boolean; postVisitOptIn: boolean; marketingOptIn: boolean } | null): boolean {
   if (!pref) return false;
-  if (kind === "REMINDER_24H") return !pref.remindersOptIn;
+  if (kind === "REMINDER_24H" || kind === "PACKAGE_EXPIRING") return !pref.remindersOptIn;
+  // Win-back is marketing: only to customers who allow offers.
+  if (kind === "WIN_BACK") return !pref.marketingOptIn;
   // A review request is inherently a post-visit follow-up, so it shares
   // POST_VISIT's opt-in flag rather than needing a dedicated one.
   if (kind === "POST_VISIT" || kind === "REVIEW_REQUEST") return !pref.postVisitOptIn;
@@ -464,6 +475,10 @@ function subjectForKind(kind: string, locale: string): string {
       return isAr ? "وصلنا طلب الاتصال" : "We'll call you shortly";
     case "INVOICE":
       return isAr ? "فاتورتك من لونيا" : "Your Lunia invoice";
+    case "PACKAGE_EXPIRING":
+      return isAr ? "باقتك في لونيا تنتهي قريباً" : "Your Lunia package expires soon";
+    case "WIN_BACK":
+      return isAr ? "اشتقنا لك في لونيا" : "We miss you at Lunia";
     default:
       return "Lunia";
   }

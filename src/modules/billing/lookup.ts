@@ -7,6 +7,7 @@
 // exclusive price when that setting is on.
 
 import { prisma } from "@/lib/db";
+import { usablePurchaseWhere } from "@/modules/commerce/packages";
 import { inclusiveOf } from "./money";
 import { getTaxSettings } from "./settings";
 
@@ -147,7 +148,7 @@ export async function searchClients(q: string, take = 8): Promise<ClientHit[]> {
 /** Active package purchases a customer can redeem a session from. */
 export async function redeemablePackages(clientProfileId: string) {
   const rows = await prisma.packagePurchase.findMany({
-    where: { clientProfileId, status: "ACTIVE", sessionsRemaining: { gt: 0 } },
+    where: { clientProfileId, ...usablePurchaseWhere() },
     include: { package: { select: { nameEn: true, sessionsTotal: true } } },
     orderBy: { createdAt: "asc" },
   });

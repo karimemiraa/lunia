@@ -111,3 +111,33 @@ export async function saveSettings(_prev: SaveSettingsState | null, formData: Fo
 
   return { success: true };
 }
+
+// Scheduled automations (worker jobs). Saved on their own from the
+// Automations card so they never ride along with the main settings form.
+export async function saveAutomationsAction(_prev: SaveSettingsState | null, formData: FormData): Promise<SaveSettingsState> {
+  const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const num = (name: string) => Number(str(formData, name));
+  const value = {
+    packageReminderEnabled: formData.get("packageReminderEnabled") === "on",
+    packageReminderDays: num("packageReminderDays"),
+    winBackEnabled: formData.get("winBackEnabled") === "on",
+    winBackDays: num("winBackDays"),
+    winBackDailyCap: num("winBackDailyCap"),
+    staffDigestEnabled: formData.get("staffDigestEnabled") === "on",
+  };
+  try {
+    await setSetting("automations", value);
+  } catch (err) {
+    const issue = (err as { issues?: { path: (string | number)[]; message: string }[] })?.issues?.[0];
+    return { error: issue ? `${String(issue.path[0] ?? "Value")}: ${issue.message}` : "Couldn't save automations." };
+  }
+  await recordAudit({
+    actorUserId: user.id,
+    action: "SETTINGS_AUTOMATIONS",
+    entityType: "SiteSetting",
+    entityId: "automations",
+    summary: `Automations: package reminders ${value.packageReminderEnabled ? `on (${value.packageReminderDays}d)` : "off"}, win-back ${value.winBackEnabled ? `on (${value.winBackDays}d, cap ${value.winBackDailyCap}/day)` : "off"}, staff digest ${value.staffDigestEnabled ? "on" : "off"}`,
+  });
+  revalidatePath("/admin/settings");
+  return { success: true };
+}

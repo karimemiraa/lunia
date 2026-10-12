@@ -10,6 +10,7 @@ import { DocumentTitle } from "./DocumentTitle";
 import { visibleNavItems, paletteActionsFor } from "./navCatalog";
 import type { AdminUser } from "./requireAdmin";
 import { getNotificationFeed, type NotificationFeed } from "@/modules/notifications/feed";
+import { NOTIFICATION_TYPE_HREF, type NotificationType } from "@/modules/notifications/types";
 import { getSetting } from "@/modules/cms/settings";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { DisplayMenu } from "./DisplayMenu";
@@ -48,12 +49,19 @@ export async function AdminShell({ user, title, description, actions, children, 
     locale === "en" ? a : { ...a, label: st(a.label, locale), hint: a.hint && st(a.hint, locale), keywords: `${a.keywords ?? ""} ${a.label}`.trim() },
   );
   const permissionList = [...user.permissions];
+  // Sidebar badges: open items per page, from the same feed as the bell.
+  const badges: Record<string, number> = {};
+  for (const [type, count] of Object.entries(feed.counts) as [NotificationType, number][]) {
+    if (!count) continue;
+    const href = NOTIFICATION_TYPE_HREF[type].split("?")[0]!;
+    badges[href] = (badges[href] ?? 0) + count;
+  }
 
   return (
     // Arabic mirrors the shell (dir="rtl" puts the sidebar on the right and flips
     // the chrome); page content below stays English/LTR until it is translated.
     <div dir={locale === "ar" ? "rtl" : "ltr"} lang={locale} className="flex min-h-screen text-[var(--color-ink)]">
-      <AdminNav permissions={user.permissions} hiddenHrefs={hiddenHrefs} locale={locale} />
+      <AdminNav permissions={user.permissions} hiddenHrefs={hiddenHrefs} locale={locale} badges={badges} userId={user.id} />
       <div className="lunia-admin-bg relative min-w-0 flex-1 pt-14 md:pt-0">
         <main className="relative mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
           {/* Top bar: command palette + notification center + display (language/theme). */}

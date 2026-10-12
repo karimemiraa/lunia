@@ -14,6 +14,7 @@ import { submitIntake } from "@/modules/clinical/intake";
 import { consentStatusForClient, signConsent } from "@/modules/clinical/consents";
 import { createTreatmentRecord, updateTreatmentRecord, type TreatmentInput } from "@/modules/clinical/treatments";
 import { deleteClinicalPhoto, getClinicalPhoto, updateClinicalPhotoMeta, uploadClinicalPhoto, type PhotoKind } from "@/modules/clinical/photos";
+import { createShowcase, deleteShowcase, setPhotoShareConsent, setShowcasePublished, type CreateShowcaseInput } from "@/modules/clinical/showcase";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -188,5 +189,76 @@ export async function deletePhotoAction(photoId: string): Promise<ActionResult> 
   }
   revalidateClient(photo.clientProfileId);
   revalidatePath(`/admin/clients/${photo.clientProfileId}/clinical/photos`);
+  return { ok: true };
+}
+
+// --- Website results gallery ----------------------------------------------------
+// Consent is recorded per photo; a pair can be published only while both
+// photos carry it (re-checked in showcase.ts and again when served).
+
+export async function setPhotoShareConsentAction(photoId: string, consent: boolean): Promise<ActionResult> {
+  const admin = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  try {
+    const { photo, unpublished } = await setPhotoShareConsent(photoId, consent);
+    await recordAudit({
+      actorUserId: admin.id,
+      action: consent ? "clinical.photo.shareConsent.record" : "clinical.photo.shareConsent.withdraw",
+      entityType: "ClinicalPhoto",
+      entityId: photoId,
+      summary: `${consent ? "Recorded" : "Withdrew"} consent to share a ${photo.kind.toLowerCase()} photo of customer ${photo.clientProfileId}${unpublished ? ` (unpublished ${unpublished} gallery pair${unpublished === 1 ? "" : "s"})` : ""}`,
+    });
+    revalidatePath(`/admin/clients/${photo.clientProfileId}/clinical/photos`);
+    revalidatePath("/admin/content/results");
+  } catch (err) {
+    return { ok: false, error: message(err, "Could not update consent.") };
+  }
+  return { ok: true };
+}
+
+export async function createShowcaseAction(input: CreateShowcaseInput): Promise<ActionResult> {
+  const admin = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  try {
+    const sc = await createShowcase(input, admin.id);
+    await recordAudit({
+      actorUserId: admin.id,
+      action: "clinical.showcase.create",
+      entityType: "ResultShowcase",
+      entityId: sc.id,
+      summary: `Added a before/after pair to the website gallery (${sc.category})${sc.isPublished ? " and published it" : ""}`,
+    });
+    revalidatePath("/admin/content/results");
+    revalidatePath("/en/results");
+    revalidatePath("/ar/results");
+  } catch (err) {
+    return { ok: false, error: message(err, "Could not add the pair.") };
+  }
+  return { ok: true };
+}
+
+export async function setShowcasePublishedAction(id: string, publish: boolean): Promise<ActionResult> {
+  const admin = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  try {
+    await setShowcasePublished(id, publish);
+    await recordAudit({ actorUserId: admin.id, action: publish ? "clinical.showcase.publish" : "clinical.showcase.unpublish", entityType: "ResultShowcase", entityId: id, summary: `${publish ? "Published" : "Unpublished"} a website before/after pair` });
+    revalidatePath("/admin/content/results");
+    revalidatePath("/en/results");
+    revalidatePath("/ar/results");
+  } catch (err) {
+    return { ok: false, error: message(err, "Could not update the pair.") };
+  }
+  return { ok: true };
+}
+
+export async function deleteShowcaseAction(id: string): Promise<ActionResult> {
+  const admin = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  try {
+    await deleteShowcase(id);
+    await recordAudit({ actorUserId: admin.id, action: "clinical.showcase.delete", entityType: "ResultShowcase", entityId: id, summary: "Removed a before/after pair from the website gallery" });
+    revalidatePath("/admin/content/results");
+    revalidatePath("/en/results");
+    revalidatePath("/ar/results");
+  } catch (err) {
+    return { ok: false, error: message(err, "Could not remove the pair.") };
+  }
   return { ok: true };
 }

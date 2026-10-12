@@ -24,7 +24,7 @@ test("site settings: update WhatsApp and Instagram and persist", async ({ page }
   await whatsappInput.fill(whatsapp);
   await instagramInput.fill(instagram);
 
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
 
   await page.reload();
@@ -48,7 +48,7 @@ test("site settings: update the OTP channel default and persist (A4)", async ({ 
   const target = original === "EMAIL" ? "SMS" : "EMAIL";
   try {
     await otpSelect.selectOption(target);
-    await page.getByRole("button", { name: "Save" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
 
     await page.reload();
@@ -58,7 +58,7 @@ test("site settings: update the OTP channel default and persist (A4)", async ({ 
     // leaving it changed would break the public sign-in specs on the next run.
     await page.goto("/admin/settings");
     await page.getByTestId("otp-channel-select").selectOption(original);
-    await page.getByRole("button", { name: "Save" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
   }
 });

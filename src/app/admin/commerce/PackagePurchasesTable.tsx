@@ -8,6 +8,7 @@ export interface PackagePurchaseRowDTO {
   sessionsTotal: number;
   status: "ACTIVE" | "EXHAUSTED" | "EXPIRED";
   createdAtIso: string;
+  expiresAtIso: string | null;
 }
 
 function formatDate(iso: string): string {
@@ -35,6 +36,7 @@ export function PackagePurchasesTable({ purchases }: { purchases: PackagePurchas
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Sessions left</th>
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Status</th>
             <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Purchased</th>
+            <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Expires</th>
           </tr>
         </thead>
         <tbody>
@@ -51,6 +53,7 @@ export function PackagePurchasesTable({ purchases }: { purchases: PackagePurchas
                 </span>
               </td>
               <td className="whitespace-nowrap px-4 py-2 text-[var(--color-ink)]/70">{formatDate(purchase.createdAtIso)}</td>
+              <td className="whitespace-nowrap px-4 py-2 text-[var(--color-ink)]/70">{purchase.expiresAtIso ? formatDate(purchase.expiresAtIso) : "Never"}</td>
             </tr>
           ))}
         </tbody>

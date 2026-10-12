@@ -70,6 +70,12 @@ export function CreatePackageForm({ services }: { services: ServiceOption[] }) {
         </label>
       </div>
 
+      <label className="flex max-w-xs flex-col gap-1 text-sm">
+        <span className="font-medium text-[var(--color-ink)]">Valid for (days)</span>
+        <input name="validityDays" type="number" min={1} max={3650} step={1} placeholder="Leave blank: never expires" className={inputClass} />
+        <span className="text-xs text-[var(--color-ink)]/55">Counted from the purchase date. Customers get a reminder 14 days before.</span>
+      </label>
+
       <label htmlFor={activeId} className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
         <input id={activeId} name="isActive" type="checkbox" defaultChecked className="h-4 w-4" />
         Active (available for purchase)

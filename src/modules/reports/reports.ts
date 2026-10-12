@@ -29,6 +29,7 @@ import { utcToCenterLocal } from "@/modules/booking/availability";
 import { listClients } from "@/modules/crm/clients";
 import { channelPerformance } from "@/modules/crm/marketing";
 import { testClientIds } from "@/modules/crm/testCustomers";
+import { staffPerformanceReport, retentionReport } from "./teamReports";
 
 export interface ReportColumn {
   key: string;
@@ -244,7 +245,7 @@ export async function marketingReport(filter: MarketingReportFilter): Promise<Re
 
 // ---- Shared entry point (admin page + CSV export route) --------------------
 
-export const REPORT_TYPES = ["bookings", "revenue", "clients", "marketing"] as const;
+export const REPORT_TYPES = ["bookings", "revenue", "clients", "marketing", "staff", "retention"] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
 
 export interface RunReportParams {
@@ -278,5 +279,9 @@ export async function runReport({ type, from, to, status }: RunReportParams): Pr
       return asRecordResult(await clientsReport({ from, to }));
     case "marketing":
       return asRecordResult(await marketingReport({ from, to }));
+    case "staff":
+      return asRecordResult(await staffPerformanceReport({ from, to }));
+    case "retention":
+      return asRecordResult(await retentionReport({ from, to }));
   }
 }

@@ -33,6 +33,7 @@ const RE = {
 };
 
 const METRICS: { tool: ToolName; re: RegExp }[] = [
+  { tool: "staff_performance", re: /\b(staff|team|therapists?|specialists?|employees?) (performance|ranking|leaderboard)\b|\b(top|best) (staff|therapists?|specialists?|performers?)\b|\butili[sz]ation\b|اداء الموظفين|افضل موظف|اداء الفريق/ },
   { tool: "unpaid_invoices", re: /\b(unpaid|outstanding|owed|overdue|awaiting payment|owing|debts?)\b|غير مدفوع|مستحق|ديون|متاخر/ },
   { tool: "revenue_summary", re: /\b(revenue|sales|income|collected|earnings|earned|turnover|takings|money)\b|ايراد|مبيعات|دخل|المحصل|ارباح/ },
   { tool: "low_stock", re: /\b(low stock|out of stock|reorder|running out|stock levels?)\b|نقص المخزون|المخزون المنخفض|نفاد/ },

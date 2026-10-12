@@ -483,6 +483,45 @@ export const GUIDES: HelpGuide[] = [
     anyOf: [P.SETTINGS_MANAGE],
   },
   {
+    id: "edit-package",
+    title: "Edit, retire or set an expiry on a package",
+    keywords: ["edit package", "retire package", "package expiry", "package validity", "stop selling package", "تعديل باقه", "صلاحيه الباقه", "انتهاء الباقه"],
+    steps: [
+      "Open Gift cards & packages and click “Edit” on the package.",
+      "Change the names, sessions, price or “Valid for (days)” (blank = never expires).",
+      "Untick “On sale” to retire it — customers who already bought it can still use it.",
+      "Click “Save package”. Changes apply to new sales only.",
+    ],
+    links: [page("Gift cards & packages", "/admin/commerce")],
+    anyOf: [P.SETTINGS_MANAGE],
+  },
+  {
+    id: "automations",
+    title: "Turn automatic reminders and win-back messages on or off",
+    keywords: ["automation", "automatic messages", "win back", "we miss you", "package reminder", "daily digest", "رسائل تلقائيه", "اشتقنا لك", "تذكير الباقه"],
+    steps: [
+      "Open Settings and scroll to “Automations”.",
+      "Tick the jobs you want (package expiry reminders, “We miss you” for lapsed customers, the morning team digest) and set the days.",
+      "Click “Save automations”. The table below shows when each job last ran.",
+      "To change the wording, edit the message in Message templates.",
+    ],
+    links: [page("Settings", "/admin/settings"), page("Message templates", "/admin/comms/templates")],
+    anyOf: [P.SETTINGS_MANAGE],
+  },
+  {
+    id: "results-gallery",
+    title: "Show a before/after on the website",
+    keywords: ["before after website", "results gallery", "publish photos", "showcase", "صور قبل وبعد الموقع", "معرض النتائج"],
+    steps: [
+      "Only with the customer's written consent. Open their “Patient file” → clinical photos.",
+      "On the Before and the After photo, tick “Customer consented to show it on the website”.",
+      "Click “Compare” on both, pick a category and optional captions, then “Add to gallery”.",
+      "Manage everything under Website → Results gallery (“Unpublish” or “Remove” any time). Names and dates are never shown.",
+    ],
+    links: [page("Results gallery", "/admin/content/results")],
+    anyOf: [P.CLINICAL_MANAGE],
+  },
+  {
     id: "tiers",
     title: "Set up membership tiers and points",
     keywords: ["tiers", "vip", "membership levels", "points rate", "مستويات العضويه"],
@@ -496,9 +535,9 @@ export const GUIDES: HelpGuide[] = [
   {
     id: "reports",
     title: "Run and export a report",
-    keywords: ["report", "export", "excel", "csv", "download data", "تقرير", "تصدير"],
+    keywords: ["report", "export", "excel", "csv", "download data", "staff performance", "utilisation", "retention", "rebook rate", "تقرير", "تصدير", "اداء الموظفين"],
     steps: [
-      "Open Reports and choose the report (Bookings, Revenue, Customers or Marketing).",
+      "Open Reports and choose the report: Bookings, Revenue, Customers, Marketing, Staff performance (revenue, no-shows, utilisation, commission) or Retention & rebooking.",
       "Set the from/to dates and click “Run report”.",
       "Click “Export CSV” to download it.",
     ],

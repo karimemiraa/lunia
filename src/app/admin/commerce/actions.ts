@@ -14,7 +14,7 @@ import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { recordAudit } from "@/modules/iam/audit";
 import { issueGiftCard, voidGiftCard } from "@/modules/commerce/giftcards";
-import { createPackage, purchasePackage } from "@/modules/commerce/packages";
+import { createPackage, purchasePackage, updatePackage } from "@/modules/commerce/packages";
 
 export interface CommerceActionState {
   error?: string;
@@ -118,6 +118,11 @@ const createPackageSchema = z.object({
   sessionsTotal: z.coerce.number().int().positive("Sessions must be a whole number greater than zero."),
   priceSar: z.coerce.number().nonnegative("Price cannot be negative."),
   isActive: z.boolean().default(true),
+  // Blank = never expires.
+  validityDays: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? null : v),
+    z.coerce.number().int("Validity must be a whole number of days.").positive("Validity must be at least 1 day.").max(3650).nullable(),
+  ),
 });
 
 export async function createPackageAction(
@@ -133,11 +138,12 @@ export async function createPackageAction(
     sessionsTotal: formData.get("sessionsTotal"),
     priceSar: formData.get("priceSar"),
     isActive: formData.get("isActive") === "on",
+    validityDays: formData.get("validityDays"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
-  const { nameEn, nameAr, serviceId, sessionsTotal, priceSar, isActive } = parsed.data;
+  const { nameEn, nameAr, serviceId, sessionsTotal, priceSar, isActive, validityDays } = parsed.data;
 
   try {
     const pkg = await createPackage({
@@ -147,6 +153,7 @@ export async function createPackageAction(
       sessionsTotal,
       priceMinor: Math.round(priceSar * 100),
       isActive,
+      validityDays,
     });
 
     await recordAudit({
@@ -162,6 +169,54 @@ export async function createPackageAction(
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to create package." };
   }
+}
+
+// Edits a package definition or retires it (isActive=false). Existing
+// purchases keep what they were sold with.
+export async function updatePackageAction(
+  _prev: CommerceActionState | null,
+  formData: FormData,
+): Promise<CommerceActionState> {
+  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const packageId = String(formData.get("packageId") ?? "").trim();
+  if (!packageId) return { error: "Missing package." };
+
+  const parsed = createPackageSchema.safeParse({
+    nameEn: formData.get("nameEn"),
+    nameAr: formData.get("nameAr"),
+    serviceId: formData.get("serviceId"),
+    sessionsTotal: formData.get("sessionsTotal"),
+    priceSar: formData.get("priceSar"),
+    isActive: formData.get("isActive") === "on",
+    validityDays: formData.get("validityDays"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const { nameEn, nameAr, serviceId, sessionsTotal, priceSar, isActive, validityDays } = parsed.data;
+
+  try {
+    const pkg = await updatePackage(packageId, {
+      nameEn,
+      nameAr,
+      serviceId: serviceId || null,
+      sessionsTotal,
+      priceMinor: Math.round(priceSar * 100),
+      isActive,
+      validityDays,
+    });
+    await recordAudit({
+      actorUserId: admin.id,
+      action: "PACKAGE_UPDATE",
+      entityType: "ServicePackage",
+      entityId: pkg.id,
+      summary: `Updated package "${pkg.nameEn}" (${pkg.sessionsTotal} sessions, ${priceSar} SAR, ${validityDays ? `valid ${validityDays} days` : "no expiry"}${pkg.isActive ? "" : ", retired"})`,
+    });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update package." };
+  }
+  revalidateCommerce();
+  return { success: true };
 }
 
 const assignPackageSchema = z.object({

@@ -33,6 +33,14 @@ const AR: Record<string, string> = {
   Marketing: "التسويق",
   Content: "المحتوى",
   System: "النظام",
+  "Front desk": "الاستقبال",
+  Operations: "التشغيل",
+  Growth: "النمو",
+  Pinned: "المثبّتة",
+  "Pin to top": "تثبيت في الأعلى",
+  Unpin: "إلغاء التثبيت",
+  Show: "إظهار",
+  Hide: "إخفاء",
   // Nav items
   Dashboard: "لوحة اليوم",
   Business: "الأعمال",
@@ -72,6 +80,7 @@ const AR: Record<string, string> = {
   Roles: "الأدوار",
   "Audit log": "سجل التدقيق",
   "Edit requests": "طلبات التعديل",
+  "Results gallery": "معرض النتائج",
   Superadmin: "المشرف العام",
   // Quick actions (palette)
   "New booking": "حجز جديد",

@@ -4,9 +4,10 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { getStaffUserFromRequest } from "@/modules/iam/requestAuth";
 import { getClinicalPhoto } from "@/modules/clinical/photos";
 
-// The ONLY way clinical photo bytes leave storage: a signed-in staff user
+// The way clinical photo bytes leave storage for staff: a signed-in user
 // holding clinical:manage. Responses are private/no-store so no shared cache
-// or the browser's disk cache keeps a copy.
+// or the browser's disk cache keeps a copy. (The only public path is
+// /api/results/[id]/[side]: published, consented before/after pairs.)
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getStaffUserFromRequest(request);
   if (!user) return new NextResponse(null, { status: 401 });

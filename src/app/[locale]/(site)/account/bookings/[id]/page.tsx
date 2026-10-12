@@ -10,6 +10,8 @@ import { localized } from "@/modules/catalog/localize";
 import { getClientSessionUser, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { BookingNoteForm } from "./BookingNoteForm";
+import { RescheduleForm } from "./RescheduleForm";
+import { utcToCenterLocal } from "@/modules/booking/availability";
 
 interface BookingDetailPageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -83,6 +85,12 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
   ]);
 
   const serviceName = service ? localized(locale, service.nameEn, service.nameAr) : "—";
+  // Same policy as online cancellation: upcoming, and more than 24h away.
+  // eslint-disable-next-line react-hooks/purity -- request-time server render
+  const nowMs = Date.now();
+  const canReschedule = (booking.status === "CONFIRMED" || booking.status === "REQUESTED") && appointment.startAt.getTime() - nowMs > 24 * 3_600_000;
+  const minDate = utcToCenterLocal(new Date(nowMs + 24 * 3_600_000)).dateISO;
+  const maxDate = utcToCenterLocal(new Date(nowMs + 60 * 86_400_000)).dateISO;
   const staffName = staff?.staffProfile?.fullName ?? "—";
   const roomName = room?.name ?? "—";
 
@@ -123,6 +131,13 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
                 {t("detail.centerNoteHeading")}
               </h2>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-ink)]/85">{booking.centerNote}</p>
+            </div>
+          )}
+
+          {canReschedule && (
+            <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-ink)]/10 p-6">
+              <h2 className="font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)]">{t("reschedule.heading")}</h2>
+              <RescheduleForm locale={locale} bookingId={booking.id} minDate={minDate} maxDate={maxDate} />
             </div>
           )}
 

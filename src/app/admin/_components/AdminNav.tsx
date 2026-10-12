@@ -15,6 +15,10 @@ interface AdminNavProps {
   hiddenHrefs?: string[];
   /** Staff console language (labels translated; English when absent). */
   locale?: StaffLocale;
+  /** Open-item counts by page href (from the notification feed). */
+  badges?: Record<string, number>;
+  /** Pinned pages are remembered per staff member on this device. */
+  userId?: string;
 }
 
 interface NavItem {
@@ -22,6 +26,7 @@ interface NavItem {
   label: string;
   perm?: PermissionKey;
   icon: ReactNode;
+  parent?: string;
 }
 interface NavGroup {
   label: string;
@@ -166,20 +171,23 @@ const GlobeIcon = (
   </svg>
 );
 
-// Sidebar groups = the shared catalog, with icons attached. Superadmin and the
-// Website link live in the footer cluster instead of the "System" group.
+// Sidebar groups = the shared catalog, with icons attached. Superadmin lives
+// in the footer cluster instead of the "System" group.
 const FOOTER_HREFS = new Set(["/superadmin"]);
 const GROUPS: NavGroup[] = NAV_GROUPS.map((g) => ({
   label: g.label,
-  items: g.items.filter((i) => !FOOTER_HREFS.has(i.href)).map((i) => ({ href: i.href, label: i.label, perm: i.perm, icon: I[i.icon] })),
+  items: g.items.filter((i) => !FOOTER_HREFS.has(i.href)).map((i) => ({ href: i.href, label: i.label, perm: i.perm, icon: I[i.icon], parent: i.parent })),
 }));
+// "Overview" is just Dashboard (+ Notifications under it): no header needed.
+const HEADERLESS = new Set(["Overview"]);
 
 function matches(pathname: string, href: string): boolean {
   if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-const ALL_HREFS = GROUPS.flatMap((g) => g.items.map((i) => i.href));
+const ALL_ITEMS = GROUPS.flatMap((g) => g.items);
+const ALL_HREFS = ALL_ITEMS.map((i) => i.href);
 
 // Only the most specific matching item is active, so /admin/accounting/expenses
 // highlights "Expenses" and not also "Accounting".
@@ -195,7 +203,7 @@ function Chevron({ open }: { open: boolean }) {
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      className={`h-3 w-3 shrink-0 transition-transform duration-200 ${open ? "" : "-rotate-90"}`}
+      className={`h-3 w-3 shrink-0 transition-transform duration-200 ${open ? "" : "-rotate-90 rtl:rotate-90"}`}
     >
       <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
     </svg>
@@ -209,7 +217,33 @@ const RailIcon = (
   </svg>
 );
 
-export function AdminNav({ permissions, hiddenHrefs = [], locale = "en" }: AdminNavProps) {
+function PinIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" className="h-3.5 w-3.5" aria-hidden="true">
+      <path strokeLinejoin="round" d="m12 3.5 2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.4l-5.1 2.7 1-5.6-4.1-4 5.7-.8L12 3.5Z" />
+    </svg>
+  );
+}
+
+function readJson<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+function writeJson(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+const MAX_PINS = 6;
+
+export function AdminNav({ permissions, hiddenHrefs = [], locale = "en", badges = {}, userId = "me" }: AdminNavProps) {
   const t = (text: string) => st(text, locale);
   // The superadmin always sees the whole menu (they're the one hiding things).
   const hidden = permissions.has(PERMISSIONS.PLATFORM_MANAGE) ? new Set<string>() : new Set(hiddenHrefs);
@@ -218,10 +252,14 @@ export function AdminNav({ permissions, hiddenHrefs = [], locale = "en" }: Admin
   const pathname = usePathname() ?? "";
   const [collapsed, setCollapsed] = useState(false);
   const [closed, setClosed] = useState<Record<string, boolean>>({});
+  // Sub-menus the user opened/closed by hand (otherwise: open when inside them).
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [pins, setPins] = useState<string[]>([]);
   // Phones: the nav is an off-canvas drawer opened from the top bar.
   const [drawerOpen, setDrawerOpen] = useState(false);
   // In the open drawer always show full labels; elsewhere honour the rail.
   const rail = collapsed && !drawerOpen;
+  const pinsKey = `lunia-nav-pins:${userId}`;
 
   // Hydrate persisted UI state after mount (avoids SSR/client mismatch).
   // With no saved preference, tablets in portrait start with the icon rail so
@@ -231,12 +269,13 @@ export function AdminNav({ permissions, hiddenHrefs = [], locale = "en" }: Admin
       const saved = localStorage.getItem("lunia-nav-collapsed");
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration of persisted preferences
       setCollapsed(saved === null ? window.innerWidth < 1024 : saved === "1");
-      const raw = localStorage.getItem("lunia-nav-closed");
-      if (raw) setClosed(JSON.parse(raw) as Record<string, boolean>);
     } catch {
       /* localStorage unavailable — use defaults */
     }
-  }, []);
+    setClosed(readJson("lunia-nav-closed", {}));
+    setExpanded(readJson("lunia-nav-expanded", {}));
+    setPins(readJson<string[]>(pinsKey, []));
+  }, [pinsKey]);
 
   const toggleCollapsed = () =>
     setCollapsed((c) => {
@@ -250,11 +289,114 @@ export function AdminNav({ permissions, hiddenHrefs = [], locale = "en" }: Admin
   const toggleGroup = (label: string) =>
     setClosed((prev) => {
       const next = { ...prev, [label]: !prev[label] };
-      try {
-        localStorage.setItem("lunia-nav-closed", JSON.stringify(next));
-      } catch {}
+      writeJson("lunia-nav-closed", next);
       return next;
     });
+
+  const visible = ALL_ITEMS.filter((item) => (!item.perm || permissions.has(item.perm)) && !hidden.has(item.href));
+  const visibleHrefs = new Set(visible.map((i) => i.href));
+  const childrenOf = (href: string) => visible.filter((i) => i.parent === href);
+  const badgeOf = (href: string) => badges[href] ?? 0;
+  const pinned = pins.map((h) => visible.find((i) => i.href === h)).filter((i): i is NavItem => Boolean(i));
+
+  const isExpanded = (href: string) => {
+    if (expanded[href] !== undefined) return expanded[href];
+    // Auto-open the branch you're in.
+    return matches(pathname, href) || childrenOf(href).some((c) => matches(pathname, c.href));
+  };
+  const toggleExpanded = (href: string) =>
+    setExpanded((prev) => {
+      const next = { ...prev, [href]: !isExpanded(href) };
+      writeJson("lunia-nav-expanded", next);
+      return next;
+    });
+  const togglePin = (href: string) =>
+    setPins((prev) => {
+      const next = prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href].slice(-MAX_PINS);
+      writeJson(pinsKey, next);
+      return next;
+    });
+
+  // A plain render helper (not a nested component) so rows keep their identity across renders.
+  function renderRow(item: NavItem, depth: 0 | 1, kids: NavItem[], keyPrefix = "") {
+    const active = isActive(pathname, item.href);
+    const branchActive = !active && kids.some((k) => isActive(pathname, k.href));
+    const open = kids.length > 0 && isExpanded(item.href);
+    // A collapsed parent carries its children's counts, so nothing gets missed.
+    const count = badgeOf(item.href) + (open ? 0 : kids.reduce((sum, k) => sum + badgeOf(k.href), 0));
+    const isPinned = pins.includes(item.href);
+    return (
+      <li key={`${keyPrefix}${item.href}`}>
+        <div
+          className={`group/row relative flex items-center rounded-[var(--radius-sm)] transition-colors duration-200 ${
+            active || (rail && branchActive)
+              ? "bg-white/65 font-medium text-[var(--color-ink)] shadow-[0_1px_2px_rgba(34,63,58,0.08)]"
+              : branchActive
+                ? "font-medium text-[var(--color-ink)]"
+                : "text-[var(--color-ink)]/75 hover:bg-white/35 hover:text-[var(--color-ink)]"
+          }`}
+        >
+          <Link
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            aria-label={rail ? `${t(item.label)}${count ? ` (${count})` : ""}` : undefined}
+            data-tip={rail ? t(item.label) : undefined}
+            onClick={() => setDrawerOpen(false)}
+            className={`group flex min-w-0 flex-1 items-center text-sm ${
+              rail ? "lunia-tip relative justify-center p-2.5" : depth ? "gap-2.5 py-2 pe-1 ps-9 md:py-1.5" : "gap-3 py-2.5 pe-1 ps-3 md:py-1.5"
+            }`}
+          >
+            {depth === 0 && (
+              <span className={active || branchActive ? "text-[var(--color-teal-ink)]" : "text-[var(--color-ink)]/55 transition-colors group-hover:text-[var(--color-teal-ink)]"}>
+                {item.icon}
+              </span>
+            )}
+            {!rail && <span className="truncate">{t(item.label)}</span>}
+            {rail && count > 0 && <span aria-hidden="true" className="absolute end-1.5 top-1.5 h-2 w-2 rounded-full bg-[var(--color-danger)]" />}
+          </Link>
+          {!rail && (
+            <div className="flex shrink-0 items-center gap-0.5 pe-1">
+              <button
+                type="button"
+                onClick={() => togglePin(item.href)}
+                aria-label={`${t(isPinned ? "Unpin" : "Pin to top")}: ${t(item.label)}`}
+                aria-pressed={isPinned}
+                title={t(isPinned ? "Unpin" : "Pin to top")}
+                className={`h-6 w-6 items-center justify-center rounded text-[var(--color-ink)]/45 hover:bg-white/50 hover:text-[var(--color-teal-ink)] focus-visible:flex ${
+                  isPinned && keyPrefix ? "flex text-[var(--color-teal-ink)]" : "hidden md:group-hover/row:flex"
+                }`}
+                data-testid={`nav-pin-${keyPrefix}${item.href}`}
+              >
+                <PinIcon filled={isPinned} />
+              </button>
+              {count > 0 && (
+                <span className="min-w-5 rounded-full bg-[var(--color-ink)] px-1.5 text-center text-[0.65rem] font-semibold leading-5 text-[var(--color-on-ink)] tabular-nums" data-testid={`nav-badge-${keyPrefix}${item.href}`}>
+                  {count > 99 ? "99+" : count}
+                </span>
+              )}
+              {kids.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => toggleExpanded(item.href)}
+                  aria-expanded={open}
+                  aria-label={`${t(open ? "Hide" : "Show")}: ${kids.map((k) => t(k.label)).join(", ")}`}
+                  className="flex h-6 w-6 items-center justify-center rounded text-[var(--color-ink)]/55 hover:bg-white/50 hover:text-[var(--color-ink)]"
+                  data-testid={`nav-expand-${item.href}`}
+                >
+                  <Chevron open={open} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        {!rail && open && (
+          <ul className="relative mb-1 mt-0.5 flex flex-col gap-0.5 before:absolute before:inset-y-1 before:start-[1.3rem] before:w-px before:bg-[var(--color-ink)]/12">
+            {kids.map((k) => renderRow(k, 1, []))}
+          </ul>
+        )}
+      </li>
+    );
+  }
 
   return (
     <>
@@ -312,59 +454,51 @@ export function AdminNav({ permissions, hiddenHrefs = [], locale = "en" }: Admin
         </button>
       </div>
 
+      {/* Pinned: each person's own shortcuts (star a page to pin it). */}
+      {pinned.length > 0 && (
+        <div className="w-full" data-testid="nav-pinned">
+          {rail ? (
+            <div aria-hidden="true" className="mx-auto my-2 h-px w-6 bg-[var(--color-ink)]/15" />
+          ) : (
+            <p className="mt-1 px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-teal-ink)]/80">{t("Pinned")}</p>
+          )}
+          <ul className="flex flex-col gap-0.5">
+            {pinned.map((item) => renderRow(item, 0, [], "pin-"))}
+          </ul>
+        </div>
+      )}
+
       {GROUPS.map((group) => {
-        const items = group.items.filter((item) => (!item.perm || permissions.has(item.perm)) && !hidden.has(item.href));
+        const items = group.items.filter((item) => visibleHrefs.has(item.href));
         if (items.length === 0) return null;
-        const open = rail ? true : !closed[group.label];
+        // Top level: items without a (visible) parent; the rest nest under it.
+        const top = items.filter((i) => !i.parent || !visibleHrefs.has(i.parent));
+        const headerless = HEADERLESS.has(group.label);
+        const open = rail || headerless ? true : !closed[group.label];
+        const groupCount = open ? 0 : items.reduce((sum, i) => sum + badgeOf(i.href), 0);
         return (
           <div key={group.label} className="w-full">
             {rail ? (
-              <div aria-hidden="true" className="mx-auto my-2 h-px w-6 bg-[var(--color-ink)]/15" />
-            ) : (
+              headerless ? null : <div aria-hidden="true" className="mx-auto my-2 h-px w-6 bg-[var(--color-ink)]/15" />
+            ) : headerless ? null : (
               <button
                 type="button"
                 onClick={() => toggleGroup(group.label)}
                 aria-expanded={open}
-                className="mt-3 flex w-full items-center justify-between rounded px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-teal-ink)]/80 transition-colors hover:text-[var(--color-ink)]"
+                className="mt-3 flex w-full items-center justify-between gap-2 rounded px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-teal-ink)]/80 transition-colors hover:text-[var(--color-ink)]"
               >
-                {t(group.label)}
-                <Chevron open={open} />
+                <span>{t(group.label)}</span>
+                <span className="flex items-center gap-1.5">
+                  {groupCount > 0 && (
+                    <span className="rounded-full bg-[var(--color-ink)] px-1.5 text-[0.62rem] leading-4 tracking-normal text-[var(--color-on-ink)] tabular-nums">{groupCount}</span>
+                  )}
+                  <Chevron open={open} />
+                </span>
               </button>
             )}
             {open && (
               <ul className="flex flex-col gap-0.5">
-                {items.map((item) => {
-                  const active = isActive(pathname, item.href);
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        aria-current={active ? "page" : undefined}
-                        aria-label={rail ? t(item.label) : undefined}
-                        data-tip={rail ? t(item.label) : undefined}
-                        onClick={() => setDrawerOpen(false)}
-                        className={`group flex items-center rounded-[var(--radius-sm)] text-sm transition-colors duration-200 ${
-                          rail ? "lunia-tip justify-center p-2.5" : "gap-3 px-3 py-2.5 md:py-1.5"
-                        } ${
-                          active
-                            ? "bg-white/65 font-medium text-[var(--color-ink)] shadow-[0_1px_2px_rgba(34,63,58,0.08)]"
-                            : "text-[var(--color-ink)]/75 hover:bg-white/35 hover:text-[var(--color-ink)]"
-                        }`}
-                      >
-                        <span
-                          className={
-                            active
-                              ? "text-[var(--color-teal-ink)]"
-                              : "text-[var(--color-ink)]/55 transition-colors group-hover:text-[var(--color-teal-ink)]"
-                          }
-                        >
-                          {item.icon}
-                        </span>
-                        {!rail && t(item.label)}
-                      </Link>
-                    </li>
-                  );
-                })}
+                {top.map((item) => renderRow(item, 0, childrenOf(item.href).filter((k) => items.includes(k))))}
               </ul>
             )}
           </div>
@@ -379,12 +513,13 @@ export function AdminNav({ permissions, hiddenHrefs = [], locale = "en" }: Admin
           rel="noopener"
           aria-label={rail ? t("Open website") : undefined}
           data-tip={rail ? t("Open website") : undefined}
+          title={t("Opens in a new tab")}
           className={`flex items-center rounded-[var(--radius-sm)] text-sm text-[var(--color-ink)]/65 transition-colors hover:bg-white/35 hover:text-[var(--color-ink)] ${
             rail ? "lunia-tip justify-center p-2.5" : "gap-3 px-3 py-2"
           }`}
         >
           <span className="text-[var(--color-ink)]/50">{GlobeIcon}</span>
-          {!rail && t("Website")}
+          {!rail && t("Open website")}
         </a>
         {permissions.has(PERMISSIONS.PLATFORM_MANAGE) && (
           <Link

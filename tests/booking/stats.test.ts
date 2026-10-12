@@ -4,19 +4,23 @@ import { centerLocalToUtc, weekdayForDateISO } from "@/modules/booking/availabil
 import { createBooking } from "@/modules/booking/bookings";
 import { bookingStats, upcomingAppointmentsCount } from "@/modules/booking/stats";
 
-// All dates here are Sundays in 2027 (weekday 0 -> seeded staff schedules +
+// All dates here are Sundays in 2034 (weekday 0 -> seeded staff schedules +
 // business hours are open) chosen far from any date used by other booking
 // test suites, so this suite never collides with a concurrently-run file's
 // data (vitest runs booking test files serially: fileParallelism:false).
-const D_PRE_RANGE = "2027-02-21"; // Sunday, before `from` -- client C's real first booking
-const D1 = "2027-03-07"; // in range
-const D2 = "2027-03-14"; // in range
-const D3 = "2027-03-21"; // in range
-const D4 = "2027-03-28"; // in range
-const D_POST_RANGE = "2027-04-04"; // Sunday, after `to` -- excluded entirely
+// Kept years out on purpose: e2e specs book on rolling windows (e.g.
+// admin-reports books ~150 days ahead) and leave those bookings behind, so a
+// date "near" today eventually fills up and this suite's fixed 10:00 slot
+// would be taken.
+const D_PRE_RANGE = "2034-02-19"; // Sunday, before `from` -- client C's real first booking
+const D1 = "2034-03-05"; // in range
+const D2 = "2034-03-12"; // in range
+const D3 = "2034-03-19"; // in range
+const D4 = "2034-03-26"; // in range
+const D_POST_RANGE = "2034-04-02"; // Sunday, after `to` -- excluded entirely
 
-const RANGE_FROM = centerLocalToUtc("2027-03-01", 0);
-const RANGE_TO = centerLocalToUtc("2027-03-29", 0); // exclusive upper bound
+const RANGE_FROM = centerLocalToUtc("2034-03-01", 0);
+const RANGE_TO = centerLocalToUtc("2034-03-27", 0); // exclusive upper bound
 
 const PHONE_PREFIX = `+9665STATS${Date.now()}`;
 let phoneCounter = 0;
@@ -139,7 +143,9 @@ describe("bookingStats", () => {
   });
 
   afterAll(async () => {
-    const bookingIds = [bookingA1, bookingA2, bookingB1, bookingCPre, bookingCInRange, bookingD];
+    // Filter: if beforeAll failed part-way some ids are unset, and an
+    // undefined in `in: [...]` would make this cleanup itself throw.
+    const bookingIds = [bookingA1, bookingA2, bookingB1, bookingCPre, bookingCInRange, bookingD].filter((id): id is string => typeof id === "string");
     await prisma.scheduledMessage.deleteMany({ where: { bookingId: { in: bookingIds } } });
     // Deleting the User cascades ClientProfile -> Booking -> Appointment/CheckIn.
     await prisma.user.deleteMany({ where: { phone: { startsWith: PHONE_PREFIX } } });

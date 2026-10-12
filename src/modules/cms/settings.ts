@@ -132,6 +132,20 @@ const adminNavSettingsSchema = z.object({
 });
 export type AdminNavSettings = z.infer<typeof adminNavSettingsSchema>;
 
+// Scheduled automations run by the worker (src/modules/automation/jobs.ts).
+// Customer-facing marketing (win-back) is OFF until an owner turns it on.
+const automationSettingsSchema = z.object({
+  packageReminderEnabled: z.boolean().default(true),
+  packageReminderDays: z.number().int().min(1).max(60).default(14),
+  winBackEnabled: z.boolean().default(false),
+  winBackDays: z.number().int().min(30).max(365).default(90),
+  /** Max win-back messages per day, so a first run can't flood the outbox. */
+  winBackDailyCap: z.number().int().min(1).max(500).default(40),
+  staffDigestEnabled: z.boolean().default(false),
+});
+export type AutomationSettings = z.infer<typeof automationSettingsSchema>;
+export const DEFAULT_AUTOMATION_SETTINGS: AutomationSettings = automationSettingsSchema.parse({});
+
 export const settingsRegistry = {
   business: businessSettingsSchema,
   hours: hoursSettingsSchema,
@@ -143,6 +157,7 @@ export const settingsRegistry = {
   tax: taxSettingsSchema,
   appearance: appearanceSettingsSchema,
   adminNav: adminNavSettingsSchema,
+  automations: automationSettingsSchema,
 } as const;
 
 export type SettingKey = keyof typeof settingsRegistry;

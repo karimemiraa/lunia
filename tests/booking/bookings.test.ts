@@ -735,3 +735,41 @@ describe("listBookings / getBooking", () => {
     expect(listed.some((b) => b.id === created.id)).toBe(true);
   });
 });
+
+// Pending visit messages must follow the booking: no reminder / "thanks for
+// visiting" after a cancellation or no-show, and a moved booking's reminder
+// goes out — and quotes — the new time.
+describe("visit messages follow the booking", () => {
+  const MSG_DATE = openDateAt(RUN_BASE_DAYS_OUT + 40);
+  const MSG_DATE_2 = openDateAt(RUN_BASE_DAYS_OUT + 41);
+  const pendingKinds = async (bookingId: string) =>
+    (await prisma.scheduledMessage.findMany({ where: { bookingId, status: "PENDING" }, orderBy: { kind: "asc" } })).map((m) => m.kind);
+
+  it("cancel and no-show skip the pending reminder and post-visit messages", async () => {
+    const service = await getUnGatedService();
+    const cancelled = await createBooking({ serviceId: service.id, startAt: centerLocalToUtc(MSG_DATE, 600), client: { name: "Msg Cancel", phone: freshPhone() }, channel: "ONLINE" });
+    expect(await pendingKinds(cancelled.id)).toEqual(expect.arrayContaining(["REMINDER_24H", "POST_VISIT"]));
+    await cancel(cancelled.id);
+    expect(await pendingKinds(cancelled.id)).not.toEqual(expect.arrayContaining(["REMINDER_24H"]));
+    expect(await prisma.scheduledMessage.count({ where: { bookingId: cancelled.id, kind: { in: ["REMINDER_24H", "POST_VISIT"] }, status: "SKIPPED" } })).toBe(2);
+
+    const noShow = await createBooking({ serviceId: service.id, startAt: centerLocalToUtc(MSG_DATE, 720), client: { name: "Msg NoShow", phone: freshPhone() }, channel: "ONLINE" });
+    await markNoShow(noShow.id);
+    expect(await prisma.scheduledMessage.count({ where: { bookingId: noShow.id, kind: "POST_VISIT", status: "SKIPPED" } })).toBe(1);
+  });
+
+  it("reschedule moves the reminder and post-visit message to the new time", async () => {
+    const service = await getUnGatedService();
+    const booking = await createBooking({ serviceId: service.id, startAt: centerLocalToUtc(MSG_DATE, 840), client: { name: "Msg Move", phone: freshPhone() }, channel: "ONLINE", locale: "en" });
+    const newStart = centerLocalToUtc(MSG_DATE_2, 900);
+    await reschedule(booking.id, newStart);
+    const moved = await getBooking(booking.id);
+    const appt = moved!.appointments[0]!;
+
+    const reminder = await prisma.scheduledMessage.findFirstOrThrow({ where: { bookingId: booking.id, kind: "REMINDER_24H", status: "PENDING" } });
+    expect(reminder.sendAt.getTime()).toBe(appt.startAt.getTime() - 24 * 3_600_000);
+    expect(String((reminder.payload as Record<string, unknown>).dateTime)).toMatch(/3:00\s?PM/);
+    const post = await prisma.scheduledMessage.findFirstOrThrow({ where: { bookingId: booking.id, kind: "POST_VISIT", status: "PENDING" } });
+    expect(post.sendAt.getTime()).toBe(appt.endAt.getTime() + 2 * 3_600_000);
+  });
+});

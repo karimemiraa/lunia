@@ -13,7 +13,61 @@ env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/lunia
 
 jobs:
+  # Quality gate: nothing reaches production unless typecheck, lint and the
+  # full unit/integration suite pass against a real, freshly migrated and
+  # seeded Postgres 16 (same major as production) + Redis.
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lunia
+          POSTGRES_PASSWORD: lunia_ci
+          POSTGRES_DB: lunia_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U lunia" --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://lunia:lunia_ci@localhost:5432/lunia_ci?schema=public
+      REDIS_URL: redis://localhost:6379
+      SESSION_SECRET: ci-only-session-secret-not-used-in-production-0123456789
+      APP_URL: http://localhost:3000
+      NODE_ENV: test
+      SEED_OWNER_EMAIL: owner@lunia.local
+      SEED_OWNER_PASSWORD: ChangeMe123!
+      COMMS_PROVIDER: none
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prisma client, migrations and seed
+        run: |
+          pnpm exec prisma generate
+          pnpm exec prisma migrate deploy
+          pnpm exec prisma db seed
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+      - name: Lint
+        run: pnpm lint
+      - name: Unit & integration tests
+        run: pnpm test
+
   build-and-deploy:
+    needs: verify
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read

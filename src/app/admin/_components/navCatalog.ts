@@ -38,39 +38,42 @@ export interface NavCatalogItem {
   icon: NavIconKey;
   /** Extra words the palette should match (synonyms staff actually type). */
   keywords?: string;
+  /**
+   * Href of the item this one tucks under in the sidebar (a sub-page shown
+   * when its parent's section is open). If the viewer can't see the parent,
+   * the item simply shows at the top level of its group.
+   */
+  parent?: string;
 }
 export interface NavCatalogGroup {
   label: string;
   items: NavCatalogItem[];
 }
 
+// Six task-based groups instead of ten department lists: the pages people use
+// every day are top-level, related/occasional pages tuck under them.
 export const NAV_GROUPS: NavCatalogGroup[] = [
   {
     label: "Overview",
     items: [
       { href: "/admin", label: "Dashboard", icon: "dashboard", keywords: "home today" },
-      { href: "/admin/dashboard", label: "Business", perm: PERMISSIONS.ANALYTICS_VIEW, icon: "chart", keywords: "analytics revenue" },
-      { href: "/admin/reports", label: "Reports", perm: PERMISSIONS.ANALYTICS_VIEW, icon: "report" },
-      { href: "/admin/notifications", label: "Notifications", icon: "bell", keywords: "alerts attention" },
+      { href: "/admin/notifications", label: "Notifications", icon: "bell", keywords: "alerts attention", parent: "/admin" },
     ],
   },
   {
-    label: "Customers",
-    items: [
-      { href: "/admin/clients", label: "Customers", perm: PERMISSIONS.CLIENT_VIEW, icon: "users", keywords: "clients patients" },
-      { href: "/admin/leads", label: "Leads", perm: PERMISSIONS.CLIENT_VIEW, icon: "inbox", keywords: "pipeline" },
-      { href: "/admin/callbacks", label: "Call-backs", perm: PERMISSIONS.CLIENT_VIEW, icon: "phone", keywords: "callbacks phone" },
-      { href: "/admin/assistant", label: "Chat assistant", perm: PERMISSIONS.CLIENT_VIEW, icon: "chat", keywords: "sessions" },
-      { href: "/admin/clinical/consents", label: "Consent forms", perm: PERMISSIONS.CLINICAL_MANAGE, icon: "clipboard" },
-    ],
-  },
-  {
-    label: "Scheduling",
+    label: "Front desk",
     items: [
       { href: "/admin/calendar", label: "Calendar", perm: PERMISSIONS.BOOKING_VIEW, icon: "calendar", keywords: "bookings appointments" },
-      { href: "/admin/waitlist", label: "Waitlist", perm: PERMISSIONS.BOOKING_VIEW, icon: "inbox" },
-      { href: "/admin/booking/rooms", label: "Rooms", perm: PERMISSIONS.STAFF_MANAGE, icon: "book" },
-      { href: "/admin/booking/schedules", label: "Schedules", perm: PERMISSIONS.STAFF_MANAGE, icon: "calendar", keywords: "shifts" },
+      { href: "/admin/waitlist", label: "Waitlist", perm: PERMISSIONS.BOOKING_VIEW, icon: "inbox", parent: "/admin/calendar" },
+      { href: "/admin/booking/rooms", label: "Rooms", perm: PERMISSIONS.STAFF_MANAGE, icon: "book", parent: "/admin/calendar" },
+      { href: "/admin/booking/schedules", label: "Schedules", perm: PERMISSIONS.STAFF_MANAGE, icon: "calendar", keywords: "shifts", parent: "/admin/calendar" },
+      { href: "/admin/clients", label: "Customers", perm: PERMISSIONS.CLIENT_VIEW, icon: "users", keywords: "clients patients" },
+      { href: "/admin/leads", label: "Leads", perm: PERMISSIONS.CLIENT_VIEW, icon: "inbox", keywords: "pipeline", parent: "/admin/clients" },
+      { href: "/admin/callbacks", label: "Call-backs", perm: PERMISSIONS.CLIENT_VIEW, icon: "phone", keywords: "callbacks phone", parent: "/admin/clients" },
+      { href: "/admin/clinical/consents", label: "Consent forms", perm: PERMISSIONS.CLINICAL_MANAGE, icon: "clipboard", parent: "/admin/clients" },
+      { href: "/admin/whatsapp", label: "WhatsApp", perm: PERMISSIONS.CLIENT_MANAGE, icon: "message", keywords: "messages inbox chat" },
+      { href: "/admin/inquiries", label: "Inquiries", perm: PERMISSIONS.CMS_MANAGE, icon: "inbox", keywords: "contact form", parent: "/admin/whatsapp" },
+      { href: "/admin/assistant", label: "Chat assistant", perm: PERMISSIONS.CLIENT_VIEW, icon: "chat", keywords: "sessions website bot", parent: "/admin/whatsapp" },
     ],
   },
   {
@@ -78,61 +81,47 @@ export const NAV_GROUPS: NavCatalogGroup[] = [
     items: [
       { href: "/admin/billing", label: "Invoices & payments", perm: PERMISSIONS.BILLING_MANAGE, icon: "receipt", keywords: "billing checkout" },
       { href: "/admin/accounting", label: "Accounting", perm: PERMISSIONS.ACCOUNTING_MANAGE, icon: "report", keywords: "vat cash" },
-      { href: "/admin/accounting/expenses", label: "Expenses", perm: PERMISSIONS.ACCOUNTING_MANAGE, icon: "receipt" },
+      { href: "/admin/accounting/expenses", label: "Expenses", perm: PERMISSIONS.ACCOUNTING_MANAGE, icon: "receipt", parent: "/admin/accounting" },
+      { href: "/admin/commerce", label: "Gift cards & packages", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "giftcard", keywords: "vouchers memberships" },
+      { href: "/admin/tiers", label: "Loyalty tiers", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "tag", keywords: "points vip", parent: "/admin/commerce" },
     ],
   },
   {
-    label: "Inventory",
+    label: "Operations",
     items: [
       { href: "/admin/inventory", label: "Products & stock", perm: PERMISSIONS.INVENTORY_MANAGE, icon: "box", keywords: "inventory" },
-      { href: "/admin/inventory/purchase-orders", label: "Purchase orders", perm: PERMISSIONS.INVENTORY_MANAGE, icon: "clipboard" },
-      { href: "/admin/inventory/suppliers", label: "Suppliers", perm: PERMISSIONS.INVENTORY_MANAGE, icon: "users" },
-    ],
-  },
-  {
-    label: "Team",
-    items: [
+      { href: "/admin/inventory/purchase-orders", label: "Purchase orders", perm: PERMISSIONS.INVENTORY_MANAGE, icon: "clipboard", parent: "/admin/inventory" },
+      { href: "/admin/inventory/suppliers", label: "Suppliers", perm: PERMISSIONS.INVENTORY_MANAGE, icon: "users", parent: "/admin/inventory" },
       { href: "/admin/me", label: "My time & leave", icon: "clock", keywords: "clock in out attendance" },
-      { href: "/admin/hr", label: "Employees", perm: PERMISSIONS.HR_MANAGE, icon: "users", keywords: "staff hr" },
-      { href: "/admin/hr/attendance", label: "Attendance", perm: PERMISSIONS.HR_MANAGE, icon: "clock" },
-      { href: "/admin/hr/leave", label: "Leave requests", perm: PERMISSIONS.HR_MANAGE, icon: "calendar" },
-      { href: "/admin/hr/payroll", label: "Payroll", perm: PERMISSIONS.HR_MANAGE, icon: "receipt" },
+      { href: "/admin/hr", label: "Employees", perm: PERMISSIONS.HR_MANAGE, icon: "users", keywords: "staff hr team" },
+      { href: "/admin/hr/attendance", label: "Attendance", perm: PERMISSIONS.HR_MANAGE, icon: "clock", parent: "/admin/hr" },
+      { href: "/admin/hr/leave", label: "Leave requests", perm: PERMISSIONS.HR_MANAGE, icon: "calendar", parent: "/admin/hr" },
+      { href: "/admin/hr/payroll", label: "Payroll", perm: PERMISSIONS.HR_MANAGE, icon: "receipt", parent: "/admin/hr" },
     ],
   },
   {
-    label: "Commerce",
+    label: "Growth",
     items: [
-      { href: "/admin/commerce", label: "Gift cards & packages", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "giftcard" },
-      { href: "/admin/tiers", label: "Loyalty tiers", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "tag" },
-    ],
-  },
-  {
-    label: "Marketing",
-    items: [
+      { href: "/admin/dashboard", label: "Business", perm: PERMISSIONS.ANALYTICS_VIEW, icon: "chart", keywords: "analytics revenue kpi" },
+      { href: "/admin/reports", label: "Reports", perm: PERMISSIONS.ANALYTICS_VIEW, icon: "report", parent: "/admin/dashboard" },
       { href: "/admin/marketing", label: "Campaigns", perm: PERMISSIONS.ANALYTICS_VIEW, icon: "megaphone" },
-      { href: "/admin/comms/broadcast", label: "Broadcast", perm: PERMISSIONS.MARKETING_MANAGE, icon: "megaphone" },
-      { href: "/admin/whatsapp", label: "WhatsApp", perm: PERMISSIONS.CLIENT_MANAGE, icon: "message" },
-      { href: "/admin/inquiries", label: "Inquiries", perm: PERMISSIONS.CMS_MANAGE, icon: "inbox", keywords: "contact form" },
-      { href: "/admin/reviews", label: "Reviews", perm: PERMISSIONS.CMS_MANAGE, icon: "star" },
-    ],
-  },
-  {
-    label: "Content",
-    items: [
-      { href: "/admin/media", label: "Media", perm: PERMISSIONS.CMS_MANAGE, icon: "image", keywords: "images photos" },
-      { href: "/admin/content", label: "Content", perm: PERMISSIONS.CMS_MANAGE, icon: "content", keywords: "pages copy" },
-      { href: "/admin/catalog", label: "Catalog", perm: PERMISSIONS.CMS_MANAGE, icon: "layers", keywords: "services departments" },
+      { href: "/admin/comms/broadcast", label: "Broadcast", perm: PERMISSIONS.MARKETING_MANAGE, icon: "megaphone", parent: "/admin/marketing" },
+      { href: "/admin/reviews", label: "Reviews", perm: PERMISSIONS.CMS_MANAGE, icon: "star", parent: "/admin/marketing" },
+      { href: "/admin/content", label: "Website", perm: PERMISSIONS.CMS_MANAGE, icon: "content", keywords: "content pages copy cms" },
+      { href: "/admin/catalog", label: "Catalog", perm: PERMISSIONS.CMS_MANAGE, icon: "layers", keywords: "services departments brands blog", parent: "/admin/content" },
+      { href: "/admin/media", label: "Media", perm: PERMISSIONS.CMS_MANAGE, icon: "image", keywords: "images photos", parent: "/admin/content" },
+      { href: "/admin/content/results", label: "Results gallery", perm: PERMISSIONS.CLINICAL_MANAGE, icon: "image", keywords: "before after photos showcase", parent: "/admin/content" },
     ],
   },
   {
     label: "System",
     items: [
       { href: "/admin/settings", label: "Settings", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "gear" },
-      { href: "/admin/comms", label: "Communications", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "message", keywords: "email sms templates" },
+      { href: "/admin/comms", label: "Communications", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "message", keywords: "email sms templates", parent: "/admin/settings" },
+      { href: "/admin/requests", label: "Edit requests", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "inbox", keywords: "change requests suggestions team feedback", parent: "/admin/settings" },
+      { href: "/admin/audit", label: "Audit log", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "shield", parent: "/admin/settings" },
       { href: "/admin/users", label: "Users", perm: PERMISSIONS.STAFF_MANAGE, icon: "users", keywords: "accounts logins" },
-      { href: "/admin/roles", label: "Roles", perm: PERMISSIONS.STAFF_MANAGE, icon: "shield", keywords: "permissions" },
-      { href: "/admin/audit", label: "Audit log", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "shield" },
-      { href: "/admin/requests", label: "Edit requests", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "inbox", keywords: "change requests suggestions team feedback" },
+      { href: "/admin/roles", label: "Roles", perm: PERMISSIONS.STAFF_MANAGE, icon: "shield", keywords: "permissions", parent: "/admin/users" },
       { href: "/superadmin", label: "Superadmin", perm: PERMISSIONS.PLATFORM_MANAGE, icon: "gear", keywords: "platform integrations" },
     ],
   },

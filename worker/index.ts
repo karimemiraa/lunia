@@ -1,4 +1,4 @@
-// Reminder outbox worker: a small, long-running Node process that polls
+// Outbox + automations worker: a small, long-running Node process that polls
 // processDueMessages() on an interval so scheduled booking messages
 // (confirmations, 24h reminders, post-visit follow-ups) actually get sent.
 // getConfiguredSender() picks the real WhatsApp/SMS provider adapter when
@@ -29,12 +29,20 @@ const POLL_INTERVAL_MS = 30_000;
 
 async function main() {
   const { processDueMessages, reclaimStaleClaims } = await import("@/modules/booking/outbox");
+  const { runDueJobs } = await import("@/modules/automation/jobs");
   const { prisma } = await import("@/lib/db");
 
   let stopping = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   async function tick() {
+    // Daily automations first (each runs once per Riyadh day, claimed in the
+    // DB), so any messages they schedule go out in this same tick.
+    try {
+      for (const r of await runDueJobs(new Date())) console.log(`[worker] job ${r.job}: ${r.status}${r.summary ? ` — ${r.summary}` : ""}`);
+    } catch (err) {
+      console.error("[worker] runDueJobs threw", err);
+    }
     try {
       // Return any abandoned SENDING rows (from a crashed worker) to PENDING
       // before claiming this tick's batch.

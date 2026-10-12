@@ -182,3 +182,12 @@ describe("rule engine", () => {
     expect(r.suggestions?.length).toBeGreaterThan(0);
   });
 });
+
+describe("rule engine: staff performance", () => {
+  it("routes performance questions to the staff report tool (role-gated)", async () => {
+    const r = await answerWithRules("who are the top performers this month?", owner);
+    expect(r.links?.map((l) => l.href)).toContain("/admin/reports?type=staff");
+    const denied = await answerWithRules("staff performance this month", frontDesk);
+    expect(denied.text).toMatch(/role doesn't include access/);
+  });
+});

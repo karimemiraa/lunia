@@ -27,5 +27,15 @@ SEO is preserved: dynamic SSR still serves full HTML with metadata + JSON-LD, an
 
 ### Notes for developers
 - **Local `next build` on macOS/Node 20 still hits the `/_global-error` quirk** — use `next dev` for local work, and the **Docker build** to produce/verify a production build. Consider moving local dev to Node 22 to match production.
-- Add `docker build` (or a Node-22 `next build`) to CI so production-build regressions are caught — `next dev`-based e2e does not exercise the production build.
+- ✅ (2026-10-13) CI now has a `verify` job (typecheck, lint, full unit/integration suite on fresh Postgres 16 + Redis) that the deploy job depends on; the production Docker build itself runs in the deploy job. e2e still runs locally only (`next dev`).
 - Dockerfile line 66 sets a **dummy** build-time `SESSION_SECRET` (the `SecretsUsedInArgOrEnv` warning) — the real secret is injected at runtime via compose; the dummy is only to let `next build` run.
+
+## 2. Local dev: restart `next dev` after a Prisma schema change
+
+**Status:** ⚠️ Developer gotcha (not a production issue)
+
+After `prisma migrate deploy` + `prisma generate`, an already-running `next dev`
+keeps the OLD Prisma client in memory: new tables/columns fail with
+`Unknown argument …` or `Cannot read properties of undefined (reading 'findMany')`.
+Restart `next dev`. If public pages then 404 after a local `next build`, delete
+`.next/dev` and restart. Production is unaffected (fresh image per deploy).

@@ -53,6 +53,7 @@ export default async function ClinicalPhotosPage({ params, searchParams }: Props
             note: p.note,
             treatmentRecordId: p.treatmentRecordId,
             takenAtLabel: dFmt.format(p.takenAt),
+            consentToShare: p.consentToShare,
           }))}
           recordLabels={Object.fromEntries(recordOptions.map((r) => [r.id, r.label]))}
         />

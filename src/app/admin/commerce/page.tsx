@@ -52,6 +52,8 @@ export default async function CommercePage() {
     sessionsTotal: pkg.sessionsTotal,
     priceMinor: pkg.priceMinor,
     isActive: pkg.isActive,
+    serviceId: pkg.serviceId,
+    validityDays: pkg.validityDays,
   }));
 
   const purchaseRows: PackagePurchaseRowDTO[] = purchases.map((purchase) => ({
@@ -62,6 +64,7 @@ export default async function CommercePage() {
     sessionsTotal: purchase.sessionsTotal,
     status: purchase.status,
     createdAtIso: purchase.createdAt.toISOString(),
+    expiresAtIso: purchase.expiresAt ? purchase.expiresAt.toISOString() : null,
   }));
 
   const clientOptions = clients.map((c) => ({ clientProfileId: c.id, fullName: c.fullName, phone: c.user.phone }));
@@ -93,7 +96,7 @@ export default async function CommercePage() {
 
         <section className="flex flex-col gap-4" data-testid="packages-list-section">
           <h2 className="text-lg font-semibold text-[var(--color-ink)]">Packages</h2>
-          <PackagesTable packages={packageRows} />
+          <PackagesTable packages={packageRows} services={services.map((s) => ({ id: s.id, nameEn: s.nameEn }))} />
         </section>
 
         <section className={sectionClass} data-testid="assign-package-section">

@@ -15,6 +15,8 @@ export const TEMPLATE_KINDS = [
   "REVIEW_REQUEST",
   "CALLBACK_ACK",
   "INVOICE",
+  "PACKAGE_EXPIRING",
+  "WIN_BACK",
 ] as const;
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
 
@@ -62,6 +64,16 @@ export const KIND_META: Record<string, { label: string; description: string; pla
     description: "Sent from Billing with the invoice link (and an online pay link when one is due).",
     placeholders: ["invoiceNumber", "total", "link", "payLine"],
   },
+  PACKAGE_EXPIRING: {
+    label: "Package expiring soon",
+    description: "Automatic: sent once, before a prepaid package with sessions left expires (Settings → Automations).",
+    placeholders: ["name", "packageName", "sessionsLeft", "expiresOn", "link"],
+  },
+  WIN_BACK: {
+    label: "We miss you (win-back)",
+    description: "Automatic: invites customers who haven't visited for a while to come back. Marketing — only to customers who allow offers (Settings → Automations).",
+    placeholders: ["name", "lastService", "link"],
+  },
 };
 
 export const CHANNEL_LABELS: Record<string, string> = {
@@ -80,6 +92,14 @@ export const LOCALE_LABELS: Record<string, string> = {
 // exists yet so the studio never shows an empty editor, and as the seed the
 // admin edits from.
 export const DEFAULT_BODIES: Record<string, { ar: string; en: string }> = {
+  PACKAGE_EXPIRING: {
+    ar: "هلا {{name}}، باقتك {{packageName}} في لونيا باقي فيها {{sessionsLeft}} جلسة وتنتهي بتاريخ {{expiresOn}}.\n\nاحجزي جلستك الحين عشان ما تضيع:\n{{link}}",
+    en: "Hi {{name}}, your Lunia {{packageName}} package still has {{sessionsLeft}} session(s) left and expires on {{expiresOn}}.\n\nBook your next session before it does:\n{{link}}",
+  },
+  WIN_BACK: {
+    ar: "هلا {{name}}، اشتقنا لك في لونيا!\n\nصار لك فترة من آخر زيارة ({{lastService}}). بشرتك تستاهل اهتمام — احجزي موعدك القادم من هنا:\n{{link}}",
+    en: "Hi {{name}}, we miss you at Lunia!\n\nIt's been a while since your last visit ({{lastService}}). Your skin deserves some care — book your next appointment here:\n{{link}}",
+  },
   CONFIRMATION: {
     ar: "تم تأكيد حجزك في لونيا لخدمة {{serviceName}} بتاريخ {{dateTime}}.\n\nرقم الحجز: {{bookingId}}\n\nنتشرّف بزيارتك ونتطلّع للقائك قريباً.",
     en: "Your Lunia booking for {{serviceName}} is confirmed for {{dateTime}}.\n\nBooking reference: {{bookingId}}\n\nWe look forward to welcoming you.",
@@ -140,6 +160,10 @@ export function subjectForTemplate(kind: string, locale: string): string {
       return isAr ? "وصلنا طلب الاتصال" : "We'll call you shortly";
     case "INVOICE":
       return isAr ? "فاتورتك من لونيا" : "Your Lunia invoice";
+    case "PACKAGE_EXPIRING":
+      return isAr ? "باقتك في لونيا تنتهي قريباً" : "Your Lunia package expires soon";
+    case "WIN_BACK":
+      return isAr ? "اشتقنا لك في لونيا" : "We miss you at Lunia";
     default:
       return "Lunia";
   }
@@ -160,6 +184,10 @@ export function sampleParams(locale: string): Record<string, string> {
         invoiceNumber: "INV-2026-000123",
         total: "1,150.00 ر.س",
         payLine: "تقدرين تدفعين أونلاين بأمان من هنا: https://lunia.sa/p/8k2x",
+        packageName: "٦ جلسات هيدرافيشل",
+        sessionsLeft: "٢",
+        expiresOn: "١٥ نوفمبر ٢٠٢٦",
+        lastService: "جلسة نضارة الوجه",
       }
     : {
         serviceName: "Radiance Facial",
@@ -172,6 +200,10 @@ export function sampleParams(locale: string): Record<string, string> {
         invoiceNumber: "INV-2026-000123",
         total: "1,150.00 SAR",
         payLine: "Pay online securely here: https://lunia.sa/p/8k2x",
+        packageName: "6× HydraFacial",
+        sessionsLeft: "2",
+        expiresOn: "Nov 15, 2026",
+        lastService: "Radiance Facial",
       };
 }
 

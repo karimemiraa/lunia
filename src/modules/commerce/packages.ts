@@ -78,6 +78,8 @@ const createPackageSchema = z.object({
   sessionsTotal: z.number().int().positive(),
   priceMinor: z.number().int().nonnegative(),
   isActive: z.boolean().default(true),
+  /** Days a purchase stays usable; null/undefined = never expires. */
+  validityDays: z.number().int().positive().max(3650).nullable().optional(),
 });
 export type CreatePackageInput = z.input<typeof createPackageSchema>;
 
@@ -91,8 +93,47 @@ export async function createPackage(input: CreatePackageInput): Promise<ServiceP
       sessionsTotal: data.sessionsTotal,
       priceMinor: data.priceMinor,
       isActive: data.isActive,
+      validityDays: data.validityDays ?? null,
     },
   });
+}
+
+const updatePackageSchema = createPackageSchema.partial().extend({ serviceId: z.string().min(1).nullable().optional() });
+export type UpdatePackageInput = z.input<typeof updatePackageSchema>;
+
+/**
+ * Edits a package definition (name, service, sessions, price, validity, or
+ * retiring it with isActive=false). Existing purchases keep the sessions and
+ * expiry they were sold with — only new purchases see the change.
+ */
+export async function updatePackage(packageId: string, input: UpdatePackageInput): Promise<ServicePackage> {
+  const data = updatePackageSchema.parse(input);
+  return prisma.servicePackage.update({
+    where: { id: packageId },
+    data: {
+      ...(data.nameEn !== undefined ? { nameEn: data.nameEn } : {}),
+      ...(data.nameAr !== undefined ? { nameAr: data.nameAr } : {}),
+      ...(data.serviceId !== undefined ? { serviceId: data.serviceId } : {}),
+      ...(data.sessionsTotal !== undefined ? { sessionsTotal: data.sessionsTotal } : {}),
+      ...(data.priceMinor !== undefined ? { priceMinor: data.priceMinor } : {}),
+      ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+      ...(data.validityDays !== undefined ? { validityDays: data.validityDays } : {}),
+    },
+  });
+}
+
+/** A purchase is usable while ACTIVE, has sessions left and hasn't passed its expiry. */
+export function usablePurchaseWhere(now: Date = new Date()): Prisma.PackagePurchaseWhereInput {
+  return { status: "ACTIVE", sessionsRemaining: { gt: 0 }, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] };
+}
+
+/** Flips ACTIVE purchases past their expiry to EXPIRED. Returns how many. */
+export async function expirePackagePurchases(now: Date = new Date()): Promise<number> {
+  const { count } = await prisma.packagePurchase.updateMany({
+    where: { status: "ACTIVE", expiresAt: { lte: now } },
+    data: { status: "EXPIRED" },
+  });
+  return count;
 }
 
 export interface ListPackagesFilter {
@@ -117,6 +158,7 @@ export interface PackagePurchaseRow {
   sessionsTotal: number;
   status: PackagePurchaseStatus;
   createdAt: Date;
+  expiresAt: Date | null;
 }
 
 export interface ListPackagePurchasesFilter {
@@ -143,6 +185,7 @@ export async function listPackagePurchases(filter: ListPackagePurchasesFilter = 
     sessionsTotal: p.package.sessionsTotal,
     status: p.status,
     createdAt: p.createdAt,
+    expiresAt: p.expiresAt,
   }));
 }
 
@@ -159,7 +202,7 @@ export async function getPackage(packageId: string): Promise<ServicePackage | nu
  * records the prepaid-sessions balance a client now holds (e.g. after
  * paying cash at the front desk).
  */
-export async function purchasePackage(clientProfileId: string, packageId: string): Promise<PackagePurchase> {
+export async function purchasePackage(clientProfileId: string, packageId: string, now: Date = new Date()): Promise<PackagePurchase> {
   const servicePackage = await prisma.servicePackage.findUnique({ where: { id: packageId } });
   if (!servicePackage) {
     throw new Error(`Package "${packageId}" not found`);
@@ -174,6 +217,7 @@ export async function purchasePackage(clientProfileId: string, packageId: string
       packageId,
       sessionsRemaining: servicePackage.sessionsTotal,
       status: "ACTIVE",
+      expiresAt: servicePackage.validityDays ? new Date(now.getTime() + servicePackage.validityDays * 86_400_000) : null,
     },
   });
 }
@@ -199,6 +243,7 @@ export interface ConsumeSessionResult {
 export async function consumePackageSession(
   packagePurchaseId: string,
   bookingId?: string,
+  now: Date = new Date(),
 ): Promise<ConsumeSessionResult> {
   return runSerializableTransaction(async (tx) => {
     const purchase = await tx.packagePurchase.findUnique({ where: { id: packagePurchaseId } });
@@ -210,6 +255,9 @@ export async function consumePackageSession(
     }
     if (purchase.sessionsRemaining <= 0) {
       throw new Error("No sessions remaining on this package");
+    }
+    if (purchase.expiresAt && purchase.expiresAt <= now) {
+      throw new Error("This package has expired");
     }
 
     const newRemaining = purchase.sessionsRemaining - 1;
@@ -234,7 +282,7 @@ export type PackagePurchaseWithPackage = PackagePurchase & { package: ServicePac
 /** A client's active (sessionsRemaining > 0, status ACTIVE) package purchases -- used by the client account "My credits" panel and the booking flow. */
 export async function listActivePackagePurchasesForClient(clientProfileId: string): Promise<PackagePurchaseWithPackage[]> {
   return prisma.packagePurchase.findMany({
-    where: { clientProfileId, status: "ACTIVE", sessionsRemaining: { gt: 0 } },
+    where: { clientProfileId, ...usablePurchaseWhere() },
     include: { package: true },
     orderBy: { createdAt: "desc" },
   });
@@ -242,7 +290,7 @@ export async function listActivePackagePurchasesForClient(clientProfileId: strin
 
 export interface ClientCreditsSummary {
   giftCards: { id: string; code: string; balanceMinor: number; currency: string; expiresAt: Date | null }[];
-  packages: { id: string; packageNameEn: string; packageNameAr: string; sessionsRemaining: number; sessionsTotal: number }[];
+  packages: { id: string; packageNameEn: string; packageNameAr: string; sessionsRemaining: number; sessionsTotal: number; expiresAt: Date | null }[];
 }
 
 /**
@@ -280,6 +328,7 @@ export async function listClientCredits(clientProfileId: string): Promise<Client
       packageNameAr: purchase.package.nameAr,
       sessionsRemaining: purchase.sessionsRemaining,
       sessionsTotal: purchase.package.sessionsTotal,
+      expiresAt: purchase.expiresAt,
     })),
   };
 }

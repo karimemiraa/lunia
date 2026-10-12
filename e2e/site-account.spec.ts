@@ -169,6 +169,46 @@ test.describe("client account area", () => {
     await expect(past.getByRole("button", { name: "Cancel booking" })).toHaveCount(0);
   });
 
+  test("en: reschedule my own appointment to a free time", async ({ page }) => {
+    const phone = uniquePhone("+9667");
+    // Monday: a weekday no other booking spec claims.
+    await bookFarOutAppointment(page, phone, 1);
+    // The wizard signs the customer in; go straight to the account.
+    await page.goto("/en/account");
+    const upcoming = page.getByTestId("account-upcoming");
+    await upcoming.getByRole("link", { name: /View/ }).first().click();
+    await expect(page).toHaveURL(/\/en\/account\/bookings\//);
+    const before = await page.getByText(/Date & time/).locator("xpath=following-sibling::dd").textContent();
+
+    const form = page.getByTestId("reschedule-form");
+    await expect(form).toBeVisible();
+    // Move it far out (the end of the 60-day window), away from other specs' days.
+    const dateInput = form.getByTestId("reschedule-date");
+    const max = (await dateInput.getAttribute("max"))!;
+    let picked = false;
+    for (let back = 0; back < 14 && !picked; back++) {
+      const d = new Date(`${max}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() - back);
+      await dateInput.fill(d.toISOString().slice(0, 10));
+      const slot = form.getByTestId("reschedule-slot").first();
+      const none = form.getByText("No free times on this day");
+      await Promise.race([slot.waitFor({ timeout: 10_000 }).catch(() => {}), none.waitFor({ timeout: 10_000 }).catch(() => {})]);
+      if (await slot.isVisible()) {
+        await slot.click();
+        picked = true;
+      }
+    }
+    expect(picked).toBe(true);
+    await form.getByTestId("reschedule-confirm").click();
+    await expect(form.getByTestId("reschedule-done")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Date & time/).locator("xpath=following-sibling::dd")).not.toHaveText(before ?? "");
+
+    // Clean up: cancel it from the account page.
+    await page.goto("/en/account");
+    await page.getByTestId("account-upcoming").getByRole("button", { name: "Cancel booking" }).first().click();
+    await expect(page.getByTestId("account-upcoming").getByText("You don't have any upcoming bookings.")).toBeVisible({ timeout: 10_000 });
+  });
+
   test("en: an unauthenticated visit to /account redirects to /account/login", async ({ page }) => {
     await page.goto("/en/account");
     await expect(page).toHaveURL(/\/en\/account\/login$/);

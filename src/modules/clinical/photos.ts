@@ -1,7 +1,8 @@
 // Clinical photos (before/after, skin-analyzer exports). PRIVATE: bytes live
 // under the "clinical/" storage prefix, which the public /api/media route
-// refuses; they are served only by /admin/clinical/photo/[id], which checks
-// clinical:manage. The storage key is generated server-side (never from the
+// refuses; they are served by /admin/clinical/photo/[id], which checks
+// clinical:manage, and — only for published, consented before/after pairs —
+// by /api/results/[id]/[side] (see showcase.ts). The storage key is generated server-side (never from the
 // client's filename).
 //
 // No image library is a direct dependency, so the server stores bytes as
@@ -109,6 +110,7 @@ export async function listClinicalPhotos(clientProfileId: string) {
       treatmentRecordId: true,
       takenAt: true,
       createdAt: true,
+      consentToShare: true,
     },
   });
 }
