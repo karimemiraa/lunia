@@ -35,6 +35,17 @@ export function addMonths(d: Date, n: number): Date {
   return r;
 }
 
+/**
+ * The end of the month that starts at `start`, counted from the billing
+ * anchor so short months don't drag every later renewal to the 28th
+ * (Jan 31 → Feb 28 → Mar 31, not Mar 28).
+ */
+export function nextPeriodEnd(anchor: Date, start: Date): Date {
+  let k = 1;
+  while (addMonths(anchor, k).getTime() <= start.getTime()) k += 1;
+  return addMonths(anchor, k);
+}
+
 const fmtDay = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Riyadh", day: "numeric", month: "short", year: "numeric" }).format(d);
 
 // ---- Plans --------------------------------------------------------------------
@@ -166,6 +177,7 @@ export async function enrol(input: { clientProfileId: string; planId: string; st
       startedAt: start,
       currentPeriodStart: start,
       currentPeriodEnd: end,
+      billingAnchorAt: start,
       minTermEndsAt: addMonths(start, plan.minTermMonths),
       createdById: actorId ?? null,
     },
@@ -195,7 +207,7 @@ export async function resume(subscriptionId: string, actorId?: string, now: Date
   const end = addMonths(now, 1);
   await prisma.membershipSubscription.update({
     where: { id: subscriptionId },
-    data: { status: "ACTIVE", pausedAt: null, currentPeriodStart: now, currentPeriodEnd: end },
+    data: { status: "ACTIVE", pausedAt: null, currentPeriodStart: now, currentPeriodEnd: end, billingAnchorAt: now },
   });
   const cycle = await invoiceMonth(subscriptionId, now, end, actorId);
   if (opts.send !== false) await deliverMembershipInvoice(cycle.invoiceId!);
@@ -239,7 +251,7 @@ export async function runMembershipBilling(now: Date = new Date(), opts: { send?
       continue;
     }
     const start = sub.currentPeriodEnd;
-    const end = addMonths(start, 1);
+    const end = nextPeriodEnd(sub.billingAnchorAt ?? sub.startedAt, start);
     const claimed = await prisma.membershipSubscription.updateMany({
       where: { id: sub.id, currentPeriodEnd: sub.currentPeriodEnd },
       data: { currentPeriodStart: start, currentPeriodEnd: end },

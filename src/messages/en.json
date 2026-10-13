@@ -1009,7 +1009,9 @@
     },
     "buy": {
       "eyebrow": "Buy a Gift Card",
-      "heading": "Make it personal."
+      "heading": "Make it personal.",
+      "unavailableHeading": "Gift cards are sold at the clinic",
+      "unavailableBody": "Online gift card payment is coming soon. Visit us or message us on WhatsApp and we'll prepare a gift card for you in minutes."
     }
   },
   "ui": {

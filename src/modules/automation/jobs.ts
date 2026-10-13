@@ -23,6 +23,9 @@ import { expirePackagePurchases } from "@/modules/commerce/packages";
 import { NOT_TEST_CLIENT } from "@/modules/crm/testCustomers";
 import { sendAssigneeDigests } from "@/modules/notifications/digest";
 import { runMembershipBilling } from "@/modules/memberships/memberships";
+import { markNoShow } from "@/modules/booking/bookings";
+import { sendInvoice } from "@/modules/billing/delivery";
+import { onlinePaymentsConfigured } from "@/modules/billing/payments/links";
 import { getSetting, DEFAULT_AUTOMATION_SETTINGS, type AutomationSettings } from "@/modules/cms/settings";
 
 const DAY_MS = 86_400_000;
@@ -164,6 +167,77 @@ export async function scheduleWinBacks({ now, settings }: JobContext): Promise<n
   return lapsed.length;
 }
 
+/** Gift cards past their expiry date → EXPIRED (redemption already refuses them). */
+export async function expireGiftCards(now: Date): Promise<number> {
+  const { count } = await prisma.giftCard.updateMany({ where: { status: "ACTIVE", expiresAt: { lte: now } }, data: { status: "EXPIRED" } });
+  return count;
+}
+
+const MAX_INVOICE_REMINDERS = 2;
+
+/**
+ * Re-sends unpaid invoices to the customer (with a pay link when online
+ * payments are configured): first after N days, again after 2N. At most two
+ * reminders per invoice; test customers and walk-ins without contact skipped.
+ */
+export async function sendInvoiceReminders({ now, settings }: JobContext): Promise<number> {
+  const days = settings.invoiceReminderDays;
+  const candidates = await prisma.invoice.findMany({
+    where: {
+      kind: "INVOICE",
+      status: { in: ["ISSUED", "PARTIALLY_PAID"] },
+      remindersSent: { lt: MAX_INVOICE_REMINDERS },
+      issuedAt: { lte: new Date(now.getTime() - days * DAY_MS) },
+      clientProfileId: { not: null },
+      client: NOT_TEST_CLIENT,
+    },
+    include: { client: { include: { user: true } } },
+    take: 100,
+  });
+  let sent = 0;
+  for (const inv of candidates) {
+    const dueAt = inv.issuedAt!.getTime() + days * (inv.remindersSent + 1) * DAY_MS;
+    if (dueAt > now.getTime()) continue;
+    // Claim first so replicas/re-runs never double-send.
+    const claimed = await prisma.invoice.updateMany({ where: { id: inv.id, remindersSent: inv.remindersSent }, data: { remindersSent: { increment: 1 }, lastReminderAt: now } });
+    if (claimed.count !== 1) continue;
+    const phone = inv.customerPhone || inv.client?.user.phone;
+    const channel = phone ? "whatsapp" : inv.client?.user.email ? "email" : null;
+    if (!channel) continue;
+    const r = await sendInvoice(inv.id, { channel, includePayLink: await onlinePaymentsConfigured() });
+    if (r.ok) sent += 1;
+  }
+  return sent;
+}
+
+/**
+ * Appointments that ended more than N hours ago and were never checked in →
+ * NO_SHOW (keeps reports and no-show rates honest). Only looks back 14 days so
+ * switching it on doesn't rewrite old history.
+ */
+export async function markStaleNoShows({ now, settings }: JobContext): Promise<number> {
+  const cutoff = new Date(now.getTime() - settings.autoNoShowHours * 3_600_000);
+  const stale = await prisma.booking.findMany({
+    where: {
+      status: "CONFIRMED",
+      checkIn: null,
+      appointments: { some: {}, every: { endAt: { lte: cutoff, gte: new Date(now.getTime() - 14 * DAY_MS) } } },
+    },
+    select: { id: true },
+    take: 200,
+  });
+  let marked = 0;
+  for (const b of stale) {
+    try {
+      await markNoShow(b.id);
+      marked += 1;
+    } catch {
+      /* status changed meanwhile */
+    }
+  }
+  return marked;
+}
+
 export const JOBS: JobDef[] = [
   {
     name: "waitlist-expiry",
@@ -178,6 +252,20 @@ export const JOBS: JobDef[] = [
     label: "Expire packages past their validity",
     enabled: () => true,
     run: async ({ now }) => `${await expirePackagePurchases(now)} expired`,
+  },
+  {
+    name: "gift-card-expiry",
+    hour: 1,
+    label: "Expire gift cards past their expiry date",
+    enabled: () => true,
+    run: async ({ now }) => `${await expireGiftCards(now)} expired`,
+  },
+  {
+    name: "auto-no-show",
+    hour: 2,
+    label: "Mark never-checked-in appointments as no-shows",
+    enabled: (s) => s.autoNoShowEnabled,
+    run: async (ctx) => `${await markStaleNoShows(ctx)} marked`,
   },
   {
     name: "staff-digest",
@@ -205,6 +293,13 @@ export const JOBS: JobDef[] = [
     label: "Remind customers before a package expires",
     enabled: (s) => s.packageReminderEnabled,
     run: async (ctx) => `${await schedulePackageReminders(ctx)} reminder(s) scheduled`,
+  },
+  {
+    name: "invoice-reminders",
+    hour: 10,
+    label: "Remind customers about unpaid invoices",
+    enabled: (s) => s.invoiceReminderEnabled,
+    run: async (ctx) => `${await sendInvoiceReminders(ctx)} reminder(s) sent`,
   },
   {
     name: "win-back",

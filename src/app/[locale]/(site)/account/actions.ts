@@ -21,6 +21,7 @@ import {
 } from "@/modules/iam/clientAuth";
 import { upsertPreference } from "@/modules/comms/preferences";
 import type { CommsChannelPref } from "@prisma/client";
+import { isImpersonationSession } from "@/modules/iam/impersonation";
 
 type AccountLocale = "en" | "ar";
 
@@ -37,6 +38,14 @@ async function requireClientProfileId(): Promise<string | null> {
   if (!sessionUser) return null;
   const profile = await prisma.clientProfile.findUnique({ where: { userId: sessionUser.id } });
   return profile?.id ?? null;
+}
+
+// Staff "view as customer" previews may book/cancel for the customer, but
+// must never act AS them on identity or consent: set a password (that would
+// outlive the 1-hour preview), change marketing consent, etc.
+const PREVIEW_BLOCKED = "Not available while viewing as this customer — they need to do this themselves.";
+async function isStaffPreview(): Promise<boolean> {
+  return isImpersonationSession((await cookies()).get(CLIENT_SESSION_COOKIE)?.value);
 }
 
 async function requireClientUserId(): Promise<string | null> {
@@ -203,6 +212,7 @@ export async function updateNotificationPreference(
   if (!clientProfileId) {
     return { ok: false, error: t("notAuthenticated") };
   }
+  if (await isStaffPreview()) return { ok: false, error: PREVIEW_BLOCKED };
 
   try {
     const data = notificationPreferenceSchema.parse(input);
@@ -278,6 +288,7 @@ export async function setMyPassword(newPassword: string, locale: string): Promis
   const t = await getTranslations({ locale: asAccountLocale(locale), namespace: "account.security.errors" });
   const userId = await requireClientUserId();
   if (!userId) return { ok: false, error: t("notAuthenticated") };
+  if (await isStaffPreview()) return { ok: false, error: PREVIEW_BLOCKED };
 
   if (typeof newPassword !== "string" || newPassword.length < MIN_CLIENT_PASSWORD_LENGTH) {
     return { ok: false, error: t("passwordTooShort", { min: MIN_CLIENT_PASSWORD_LENGTH }) };

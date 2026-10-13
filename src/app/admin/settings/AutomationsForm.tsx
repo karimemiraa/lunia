@@ -83,6 +83,34 @@ export function AutomationsForm({ value, jobs }: { value: AutomationSettings; jo
           label="Morning email digest for the team"
           help="At 8:00, each staff member gets an email listing the inquiries, leads and WhatsApp chats assigned to them."
         />
+        <div className="flex flex-col gap-3">
+          <Toggle
+            name="invoiceReminderEnabled"
+            defaultChecked={value.invoiceReminderEnabled}
+            testId="automation-invoice-reminders"
+            label="Remind customers about unpaid invoices"
+            help="At 10:00, re-sends an unpaid invoice (with a pay link when online payments are set up) by WhatsApp, or email if there's no phone. At most two reminders per invoice."
+          />
+          <label className="ms-7 flex items-center gap-2 text-sm">
+            Every
+            <input name="invoiceReminderDays" type="number" min={1} max={30} defaultValue={value.invoiceReminderDays} className="lunia-input !w-24 shrink-0 py-1 text-sm" />
+            days while unpaid
+          </label>
+        </div>
+        <div className="flex flex-col gap-3">
+          <Toggle
+            name="autoNoShowEnabled"
+            defaultChecked={value.autoNoShowEnabled}
+            testId="automation-auto-no-show"
+            label="Mark missed appointments as no-shows"
+            help="At 2:00, confirmed appointments that were never checked in are marked as no-shows, so reports and no-show rates stay accurate. Looks back 14 days only."
+          />
+          <label className="ms-7 flex items-center gap-2 text-sm">
+            After
+            <input name="autoNoShowHours" type="number" min={2} max={168} defaultValue={value.autoNoShowHours} className="lunia-input !w-24 shrink-0 py-1 text-sm" />
+            hours with no check-in
+          </label>
+        </div>
         <div className="flex items-center gap-3">
           <SubmitButton pendingLabel="Saving…">Save automations</SubmitButton>
           <InlineStatus success={state.success ? "Saved" : undefined} error={state.error} />

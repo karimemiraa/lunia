@@ -98,6 +98,11 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
           <DateRangeFields fromISO={from ?? ""} toISO={to ?? ""} />
         </FilterBar>
 
+        {rows.length >= 200 && (
+          <p className="text-sm text-[var(--color-ink)]/60" data-testid="invoices-truncated">
+            Showing the latest 200 invoices. Use the dates or search to find older ones.
+          </p>
+        )}
         <InvoicesTable rows={dto} totals={totals} filtered={!!(status || kind || from || to || q)} />
       </div>
     </AdminShell>

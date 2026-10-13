@@ -78,7 +78,7 @@ export async function subscriptionAction(subscriptionId: string, action: SubActi
         break;
       case "cancel": {
         const r = await cancel(subscriptionId);
-        message = `Will end on ${r.cancelAt?.toISOString().slice(0, 10)}.`;
+        message = r.cancelAt ? `Will end on ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Riyadh", day: "numeric", month: "short", year: "numeric" }).format(r.cancelAt)}.` : "Cancellation scheduled.";
         break;
       }
       case "cancelNow":

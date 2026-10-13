@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getRedis } from "@/lib/redis";
 import { recordEvent, recordPageView } from "@/modules/analytics/track";
+import { ipFromHeaders } from "@/lib/requestIp";
 
 // Public, unauthenticated beacon: the public site posts here on every route
 // change and for a handful of funnel events. Analytics must never break a
@@ -53,14 +54,10 @@ function isDoNotTrack(request: Request): boolean {
  * before it ever becomes a Redis key (see withinIpRateLimit).
  */
 function clientIp(request: Request): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    const first = forwardedFor.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp?.trim()) return realIp.trim();
-  return UNKNOWN_IP;
+  // X-Real-IP / LAST X-Forwarded-For entry: the leftmost XFF value is
+  // client-supplied, so keying on it let callers dodge the IP limit.
+  const ip = ipFromHeaders(request.headers);
+  return ip === "unknown" ? UNKNOWN_IP : ip;
 }
 
 function hashIp(ip: string): string {

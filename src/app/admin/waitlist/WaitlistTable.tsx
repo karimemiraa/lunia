@@ -33,7 +33,7 @@ function formatDate(iso: string): string {
 }
 
 function formatDateTime(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(iso));
 }
 
 function NotifyNowButton({ serviceId, desiredDateISO }: { serviceId: string; desiredDateISO: string }) {

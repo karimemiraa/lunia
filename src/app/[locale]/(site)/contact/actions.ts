@@ -2,14 +2,16 @@
 
 import { getTranslations } from "next-intl/server";
 import { createInquiry } from "@/modules/catalog/inquiries";
+import { requestIp } from "@/lib/requestIp";
+import { hitRateLimit } from "@/lib/rateLimit";
 
 export interface ContactFormState {
   status: "idle" | "success" | "error";
   message?: string;
 }
 
-// Basic anti-abuse for now (real rate limiting is a later hardening stage):
-// trim whitespace and cap field lengths before they ever reach validation.
+// Anti-abuse: a per-IP rate limit (below), a honeypot, and trimmed/capped
+// field lengths before they ever reach validation.
 const MAX_LENGTHS = { name: 200, phone: 40, email: 200, message: 4000, sourcePage: 200 } as const;
 
 function readField(formData: FormData, key: string, max: number): string {
@@ -36,6 +38,11 @@ export async function submitInquiry(_prevState: ContactFormState, formData: Form
   // get a quiet "success" so they don't retry, and nothing is persisted.
   if (readField(formData, "website", 200)) {
     return { status: "success", message: t("successMessage") };
+  }
+
+  // Per-IP cap: the form has no login, so stop scripted flooding.
+  if (!(await hitRateLimit(`contact-ip:${await requestIp()}`, 8, 3600))) {
+    return { status: "error", message: t("errorMessage") };
   }
 
   try {

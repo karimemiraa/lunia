@@ -9,7 +9,6 @@ import { prisma } from "@/lib/db";
 import { issueGiftCard } from "@/modules/commerce/giftcards";
 import { renderEmailHtml } from "@/modules/comms/emailLayout";
 import { resolveSenderForChannel } from "@/modules/comms/sender";
-import { getSecret } from "@/modules/platform/secrets";
 
 // Amount bounds (minor units / halalas): 50–5000 SAR.
 export const GIFT_MIN_MINOR = 5000;
@@ -31,20 +30,20 @@ export type PurchaseGiftResult =
   | { ok: true; code: string; amountMinor: number }
   | { ok: false; error: string };
 
-// Pluggable charge step. In production with a configured gateway this would
-// call the provider; everywhere else it approves with a synthetic ref so the
-// flow is fully exercisable. Returns a failure only when a real gateway is
-// expected but not usable.
-async function chargeGiftCard(orderId: string, _amountMinor: number): Promise<{ ok: boolean; ref: string }> {
-  const provider = await getSecret("PAYMENT_PROVIDER").catch(() => null);
-  const secretKey = await getSecret("PAYMENT_SECRET_KEY").catch(() => null);
-  if (process.env.NODE_ENV === "production" && provider && secretKey) {
-    // Real gateway integration goes here (Moyasar/Tap/HyperPay/Stripe). Until
-    // one is wired, production without an implemented adapter declines rather
-    // than silently issuing an unpaid card.
-    return { ok: false, ref: "" };
-  }
+// Charge step. No payment gateway is wired for online gift-card sales yet, so
+// in production this ALWAYS declines — a card is only ever issued against a
+// real payment (staff can still issue cards from the admin after taking
+// payment at the desk). Outside production it approves with a stub ref so the
+// flow stays testable. (Previously production approved whenever the payment
+// secrets were missing, which handed out free gift cards.)
+export async function chargeGiftCard(orderId: string, _amountMinor: number): Promise<{ ok: boolean; ref: string }> {
+  if (process.env.NODE_ENV === "production") return { ok: false, ref: "" };
   return { ok: true, ref: `stub-${orderId.slice(-8)}` };
+}
+
+/** Whether the public site can sell gift cards online right now. */
+export function onlineGiftSalesAvailable(): boolean {
+  return process.env.NODE_ENV !== "production";
 }
 
 export async function purchaseGiftCard(input: PurchaseGiftInput): Promise<PurchaseGiftResult> {
@@ -66,7 +65,7 @@ export async function purchaseGiftCard(input: PurchaseGiftInput): Promise<Purcha
   const charge = await chargeGiftCard(order.id, data.amountMinor);
   if (!charge.ok) {
     await prisma.giftCardOrder.update({ where: { id: order.id }, data: { status: "FAILED" } });
-    return { ok: false, error: "Payment could not be processed. Please try again later." };
+    return { ok: false, error: "unavailable" };
   }
 
   const card = await issueGiftCard({ initialMinor: data.amountMinor });

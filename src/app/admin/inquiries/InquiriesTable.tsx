@@ -22,7 +22,7 @@ export function InquiriesTable({ inquiries }: { inquiries: ContactInquiry[] }) {
     { key: "message", header: "Message", sortable: false, render: (i) => <span className="line-clamp-2 max-w-sm">{i.message}</span> },
     { key: "locale", header: "Locale", value: (i) => i.locale.toUpperCase() },
     { key: "sourcePage", header: "Source page", value: (i) => i.sourcePage ?? "None" },
-    { key: "createdAt", header: "Received", value: (i) => new Date(i.createdAt), render: (i) => new Date(i.createdAt).toLocaleString() },
+    { key: "createdAt", header: "Received", value: (i) => new Date(i.createdAt), render: (i) => new Date(i.createdAt).toLocaleString("en-US", { timeZone: "Asia/Riyadh" }) },
     {
       key: "handled",
       header: "Handled",

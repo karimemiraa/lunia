@@ -47,7 +47,7 @@ export function EditPostForm({ post, media }: EditPostFormProps) {
       </label>
       {post.publishedAt && (
         <p className="text-xs text-[var(--color-ink)]/50">
-          First published {new Date(post.publishedAt).toLocaleDateString()}.
+          First published {new Date(post.publishedAt).toLocaleDateString("en-US", { timeZone: "Asia/Riyadh" })}.
         </p>
       )}
 

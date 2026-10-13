@@ -27,6 +27,8 @@ const STATUS_TONES: Record<string, StatusTone> = {
   DONE: "success",
   IN_PROGRESS: "warning",
   DECLINED: "neutral",
+  EXPIRED: "neutral",
+  REDEEMED: "neutral",
   ACTIVE: "success",
   INACTIVE: "neutral",
 };

@@ -3,6 +3,7 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { getStaffUserFromRequest } from "@/modules/iam/requestAuth";
 import { listClients, applyRosterView, ROSTER_VIEWS, type RosterView, type ClientLifecycle } from "@/modules/crm/clients";
 import { toCsv } from "@/modules/reports/csv";
+import { utcToCenterLocal } from "@/modules/booking/availability";
 
 const COLUMNS = [
   { key: "fullName", label: "Customer" },
@@ -22,7 +23,7 @@ const COLUMNS = [
   { key: "createdAt", label: "Customer since" },
 ];
 
-const iso = (d: Date | undefined) => (d ? d.toISOString().slice(0, 10) : "");
+const iso = (d: Date | undefined) => (d ? utcToCenterLocal(d).dateISO : "");
 
 // GET /admin/clients/export?<same filters as the roster> — the current view as CSV.
 export async function GET(request: Request) {

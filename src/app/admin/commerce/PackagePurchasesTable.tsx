@@ -12,7 +12,7 @@ export interface PackagePurchaseRowDTO {
 }
 
 function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "Asia/Riyadh" }).format(new Date(iso));
 }
 
 const STATUS_STYLES: Record<PackagePurchaseRowDTO["status"], string> = {

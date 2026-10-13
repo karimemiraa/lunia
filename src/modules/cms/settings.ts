@@ -142,6 +142,12 @@ const automationSettingsSchema = z.object({
   /** Max win-back messages per day, so a first run can't flood the outbox. */
   winBackDailyCap: z.number().int().min(1).max(500).default(40),
   staffDigestEnabled: z.boolean().default(false),
+  /** Re-send unpaid invoices (with pay link) to the customer — off until an owner enables it. */
+  invoiceReminderEnabled: z.boolean().default(false),
+  invoiceReminderDays: z.number().int().min(1).max(30).default(3),
+  /** Mark appointments nobody checked in as no-shows after N hours — off by default. */
+  autoNoShowEnabled: z.boolean().default(false),
+  autoNoShowHours: z.number().int().min(2).max(168).default(24),
 });
 export type AutomationSettings = z.infer<typeof automationSettingsSchema>;
 export const DEFAULT_AUTOMATION_SETTINGS: AutomationSettings = automationSettingsSchema.parse({});

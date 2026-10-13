@@ -9,6 +9,7 @@ import { GiftCardFan } from "@/components/site/apple/GiftCardFan";
 import { buildMetadata } from "@/modules/seo/metadata";
 import type { PublicLocale } from "@/modules/cms/publicContent";
 import { GiftCardForm } from "./GiftCardForm";
+import { onlineGiftSalesAvailable } from "@/modules/commerce/giftShop";
 
 interface GiftCardsPageProps {
   params: Promise<{ locale: string }>;
@@ -88,7 +89,14 @@ export default async function GiftCardsPage({ params }: GiftCardsPageProps) {
 
       <Chapter id="buy" tone="page" eyebrow={t("buy.eyebrow")} heading={t("buy.heading")}>
         <div className="mx-auto max-w-3xl">
-          <GiftCardForm locale={locale} />
+          {onlineGiftSalesAvailable() ? (
+            <GiftCardForm locale={locale} />
+          ) : (
+            <div className="flex flex-col gap-3 rounded-[28px] border border-[var(--color-ink)]/10 p-8 text-center" data-testid="gift-cards-unavailable">
+              <h3 className="text-xl text-[var(--color-ink)]">{t("buy.unavailableHeading")}</h3>
+              <p className="text-sm text-[var(--color-ink)]/75">{t("buy.unavailableBody")}</p>
+            </div>
+          )}
         </div>
       </Chapter>
     </main>

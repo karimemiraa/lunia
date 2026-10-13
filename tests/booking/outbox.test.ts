@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, beforeAll } from "vitest";
 import { prisma } from "@/lib/db";
-import { scheduleMessage, processDueMessages, reclaimStaleClaims, renderMessageBody, stubSender } from "@/modules/booking/outbox";
+import { scheduleMessage, processDueMessages, reclaimStaleClaims, renderMessageBody, stubSender, requeueFailedMessages, MAX_SEND_ATTEMPTS } from "@/modules/booking/outbox";
 import type { CommsSender } from "@/modules/booking/outbox";
 
 // Every phone created by this suite carries this prefix so cleanup can find
@@ -145,6 +145,36 @@ describe("processDueMessages", () => {
     const logs = await prisma.communicationLog.findMany({ where: { toPhone: phone } });
     expect(logs.length).toBe(1);
     expect(logs[0]!.status).toBe("FAILED");
+  });
+
+  it("retries a failed send with a growing pause, up to MAX_SEND_ATTEMPTS", async () => {
+    let now = new Date();
+    const phone = freshPhone();
+    const msg = await scheduleMessage({ kind: "POST_VISIT", toPhone: phone, locale: "en", sendAt: new Date(now.getTime() - 1_000), payload: {} });
+    const failingSender: CommsSender = { send: async () => ({ ok: false }) };
+    const row = () => prisma.scheduledMessage.findUniqueOrThrow({ where: { id: msg.id } });
+
+    for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt++) {
+      await processDueMessages(now, failingSender);
+      const failed = await row();
+      expect(failed.status).toBe("FAILED");
+      expect(failed.attempts).toBe(attempt);
+      // Too soon: stays FAILED.
+      await requeueFailedMessages(new Date(failed.failedAt!.getTime() + 60_000));
+      expect((await row()).status).toBe("FAILED");
+      now = new Date(failed.failedAt!.getTime() + attempt * 10 * 60_000 + 1_000);
+      await requeueFailedMessages(now);
+      expect((await row()).status).toBe(attempt < MAX_SEND_ATTEMPTS ? "PENDING" : "FAILED");
+    }
+  });
+
+  it("does not retry a message that is no longer timely", async () => {
+    const now = new Date();
+    const phone = freshPhone();
+    const msg = await scheduleMessage({ kind: "POST_VISIT", toPhone: phone, locale: "en", sendAt: new Date(now.getTime() - 7 * 3_600_000), payload: {} });
+    await processDueMessages(now, { send: async () => ({ ok: false }) });
+    await requeueFailedMessages(new Date(now.getTime() + 30 * 60_000));
+    expect((await prisma.scheduledMessage.findUniqueOrThrow({ where: { id: msg.id } })).status).toBe("FAILED");
   });
 
   it("does not abort the batch when one message's sender call throws", async () => {

@@ -73,7 +73,7 @@ export function InquiryPanel({ id, email, assignedToId, clientProfileId, replied
         <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Reply by email</span>
         {repliedAtIso && (
           <div className="rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-2)]/50 px-3 py-2 text-sm">
-            <p className="text-xs text-[var(--color-ink)]/45">Replied {new Date(repliedAtIso).toLocaleString()}</p>
+            <p className="text-xs text-[var(--color-ink)]/45">Replied {new Date(repliedAtIso).toLocaleString("en-US", { timeZone: "Asia/Riyadh" })}</p>
             {replyBody && <p className="mt-1 whitespace-pre-wrap text-[var(--color-ink)]/80">{replyBody}</p>}
           </div>
         )}

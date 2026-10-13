@@ -39,3 +39,13 @@ keeps the OLD Prisma client in memory: new tables/columns fail with
 `Unknown argument …` or `Cannot read properties of undefined (reading 'findMany')`.
 Restart `next dev`. If public pages then 404 after a local `next build`, delete
 `.next/dev` and restart. Production is unaffected (fresh image per deploy).
+
+## 3. Open decisions from the October 2026 safety audit
+
+**Status:** ⏳ Waiting on the owner — nothing changed yet
+
+- **Database backups aren't scheduled.** `deploy/scripts/backup.sh` exists but no cron/systemd timer runs it on the VPS. Needs a decision on schedule and off-site destination (RUNBOOK §4).
+- **Content-Security-Policy allows `'unsafe-inline'` scripts.** Moving to nonces is doable but touches every page render; worth a dedicated change.
+- **Public invoice links never expire.** Anyone with the link can view the invoice (name, phone, amounts). Options: expire after N days, or require the phone's last 4 digits.
+- **Moyasar webhook token check** is skipped when the secret isn't set. Low risk because the payment status is always re-fetched from Moyasar, but set `PAYMENT_WEBHOOK_SECRET` in production.
+- **Gift cards sold online before 2026-10-14** may have been issued without a real payment (stub charge). Check `GiftCardOrder` rows with `paymentRef` starting `stub-` in production.

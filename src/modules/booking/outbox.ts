@@ -235,6 +235,28 @@ const DEFAULT_BATCH_SIZE = 100;
 // reclaimStaleClaims so it gets another delivery attempt.
 const STALE_CLAIM_MS = 5 * 60_000;
 
+// Transient send failures (provider timeout, rate limit…) are retried a few
+// times with a growing pause, but only while the message is still timely:
+// a reminder that failed six hours ago is not worth sending now.
+export const MAX_SEND_ATTEMPTS = 3;
+const RETRY_BASE_MS = 10 * 60_000;
+const RETRY_FRESHNESS_MS = 6 * 3_600_000;
+
+export async function requeueFailedMessages(now: Date): Promise<number> {
+  const candidates = await prisma.scheduledMessage.findMany({
+    where: { status: "FAILED", attempts: { lt: MAX_SEND_ATTEMPTS }, failedAt: { not: null }, sendAt: { gte: new Date(now.getTime() - RETRY_FRESHNESS_MS) } },
+    select: { id: true, attempts: true, failedAt: true },
+    take: 200,
+  });
+  let requeued = 0;
+  for (const c of candidates) {
+    if (c.failedAt!.getTime() + RETRY_BASE_MS * Math.max(1, c.attempts) > now.getTime()) continue;
+    const r = await prisma.scheduledMessage.updateMany({ where: { id: c.id, status: "FAILED" }, data: { status: "PENDING", sendAt: now } });
+    requeued += r.count;
+  }
+  return requeued;
+}
+
 // Returns abandoned SENDING rows (claimedAt older than `olderThanMs`) to
 // PENDING so a crashed worker's in-flight batch is retried rather than stuck.
 // Returns the number of rows reclaimed. Call it at the top of each worker
@@ -257,7 +279,7 @@ export async function reclaimStaleClaims(now: Date, olderThanMs: number = STALE_
 async function finalizeMessage(
   message: ScheduledMessage,
   status: "SENT" | "FAILED",
-  opts: { channel: string; toPhone?: string | null; toEmail?: string | null; body: string; providerRef?: string; now: Date },
+  opts: { channel: string; toPhone?: string | null; toEmail?: string | null; body: string; providerRef?: string; now: Date; retryable?: boolean },
 ): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
     const res = await tx.scheduledMessage.updateMany({
@@ -267,6 +289,9 @@ async function finalizeMessage(
         sentAt: status === "SENT" ? opts.now : undefined,
         claimId: null,
         claimedAt: null,
+        // Failures are retried by requeueFailedMessages unless they can never
+        // succeed (no recipient) — those are parked past the retry limit.
+        ...(status === "FAILED" ? { failedAt: opts.now, attempts: opts.retryable === false ? MAX_SEND_ATTEMPTS : { increment: 1 } } : {}),
       },
     });
     if (res.count !== 1) return false;
@@ -396,7 +421,7 @@ export async function processDueMessages(
       const routed = pickChannelAndRecipient(message, pref, globalDefault);
       if (!routed) {
         // No usable recipient — record FAILED so it isn't retried forever.
-        if (await finalizeMessage(message, "FAILED", { channel, body: "", now })) failed += 1;
+        if (await finalizeMessage(message, "FAILED", { channel, body: "", now, retryable: false })) failed += 1;
         continue;
       }
       channel = routed.channel;

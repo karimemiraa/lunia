@@ -13,7 +13,7 @@ export function PostsTable({ posts }: { posts: BlogPost[] }) {
       key: "publishedAt",
       header: "Published at",
       value: (p) => (p.publishedAt ? new Date(p.publishedAt) : null),
-      render: (p) => (p.publishedAt ? new Date(p.publishedAt).toLocaleDateString() : "None"),
+      render: (p) => (p.publishedAt ? new Date(p.publishedAt).toLocaleDateString("en-US", { timeZone: "Asia/Riyadh" }) : "None"),
     },
     { key: "isPublished", header: "Published", value: (p) => (p.isPublished ? "Yes" : "No") },
     {

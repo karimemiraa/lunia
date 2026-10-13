@@ -895,7 +895,16 @@ export async function cancel(bookingId: string): Promise<Booking> {
   if (booking.status === "COMPLETED") {
     throw new Error("Cannot cancel a completed booking");
   }
-  const updated = await prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED" } });
+  if (booking.status === "NO_SHOW") {
+    throw new Error("Cannot cancel a no-show (it would erase the no-show record)");
+  }
+  // Already cancelled: a double click / repeat call is a no-op, so the
+  // waitlist isn't told about a slot that was already freed.
+  if (booking.status === "CANCELLED") return booking;
+  // Atomic flip so two concurrent cancels can't both notify the waitlist.
+  const flipped = await prisma.booking.updateMany({ where: { id: bookingId, status: { notIn: ["CANCELLED", "COMPLETED", "NO_SHOW"] } }, data: { status: "CANCELLED" } });
+  const updated = await prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
+  if (flipped.count !== 1) return updated;
 
   try {
     await skipPendingVisitMessages(bookingId);
@@ -908,7 +917,10 @@ export async function cancel(bookingId: string): Promise<Booking> {
   // for that service on that day and notify them. Must never fail/block the
   // cancellation itself -- a missed waitlist notification is recoverable,
   // failing to record the cancellation is not.
+  const now = Date.now();
   for (const appointment of booking.appointments) {
+    // Only a slot still in the future is worth offering to the waitlist.
+    if (appointment.startAt.getTime() <= now) continue;
     try {
       const { dateISO } = utcToCenterLocal(appointment.startAt);
       await notifyWaitlistForSlot(appointment.serviceId, dateISO);
@@ -949,6 +961,11 @@ export async function reschedule(
   const booking = await getBookingOrThrow(bookingId);
   if (booking.status === "COMPLETED" || booking.status === "CANCELLED" || booking.status === "NO_SHOW") {
     throw new Error(`Cannot reschedule a booking with status "${booking.status}"`);
+  }
+  // The customer is already here (checked in / in the chair): moving it to
+  // another day would leave a checked-in booking in the future.
+  if (booking.status === "CHECKED_IN") {
+    throw new Error("This customer is already checked in — complete or cancel the visit instead of rescheduling");
   }
   const appointment = booking.appointments[0];
   if (!appointment) {

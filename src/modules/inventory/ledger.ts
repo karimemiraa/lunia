@@ -5,6 +5,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { recordStockMovement } from "./stock";
+import { utcToCenterLocal } from "@/modules/booking/availability";
 
 export interface LedgerRow {
   id: string;
@@ -183,7 +184,7 @@ export async function postStockTake(input: StockTakeInput, actorId?: string) {
       SELECT id, "nameEn", unit, "stockQty", "costMinor" FROM "Product"
       WHERE id = ANY(${ids}::text[]) ORDER BY id FOR UPDATE`;
     const variances = locked.map((p) => toVariance(p, byId.get(p.id)!));
-    const stamp = new Date().toISOString().slice(0, 10);
+    const stamp = utcToCenterLocal(new Date()).dateISO;
     for (const v of variances) {
       if (v.variance === 0) continue;
       await recordStockMovement(

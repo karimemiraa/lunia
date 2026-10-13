@@ -16,6 +16,9 @@ import {
   CLIENT_SESSION_COOKIE,
 } from "@/modules/iam/clientAuth";
 import { getSetting, loginIdentifierMode } from "@/modules/cms/settings";
+import { requestIp } from "@/lib/requestIp";
+import { hitRateLimit } from "@/lib/rateLimit";
+import { checkLoginAllowed, recordLoginFailure, recordLoginSuccess } from "@/modules/iam/loginThrottle";
 
 const LOGIN_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -71,6 +74,9 @@ export async function startLoginOtp(identifier: string, locale: string): Promise
     const normalized = identifierSchema.parse(identifier);
     const modeError = await identifierModeError(normalized, t);
     if (modeError) return { ok: false, error: modeError };
+    // Per-IP cap on top of requestOtp's per-identifier limit (stops one
+    // client from flooding many phones/emails with codes).
+    if (!(await hitRateLimit(`otp-ip:${await requestIp()}`, 20, 3600))) return { ok: false, error: t("rateLimited") };
     const result = await requestOtp(normalized);
     return { ok: true, devCode: result.devCode };
   } catch (err) {
@@ -129,11 +135,21 @@ export async function loginWithPassword(input: PasswordLoginInput): Promise<Veri
   const modeError = await identifierModeError(data.identifier, t);
   if (modeError) return { ok: false, error: modeError };
 
+  // Brute-force protection: lock an identifier after repeated failures (same
+  // policy as staff login) and cap attempts per IP.
+  const idKey = `client:${data.identifier.trim().toLowerCase()}`;
+  const ip = await requestIp();
+  if (!(await checkLoginAllowed(idKey)).allowed || !(await hitRateLimit(`client-login-ip:${ip}`, 30, 15 * 60))) {
+    return { ok: false, error: t("rateLimited") };
+  }
+
   const authed = await authenticateClient(data.identifier, data.password);
   if (!authed) {
+    await recordLoginFailure(idKey);
     return { ok: false, error: t("invalidCredentials") };
   }
 
+  await recordLoginSuccess(idKey);
   await establishSession(authed.userId);
   return { ok: true };
 }

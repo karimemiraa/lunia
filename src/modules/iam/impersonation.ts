@@ -15,7 +15,7 @@
 // staff profile can be targeted, so this can't be used to borrow a colleague's
 // identity.
 
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { getRedis } from "@/lib/redis";
 import { prisma } from "@/lib/db";
 import { createSession, destroySession } from "./session";
@@ -26,6 +26,21 @@ export const IMPERSONATION_COOKIE = "lunia_impersonation";
 export const IMPERSONATION_TTL_SECONDS = 60 * 60;
 
 const markerKey = (id: string) => `impersonation:${id}`;
+// Server-side tag on the impersonation SESSION itself (keyed by a hash of the
+// token), so "is this a staff preview?" can't be dodged by deleting the
+// marker cookie.
+const sessionTagKey = (token: string) => `impersonation-session:${createHash("sha256").update(token).digest("hex")}`;
+
+/** True when this client session token belongs to a staff "view as" preview. */
+export async function isImpersonationSession(token: string | undefined): Promise<boolean> {
+  if (!token) return false;
+  try {
+    return (await getRedis().exists(sessionTagKey(token))) === 1;
+  } catch {
+    // Can't tell → treat as a preview (fail closed for the guarded actions).
+    return true;
+  }
+}
 
 export interface ImpersonationRecord {
   actorUserId: string;
@@ -80,6 +95,7 @@ export async function startImpersonation(input: {
     startedAt: new Date().toISOString(),
   };
   await getRedis().set(markerKey(markerId), JSON.stringify(record), "EX", IMPERSONATION_TTL_SECONDS);
+  await getRedis().set(sessionTagKey(sessionToken), "1", "EX", IMPERSONATION_TTL_SECONDS);
 
   await recordAudit({
     actorUserId: input.actorUserId,
@@ -108,7 +124,7 @@ export async function endImpersonation(markerId: string | undefined): Promise<Im
   const record = await getImpersonation(markerId);
   if (!record || !markerId) return null;
   await destroySession(record.sessionToken);
-  await getRedis().del(markerKey(markerId));
+  await getRedis().del(markerKey(markerId), sessionTagKey(record.sessionToken));
   await recordAudit({
     actorUserId: record.actorUserId,
     action: "customer.view_as.end",

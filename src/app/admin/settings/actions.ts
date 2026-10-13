@@ -124,6 +124,10 @@ export async function saveAutomationsAction(_prev: SaveSettingsState | null, for
     winBackDays: num("winBackDays"),
     winBackDailyCap: num("winBackDailyCap"),
     staffDigestEnabled: formData.get("staffDigestEnabled") === "on",
+    invoiceReminderEnabled: formData.get("invoiceReminderEnabled") === "on",
+    invoiceReminderDays: num("invoiceReminderDays"),
+    autoNoShowEnabled: formData.get("autoNoShowEnabled") === "on",
+    autoNoShowHours: num("autoNoShowHours"),
   };
   try {
     await setSetting("automations", value);
@@ -136,7 +140,7 @@ export async function saveAutomationsAction(_prev: SaveSettingsState | null, for
     action: "SETTINGS_AUTOMATIONS",
     entityType: "SiteSetting",
     entityId: "automations",
-    summary: `Automations: package reminders ${value.packageReminderEnabled ? `on (${value.packageReminderDays}d)` : "off"}, win-back ${value.winBackEnabled ? `on (${value.winBackDays}d, cap ${value.winBackDailyCap}/day)` : "off"}, staff digest ${value.staffDigestEnabled ? "on" : "off"}`,
+    summary: `Automations: package reminders ${value.packageReminderEnabled ? `on (${value.packageReminderDays}d)` : "off"}, win-back ${value.winBackEnabled ? `on (${value.winBackDays}d, cap ${value.winBackDailyCap}/day)` : "off"}, staff digest ${value.staffDigestEnabled ? "on" : "off"}, invoice reminders ${value.invoiceReminderEnabled ? `on (${value.invoiceReminderDays}d)` : "off"}, auto no-show ${value.autoNoShowEnabled ? `on (${value.autoNoShowHours}h)` : "off"}`,
   });
   revalidatePath("/admin/settings");
   return { success: true };

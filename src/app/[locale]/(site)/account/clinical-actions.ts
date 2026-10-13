@@ -12,6 +12,8 @@ import { prisma } from "@/lib/db";
 import { getClientSessionUser, CLIENT_SESSION_COOKIE } from "@/modules/iam/clientAuth";
 import { submitIntake } from "@/modules/clinical/intake";
 import { consentStatusForClient, signConsent } from "@/modules/clinical/consents";
+import { isImpersonationSession } from "@/modules/iam/impersonation";
+import { ipFromHeaders } from "@/lib/requestIp";
 
 type AccountLocale = "en" | "ar";
 const asLocale = (locale: string): AccountLocale => (locale === "ar" ? "ar" : "en");
@@ -25,12 +27,18 @@ async function currentClientProfileId(): Promise<string | null> {
   return profile?.id ?? null;
 }
 
-// First hop of X-Forwarded-For (nginx sets it), else X-Real-IP. Recorded on
-// the signature as evidence only; never used for access decisions.
+// Signer IP, recorded on the signature as evidence: X-Real-IP / last
+// X-Forwarded-For hop (the first hop is client-supplied and spoofable).
 async function requestIp(): Promise<string | null> {
-  const h = await headers();
-  const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return (forwarded || h.get("x-real-ip") || "").slice(0, 64) || null;
+  const ip = ipFromHeaders(await headers());
+  return ip === "unknown" ? null : ip.slice(0, 64);
+}
+
+// A health declaration or consent signature must come from the customer, never
+// from staff previewing their account ("view as customer").
+const PREVIEW_BLOCKED = "Not available while viewing as this customer — they need to do this themselves.";
+async function isStaffPreview(): Promise<boolean> {
+  return isImpersonationSession((await cookies()).get(CLIENT_SESSION_COOKIE)?.value);
 }
 
 export type HealthSaveResult = { ok: true } | { ok: false; error: string };
@@ -39,6 +47,7 @@ export async function saveMyHealthProfile(locale: string, answers: unknown): Pro
   const t = await getTranslations({ locale: asLocale(locale), namespace: "health.errors" });
   const clientProfileId = await currentClientProfileId();
   if (!clientProfileId) return { ok: false, error: t("notAuthenticated") };
+  if (await isStaffPreview()) return { ok: false, error: PREVIEW_BLOCKED };
   try {
     await submitIntake({ clientProfileId, answers, submittedBy: "CLIENT" });
   } catch {
@@ -59,6 +68,7 @@ export async function signMyConsent(
   const t = await getTranslations({ locale: loc, namespace: "consents.sign.errors" });
   const clientProfileId = await currentClientProfileId();
   if (!clientProfileId) return { ok: false, error: t("notAuthenticated") };
+  if (await isStaffPreview()) return { ok: false, error: PREVIEW_BLOCKED };
 
   // Only forms currently offered to this client (required or optional) can be
   // signed from the account; tie the signature to the booking that needs it.

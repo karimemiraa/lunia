@@ -535,6 +535,7 @@ enum GiftCardStatus {
   ACTIVE
   REDEEMED
   VOID
+  EXPIRED
 }
 
 // `code` is a random, unguessable token (crypto.randomBytes-derived, never
@@ -841,6 +842,9 @@ model ScheduledMessage {
   // abandoned SENDING row (crashed worker) be reclaimed after a timeout.
   claimId         String?
   claimedAt       DateTime?
+  // Automatic retry of transient send failures (outbox.requeueFailedMessages).
+  attempts        Int       @default(0)
+  failedAt        DateTime?
 
   @@index([status, sendAt])
   @@index([claimId])
@@ -1232,6 +1236,9 @@ model Invoice {
   vatMinor          Int            @default(0)
   totalMinor        Int            @default(0)
   paidMinor         Int            @default(0)
+  /// Customer payment reminders sent for this invoice (automation job).
+  remindersSent     Int            @default(0)
+  lastReminderAt    DateTime?
   vatRateBp         Int            @default(1500)
   notes             String?        @db.Text
   createdById       String?
@@ -1659,6 +1666,9 @@ model MembershipSubscription {
   startedAt          DateTime          @default(now())
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
+  /// Billing anchor (enrolment or last resume): months are counted from here
+  /// so a 31st-of-the-month member is billed on the 31st/last day each month.
+  billingAnchorAt    DateTime?
   /// Earliest date it may end (minimum term).
   minTermEndsAt      DateTime
   /// Scheduled end (no new cycles from this date).

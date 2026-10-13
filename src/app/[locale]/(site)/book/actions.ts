@@ -27,6 +27,8 @@ import {
 import { getGiftCard, redeemGiftCard } from "@/modules/commerce/giftcards";
 import { listActivePackagePurchasesForClient, consumePackageSession } from "@/modules/commerce/packages";
 import { prisma } from "@/lib/db";
+import { requestIp } from "@/lib/requestIp";
+import { hitRateLimit } from "@/lib/rateLimit";
 
 export type BookLocale = "en" | "ar";
 
@@ -87,6 +89,7 @@ export async function startOtp(identifier: string, locale: string): Promise<Star
   const t = await errorTranslator(locale);
   try {
     const normalized = identifierSchema.parse(identifier);
+    if (!(await hitRateLimit(`otp-ip:${await requestIp()}`, 20, 3600))) return { ok: false, error: t("rateLimited") };
     const result = await requestOtp(normalized, { locale });
     return { ok: true, devCode: result.devCode };
   } catch (err) {
@@ -361,6 +364,8 @@ export async function joinWaitlistAction(input: JoinWaitlistActionInput): Promis
   const t = await errorTranslator(extractRawLocale(input));
   try {
     const data = joinWaitlistActionSchema.parse(input);
+    // No OTP on the waitlist, so cap it per IP against junk entries.
+    if (!(await hitRateLimit(`waitlist-ip:${await requestIp()}`, 10, 3600))) return { ok: false, error: t("rateLimited") };
     const id = resolveIdentifier(data.identifier);
 
     await joinWaitlist({

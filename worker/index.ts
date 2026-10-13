@@ -28,7 +28,7 @@ try {
 const POLL_INTERVAL_MS = 30_000;
 
 async function main() {
-  const { processDueMessages, reclaimStaleClaims } = await import("@/modules/booking/outbox");
+  const { processDueMessages, reclaimStaleClaims, requeueFailedMessages } = await import("@/modules/booking/outbox");
   const { runDueJobs } = await import("@/modules/automation/jobs");
   const { prisma } = await import("@/lib/db");
 
@@ -48,6 +48,8 @@ async function main() {
       // before claiming this tick's batch.
       const reclaimed = await reclaimStaleClaims(new Date());
       if (reclaimed > 0) console.log(`[worker] reclaimed ${reclaimed} stale claim(s)`);
+      const retried = await requeueFailedMessages(new Date());
+      if (retried > 0) console.log(`[worker] retrying ${retried} failed message(s)`);
       // No sender override: processDueMessages resolves the real/stub sender
       // per message based on its resolved channel (whatsapp/sms/email).
       const result = await processDueMessages(new Date());

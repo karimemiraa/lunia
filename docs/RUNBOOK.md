@@ -154,8 +154,11 @@ replicas or restarts.
 |---|---|---|---|
 | waitlist-expiry | 01:00 | on | Waitlist entries for past dates → EXPIRED |
 | package-expiry | 01:00 | on | Package purchases past `expiresAt` → EXPIRED |
+| gift-card-expiry | 01:00 | always | Active gift cards past `expiresAt` → EXPIRED |
+| auto-no-show | 02:00 | **off** | CONFIRMED visits never checked in, ended ≥ N hours ago (default 24; looks back 14 days) → NO_SHOW |
 | staff-digest | 08:00 | **off** | Emails each assignee their open items |
 | package-reminders | 10:00 | on | "Your package expires soon" to the customer (once per purchase) |
+| invoice-reminders | 10:00 | **off** | Re-sends an unpaid invoice (with pay link if online payments are set up) after N days and again after 2N — max 2 per invoice (`Invoice.remindersSent`); WhatsApp, or email if no phone; test customers skipped |
 | win-back | 11:00 | **off** | "We miss you" to customers with no visit in N days and nothing booked |
 
 - **Where to toggle them:** owners switch jobs on or off, and set the thresholds, under **Settings → Automations**. The last run and its result are shown there too, from the `JobRun` table.
@@ -199,6 +202,16 @@ In **Calendar → Book walk-in**:
 4. Confirm. Dates that aren't free are skipped and listed so you can book them separately; nothing is ever double-booked.
 
 Each visit is a normal booking linked by `Booking.seriesId`, with a "Series" badge in the day view. The customer gets **one** confirmation and a 24h reminder before every visit. **Cancel this and following** (in a visit's actions) cancels that visit and every later one that hasn't happened yet.
+
+### 3.6 Safety rules added in the October 2026 audit
+
+- **Online gift card sales are switched off in production.** There is no real card charge wired up for gift cards yet, so the public gift card page shows "not available online" and `chargeGiftCard` always declines in production (dev/test still use a stub). Staff can still issue gift cards from Commerce. Before re-enabling, wire `chargeGiftCard` (`src/modules/commerce/giftShop.ts`) to Moyasar.
+- **Rate limits** (Redis, `src/lib/rateLimit.ts`, fail open if Redis is down): OTP start 20/hour per IP; client password login 30 per 15 min per IP plus the per-account lockout used for staff; contact form 8/hour; waitlist 10/hour.
+- **Client IP** comes from `X-Real-IP` (set by nginx) or the *last* `X-Forwarded-For` hop — never the first, which the visitor controls (`src/lib/requestIp.ts`).
+- **Staff "view as customer"** sessions are tagged in Redis; they can't change the customer's password, notification preferences, health profile or sign consents.
+- **Bookings:** cancelling twice is a no-op; a no-show can't be cancelled; a checked-in visit can't be rescheduled; the waitlist is only notified when a *future* slot frees up.
+- **Membership renewals** are anchored to the enrolment (or resume) day, so a Jan 31 membership renews Feb 28 → Mar 31, not Mar 28 forever (`MembershipSubscription.billingAnchorAt`).
+- **Dates** in exports, stock-take notes and admin tables are shown in Riyadh time.
 
 ## 4. Backup
 
@@ -429,6 +442,13 @@ A provider outage never takes down the worker or the OTP flow:
   log-write errors independently — a comms outage never blocks OTP issuance,
   since the code is already stored in Redis regardless of whether the SMS
   (or its log row) went out.
+
+**Automatic retry (2026-10-14):** a FAILED message is put back to PENDING by
+`requeueFailedMessages()` (called every worker tick) after 10 min × attempts,
+up to `MAX_SEND_ATTEMPTS` = 3 in total, and only while its original `sendAt`
+is less than 6 hours old (a reminder hours late is worse than none). A message
+with no recipient is never retried. `ScheduledMessage.attempts` / `failedAt`
+show the history.
 
 Every attempt — success or failure, WhatsApp/SMS/OTP — is recorded in
 `CommunicationLog`, visible at `/admin/comms`.

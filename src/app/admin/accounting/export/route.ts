@@ -17,6 +17,7 @@ import {
 } from "@/modules/accounting/reports";
 import { EXPENSE_CSV_COLUMNS, expenseCsvRows, listExpenses } from "@/modules/accounting/expenses";
 import { parseExpenseFilterParams } from "../expenses/filters";
+import { utcToCenterLocal } from "@/modules/booking/availability";
 
 const REPORTS = ["overview", "pnl", "vat", "sales", "receivables", "expenses"] as const;
 type Report = (typeof REPORTS)[number];
@@ -48,7 +49,7 @@ export async function GET(request: Request) {
     case "receivables": {
       const now = new Date();
       table = receivablesCsv(await receivablesAging(now));
-      suffix = `as-of-${now.toISOString().slice(0, 10)}`;
+      suffix = `as-of-${utcToCenterLocal(now).dateISO}`;
       break;
     }
     case "expenses": {
