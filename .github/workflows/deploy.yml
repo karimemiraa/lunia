@@ -110,7 +110,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.prod.yml,deploy/nginx/lunia.conf"
+          source: "docker-compose.prod.yml,deploy/nginx/lunia.conf,deploy/scripts/backup.sh,deploy/scripts/fetch-offsite-backup.sh,deploy/scripts/check-gift-stubs.sh"
           target: /home/ubuntu/lunia
       - name: Deploy (pull images, migrate, restart)
         uses: appleboy/ssh-action@v1.2.0
@@ -118,13 +118,45 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GH_TOKEN,GH_ACTOR,IMAGE,SHA
+          envs: GH_TOKEN,GH_ACTOR,IMAGE,SHA,BACKUP_S3_ENDPOINT,BACKUP_S3_BUCKET,BACKUP_S3_REGION,BACKUP_S3_ACCESS_KEY_ID,BACKUP_S3_SECRET_ACCESS_KEY,BACKUP_ENCRYPTION_KEY
           script: |
             set -e
             cd /home/ubuntu/lunia
+            chmod +x deploy/scripts/*.sh
+
+            # Off-site backup settings (root-only) + nightly cron at ~02:15 Riyadh.
+            # Values come from GitHub secrets; nothing is written when unset, and
+            # backup.sh then keeps local copies only and flags it in admin.
+            sudo install -d -m 700 /etc/lunia
+            if [ -n "$BACKUP_S3_BUCKET" ]; then
+              sudo install -m 600 /dev/null /etc/lunia/backup.env
+              {
+                printf 'BACKUP_S3_ENDPOINT=%q\n' "$BACKUP_S3_ENDPOINT"
+                printf 'BACKUP_S3_BUCKET=%q\n' "$BACKUP_S3_BUCKET"
+                printf 'BACKUP_S3_REGION=%q\n' "${BACKUP_S3_REGION:-auto}"
+                printf 'BACKUP_S3_ACCESS_KEY_ID=%q\n' "$BACKUP_S3_ACCESS_KEY_ID"
+                printf 'BACKUP_S3_SECRET_ACCESS_KEY=%q\n' "$BACKUP_S3_SECRET_ACCESS_KEY"
+                printf 'BACKUP_ENCRYPTION_KEY=%q\n' "$BACKUP_ENCRYPTION_KEY"
+              } | sudo tee /etc/lunia/backup.env > /dev/null
+            else
+              echo "::warning::Off-site backup secrets are not set; backups stay on the server only."
+            fi
+            if [ "$(date +%z)" = "+0300" ]; then BACKUP_HOUR=2; else BACKUP_HOUR=23; fi
+            printf 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n15 %s * * * root cd /home/ubuntu/lunia && bash deploy/scripts/backup.sh >> /var/log/lunia-backup.log 2>&1\n' "$BACKUP_HOUR" \
+              | sudo tee /etc/cron.d/lunia-backup > /dev/null
+            sudo chmod 644 /etc/cron.d/lunia-backup
+            printf '/var/log/lunia-backup.log {\n  weekly\n  rotate 8\n  compress\n  missingok\n  notifempty\n}\n' | sudo tee /etc/logrotate.d/lunia-backup > /dev/null
+
             echo "$GH_TOKEN" | sudo docker login ghcr.io -u "$GH_ACTOR" --password-stdin
             export LUNIA_IMAGE="$IMAGE" LUNIA_TAG="$SHA" LUNIA_MIGRATE_TAG="migrate-$SHA"
             sudo -E docker compose -f docker-compose.prod.yml pull app worker migrate
+
+            # Safety net before migrations run. Non-fatal so an urgent fix can
+            # still ship, but loud in the Actions log.
+            sudo bash deploy/scripts/backup.sh || echo "::warning::Pre-deploy backup FAILED, see the log above."
+            echo "== Gift cards issued by the old stub charge (read-only) =="
+            sudo bash deploy/scripts/check-gift-stubs.sh || echo "::warning::Gift card check failed (non-fatal)."
+
             sudo -E docker compose -f docker-compose.prod.yml run --rm migrate prisma migrate deploy
             sudo -E docker compose -f docker-compose.prod.yml up -d app worker
             sudo docker image prune -f
@@ -134,3 +166,9 @@ jobs:
           GH_ACTOR: ${{ github.actor }}
           IMAGE: ${{ env.IMAGE }}
           SHA: ${{ github.sha }}
+          BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}

@@ -1250,7 +1250,9 @@
       "paidInFull": "Paid in full. Thank you.",
       "paymentReceived": "Thank you, your payment was received. It can take a minute to show here.",
       "notFound": "This invoice link is not valid. Please ask us to send it again.",
-      "draft": "This invoice has not been issued yet."
+      "draft": "This invoice has not been issued yet.",
+      "expiredHeading": "This link has expired",
+      "expiredBody": "For your privacy, invoice links work for 60 days. Contact the clinic and we'll send you a fresh link."
     },
     "account": {
       "heading": "My invoices",

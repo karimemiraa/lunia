@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest
 import { prisma } from "@/lib/db";
 import { createDraft, createDraftFromBooking, issueInvoice } from "@/modules/billing/invoices";
 import { recordPayment } from "@/modules/billing/settlement";
-import { createPayLink, handleMoyasarWebhook, onlinePaymentsConfigured } from "@/modules/billing/payments/links";
+import { createPayLink, handleMoyasarWebhook, onlinePaymentsConfigured, callbackSignature } from "@/modules/billing/payments/links";
 import { sendInvoice } from "@/modules/billing/delivery";
 import { setSecret } from "@/modules/platform/secrets";
 import { POST as webhookRoute } from "@/app/api/payments/moyasar/webhook/route";
@@ -122,7 +122,7 @@ describe("billing/payments online pay links (Moyasar)", () => {
     expect(calls[0]!.url).toBe("https://api.moyasar.com/v1/invoices");
     const sent = JSON.parse(String(calls[0]!.init!.body));
     expect(sent).toMatchObject({ amount: 20_000, currency: "SAR" });
-    expect(sent.callback_url).toMatch(/\/api\/payments\/moyasar\/webhook$/);
+    expect(sent.callback_url).toMatch(/\/api\/payments\/moyasar\/webhook\?cb=[0-9a-f]{32}$/);
     expect(sent.back_url).toMatch(/\/en\/invoice\//);
     expect((calls[0]!.init!.headers as Record<string, string>).Authorization).toBe(
       `Basic ${Buffer.from("sk_test_123:").toString("base64")}`,
@@ -160,12 +160,18 @@ describe("billing/payments online pay links (Moyasar)", () => {
     const state = { status: "initiated", amount: 5_000 };
     mockMoyasar(state);
     await prisma.paymentLink.deleteMany({ where: { providerRef: "moy_inv_1" } });
-    await createPayLink(inv.id);
+    const link = await createPayLink(inv.id);
+    // Links created before callback signing shipped are grandfathered; treat this one as new.
+    await prisma.paymentLink.update({ where: { id: link.id }, data: { createdAt: new Date("2026-11-01T00:00:00Z") } });
+    const signed = { callbackSig: callbackSignature("moyasar") };
     // A forged "paid" callback is ignored while the gateway still says initiated.
-    expect((await handleMoyasarWebhook({ id: "moy_inv_1", status: "paid", amount: 5_000 })).body).toMatchObject({ recorded: false });
+    expect((await handleMoyasarWebhook({ id: "moy_inv_1", status: "paid", amount: 5_000 }, signed)).body).toMatchObject({ recorded: false });
     state.status = "paid";
-    expect((await handleMoyasarWebhook({ id: "moy_inv_1", status: "paid", amount: 5_000 })).body).toMatchObject({ recorded: true });
-    expect((await handleMoyasarWebhook({ id: "unknown_ref" })).status).toBe(404);
+    // Unsigned or wrongly signed callbacks are refused outright.
+    expect((await handleMoyasarWebhook({ id: "moy_inv_1", status: "paid", amount: 5_000 })).status).toBe(401);
+    expect((await handleMoyasarWebhook({ id: "moy_inv_1", status: "paid", amount: 5_000 }, { callbackSig: "0".repeat(32) })).status).toBe(401);
+    expect((await handleMoyasarWebhook({ id: "moy_inv_1", status: "paid", amount: 5_000 }, signed)).body).toMatchObject({ recorded: true });
+    expect((await handleMoyasarWebhook({ id: "unknown_ref" }, signed)).status).toBe(404);
   });
 
   it("sends the invoice with its pay link through the (stub) sender and logs it", async () => {

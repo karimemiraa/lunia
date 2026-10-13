@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
-import { verifyInvoiceToken } from "@/modules/billing/token";
+import { checkInvoiceToken } from "@/modules/billing/token";
 import { getInvoiceDocument } from "@/modules/billing/document";
 import { formatAmount } from "@/modules/billing/money";
 import { InvoiceDocumentView } from "@/components/billing/InvoiceDocumentView";
@@ -27,8 +27,18 @@ export default async function InvoiceViewPage({ params, searchParams }: InvoiceV
   const format = rawFormat === "receipt" ? "receipt" : "a4";
   const t = await getTranslations({ locale, namespace: "invoices.view" });
 
-  const id = verifyInvoiceToken(decodeURIComponent(token));
-  const doc = id ? await getInvoiceDocument(id) : null;
+  const check = checkInvoiceToken(decodeURIComponent(token));
+  if (check?.expired) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-md items-center px-6">
+        <div className="lunia-card w-full p-6 text-center text-sm" data-testid="invoice-link-expired">
+          <p className="font-medium">{t("expiredHeading")}</p>
+          <p className="mt-2 text-[var(--color-ink)]/70">{t("expiredBody")}</p>
+        </div>
+      </main>
+    );
+  }
+  const doc = check ? await getInvoiceDocument(check.id) : null;
   if (!doc || doc.status === "DRAFT" || doc.status === "VOID") {
     return (
       <main className="mx-auto flex min-h-screen max-w-md items-center px-6">

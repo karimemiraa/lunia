@@ -356,6 +356,18 @@ export async function runDueJobs(now: Date = new Date(), jobs: JobDef[] = JOBS):
 }
 
 /** Latest run per job, for the admin Automations card. */
+/**
+ * The nightly server backup (deploy/scripts/backup.sh, run by cron on the VPS)
+ * records itself as JobRun "backup". Healthy = a successful off-site run in
+ * the last 36 hours; anything else needs an owner's attention.
+ */
+export function backupProblem(run: { startedAt: Date; ok: boolean | null; summary: string | null } | undefined, now: Date = new Date()): string | null {
+  if (!run) return "No backup has been recorded yet. The nightly backup is installed on the next deploy.";
+  if (now.getTime() - run.startedAt.getTime() > 36 * 3_600_000) return "The last backup is more than a day and a half old. Check the server's backup cron.";
+  if (!run.ok) return run.summary ?? "The last backup failed.";
+  return null;
+}
+
 export async function latestJobRuns(): Promise<Record<string, { startedAt: Date; ok: boolean | null; summary: string | null }>> {
   const rows = await prisma.jobRun.findMany({ orderBy: { startedAt: "desc" }, take: 60 });
   const out: Record<string, { startedAt: Date; ok: boolean | null; summary: string | null }> = {};

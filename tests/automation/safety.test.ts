@@ -162,3 +162,14 @@ describe("unpaid invoice reminders", () => {
     info.mockRestore();
   });
 });
+
+describe("backup health", () => {
+  it("flags missing, stale, failed and local-only backups", async () => {
+    const { backupProblem } = await import("@/modules/automation/jobs");
+    const now = new Date("2026-10-15T08:00:00Z");
+    expect(backupProblem(undefined, now)).toMatch(/No backup/);
+    expect(backupProblem({ startedAt: new Date("2026-10-13T19:00:00Z"), ok: true, summary: "ok" }, now)).toMatch(/day and a half/);
+    expect(backupProblem({ startedAt: new Date("2026-10-14T23:15:00Z"), ok: false, summary: "2 file(s), 40M, LOCAL ONLY" }, now)).toMatch(/LOCAL ONLY/);
+    expect(backupProblem({ startedAt: new Date("2026-10-14T23:15:00Z"), ok: true, summary: "copied off-site" }, now)).toBeNull();
+  });
+});

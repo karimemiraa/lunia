@@ -14,7 +14,7 @@ import { getCommsConfig } from "@/modules/comms/config";
 import { resolveBookingChannel } from "@/modules/booking/outbox";
 import { SettingsForm } from "./SettingsForm";
 import { AutomationsForm } from "./AutomationsForm";
-import { JOBS, getAutomationSettings, latestJobRuns } from "@/modules/automation/jobs";
+import { JOBS, backupProblem, getAutomationSettings, latestJobRuns } from "@/modules/automation/jobs";
 
 const DEFAULT_HOURS: HoursSettings = Object.fromEntries(
   SETTINGS_DAYS.map((day) => [day, { open: "09:00", close: "18:00", closed: false }]),
@@ -49,6 +49,14 @@ export default async function SettingsPage() {
         otpChannel={comms?.otpChannel ?? "AUTO"}
         defaultBookingChannel={comms?.defaultBookingChannel ?? (bookingChannel === "sms" ? "sms" : "whatsapp")}
       />
+      {(() => {
+        const problem = backupProblem(runs.backup);
+        return problem ? (
+          <p className="mt-6 rounded-[var(--radius-sm)] border border-[var(--color-gold)]/45 bg-[var(--color-gold)]/10 px-4 py-3 text-sm" data-testid="backup-warning">
+            <span className="font-medium">Backups need attention:</span> {problem}
+          </p>
+        ) : null;
+      })()}
       <div className="mt-6">
         <AutomationsForm
           value={automations}
@@ -59,7 +67,14 @@ export default async function SettingsPage() {
             lastRunIso: runs[j.name]?.startedAt.toISOString() ?? null,
             ok: runs[j.name]?.ok ?? null,
             summary: runs[j.name]?.summary ?? null,
-          }))}
+          })).concat({
+            name: "backup",
+            label: "Database + media backup, encrypted and copied off-site (server cron)",
+            hour: 2,
+            lastRunIso: runs.backup?.startedAt.toISOString() ?? null,
+            ok: runs.backup?.ok ?? null,
+            summary: runs.backup?.summary ?? null,
+          })}
         />
       </div>
     </AdminShell>

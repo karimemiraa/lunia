@@ -212,30 +212,66 @@ Each visit is a normal booking linked by `Booking.seriesId`, with a "Series" bad
 - **Bookings:** cancelling twice is a no-op; a no-show can't be cancelled; a checked-in visit can't be rescheduled; the waitlist is only notified when a *future* slot frees up.
 - **Membership renewals** are anchored to the enrolment (or resume) day, so a Jan 31 membership renews Feb 28 → Mar 31, not Mar 28 forever (`MembershipSubscription.billingAnchorAt`).
 - **Dates** in exports, stock-take notes and admin tables are shown in Riyadh time.
+- **Invoice links expire after 60 days** (`src/modules/billing/token.ts`). Every send mints a fresh link, so re-sending the invoice (manually or via the reminder job) gives the customer a working one. Links sent before 2026-10-14 work until 2026-12-14. Customers signed in to their account always get fresh links. An expired link shows "This link has expired" with no invoice data.
+- **Strict script policy** (`src/middleware.ts`): admin, superadmin, `/account` and `/invoice` pages get a per-request nonce with `'strict-dynamic'`, so a script injected into those pages doesn't run. Public marketing pages keep `'unsafe-inline'` so they stay statically cached; they hold no private data. Any new inline `<script>` in a private area must take the nonce from the `x-nonce` request header (see `src/app/admin/layout.tsx`).
+- **Payment webhook:** Moyasar events must carry `PAYMENT_WEBHOOK_SECRET`. Invoice callbacks (which carry no token) must arrive on our HMAC-signed callback URL (`?cb=`); unsigned callbacks are refused, except for pay links created before 2026-10-15. The tax settings page warns while the webhook secret isn't set.
+- **Gift card stub check:** every deploy prints, in the Actions log, how many gift cards were issued by the old stub charge and how much balance is still usable (totals only; `deploy/scripts/check-gift-stubs.sh`).
 
 ## 4. Backup
 
-```bash
-./deploy/scripts/backup.sh
-```
+**Automatic (since 2026-10-14):** the deploy workflow installs
+`/etc/cron.d/lunia-backup`, which runs `deploy/scripts/backup.sh` every night at
+about 02:15 Riyadh time and logs to `/var/log/lunia-backup.log` (rotated weekly).
+Every deploy also takes a backup **before** running migrations.
 
-Writes two files under `backups/` (git-ignored): a gzip'd `pg_dump`
-(`db-<timestamp>.sql.gz`) AND a tar of the uploaded-media volume
-(`media-<timestamp>.tgz`). Local copies older than `RETAIN_DAYS` (default 14)
-are pruned. This is **not** an offsite solution — copy `backups/` off the VPS
-to real backup storage. Run nightly via cron, and also before every deploy:
+Each run:
 
-```
-0 2 * * * cd /path/to/lunia && ./deploy/scripts/backup.sh >> /var/log/lunia-backup.log 2>&1
-# then ship the new files offsite, e.g.:
-15 2 * * * rsync -az /path/to/lunia/backups/ user@offsite:/lunia-backups/ >> /var/log/lunia-offsite.log 2>&1
-```
+1. Writes a gzip'd `pg_dump` (`backups/db-<timestamp>.sql.gz`) and a tar of the
+   uploaded media (`backups/media-<timestamp>.tgz`, streamed from the running app
+   container). Local copies older than `RETAIN_DAYS` (default 14) are pruned.
+2. If off-site storage is configured, encrypts each file (AES-256,
+   `BACKUP_ENCRYPTION_KEY`) and uploads it to the S3-compatible bucket under
+   `lunia/`. Off-site copies older than 30 days are deleted.
+3. Records the outcome as JobRun `backup`. **Settings → Automations** shows the
+   last run, with a warning if it failed, was local-only, or is more than 36 hours old.
+
+### 4.1 Off-site storage setup (one-time, owner)
+
+1. Create a bucket in Cloudflare R2, Backblaze B2 or AWS S3. Use an access key
+   that can **only** read and write that bucket.
+2. Generate an encryption key, e.g. `openssl rand -base64 32`. **Store it in the
+   owner's password manager.** Without it, backups cannot be decrypted.
+3. Add these GitHub Actions secrets (repo → Settings → Secrets → Actions):
+
+| Secret | Example |
+|---|---|
+| `BACKUP_S3_ENDPOINT` | `https://<account>.r2.cloudflarestorage.com` |
+| `BACKUP_S3_BUCKET` | `lunia-backups` |
+| `BACKUP_S3_REGION` | optional; `auto` for R2 |
+| `BACKUP_S3_ACCESS_KEY_ID` | bucket-scoped key id |
+| `BACKUP_S3_SECRET_ACCESS_KEY` | its secret |
+| `BACKUP_ENCRYPTION_KEY` | the key from step 2 |
+
+4. Re-run the latest deploy (Actions → Deploy → Re-run). It writes
+   `/etc/lunia/backup.env` (root-only) and takes a backup straight away. Check
+   Settings → Automations for "copied off-site (encrypted)".
+
+Manual run, from the repo root on the VPS: `sudo bash deploy/scripts/backup.sh`.
 
 Media is stored on the `uploads` Docker volume (mounted at `/app/uploads`),
-which persists across container rebuilds — do not rely on the container
+which persists across container rebuilds. Do not rely on the container
 filesystem for it.
 
 ## 5. Restore
+
+From an off-site copy, first fetch and decrypt it. Nothing is restored by this step:
+
+```bash
+sudo bash deploy/scripts/fetch-offsite-backup.sh                          # list
+sudo bash deploy/scripts/fetch-offsite-backup.sh db-20261015-021500.sql.gz
+```
+
+The decrypted file lands in `backups/`. Then continue below.
 
 Database:
 

@@ -13,7 +13,9 @@ import {
 import { recordPayment } from "@/modules/billing/settlement";
 import { decodeTlv } from "@/modules/billing/zatca/tlv";
 import { INITIAL_PIH, invoiceHash } from "@/modules/billing/zatca/ubl";
-import { invoiceToken, verifyInvoiceToken } from "@/modules/billing/token";
+import { createHmac } from "crypto";
+import { invoiceToken, verifyInvoiceToken, checkInvoiceToken, INVOICE_LINK_DAYS, LEGACY_LINKS_UNTIL } from "@/modules/billing/token";
+import { getEnv } from "@/lib/env";
 import { getInvoiceDocument } from "@/modules/billing/document";
 import { saveTaxSettings } from "@/modules/billing/settings";
 import {
@@ -243,10 +245,22 @@ describe("billing/invoices read side", () => {
     const inv = await issueInvoice((await createDraft(walkInDraft(11_500))).id);
     const token = invoiceToken(inv.id);
     expect(verifyInvoiceToken(token)).toBe(inv.id);
-    expect(token).toMatch(/^[a-z0-9]+_[0-9a-f]{32}$/);
+    expect(token).toMatch(/^[a-z0-9]+_[0-9a-z]+_[0-9a-f]{32}$/);
     expect(verifyInvoiceToken(`${inv.id}_AAAA`)).toBeNull();
     expect(verifyInvoiceToken(token.replace(inv.id, `${inv.id}x`))).toBeNull();
     expect(verifyInvoiceToken("garbage")).toBeNull();
+
+    // Links expire after INVOICE_LINK_DAYS; the expiry can't be edited.
+    const day = 86_400_000;
+    expect(checkInvoiceToken(token, new Date(Date.now() + (INVOICE_LINK_DAYS - 1) * day))).toEqual({ id: inv.id, expired: false });
+    expect(checkInvoiceToken(token, new Date(Date.now() + (INVOICE_LINK_DAYS + 1) * day))).toEqual({ id: inv.id, expired: true });
+    const [id, exp, sig] = token.split("_") as [string, string, string];
+    expect(checkInvoiceToken(`${id}_${(parseInt(exp, 36) + 365).toString(36)}_${sig}`)).toBeNull();
+
+    // Links sent before expiry shipped keep working until the grace date.
+    const legacy = `${inv.id}_${createHmac("sha256", getEnv().SESSION_SECRET).update(`invoice:${inv.id}`).digest("hex").slice(0, 32)}`;
+    expect(verifyInvoiceToken(legacy, new Date(LEGACY_LINKS_UNTIL.getTime() - day))).toBe(inv.id);
+    expect(checkInvoiceToken(legacy, LEGACY_LINKS_UNTIL)).toEqual({ id: inv.id, expired: true });
 
     const doc = await getInvoiceDocument(inv.id);
     expect(doc?.qrSvg?.startsWith("<svg")).toBe(true);

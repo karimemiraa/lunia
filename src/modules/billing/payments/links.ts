@@ -1,14 +1,16 @@
 // Pay-by-link for issued invoices and the gateway webhook that settles them.
 //
-// Webhook authenticity is two-layered: a delivery carrying a secret_token
-// must match the PAYMENT_WEBHOOK_SECRET configured on the gateway, and — for
+// Webhook authenticity is two-layered: a webhook event must carry a
+// secret_token matching PAYMENT_WEBHOOK_SECRET, an invoice callback (which the
+// gateway sends without a token) must arrive on our HMAC-signed callback URL
+// (?cb=…; links created before signing shipped are grandfathered), and — for
 // every delivery — the link's status is re-fetched from the gateway API with
 // our secret key before anything is recorded, so a forged body can at most
 // trigger a harmless status check. Recording is idempotent: the PENDING →
 // PAID flip of the PaymentLink is an atomic conditional update, so repeated
 // or concurrent deliveries record exactly one Payment.
 
-import { timingSafeEqual } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import type { PaymentLink } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getEnv } from "@/lib/env";
@@ -43,7 +45,7 @@ export async function createPayLink(invoiceId: string, locale: "ar" | "en" = "ar
   const created = await provider.createLink({
     amountMinor: balanceMinor,
     description: `Lunia invoice ${inv.number}`,
-    callbackUrl: `${getEnv().APP_URL.replace(/\/$/, "")}/api/payments/${provider.id}/webhook`,
+    callbackUrl: `${getEnv().APP_URL.replace(/\/$/, "")}/api/payments/${provider.id}/webhook?cb=${callbackSignature(provider.id)}`,
     backUrl: viewUrl,
     successUrl: `${viewUrl}?paid=1`,
     metadata: { invoiceId: inv.id, invoiceNumber: inv.number },
@@ -52,6 +54,14 @@ export async function createPayLink(invoiceId: string, locale: "ar" | "en" = "ar
     data: { invoiceId, provider: provider.id, providerRef: created.providerRef, url: created.url, amountMinor: balanceMinor },
   });
 }
+
+/** Signs the invoice-callback URL so unsigned callbacks can be refused. */
+export function callbackSignature(providerId: string): string {
+  return createHmac("sha256", getEnv().SESSION_SECRET).update(`pay-callback:${providerId}`).digest("hex").slice(0, 32);
+}
+
+// Pay links created before callback signing shipped have unsigned callback URLs.
+const UNSIGNED_CALLBACKS_BEFORE = new Date("2026-10-15T00:00:00+03:00");
 
 function safeEqual(a: string, b: string): boolean {
   const x = Buffer.from(a);
@@ -65,11 +75,13 @@ export type WebhookResult =
 
 // Moyasar sends either a webhook event ({type, secret_token, data: payment})
 // or, via the invoice callback_url, the invoice object itself ({id, status}).
-export async function handleMoyasarWebhook(payload: unknown): Promise<WebhookResult> {
+export async function handleMoyasarWebhook(payload: unknown, opts: { callbackSig?: string | null } = {}): Promise<WebhookResult> {
   if (!payload || typeof payload !== "object") return { status: 400, body: { ok: false, error: "Invalid payload" } };
   const p = payload as Record<string, unknown>;
+  const isEvent = typeof p.secret_token === "string" || typeof p.type === "string";
+  const signedCallback = !!opts.callbackSig && safeEqual(opts.callbackSig, callbackSignature("moyasar"));
 
-  if (typeof p.secret_token === "string" || typeof p.type === "string") {
+  if (isEvent) {
     const expected = await getSecret("PAYMENT_WEBHOOK_SECRET");
     if (!expected || typeof p.secret_token !== "string" || !safeEqual(p.secret_token, expected)) {
       return { status: 401, body: { ok: false, error: "Bad secret token" } };
@@ -83,6 +95,9 @@ export async function handleMoyasarWebhook(payload: unknown): Promise<WebhookRes
 
   const link = await prisma.paymentLink.findFirst({ where: { provider: "moyasar", providerRef: ref } });
   if (!link) return { status: 404, body: { ok: false, error: "Unknown payment link" } };
+  if (!isEvent && !signedCallback && link.createdAt.getTime() >= UNSIGNED_CALLBACKS_BEFORE.getTime()) {
+    return { status: 401, body: { ok: false, error: "Unsigned callback" } };
+  }
   if (link.status === "PAID") return { status: 200, body: { ok: true, recorded: false, reason: "Already recorded" } };
 
   const provider = await getPaymentProvider();

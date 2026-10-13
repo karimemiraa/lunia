@@ -4,6 +4,7 @@ import { AdminShell } from "../../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { getTaxSettings, taxSettingsIssues } from "@/modules/billing/settings";
 import { onlinePaymentsConfigured } from "@/modules/billing/payments/links";
+import { getSecret } from "@/modules/platform/secrets";
 import { TaxSettingsForm } from "./TaxSettingsForm";
 
 // Front desk (billing:manage) can see the seller details printed on invoices;
@@ -11,7 +12,7 @@ import { TaxSettingsForm } from "./TaxSettingsForm";
 export default async function TaxSettingsPage() {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
   const canEdit = user.permissions.has(PERMISSIONS.SETTINGS_MANAGE) || user.permissions.has(PERMISSIONS.ACCOUNTING_MANAGE);
-  const [settings, payConfigured] = await Promise.all([getTaxSettings(), onlinePaymentsConfigured()]);
+  const [settings, payConfigured, webhookSecret] = await Promise.all([getTaxSettings(), onlinePaymentsConfigured(), getSecret("PAYMENT_WEBHOOK_SECRET")]);
   const issues = taxSettingsIssues(settings);
 
   return (
@@ -32,6 +33,12 @@ export default async function TaxSettingsPage() {
           </p>
         ) : (
           <p className="rounded-[var(--radius-sm)] bg-[var(--color-teal)]/15 px-4 py-3 text-sm">Ready to issue ZATCA Phase 1 simplified tax invoices.</p>
+        )}
+        {payConfigured && !webhookSecret && (
+          <p className="rounded-[var(--radius-sm)] border border-[var(--color-gold)]/45 bg-[var(--color-gold)]/10 px-4 py-3 text-sm" data-testid="webhook-secret-missing">
+            Online payments are on but the <span className="font-medium">webhook secret</span> isn&rsquo;t set, so Moyasar&rsquo;s payment notifications are refused and
+            online payments are only picked up through the invoice callback. Copy the secret token from the Moyasar dashboard (Webhooks) into Superadmin → Payments.
+          </p>
         )}
         <TaxSettingsForm initial={settings} canEdit={canEdit} />
         <section className="lunia-card flex flex-col gap-2 p-5 text-sm">

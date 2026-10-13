@@ -5,7 +5,7 @@ import { fontVariables } from "@/app/fonts";
 import { getStaffDisplay } from "./_i18n/display";
 import { SYSTEM_THEME_SCRIPT, ThemeSync } from "./_components/ThemeSync";
 import { AskLunia } from "./_components/AskLunia";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getCurrentUser } from "@/modules/iam/rbac";
 import { getAssistantApiKey } from "@/modules/staffAssistant/assistant";
 
@@ -33,6 +33,8 @@ export const dynamic = "force-dynamic";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const [{ theme, locale }, staff] = await Promise.all([getStaffDisplay(), cookies().then((c) => getCurrentUser(c.get("lunia_session")?.value))]);
   const aiEnabled = staff ? Boolean(await getAssistantApiKey().catch(() => null)) : false;
+  // Per-request CSP nonce (see src/middleware.ts) so the theme script may run.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="en"
@@ -42,7 +44,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       // "Match device" sets data-theme before hydration (script below).
       suppressHydrationWarning
     >
-      <head>{theme === "system" && <script dangerouslySetInnerHTML={{ __html: SYSTEM_THEME_SCRIPT }} />}</head>
+      <head>{theme === "system" && <script nonce={nonce} dangerouslySetInnerHTML={{ __html: SYSTEM_THEME_SCRIPT }} />}</head>
       <body className="lunia-staff bg-[var(--surface-2)] text-[var(--color-ink)]">
         {children}
         {staff && <AskLunia locale={locale} aiEnabled={aiEnabled} />}
