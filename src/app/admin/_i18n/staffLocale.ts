@@ -80,6 +80,7 @@ const AR: Record<string, string> = {
   Roles: "الأدوار",
   "Audit log": "سجل التدقيق",
   "Edit requests": "طلبات التعديل",
+  Memberships: "العضويات المدفوعة",
   "Results gallery": "معرض النتائج",
   Superadmin: "المشرف العام",
   // Quick actions (palette)

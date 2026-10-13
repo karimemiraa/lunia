@@ -29,6 +29,7 @@ const SYNONYMS: Record<string, string[]> = {
   "/admin/hr/attendance": ["timesheet", "attendance", "حضور"],
   "/admin/hr/leave": ["vacation", "time off", "leave", "اجازات", "اجازه"],
   "/admin/hr/payroll": ["salaries", "salary", "payslips", "رواتب", "راتب"],
+  "/admin/memberships": ["memberships", "members", "subscriptions", "plans", "club", "عضويات", "اشتراكات"],
   "/admin/commerce": ["gift card", "gift cards", "packages", "vouchers", "بطاقات هدايا", "باقات"],
   "/admin/tiers": ["loyalty", "membership", "points", "ولاء", "عضويه", "نقاط"],
   "/admin/marketing/campaigns": ["campaign", "ads", "حمله", "حملات"],

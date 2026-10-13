@@ -773,6 +773,8 @@ model Booking {
   centerNote      String?        @db.Text
   customerNote    String?        @db.Text
   depositStatus   PayStatus      @default(NONE)
+  /// Recurring series this booking belongs to (booking/series.ts), if any.
+  seriesId        String?
   createdById     String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @default(now()) @updatedAt
@@ -787,6 +789,8 @@ model Booking {
 
   @@index([createdAt])
   @@index([clientProfileId, createdAt])
+
+  @@index([seriesId])
 }
 
 model Appointment {
@@ -1602,4 +1606,87 @@ model JobRun {
 
   @@unique([job, runKey])
   @@index([job, startedAt])
+}
+
+// Recurring appointment series created by staff ("every 2 weeks × 6"). Each
+// occurrence is an ordinary Booking with seriesId set (soft reference).
+model BookingSeries {
+  id              String   @id @default(cuid())
+  clientProfileId String
+  serviceId       String
+  intervalWeeks   Int
+  count           Int
+  createdById     String?
+  createdAt       DateTime @default(now())
+
+  @@index([clientProfileId])
+}
+
+// Paid membership plans (monthly). Billing: each cycle issues an invoice the
+// customer pays by link or at the desk; benefits apply while the current
+// cycle is paid. See src/modules/memberships/memberships.ts.
+model MembershipPlan {
+  id                 String                   @id @default(cuid())
+  nameEn             String
+  nameAr             String
+  descriptionEn      String                   @default("")
+  descriptionAr      String                   @default("")
+  /// Monthly price, as entered (VAT-inclusive when prices include VAT).
+  priceMinor         Int
+  /// Discount on services / retail products while benefits are active.
+  serviceDiscountPct Int                      @default(0)
+  productDiscountPct Int                      @default(0)
+  /// Sessions included each paid month (0 = none); credited as a package
+  /// purchase valid until the end of that month (no roll-over).
+  includedSessions   Int                      @default(0)
+  includedServiceId  String?
+  /// Hidden, not-for-sale package used to credit the included sessions.
+  sessionPackageId   String?
+  minTermMonths      Int                      @default(1)
+  graceDays          Int                      @default(7)
+  isActive           Boolean                  @default(true)
+  createdAt          DateTime                 @default(now())
+  subscriptions      MembershipSubscription[]
+}
+
+model MembershipSubscription {
+  id                 String            @id @default(cuid())
+  clientProfileId    String
+  planId             String
+  plan               MembershipPlan    @relation(fields: [planId], references: [id])
+  /// ACTIVE | PAST_DUE | PAUSED | CANCELLED
+  status             String            @default("ACTIVE")
+  startedAt          DateTime          @default(now())
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  /// Earliest date it may end (minimum term).
+  minTermEndsAt      DateTime
+  /// Scheduled end (no new cycles from this date).
+  cancelAt           DateTime?
+  cancelledAt        DateTime?
+  pausedAt           DateTime?
+  createdById        String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @default(now()) @updatedAt
+  cycles             MembershipCycle[]
+
+  @@index([clientProfileId, status])
+  @@index([status, currentPeriodEnd])
+}
+
+model MembershipCycle {
+  id                String                 @id @default(cuid())
+  subscriptionId    String
+  subscription      MembershipSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  periodStart       DateTime
+  periodEnd         DateTime
+  invoiceId         String?                @unique
+  /// DUE | PAID | VOID
+  status            String                 @default("DUE")
+  paidAt            DateTime?
+  packagePurchaseId String?
+  createdAt         DateTime               @default(now())
+
+  @@unique([subscriptionId, periodStart])
+  @@index([status, periodStart])
 }

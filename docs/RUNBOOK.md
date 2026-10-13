@@ -172,6 +172,34 @@ Clinical photos are private. A before/after pair appears on `/results` only when
 
 The public image route `/api/results/[id]/[side]` re-checks this on every request and caches for at most 5 minutes. Withdrawing consent on a photo unpublishes its pairs immediately. Deleting a photo deletes its pairs. Names and dates are never sent to the public site.
 
+### 3.4 Paid memberships
+
+Monthly plans live under **Finance → Memberships**. Billing a membership month means issuing an invoice, so the clinic's tax details must be complete (**Invoices & payments → settings**); otherwise enrolment is refused with that error.
+
+How a membership runs:
+
+- **Enrolling** issues month 1's invoice and sends it to the customer, with a Moyasar pay link when online payments are configured. Otherwise they pay at the desk like any invoice.
+- **When an invoice is paid,** benefits switch on for that month. This happens in `settleInvoice` → `onMembershipInvoicePaid`, inside the payment transaction:
+  - The plan's discount on treatments and products is applied automatically when a draft invoice is created for the member. Staff can still edit it, and a note records it.
+  - The included sessions are credited as a package valid until the month ends, so they don't roll over. They're redeemed at checkout as "Package session".
+- **Every day at 09:00 Riyadh,** the worker job `membership-billing` does three things:
+  - Invoices the next month when the current one ends.
+  - Ends memberships whose scheduled cancellation date has arrived.
+  - Marks a membership **Past due** (benefits off) when a month stays unpaid past the plan's grace days. Paying the invoice makes it Active again.
+- **Cancel** ends the membership after the paid month, or at the end of the minimum term if that's later; months until then are still billed. **Cancel now** ends it immediately and leaves any unpaid invoice open. Use a credit note if it shouldn't be paid. **Pause** stops billing; **Resume** starts a fresh month and invoices it.
+- **No card is ever charged automatically.** Lunia has pay-by-link only; Moyasar card tokenisation isn't enabled.
+
+### 3.5 Recurring appointments
+
+In **Calendar → Book walk-in**:
+
+1. Pick the first visit's time.
+2. Tick **Repeat this booking**, then set how often and how many visits (2–26).
+3. Click **Check dates**. Each date is checked against live availability, preferring the same specialist.
+4. Confirm. Dates that aren't free are skipped and listed so you can book them separately; nothing is ever double-booked.
+
+Each visit is a normal booking linked by `Booking.seriesId`, with a "Series" badge in the day view. The customer gets **one** confirmation and a 24h reminder before every visit. **Cancel this and following** (in a visit's actions) cancels that visit and every later one that hasn't happened yet.
+
 ## 4. Backup
 
 ```bash

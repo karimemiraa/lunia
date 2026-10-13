@@ -191,3 +191,19 @@ describe("rule engine: staff performance", () => {
     expect(denied.text).toMatch(/role doesn't include access/);
   });
 });
+
+describe("rule engine: memberships", () => {
+  it("answers member counts and explains enrolment", async () => {
+    const r = await answerWithRules("how many members do we have?", owner);
+    expect(r.stats?.map((s) => s.label)).toContain("Active members");
+    expect((await answerWithRules("how do I enrol a customer in a membership?", owner)).guide?.id).toBe("enrol-member");
+    expect((await answerWithRules("open memberships", owner)).navigateTo).toBe("/admin/memberships");
+  });
+});
+
+describe("rule engine: recurring bookings", () => {
+  it("explains how to book a course", async () => {
+    expect((await answerWithRules("how do I book recurring appointments?", owner)).guide?.id).toBe("book-series");
+    expect((await answerWithRules("كيف احجز مواعيد متكررة؟", owner)).guide?.id).toBe("book-series");
+  });
+});

@@ -29,6 +29,8 @@ import { consentStatusForClient } from "@/modules/clinical/consents";
 import { getIntakeOverview } from "@/modules/clinical/intake";
 import { prisma } from "@/lib/db";
 import { ProfileTabs, type ProfileTabDef } from "./c360/ProfileTabs";
+import { getClientMembership, listPlans } from "@/modules/memberships/memberships";
+import { EnrolForm } from "../../memberships/MembershipsClient";
 import { TimelineFeed, type TimelineEntryDTO } from "./c360/TimelineFeed";
 import { QuickActions } from "./c360/QuickActions";
 import { Icon, type IconName } from "./c360/icons";
@@ -165,6 +167,8 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
         ? prisma.invoice.findMany({ where: { clientProfileId: cid, bookingId: { not: null }, kind: "INVOICE", status: { not: "VOID" } }, select: { id: true, number: true, status: true, bookingId: true } })
         : Promise.resolve([]),
     ]);
+
+  const [membership, memberPlans] = canBill ? await Promise.all([getClientMembership(cid), listPlans({ activeOnly: true })]) : [null, []];
 
   // Derived metrics from the booking history.
   const now = new Date();
@@ -315,6 +319,37 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
     );
 
   // --- Tab: Loyalty ------------------------------------------------------------
+  const mFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Riyadh", day: "numeric", month: "short", year: "numeric" });
+  const membershipTab = canBill ? (
+    <div className="flex flex-col gap-4" data-testid="client-membership">
+      {membership ? (
+        <div className="lunia-card flex flex-col gap-2 p-5 text-sm">
+          <p className="text-base font-semibold">
+            {membership.plan.nameEn} · {(membership.plan.priceMinor / 100).toLocaleString("en-US")} SAR / month
+          </p>
+          <p>
+            Status: <span className="font-medium">{membership.status === "PAST_DUE" ? "Past due — benefits paused until paid" : membership.status.charAt(0) + membership.status.slice(1).toLowerCase()}</span>
+          </p>
+          <p className="tabular-nums">
+            Current month: {mFmt.format(membership.currentPeriodStart)} – {mFmt.format(new Date(membership.currentPeriodEnd.getTime() - 1))} ·{" "}
+            {membership.cycles[0]?.status === "PAID" ? "paid" : "unpaid"}
+          </p>
+          {membership.cancelAt && <p>Ends {mFmt.format(membership.cancelAt)}</p>}
+          <Link href="/admin/memberships" className="w-fit text-sm underline underline-offset-2">
+            Manage in Memberships
+          </Link>
+        </div>
+      ) : memberPlans.length > 0 ? (
+        <div className="lunia-card flex flex-col gap-3 p-5">
+          <p className="text-sm text-[var(--color-ink)]/70">Not a member yet.</p>
+          <EnrolForm plans={memberPlans.map((p) => ({ id: p.id, nameEn: p.nameEn, priceMinor: p.priceMinor }))} defaultClient={{ id: cid, name: detail.profile.fullName }} />
+        </div>
+      ) : (
+        <p className="text-sm text-[var(--color-ink)]/65">No membership plans are offered yet (Finance → Memberships).</p>
+      )}
+    </div>
+  ) : null;
+
   const loyaltyTab = (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -487,6 +522,7 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
     { id: "clinical", label: "Clinical", content: clinicalTab },
     ...(canClinical ? [{ id: "patient", label: "Patient file", content: <PatientFileTab clientProfileId={cid} /> }] : []),
     { id: "loyalty", label: "Loyalty", content: loyaltyTab },
+    ...(membershipTab ? [{ id: "membership", label: "Membership", content: membershipTab }] : []),
     { id: "credits", label: "Credits", content: creditsTab, badge: credits.giftCards.length + credits.packages.length },
     ...(invoicesTab ? [{ id: "invoices", label: "Invoices", content: invoicesTab, badge: invoices?.rows.length }] : []),
   ];

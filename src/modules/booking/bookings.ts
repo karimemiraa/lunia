@@ -593,6 +593,8 @@ export interface DayAppointmentRow {
   customerNote: string | null;
   /** Set once the service actually started (CheckIn.seatedAt). */
   startedAt: Date | null;
+  /** Recurring series this visit belongs to (booking/series.ts). */
+  seriesId: string | null;
   // Cross-links to the modules that hang off an appointment.
   invoice: { id: string; number: string; status: string } | null;
   treatmentRecordId: string | null;
@@ -700,6 +702,7 @@ async function listAppointmentRows(from: Date, to: Date, staffUserId?: string): 
       centerNote: booking.centerNote,
       customerNote: booking.customerNote,
       startedAt: seatedByBooking.get(booking.id) ?? null,
+      seriesId: booking.seriesId ?? null,
       invoice: invoiceByBooking.get(booking.id) ?? null,
       treatmentRecordId: treatmentByAppointment.get(appointment.id) ?? null,
     };

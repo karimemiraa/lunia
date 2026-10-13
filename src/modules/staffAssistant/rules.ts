@@ -33,6 +33,7 @@ const RE = {
 };
 
 const METRICS: { tool: ToolName; re: RegExp }[] = [
+  { tool: "memberships_summary", re: /\b(how many )?(members|memberships?|subscribers?|subscriptions?)\b(?!.*\b(how|enrol|enroll|create)\b)|\bmrr\b|العضويات|الاعضاء|المشتركين|الاشتراكات/ },
   { tool: "staff_performance", re: /\b(staff|team|therapists?|specialists?|employees?) (performance|ranking|leaderboard)\b|\b(top|best) (staff|therapists?|specialists?|performers?)\b|\butili[sz]ation\b|اداء الموظفين|افضل موظف|اداء الفريق/ },
   { tool: "unpaid_invoices", re: /\b(unpaid|outstanding|owed|overdue|awaiting payment|owing|debts?)\b|غير مدفوع|مستحق|ديون|متاخر/ },
   { tool: "revenue_summary", re: /\b(revenue|sales|income|collected|earnings|earned|turnover|takings|money)\b|ايراد|مبيعات|دخل|المحصل|ارباح/ },
@@ -103,8 +104,9 @@ export async function answerWithRules(question: string, viewer: AssistantViewer,
 
   const isHowTo = RE.howTo.test(t) && !/\bhow (many|much)\b/.test(t);
 
-  // 2. Numbers
-  if (!isHowTo) {
+  // 2. Numbers ("open memberships" is navigation, not a count)
+  const opensPage = /^(go to|open|take me to|navigate to|bring me to|jump to)\b|^(افتح|اذهب|انتقل|خذني)/.test(t);
+  if (!isHowTo && !opensPage) {
     const metric = METRICS.find((m) => m.re.test(t));
     if (metric && (QUESTION.test(t) || detectPeriod(raw) || t.split(" ").length <= 4)) {
       const period = detectPeriod(raw);

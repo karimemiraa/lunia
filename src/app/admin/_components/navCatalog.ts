@@ -82,6 +82,7 @@ export const NAV_GROUPS: NavCatalogGroup[] = [
       { href: "/admin/billing", label: "Invoices & payments", perm: PERMISSIONS.BILLING_MANAGE, icon: "receipt", keywords: "billing checkout" },
       { href: "/admin/accounting", label: "Accounting", perm: PERMISSIONS.ACCOUNTING_MANAGE, icon: "report", keywords: "vat cash" },
       { href: "/admin/accounting/expenses", label: "Expenses", perm: PERMISSIONS.ACCOUNTING_MANAGE, icon: "receipt", parent: "/admin/accounting" },
+      { href: "/admin/memberships", label: "Memberships", perm: PERMISSIONS.BILLING_MANAGE, icon: "star", keywords: "subscription plans members monthly club" },
       { href: "/admin/commerce", label: "Gift cards & packages", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "giftcard", keywords: "vouchers memberships" },
       { href: "/admin/tiers", label: "Loyalty tiers", perm: PERMISSIONS.SETTINGS_MANAGE, icon: "tag", keywords: "points vip", parent: "/admin/commerce" },
     ],

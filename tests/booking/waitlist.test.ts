@@ -58,6 +58,9 @@ async function sweep() {
   }
   await prisma.scheduledMessage.deleteMany({ where: { toPhone: { startsWith: PHONE_PREFIX } } });
   await prisma.waitlistEntry.deleteMany({ where: { phone: { startsWith: PHONE_PREFIX } } });
+  // The email-only case has no phone; without this, its WAITING rows pile up
+  // across runs and eventually land on another test's (random) date.
+  await prisma.waitlistEntry.deleteMany({ where: { email: { startsWith: "waitlist-", endsWith: "@example.com" } } });
   await prisma.user.deleteMany({ where: { phone: { startsWith: PHONE_PREFIX } } });
 }
 

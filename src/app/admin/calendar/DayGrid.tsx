@@ -185,6 +185,7 @@ export function DayGrid({ rows, date, todayISO, columns, mode, hours, canManage,
                     )}
                     <AppointmentMenu
                       bookingId={r.bookingId}
+                      seriesId={r.seriesId}
                       appointmentId={r.appointmentId}
                       serviceId={r.serviceId}
                       status={r.status}

@@ -11,6 +11,7 @@
 // - package-reminders 10:00  "Your package expires soon" (once per purchase)
 // - win-back          11:00  "We miss you" to lapsed customers (owner opt-in)
 // - staff-digest      08:00  Per-assignee email digest (owner opt-in)
+// - membership-billing 09:00 Invoice the next membership month; flag unpaid
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -21,6 +22,7 @@ import { scheduleMessage } from "@/modules/booking/outbox";
 import { expirePackagePurchases } from "@/modules/commerce/packages";
 import { NOT_TEST_CLIENT } from "@/modules/crm/testCustomers";
 import { sendAssigneeDigests } from "@/modules/notifications/digest";
+import { runMembershipBilling } from "@/modules/memberships/memberships";
 import { getSetting, DEFAULT_AUTOMATION_SETTINGS, type AutomationSettings } from "@/modules/cms/settings";
 
 const DAY_MS = 86_400_000;
@@ -185,6 +187,16 @@ export const JOBS: JobDef[] = [
     run: async () => {
       const r = await sendAssigneeDigests();
       return `${r.emailsSent} email(s) to ${r.assigneesNotified} assignee(s)`;
+    },
+  },
+  {
+    name: "membership-billing",
+    hour: 9,
+    label: "Invoice membership months and flag unpaid ones",
+    enabled: () => true,
+    run: async ({ now }) => {
+      const r = await runMembershipBilling(now);
+      return `${r.invoiced} invoiced, ${r.pastDue} past due, ${r.ended} ended`;
     },
   },
   {

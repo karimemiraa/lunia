@@ -896,6 +896,21 @@
       "done": "Done — your appointment has been moved.",
       "chooseTime": "Choose a time",
       "policy": "Online changes close 24 hours before your appointment."
+    },
+    "membership": {
+      "heading": "My membership",
+      "perMonth": "{price} / month",
+      "status": {
+        "ACTIVE": "Active",
+        "PAST_DUE": "Payment due",
+        "PAUSED": "Paused"
+      },
+      "serviceDiscount": "{pct}% off treatments",
+      "productDiscount": "{pct}% off products",
+      "includedSessions": "{count, plural, one {# session} other {# sessions}} included every month",
+      "paidUntil": "Your membership is paid until {date}.",
+      "unpaid": "This month's invoice is waiting for payment — you'll find it under My invoices. Benefits resume once it's paid.",
+      "endsOn": "It ends on {date}."
     }
   },
   "review": {

@@ -17,6 +17,7 @@ import { checkIn, complete, cancel, markNoShow, reschedule, createBooking, getSe
 import { countWaiting } from "@/modules/booking/waitlist";
 import { utcToCenterLocal } from "@/modules/booking/availability";
 import { prisma } from "@/lib/db";
+import { previewSeries, createSeries, cancelSeriesFrom } from "@/modules/booking/series";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -200,4 +201,55 @@ export async function frontDeskBookAction(input: FrontDeskBookInput): Promise<Ac
   }
   revalidateCalendar();
   return { ok: true };
+}
+
+// ---- Recurring series ("every N weeks × count") ---------------------------
+
+export interface SeriesPreviewDTO {
+  dateISO: string;
+  startAt: string;
+  available: boolean;
+}
+
+export async function previewSeriesAction(input: { serviceId: string; firstStartAt: string; staffUserId?: string; intervalWeeks: number; count: number }): Promise<{ ok: true; occurrences: SeriesPreviewDTO[] } | { ok: false; error: string }> {
+  await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
+  try {
+    const occ = await previewSeries(input);
+    return { ok: true, occurrences: occ.map((o) => ({ dateISO: o.dateISO, startAt: o.startAt.toISOString(), available: o.available })) };
+  } catch (err) {
+    return { ok: false, error: messageOf(err) };
+  }
+}
+
+export async function createSeriesAction(input: {
+  serviceId: string;
+  firstStartAt: string;
+  staffUserId?: string;
+  intervalWeeks: number;
+  count: number;
+  name: string;
+  phone: string;
+}): Promise<{ ok: true; booked: number; skipped: string[] } | { ok: false; error: string }> {
+  const admin = await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
+  const name = input.name.trim();
+  const phone = input.phone.trim();
+  if (!name || !phone) return { ok: false, error: "Customer name and phone are required." };
+  try {
+    const r = await createSeries({ ...input, client: { name, phone }, createdById: admin.id, locale: "en" });
+    revalidateCalendar();
+    return { ok: true, booked: r.booked.length, skipped: r.skipped.map((s) => utcToCenterLocal(s.startAt).dateISO) };
+  } catch (err) {
+    return { ok: false, error: messageOf(err) };
+  }
+}
+
+export async function cancelSeriesFromAction(bookingId: string): Promise<{ ok: true; cancelled: number } | { ok: false; error: string }> {
+  await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
+  try {
+    const cancelled = await cancelSeriesFrom(bookingId);
+    revalidateCalendar();
+    return { ok: true, cancelled };
+  } catch (err) {
+    return { ok: false, error: messageOf(err) };
+  }
 }

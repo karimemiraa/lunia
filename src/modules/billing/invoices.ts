@@ -32,6 +32,7 @@ import { zatcaQrBase64, zatcaTimestamp } from "./zatca/tlv";
 import { INITIAL_PIH, buildUblXml, invoiceHash, withXmlDeclaration, type UblGroup } from "./zatca/ubl";
 import { lockInvoice, openCashSessionId, settleInvoice } from "./settlement";
 import { BillingError, InsufficientStockError } from "./errors";
+import { activeMemberBenefits, memberLineDiscount } from "@/modules/memberships/benefits";
 
 type Tx = Prisma.TransactionClient;
 
@@ -133,8 +134,27 @@ function draftNumber(): string {
   return `DRAFT-${randomUUID()}`;
 }
 
+// Paid members get their plan's discount on service / retail lines that
+// don't already carry a discount. Applied once, when the draft is created;
+// staff can still change it before issuing.
+async function withMemberDiscount(input: z.output<typeof draftSchema>): Promise<z.output<typeof draftSchema>> {
+  if (!input.clientProfileId) return input;
+  const benefits = await activeMemberBenefits(input.clientProfileId);
+  if (!benefits) return input;
+  let applied = false;
+  const lines = input.lines.map((l) => {
+    if (l.discountMinor > 0) return l;
+    const d = memberLineDiscount(l.kind, l.unitPriceMinor, l.qty, benefits);
+    if (d > 0) applied = true;
+    return d > 0 ? { ...l, discountMinor: d } : l;
+  });
+  if (!applied) return input;
+  const note = `Member discount: ${benefits.planName}`;
+  return { ...input, lines, notes: input.notes ? `${input.notes}\n${note}` : note };
+}
+
 export async function createDraft(raw: DraftInput, actorId?: string): Promise<Invoice> {
-  const input = draftSchema.parse(raw);
+  const input = await withMemberDiscount(draftSchema.parse(raw));
   const n = normalizeDraft(input);
   const settings = await getTaxSettings();
   return prisma.invoice.create({

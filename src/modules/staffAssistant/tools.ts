@@ -15,6 +15,7 @@ import { NOTIFICATION_TYPE_LABELS, NOTIFICATION_TYPE_HREF, type NotificationType
 import { listMyEditRequests } from "@/modules/editRequests/editRequests";
 import { receivablesAging } from "@/modules/accounting/reports";
 import { staffPerformanceReport } from "@/modules/reports/teamReports";
+import { membershipStats } from "@/modules/memberships/memberships";
 import { PERIODS, periodRange, formatSar, type Period } from "./periods";
 import type { AssistantLink, AssistantStat, AssistantViewer } from "./types";
 
@@ -141,6 +142,26 @@ export const TOOLS = [
         stats: top.map((r) => ({ label: r.staff, value: `${r.revenueSAR} SAR · ${r.completed} visits${r.utilisation ? ` · ${r.utilisation} booked` : ""}` })),
         links: [{ label: "Staff performance report", href: `/admin/reports?type=staff`, kind: "page" }],
         summary: top.length ? `${label}: ${top[0]!.staff} leads with ${top[0]!.revenueSAR} SAR from ${top[0]!.completed} completed visit${top[0]!.completed === 1 ? "" : "s"}.` : `${label}: no appointments yet.`,
+      };
+    },
+  }),
+  defineTool({
+    name: "memberships_summary",
+    description: "Paid memberships right now: active members, members past due (unpaid month), paused, and recurring monthly revenue from memberships.",
+    anyOf: [PERMISSIONS.BILLING_MANAGE, PERMISSIONS.ANALYTICS_VIEW],
+    input: z.object({}),
+    async run() {
+      const m = await membershipStats();
+      return {
+        title: "Memberships",
+        stats: [
+          { label: "Active members", value: n(m.active) },
+          { label: "Past due", value: n(m.pastDue) },
+          { label: "Paused", value: n(m.paused) },
+          { label: "Monthly membership revenue", value: formatSar(m.monthlyRevenueMinor) },
+        ],
+        links: [{ label: "Memberships", href: "/admin/memberships", kind: "page" }],
+        summary: `${n(m.active)} active member${m.active === 1 ? "" : "s"} (${formatSar(m.monthlyRevenueMinor)} a month)${m.pastDue ? `; ${n(m.pastDue)} past due` : ""}.`,
       };
     },
   }),

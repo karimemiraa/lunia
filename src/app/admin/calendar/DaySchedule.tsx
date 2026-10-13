@@ -30,6 +30,7 @@ export function DaySchedule({ rows, date, canManage, canBill = false, canClinica
         <li key={row.appointmentId}>
           <DayAppointmentItem
             bookingId={row.bookingId}
+            seriesId={row.seriesId}
             appointmentId={row.appointmentId}
             serviceId={row.serviceId}
             status={row.status}

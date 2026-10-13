@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { BookingStatus } from "@prisma/client";
 import { Modal } from "../_components/Modal";
-import { checkInAction, startAction, completeAction, cancelAction, noShowAction, rescheduleAction, getCalendarSlotsAction, type CalendarSlotDTO } from "./actions";
+import { checkInAction, startAction, completeAction, cancelAction, cancelSeriesFromAction, noShowAction, rescheduleAction, getCalendarSlotsAction, type CalendarSlotDTO } from "./actions";
 import { SlotPicker } from "./SlotPicker";
 import { useConfirm } from "../_ui/ConfirmDialog";
 
@@ -28,6 +28,8 @@ export interface AppointmentMenuProps {
   layout?: "inline" | "menu";
   /** Show the "Open appointment page" link (the hub). Off when the menu is rendered on the hub itself. */
   hubLink?: boolean;
+  /** Set when the visit is part of a recurring series (enables "cancel this and following"). */
+  seriesId?: string | null;
 }
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -97,6 +99,15 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
         router.refresh();
       } else setError(result.error);
       setPendingIntent(null);
+    });
+  }
+
+  async function doCancelSeries() {
+    if (!(await confirm({ title: `Cancel this and all later visits in ${props.clientName}'s series?`, description: "Earlier and completed visits are kept.", confirmLabel: "Cancel series" }))) return;
+    run("cancel-series", async () => {
+      const result = await cancelSeriesFromAction(bookingId);
+      if (result.ok) setNotice({ text: `${result.cancelled} visit${result.cancelled === 1 ? "" : "s"} cancelled.` });
+      return result.ok ? { ok: true } : result;
     });
   }
 
@@ -187,6 +198,11 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
       {canCancel && (
         <button type="button" disabled={isPending} onClick={doCancel} className={layout === "inline" ? btnDanger : `${item} text-red-700 hover:bg-red-50`}>
           {label("cancel", "Cancel appointment", "Cancelling…")}
+        </button>
+      )}
+      {canCancel && props.seriesId && (
+        <button type="button" disabled={isPending} onClick={doCancelSeries} className={layout === "inline" ? btnDanger : `${item} text-red-700 hover:bg-red-50`} data-testid="cancel-series">
+          {label("cancel-series", "Cancel this and following", "Cancelling…")}
         </button>
       )}
     </>

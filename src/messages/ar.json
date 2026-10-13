@@ -896,6 +896,21 @@
       "done": "تم — نقلنا موعدك.",
       "chooseTime": "اختاري الوقت",
       "policy": "التغيير أونلاين متاح لين قبل ٢٤ ساعة من موعدك."
+    },
+    "membership": {
+      "heading": "عضويتي",
+      "perMonth": "{price} شهرياً",
+      "status": {
+        "ACTIVE": "فعّالة",
+        "PAST_DUE": "بانتظار الدفع",
+        "PAUSED": "موقوفة مؤقتاً"
+      },
+      "serviceDiscount": "خصم {pct}٪ على الجلسات",
+      "productDiscount": "خصم {pct}٪ على المنتجات",
+      "includedSessions": "{count, plural, one {جلسة واحدة} two {جلستان} few {# جلسات} many {# جلسة} other {# جلسة}} مشمولة كل شهر",
+      "paidUntil": "عضويتك مدفوعة حتى {date}.",
+      "unpaid": "فاتورة هذا الشهر بانتظار الدفع — تلقينها في «فواتيري». ترجع المزايا بعد الدفع.",
+      "endsOn": "تنتهي بتاريخ {date}."
     }
   },
   "review": {

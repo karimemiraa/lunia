@@ -16,6 +16,7 @@ import { prisma } from "@/lib/db";
 import { redeemGiftCard } from "@/modules/commerce/giftcards";
 import { consumePackageSession } from "@/modules/commerce/packages";
 import { BillingError } from "./errors";
+import { onMembershipInvoicePaid } from "@/modules/memberships/benefits";
 
 type Tx = Prisma.TransactionClient;
 const TX_OPTIONS = { maxWait: 15_000, timeout: 30_000 } as const;
@@ -63,7 +64,8 @@ export async function invoiceBalance(tx: Tx | typeof prisma, inv: Pick<Invoice, 
 }
 
 // Recomputes status + paidMinor of an issued INVOICE from the ledger and,
-// once it is fully paid, marks its booking's deposit PAID.
+// once it is fully paid, marks its booking's deposit PAID and, for a
+// membership invoice, the membership month paid.
 export async function settleInvoice(tx: Tx, invoiceId: string): Promise<Invoice> {
   const inv = await tx.invoice.findUniqueOrThrow({ where: { id: invoiceId } });
   if (inv.kind !== "INVOICE" || inv.status === "DRAFT" || inv.status === "VOID") return inv;
@@ -74,6 +76,8 @@ export async function settleInvoice(tx: Tx, invoiceId: string): Promise<Invoice>
   if (status === "PAID" && inv.bookingId) {
     await tx.booking.updateMany({ where: { id: inv.bookingId }, data: { depositStatus: "PAID" } });
   }
+  // A paid membership month activates its benefits (no-op for other invoices).
+  if (status === "PAID") await onMembershipInvoicePaid(tx, invoiceId);
   return updated;
 }
 

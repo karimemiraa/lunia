@@ -39,6 +39,20 @@ export const GUIDES: HelpGuide[] = [
     anyOf: [P.BOOKING_MANAGE],
   },
   {
+    id: "book-series",
+    title: "Book a course of repeat appointments",
+    keywords: ["recurring", "repeat booking", "series", "course of sessions", "every two weeks", "weekly appointments", "حجز متكرر", "مواعيد متكرره", "كورس جلسات"],
+    steps: [
+      "Open the calendar and click “Book walk-in”, then pick the service and the first visit's time.",
+      "Tick “Repeat this booking (a course of visits)”, choose how often (e.g. every 2 weeks) and how many visits.",
+      "Click “Check dates”: each date shows ✓ (free) or ✗ (taken — it will be skipped so you can book it separately).",
+      "Fill in the customer and confirm. They get one confirmation and a reminder before every visit.",
+      "To stop a course, open a visit's actions and choose “Cancel this and following”.",
+    ],
+    links: [form("New walk-in booking", "/admin/calendar?add=1")],
+    anyOf: [P.BOOKING_MANAGE],
+  },
+  {
     id: "appointment-actions",
     title: "Check in, start, complete, reschedule or cancel an appointment",
     keywords: ["check in", "arrived", "start treatment", "complete", "reschedule", "move appointment", "cancel appointment", "no show", "تسجيل وصول", "اعاده جدوله", "الغاء موعد", "لم يحضر"],
@@ -493,6 +507,32 @@ export const GUIDES: HelpGuide[] = [
       "Click “Save package”. Changes apply to new sales only.",
     ],
     links: [page("Gift cards & packages", "/admin/commerce")],
+    anyOf: [P.SETTINGS_MANAGE],
+  },
+  {
+    id: "enrol-member",
+    title: "Enrol a customer in a paid membership",
+    keywords: ["membership", "enrol", "enroll", "subscribe", "member", "monthly plan", "club", "اشتراك", "عضويه", "تسجيل عضويه"],
+    steps: [
+      "Open Memberships (or the customer's profile → “Membership” tab).",
+      "Under “Enrol a customer”, pick the customer and the plan; leave the start date blank for today.",
+      "Click “Enrol and send first invoice”. The customer gets the invoice with a pay link; benefits start once it's paid.",
+      "Each month the next invoice is created automatically. Use “Pause”, “Cancel” (ends after the paid month or minimum term) or “Cancel now” from the members list.",
+    ],
+    links: [page("Memberships", "/admin/memberships")],
+    anyOf: [P.BILLING_MANAGE],
+  },
+  {
+    id: "membership-plan",
+    title: "Create or change a membership plan",
+    keywords: ["membership plan", "new plan", "member price", "member discount", "باقه العضويه", "خطه العضويه"],
+    steps: [
+      "Open Memberships and click “New plan” (or “Edit” on a plan).",
+      "Set the monthly price, discounts on treatments and products, sessions included each month, minimum term and grace period.",
+      "Click “Create plan” / “Save plan”. Price changes apply from each member's next invoice.",
+      "Members' discounts are applied automatically at checkout; included sessions are redeemed as “Package session”.",
+    ],
+    links: [page("Memberships", "/admin/memberships")],
     anyOf: [P.SETTINGS_MANAGE],
   },
   {

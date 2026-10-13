@@ -8,6 +8,7 @@ import { saveCenterNoteAction } from "./actions";
 
 interface DayAppointmentItemProps {
   bookingId: string;
+  seriesId?: string | null;
   appointmentId: string;
   serviceId: string;
   status: BookingStatus;
@@ -158,6 +159,11 @@ export function DayAppointmentItem(props: DayAppointmentItemProps) {
           <span className={`rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${STATUS_STYLES[props.status] ?? "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/70"}`}>
             {props.status.replace("_", " ")}
           </span>
+          {props.seriesId && (
+            <span className="rounded-full bg-[var(--color-teal)]/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--color-teal-ink)]" title="Part of a recurring series">
+              Series
+            </span>
+          )}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-4 w-4 text-[var(--color-ink)]/40 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
           </svg>
@@ -180,6 +186,7 @@ export function DayAppointmentItem(props: DayAppointmentItemProps) {
           />
           <AppointmentMenu
             bookingId={props.bookingId}
+            seriesId={props.seriesId}
             appointmentId={props.appointmentId}
             serviceId={props.serviceId}
             status={props.status}

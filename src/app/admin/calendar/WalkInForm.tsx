@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { frontDeskBookAction, getCalendarSlotsAction, type CalendarSlotDTO } from "./actions";
+import { createSeriesAction, frontDeskBookAction, getCalendarSlotsAction, previewSeriesAction, type CalendarSlotDTO, type SeriesPreviewDTO } from "./actions";
 import { SlotPicker } from "./SlotPicker";
 
 export interface FrontDeskServiceDTO {
@@ -44,7 +44,13 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
   const [name, setName] = useState(defaultName);
   const [phone, setPhone] = useState(defaultPhone);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  // Recurring series ("every N weeks × count"), previewed before booking.
+  const [repeat, setRepeat] = useState(false);
+  const [intervalWeeks, setIntervalWeeks] = useState(2);
+  const [count, setCount] = useState(6);
+  const [preview, setPreview] = useState<SeriesPreviewDTO[] | null>(null);
+  const [checking, startChecking] = useTransition();
 
   const dateInputId = useId();
   const nameId = useId();
@@ -60,10 +66,25 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
     return [...byDept.entries()];
   }, [services]);
 
+  const dFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Riyadh", weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
+  function checkDates() {
+    if (!serviceId || !selectedSlot) {
+      setError("Choose a service and the first visit's time.");
+      return;
+    }
+    setError(null);
+    startChecking(async () => {
+      const r = await previewSeriesAction({ serviceId, firstStartAt: selectedSlot.startAt, staffUserId: selectedSlot.staffUserId, intervalWeeks, count });
+      if (r.ok) setPreview(r.occurrences);
+      else setError(r.error);
+    });
+  }
+
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setSuccess(false);
+    setSuccess(null);
 
     if (!serviceId || !selectedSlot) {
       setError("Choose a service and an available time.");
@@ -71,6 +92,25 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
     }
     if (!name.trim() || !phone.trim()) {
       setError("Customer name and phone are required.");
+      return;
+    }
+
+    if (repeat) {
+      if (!preview) {
+        checkDates();
+        return;
+      }
+      startTransition(async () => {
+        const r = await createSeriesAction({ serviceId, firstStartAt: selectedSlot.startAt, staffUserId: selectedSlot.staffUserId, intervalWeeks, count, name, phone });
+        if (r.ok) {
+          setSuccess(`${r.booked} visit${r.booked === 1 ? "" : "s"} booked.${r.skipped.length ? ` Not free (book separately): ${r.skipped.join(", ")}.` : ""}`);
+          setName("");
+          setPhone("");
+          setSelectedSlot(null);
+          setPreview(null);
+          router.push(`/admin/calendar?day=${date}`);
+        } else setError(r.error);
+      });
       return;
     }
 
@@ -84,7 +124,7 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
         phone,
       });
       if (result.ok) {
-        setSuccess(true);
+        setSuccess("Booking created.");
         setName("");
         setPhone("");
         setSelectedSlot(null);
@@ -130,7 +170,10 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
             date={date}
             onDateChange={setDate}
             selected={selectedSlot}
-            onSelect={setSelectedSlot}
+            onSelect={(slot) => {
+              setSelectedSlot(slot);
+              setPreview(null);
+            }}
             fetchSlots={getCalendarSlotsAction}
             dateInputId={dateInputId}
             preferredStartAt={preferredStartAt}
@@ -162,19 +205,94 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
             </label>
           </div>
 
+          <fieldset className="flex flex-col gap-3 rounded-[var(--radius-sm)] border border-[var(--line)] p-3" data-testid="repeat-section">
+            <label className="flex items-center gap-2 text-sm font-medium text-[var(--color-ink)]">
+              <input
+                type="checkbox"
+                checked={repeat}
+                onChange={(e) => {
+                  setRepeat(e.target.checked);
+                  setPreview(null);
+                }}
+                className="h-4 w-4"
+                data-testid="repeat-toggle"
+              />
+              Repeat this booking (a course of visits)
+            </label>
+            {repeat && (
+              <>
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  Every
+                  <select
+                    value={intervalWeeks}
+                    onChange={(e) => {
+                      setIntervalWeeks(Number(e.target.value));
+                      setPreview(null);
+                    }}
+                    className="rounded border border-[var(--color-ink)]/20 px-2 py-1.5 text-sm"
+                    data-testid="repeat-interval"
+                  >
+                    {[1, 2, 3, 4, 6, 8, 12].map((w) => (
+                      <option key={w} value={w}>
+                        {w === 1 ? "week" : `${w} weeks`}
+                      </option>
+                    ))}
+                  </select>
+                  ×
+                  <input
+                    type="number"
+                    min={2}
+                    max={26}
+                    value={count}
+                    onChange={(e) => {
+                      setCount(Math.max(2, Math.min(26, Number(e.target.value) || 2)));
+                      setPreview(null);
+                    }}
+                    className="w-20 rounded border border-[var(--color-ink)]/20 px-2 py-1.5 text-sm"
+                    data-testid="repeat-count"
+                  />
+                  visits, same time
+                  <button type="button" onClick={checkDates} disabled={checking || !selectedSlot} className="lunia-btn lunia-btn-ghost lunia-btn-sm" data-testid="repeat-check">
+                    {checking ? "Checking…" : "Check dates"}
+                  </button>
+                </div>
+                {preview && (
+                  <ul className="grid gap-1 text-sm sm:grid-cols-2" data-testid="repeat-preview">
+                    {preview.map((o) => (
+                      <li key={o.startAt} className={o.available ? "text-[var(--color-ink)]" : "text-[var(--color-danger)]"}>
+                        {o.available ? "✓" : "✗"} {dFmt.format(new Date(o.startAt))}
+                        {!o.available && " — not free, will be skipped"}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </fieldset>
+
           {error && (
             <p role="alert" className="text-sm font-medium text-red-700">
               {error}
             </p>
           )}
-          {success && <p className="text-sm font-medium text-[var(--color-teal)]">Booking created.</p>}
+          {success && (
+            <p className="text-sm font-medium text-[var(--color-teal-ink)]" data-testid="walk-in-success">
+              {success}
+            </p>
+          )}
 
           <button
             type="submit"
             disabled={isPending || !selectedSlot}
             className="w-fit lunia-btn lunia-btn-forest disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isPending ? "Booking…" : "Confirm walk-in"}
+            {isPending
+              ? "Booking…"
+              : repeat
+                ? preview
+                  ? `Book ${preview.filter((o) => o.available).length} visits`
+                  : "Check dates"
+                : "Confirm walk-in"}
           </button>
         </>
       )}

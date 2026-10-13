@@ -23,6 +23,8 @@ import { getLatestIntake } from "@/modules/clinical/intake";
 import { consentStatusForClient } from "@/modules/clinical/consents";
 import { MyInvoicesPanel } from "./MyInvoicesPanel";
 import { logout } from "./actions";
+import { MembershipPanel } from "./MembershipPanel";
+import { getClientMembership } from "@/modules/memberships/memberships";
 
 interface AccountPageProps {
   params: Promise<{ locale: string }>;
@@ -150,6 +152,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
   ]);
 
   const t = await getTranslations({ locale, namespace: "account" });
+  const membership = await getClientMembership(user.clientProfile.id);
   const logoutAction = logout.bind(null, locale);
 
   // Time-of-day greeting in the center's timezone (Asia/Riyadh), personalized
@@ -189,6 +192,22 @@ export default async function AccountPage({ params }: AccountPageProps) {
           <HealthProfileCard locale={locale} lastUpdatedAt={latestIntake?.createdAt ?? null} />
 
           <ConsentsCard locale={locale} rows={consentRows} />
+
+          {membership && (
+            <MembershipPanel
+              locale={locale}
+              planName={locale === "ar" ? membership.plan.nameAr : membership.plan.nameEn}
+              description={locale === "ar" ? membership.plan.descriptionAr : membership.plan.descriptionEn}
+              priceMinor={membership.plan.priceMinor}
+              status={membership.status}
+              serviceDiscountPct={membership.plan.serviceDiscountPct}
+              productDiscountPct={membership.plan.productDiscountPct}
+              includedSessions={membership.plan.includedSessions}
+              periodEnd={membership.currentPeriodEnd}
+              monthPaid={membership.cycles[0]?.status === "PAID"}
+              cancelAt={membership.cancelAt}
+            />
+          )}
 
           <LoyaltyPanel
             locale={locale}
