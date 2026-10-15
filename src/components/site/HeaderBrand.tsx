@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface HeaderBrandProps {
   href: string;
@@ -14,6 +15,7 @@ interface HeaderBrandProps {
 // a small, premium micro-interaction. The glow star twinkles (CSS) and the
 // mark blooms softly on hover. Painted in --logo-color (the primary teal).
 export function HeaderBrand({ href, label, className = "" }: HeaderBrandProps) {
+  const tCommon = useTranslations("common");
   const [condensed, setCondensed] = useState(false);
   const raf = useRef(0);
 
@@ -33,7 +35,7 @@ export function HeaderBrand({ href, label, className = "" }: HeaderBrandProps) {
   return (
     <Link href={href} aria-label={label} data-condensed={condensed} className={`lunia-brand ${className}`}>
       <span aria-hidden="true" className="lunia-emblem h-7 md:h-8" />
-      <span role="img" aria-label="LUNIA — Skin & Hair" className="lunia-brand-word lunia-logo h-[1.375rem] md:h-[1.6rem]" />
+      <span role="img" aria-label={tCommon("logoLabel")} className="lunia-brand-word lunia-logo h-[1.375rem] md:h-[1.6rem]" />
     </Link>
   );
 }

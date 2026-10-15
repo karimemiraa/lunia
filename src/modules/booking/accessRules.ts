@@ -28,7 +28,7 @@ export async function getMinTierForService(serviceId: string): Promise<MinTierRe
 // (or a rule with minTierId null) are simply absent from the result — the
 // picker uses this to render an informational "Members-only" note, but the
 // actual gate is still enforced server-side by createBooking.
-export async function getTierGateNotesForServices(serviceIds: string[]): Promise<Record<string, string>> {
+export async function getTierGateNotesForServices(serviceIds: string[], locale: "ar" | "en" = "en"): Promise<Record<string, string>> {
   if (serviceIds.length === 0) return {};
 
   const rules = await prisma.serviceAccessRule.findMany({
@@ -38,7 +38,7 @@ export async function getTierGateNotesForServices(serviceIds: string[]): Promise
 
   const tierIds = [...new Set(rules.map((rule) => rule.minTierId).filter((id): id is string => !!id))];
   const tiers = await prisma.membershipTier.findMany({ where: { id: { in: tierIds } } });
-  const tierNameById = new Map(tiers.map((tier) => [tier.id, tier.name]));
+  const tierNameById = new Map(tiers.map((tier) => [tier.id, locale === "ar" ? tier.nameAr || tier.name : tier.name]));
 
   const notes: Record<string, string> = {};
   for (const rule of rules) {

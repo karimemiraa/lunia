@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
-import { createStaffUser, setUserRoles, deleteStaffUser } from "@/modules/iam/users";
+import { createStaffUser, setUserRoles, deleteStaffUser, setStaffArabicName } from "@/modules/iam/users";
 import { recordAudit } from "@/modules/iam/audit";
 
 export interface UserActionState {
@@ -16,12 +16,13 @@ export async function createUserAction(_prev: UserActionState | null, formData: 
 
   const email = String(formData.get("email") ?? "").trim();
   const fullName = String(formData.get("fullName") ?? "").trim();
+  const fullNameAr = String(formData.get("fullNameAr") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const roleIds = formData.getAll("roleIds").map(String);
 
   try {
-    const { id } = await createStaffUser({ email, fullName, title, password, roleIds });
+    const { id } = await createStaffUser({ email, fullName, fullNameAr, title, password, roleIds });
     await recordAudit({
       actorUserId: admin.id,
       action: "USER_CREATE",
@@ -33,6 +34,20 @@ export async function createUserAction(_prev: UserActionState | null, formData: 
     return { error: err instanceof Error ? err.message : "Failed to create user." };
   }
 
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
+export async function setStaffArabicNameAction(_prev: UserActionState | null, formData: FormData): Promise<UserActionState> {
+  const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const userId = String(formData.get("userId") ?? "");
+  const fullNameAr = String(formData.get("fullNameAr") ?? "");
+  try {
+    await setStaffArabicName(userId, fullNameAr);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Couldn't save the Arabic name." };
+  }
+  await recordAudit({ actorUserId: admin.id, action: "USER_UPDATE", entityType: "User", entityId: userId, summary: `Set Arabic display name to "${fullNameAr.trim()}"` });
   revalidatePath("/admin/users");
   return { success: true };
 }

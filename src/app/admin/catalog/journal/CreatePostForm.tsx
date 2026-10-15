@@ -25,6 +25,7 @@ export function CreatePostForm({ media }: { media: MediaOption[] }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Slug" name="slug" placeholder="e.g. understanding-your-skin" required />
         <Field label="Author name" name="authorName" placeholder="e.g. Dr. Lina" />
+        <Field label="Author name (Arabic)" name="authorNameAr" placeholder="مثال: د. لينا" dir="rtl" />
       </div>
       <Field label="Order" name="order" type="number" placeholder="0" />
 

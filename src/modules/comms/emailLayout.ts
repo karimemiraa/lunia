@@ -74,7 +74,7 @@ export function renderEmailHtml(opts: EmailLayoutOptions): string {
   const dir = isRtl ? "rtl" : "ltr";
   const align = isRtl ? "right" : "left";
   const greeting = opts.recipientName
-    ? `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${BRAND.ink};text-align:${align}">${isRtl ? "مرحباً" : "Hi"} ${escapeHtml(opts.recipientName)},</p>`
+    ? `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${BRAND.ink};text-align:${align}">${isRtl ? "هلا" : "Hi"} ${escapeHtml(opts.recipientName)},</p>`
     : "";
   const preheader = opts.preheader ?? opts.subject;
 

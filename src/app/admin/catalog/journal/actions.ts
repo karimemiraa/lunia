@@ -57,6 +57,7 @@ export async function createPostAction(_prev: PostActionState | null, formData: 
       bodyAr: body.ar,
       heroMediaId: stringOrNull(formData, "heroMediaId"),
       authorName: stringOrNull(formData, "authorName"),
+      authorNameAr: stringOrNull(formData, "authorNameAr"),
       order: numberOrUndefined(formData, "order"),
       isPublished: formData.get("isPublished") === "on",
     });
@@ -90,6 +91,7 @@ export async function updatePostAction(_prev: PostActionState | null, formData: 
       bodyAr: body.ar,
       heroMediaId: stringOrNull(formData, "heroMediaId"),
       authorName: stringOrNull(formData, "authorName"),
+      authorNameAr: stringOrNull(formData, "authorNameAr"),
       order: numberOrUndefined(formData, "order"),
       isPublished: formData.get("isPublished") === "on",
     });

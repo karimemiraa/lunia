@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { setUserRolesAction, deleteUserAction, type UserActionState } from "./actions";
+import { setUserRolesAction, deleteUserAction, setStaffArabicNameAction, type UserActionState } from "./actions";
 import type { StaffUserRow } from "@/modules/iam/users";
 import { ConfirmButton } from "../_ui/ConfirmDialog";
 import { InlineStatus } from "../_ui/Form";
@@ -27,6 +27,7 @@ export function UserRow({
 }) {
   const [roleState, roleAction, rolePending] = useActionState(setUserRolesAction, initialState);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteUserAction, initialState);
+  const [nameArState, nameArAction, nameArPending] = useActionState(setStaffArabicNameAction, initialState);
 
   return (
     <div className="lunia-card flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between" data-testid="user-row">
@@ -37,6 +38,22 @@ export function UserRow({
         </p>
         <p className="text-sm text-[var(--color-ink)]/60">{user.email}</p>
         {user.title && <p className="text-xs text-[var(--color-ink)]/45">{user.title}</p>}
+        <form action={nameArAction} className="mt-2 flex flex-wrap items-center gap-2" data-testid="staff-name-ar-form">
+          <input type="hidden" name="userId" value={user.id} />
+          <input
+            name="fullNameAr"
+            dir="rtl"
+            defaultValue={user.fullNameAr ?? ""}
+            placeholder="الاسم بالعربي"
+            aria-label={`Arabic name for ${user.fullName || user.email}`}
+            maxLength={120}
+            className="lunia-input w-48 py-1 text-sm"
+          />
+          <button type="submit" disabled={nameArPending} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-60">
+            {nameArPending ? "Saving…" : "Save Arabic name"}
+          </button>
+          <InlineStatus size="sm" success={nameArState.success ? "Saved." : undefined} error={nameArState.error} />
+        </form>
         {canViewHr && (
           <Link
             href={`/admin/hr/${user.id}`}

@@ -80,9 +80,9 @@ export async function purchaseGiftCard(input: PurchaseGiftInput): Promise<Purcha
   const amountSar = (data.amountMinor / 100).toLocaleString(data.locale === "ar" ? "ar-SA" : "en-US");
   const isAr = data.locale === "ar";
   const body = isAr
-    ? `تهانينا! لديك بطاقة هدية من لونيا بقيمة ${amountSar} ريال.\n\nرمز البطاقة: ${card.code}\n\n${data.message ? `رسالة من ${data.purchaserName}: ${data.message}\n\n` : ""}استخدمي الرمز عند الحجز أو في المركز.`
+    ? `مبروك! وصلتك بطاقة هدية من لونيا بقيمة ${amountSar} ريال.\n\nكود البطاقة: ${card.code}\n\n${data.message ? `رسالة من ${data.purchaserName}: ${data.message}\n\n` : ""}استخدمي الكود وقت الحجز أونلاين أو في المركز.`
     : `You've received a Lunia gift card worth ${amountSar} SAR.\n\nGift card code: ${card.code}\n\n${data.message ? `Message from ${data.purchaserName}: ${data.message}\n\n` : ""}Use the code when booking or at the center.`;
-  const subject = isAr ? "بطاقة هدية من لونيا" : "Your Lunia gift card";
+  const subject = isAr ? "وصلتك بطاقة هدية من لونيا" : "Your Lunia gift card";
   try {
     const sender = await resolveSenderForChannel("email");
     const result = await sender.send({ channel: "email", toEmail: to, subject, body, kind: "GIFT_CARD", recipientName: toName, locale: data.locale });

@@ -20,7 +20,7 @@ export interface HomeHero {
 // a brand-new environment with no PageContent row and no hero SiteSetting.
 const FALLBACK_HERO: Record<PublicLocale, { headline: string; cta: string; intro: string }> = {
   en: { headline: "Where natural beauty begins", cta: "Book Now", intro: "" },
-  ar: { headline: "حيث يبدأ الجمال الطبيعي", cta: "احجزي الآن", intro: "" },
+  ar: { headline: "من هنا يبدأ جمالك الطبيعي", cta: "احجزي الآن", intro: "" },
 };
 
 function pick(value: string | undefined | null): string | null {

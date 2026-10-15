@@ -167,6 +167,8 @@ model StaffProfile {
   userId   String  @unique
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   fullName String
+  /// Name shown to customers on Arabic pages; falls back to `fullName`.
+  fullNameAr String?
   title    String?
   bio      String?
 }
@@ -175,6 +177,8 @@ model MembershipTier {
   id          String             @id @default(cuid())
   key         String             @unique
   name        String
+  /// Arabic display name for customers; falls back to `name`.
+  nameAr      String?
   priority    Int                @default(0)
   discountPct Int                @default(0)
   // Loyalty-points threshold for automatic tier assignment (applyAutoTier in
@@ -401,6 +405,8 @@ model BlogPost {
   bodyAr      String    @db.Text
   heroMediaId String?
   authorName  String?
+  /// Arabic byline; falls back to `authorName`.
+  authorNameAr String?
   publishedAt DateTime?
   isPublished Boolean   @default(false)
   order       Int       @default(0)
@@ -636,6 +642,8 @@ model PackageRedemption {
 model Room {
   id           String        @id @default(cuid())
   name         String
+  /// Arabic display name for customers; falls back to `name`.
+  nameAr       String?
   capacity     Int           @default(1)
   isActive     Boolean       @default(true)
   order        Int           @default(0)

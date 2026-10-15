@@ -28,6 +28,7 @@ export async function createRoomAction(_prev: RoomActionState | null, formData: 
   try {
     await createRoom({
       name,
+      nameAr: String(formData.get("nameAr") ?? ""),
       capacity: numberOrUndefined(formData, "capacity"),
       order: numberOrUndefined(formData, "order"),
     });
@@ -52,6 +53,7 @@ export async function updateRoomAction(_prev: RoomActionState | null, formData: 
   try {
     await updateRoom(id, {
       name: name || undefined,
+      nameAr: formData.has("nameAr") ? String(formData.get("nameAr") ?? "") : undefined,
       capacity: numberOrUndefined(formData, "capacity"),
       order: numberOrUndefined(formData, "order"),
       isActive: formData.get("isActive") === "on",

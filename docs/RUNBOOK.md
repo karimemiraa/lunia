@@ -217,6 +217,19 @@ Each visit is a normal booking linked by `Booking.seriesId`, with a "Series" bad
 - **Payment webhook:** Moyasar events must carry `PAYMENT_WEBHOOK_SECRET`. Invoice callbacks (which carry no token) must arrive on our HMAC-signed callback URL (`?cb=`); unsigned callbacks are refused, except for pay links created before 2026-10-15. The tax settings page warns while the webhook secret isn't set.
 - **Gift card stub check:** every deploy prints, in the Actions log, how many gift cards were issued by the old stub charge and how much balance is still usable (totals only; `deploy/scripts/check-gift-stubs.sh`).
 
+### 3.7 Arabic (customer-facing)
+
+- **Voice:** Gulf/Saudi dialect with feminine address on the website, booking, account and customer messages. Clear formal Arabic on the health questionnaire, consent forms and invoices. Rules and approved terms: `docs/arabic-glossary.md`. Every change, for native review: `docs/arabic-review-sheet.md`.
+- **Website text** lives in `src/messages/ar.json`. Any new English key needs an Arabic one; the i18n unit test fails otherwise.
+- **Names customers see** have an optional Arabic field. When it's blank, the English name shows:
+  - membership tiers (Admin → Tiers)
+  - rooms (Booking settings → Rooms)
+  - staff (Users → "Save Arabic name")
+  - journal authors (Journal post → "Author name (Arabic)")
+
+  **Set the Arabic name for every specialist**, since customers see it on their booking.
+- **"No English" check:** `e2e/arabic-coverage.spec.ts` opens every public page, each booking step and the signed-in account in Arabic, and fails on any visible English word. Allowed: brand and product names, codes, numbers, emails, phones, and anything marked `lang="en"` or `data-i18n-ignore`. Add new public routes to its list.
+
 ## 4. Backup
 
 **Automatic (since 2026-10-14):** the deploy workflow installs

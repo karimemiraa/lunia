@@ -57,15 +57,16 @@ function SocialIcon({ href, label, children }: { href: string; label: string; ch
 // been configured yet.
 export async function SiteFooter({ locale }: SiteFooterProps) {
   const isAr = locale === "ar";
-  const [tNav, tFooter, business, social] = await Promise.all([
+  const [tNav, tFooter, tCommon, business, social] = await Promise.all([
     getTranslations({ locale, namespace: "nav" }),
     getTranslations({ locale, namespace: "footer" }),
+    getTranslations({ locale, namespace: "common" }),
     getSetting("business").catch(() => null),
     getSetting("social").catch(() => null),
   ]);
 
   const year = new Date().getFullYear();
-  const businessName = business ? (isAr ? business.nameAr : business.nameEn) : "LUNIA";
+  const businessName = business ? (isAr ? business.nameAr : business.nameEn) : tCommon("brandName");
   const address = business ? (isAr ? business.addressAr : business.addressEn) : null;
 
   return (
@@ -74,7 +75,7 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
         <div className="flex flex-col gap-4">
           <span className="lunia-brand self-start">
             <span aria-hidden="true" className="lunia-emblem h-9" />
-            <span role="img" aria-label="LUNIA — Skin & Hair" className="lunia-logo h-7" />
+            <span role="img" aria-label={tCommon("logoLabel")} className="lunia-logo h-7" />
           </span>
           <p className="max-w-sm text-sm leading-relaxed text-[var(--color-ink)]/85">{tFooter("tagline")}</p>
         </div>
@@ -131,7 +132,7 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
       <div className="border-t border-[var(--color-ink)]/15">
         <div className="mx-auto flex w-full max-w-6xl flex-col-reverse items-center justify-between gap-4 px-6 py-6 text-xs text-[var(--color-ink)]/75 sm:flex-row">
           <p>
-            © {year} LUNIA. {tFooter("rights")}
+            © {year} {tCommon("brandName")}. {tFooter("rights")}
           </p>
           <LocaleSwitcher locale={locale} />
         </div>

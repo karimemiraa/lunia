@@ -21,7 +21,8 @@
     "toEnglish": "English",
     "brandName": "Lunia",
     "skipToContent": "Skip to content",
-    "close": "Close"
+    "close": "Close",
+    "logoLabel": "LUNIA — Skin & Hair"
   },
   "footer": {
     "tagline": "Not facials, skin quality.",
@@ -703,7 +704,9 @@
       "noSlot": "Please choose a time first.",
       "nameRequired": "Please enter your full name.",
       "identifierRequired": "Please enter a phone number or email address.",
-      "codeIncomplete": "Enter all 6 digits of the code."
+      "codeIncomplete": "Enter all 6 digits of the code.",
+      "packageEmpty": "This package has no sessions left.",
+      "packageExpired": "This package has expired."
     },
     "stepper": {
       "stepName": "Step {number}: {name}",
@@ -760,7 +763,8 @@
       "signInWithPassword": "Sign in with a password instead",
       "signInWithCode": "Sign in with a verification code instead",
       "verifyLabelPassword": "Sign in",
-      "emailLabel": "Email address"
+      "emailLabel": "Email address",
+      "brandLabel": "Lunia"
     },
     "heading": "My account",
     "signedInAs": "Signed in as {name}",
@@ -1021,7 +1025,10 @@
     "book": "Book",
     "minutes": "{n} min",
     "from": "From",
-    "highlights": "Highlights"
+    "highlights": "Highlights",
+    "showTestimonial": "Show testimonial {n}",
+    "prevTestimonial": "Previous testimonial",
+    "nextTestimonial": "Next testimonial"
   },
   "health": {
     "meta": {
@@ -1219,7 +1226,8 @@
   "impersonation": {
     "viewingAs": "You are viewing as {name}",
     "warning": "Everything here is real: bookings, cancellations and messages reach the customer.",
-    "exit": "Exit"
+    "exit": "Exit",
+    "blocked": "Not available while viewing as this customer — they need to do this themselves."
   },
   "assistant": {
     "title": "Lunia Assistant",

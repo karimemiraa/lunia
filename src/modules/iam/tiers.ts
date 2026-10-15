@@ -6,12 +6,14 @@ const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export interface CreateTierInput {
   key: string;
   name: string;
+  nameAr?: string | null;
   priority?: number;
   discountPct?: number;
 }
 
 export interface UpdateTierInput {
   name?: string;
+  nameAr?: string | null;
   priority?: number;
   discountPct?: number;
 }
@@ -46,6 +48,7 @@ export async function createTier(input: CreateTierInput): Promise<MembershipTier
     data: {
       key: input.key,
       name: input.name,
+      nameAr: input.nameAr?.trim() || null,
       priority: input.priority ?? 0,
       discountPct: input.discountPct ?? 0,
     },
@@ -64,6 +67,7 @@ export async function updateTier(id: string, input: UpdateTierInput): Promise<Me
     where: { id },
     data: {
       name: input.name,
+      nameAr: input.nameAr === undefined ? undefined : input.nameAr?.trim() || null,
       priority: input.priority,
       discountPct: input.discountPct,
     },

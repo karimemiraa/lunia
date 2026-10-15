@@ -90,11 +90,11 @@ async function main() {
 
   // ~2.1B ceiling) so points earning never auto-assigns/overwrites them.
   const tiers = [
-    { key: "guest", name: "Guest", priority: 0, discountPct: 0, minPoints: 0 },
-    { key: "member", name: "Member", priority: 10, discountPct: 5, minPoints: 500 },
-    { key: "vip", name: "VIP", priority: 20, discountPct: 10, minPoints: 2000 },
-    { key: "bride", name: "Bride Program", priority: 15, discountPct: 0, minPoints: 999_999_900 },
-    { key: "postsurgery", name: "Post-Surgery Program", priority: 15, discountPct: 0, minPoints: 999_999_901 },
+    { key: "guest", name: "Guest", nameAr: "زائرة", priority: 0, discountPct: 0, minPoints: 0 },
+    { key: "member", name: "Member", nameAr: "عضوة", priority: 10, discountPct: 5, minPoints: 500 },
+    { key: "vip", name: "VIP", nameAr: "VIP", priority: 20, discountPct: 10, minPoints: 2000 },
+    { key: "bride", name: "Bride Program", nameAr: "برنامج العروس", priority: 15, discountPct: 0, minPoints: 999_999_900 },
+    { key: "postsurgery", name: "Post-Surgery Program", nameAr: "برنامج ما بعد العمليات", priority: 15, discountPct: 0, minPoints: 999_999_901 },
   ];
   for (const t of tiers) {
     await prisma.membershipTier.upsert({
@@ -118,7 +118,7 @@ async function main() {
       email: ownerEmail,
       passwordHash: await bcrypt.hash(ownerPass, 12),
       locale: "en",
-      staffProfile: { create: { fullName: "Karim Emira", title: "Founder & Superadmin" } },
+      staffProfile: { create: { fullName: "Karim Emira", fullNameAr: "كريم أميرة", title: "Founder & Superadmin" } },
     },
   });
   await prisma.userRole.upsert({
@@ -602,6 +602,7 @@ async function main() {
       bodyAr:
         "في كوريا، يُنظر إلى العناية بالبشرة كاستثمار طويل الأمد في صحتها وليس بحثاً عن تحول فوري. في لونيا، نجلب هذه الفلسفة نفسها إلى الرياض: تبدأ كل عميلة بتحليل تشخيصي لبشرتها، وتُبنى العلاجات تدريجياً لتقوية حاجز البشرة وتحسين الترطيب وبناء المتانة مع الوقت. الهدف ليس إخفاء مشكلة ليوم واحد، بل تحسين جودة بشرتك لسنوات قادمة.",
       authorName: "Lunia Editorial Team",
+      authorNameAr: "فريق تحرير لونيا",
       publishedAt: new Date("2026-08-01T09:00:00.000Z"),
       isPublished: true,
       order: 0,
@@ -619,6 +620,7 @@ async function main() {
       bodyAr:
         "تبدأ كل رحلة علاجية في لونيا بتحليل تشخيصي للبشرة باستخدام تقنيات تصوير احترافية لتقييم الترطيب والملمس والتصبغ والمشكلات الكامنة تحت السطح. وبدلاً من التخمين، يستخدم أخصائيونا هذه البيانات لبناء خطة مخصصة لبشرتك تحديداً، ولمتابعة تقدم حقيقي وقابل للقياس في كل زيارة متابعة. إنه الأساس الذي يجعل كل علاج لاحق أكثر فعالية.",
       authorName: "Lunia Editorial Team",
+      authorNameAr: "فريق تحرير لونيا",
       publishedAt: new Date("2026-08-15T09:00:00.000Z"),
       isPublished: true,
       order: 1,
@@ -636,6 +638,7 @@ async function main() {
       bodyAr:
         "التعافي بعد إجراء تجميلي أو طبي لا يقل أهمية عن الإجراء نفسه. في لونيا، يجمع قسم التعافي بعد الجراحة بين التصريف اللمفاوي اليدوي والعلاج بالضغط الهوائي وإرشادات خبيرة لملابس الضغط للمساعدة في تقليل التورم وتخفيف الانزعاج ودعم مسار الشفاء الطبيعي للجسم، وكل ذلك ضمن صالة تعافٍ هادئة ومخصصة لراحتك وخصوصيتك.",
       authorName: "Lunia Editorial Team",
+      authorNameAr: "فريق تحرير لونيا",
       publishedAt: new Date("2026-08-28T09:00:00.000Z"),
       isPublished: true,
       order: 2,
@@ -682,9 +685,9 @@ async function main() {
   }
 
   const roomSeeds = [
-    { name: "Treatment Room 1", capacity: 1, order: 0 },
-    { name: "Treatment Room 2", capacity: 1, order: 1 },
-    { name: "Recovery Lounge", capacity: 3, order: 2 },
+    { name: "Treatment Room 1", nameAr: "غرفة العلاج 1", capacity: 1, order: 0 },
+    { name: "Treatment Room 2", nameAr: "غرفة العلاج 2", capacity: 1, order: 1 },
+    { name: "Recovery Lounge", nameAr: "صالة التعافي", capacity: 3, order: 2 },
   ];
   for (const room of roomSeeds) {
     const existing = await prisma.room.findFirst({ where: { name: room.name } });
@@ -704,7 +707,7 @@ async function main() {
       email: specialistEmail,
       passwordHash: await bcrypt.hash(specialistPass, 12),
       locale: "en",
-      staffProfile: { create: { fullName: "Lunia Specialist", title: "Skin & Scalp Specialist" } },
+      staffProfile: { create: { fullName: "Lunia Specialist", fullNameAr: "أخصائية لونيا", title: "Skin & Scalp Specialist" } },
     },
   });
   await prisma.userRole.upsert({
@@ -788,7 +791,7 @@ async function main() {
       kind: "CONFIRMATION",
       locale: "ar",
       channel: "whatsapp",
-      bodyTemplate: "تم تأكيد حجزك في لونيا لخدمة {{serviceName}} بتاريخ {{dateTime}}. نتطلع لرؤيتك قريباً.",
+      bodyTemplate: "تم تأكيد حجزك في لونيا لـ{{serviceName}} يوم {{dateTime}}. بانتظارك، ونتشرف بزيارتك.",
     },
     {
       kind: "REMINDER_24H",
@@ -800,7 +803,7 @@ async function main() {
       kind: "REMINDER_24H",
       locale: "ar",
       channel: "whatsapp",
-      bodyTemplate: "تذكير: موعدك في لونيا لخدمة {{serviceName}} غداً الساعة {{dateTime}}. نراك قريباً!",
+      bodyTemplate: "تذكير: موعدك في لونيا لـ{{serviceName}} بكرة، {{dateTime}}. إذا تبين تغيرين الموعد كلمينا وبنرتب لك.",
     },
     {
       kind: "POST_VISIT",
@@ -812,7 +815,7 @@ async function main() {
       kind: "POST_VISIT",
       locale: "ar",
       channel: "whatsapp",
-      bodyTemplate: "شكراً لزيارتك لونيا لخدمة {{serviceName}}. نتمنى أن تكون تجربتك ممتازة.",
+      bodyTemplate: "شكراً على زيارتك للونيا لـ{{serviceName}}. إن شاء الله عجبتك التجربة، وننتظرك مرة ثانية.",
     },
     {
       kind: "OTP",
@@ -824,7 +827,7 @@ async function main() {
       kind: "OTP",
       locale: "ar",
       channel: "sms",
-      bodyTemplate: "رمز التحقق الخاص بك في لونيا هو {{code}}.",
+      bodyTemplate: "رمز التحقق من لونيا: {{code}}. لا تشاركينه مع أي أحد.",
     },
     {
       kind: "OTP",
@@ -836,7 +839,7 @@ async function main() {
       kind: "OTP",
       locale: "ar",
       channel: "email",
-      bodyTemplate: "رمز التحقق الخاص بك في لونيا هو {{code}}. صالح لمدة ٥ دقائق.",
+      bodyTemplate: "رمز التحقق من لونيا: {{code}}. صالح لمدة 5 دقائق، ولا تشاركينه مع أي أحد.",
     },
   ];
   for (const tpl of messageTemplateSeeds) {

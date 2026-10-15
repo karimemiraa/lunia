@@ -63,7 +63,7 @@ export function SereneHeader({ locale }: SereneHeaderProps) {
       <span aria-hidden="true" className="srn-medallion">
         <span className="lunia-emblem" />
       </span>
-      <span role="img" aria-label="LUNIA — Skin & Hair" className="srn-wordmark lunia-logo" />
+      <span role="img" aria-label={tc("logoLabel")} className="srn-wordmark lunia-logo" />
     </Link>
   );
 

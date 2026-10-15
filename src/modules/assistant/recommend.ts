@@ -21,6 +21,8 @@ export interface CatalogService {
   inCenterOnly: boolean;
   /** Name of the minimum membership tier, when the service is gated. */
   tierName: string | null;
+  /** Arabic name of that tier (falls back to tierName). */
+  tierNameAr?: string | null;
 }
 
 export type Domain = "skin" | "hair" | "post_surgery";

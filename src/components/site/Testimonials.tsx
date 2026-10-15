@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { SectionHeading } from "./SectionHeading";
 
 interface TestimonialItem {
@@ -20,6 +21,7 @@ const INTERVAL_MS = 5500;
 // a time, sliding to the next every few seconds (pauses on hover/focus, and
 // stops entirely under reduced-motion). Dots + arrows for manual control.
 export function Testimonials({ eyebrow, heading, items }: TestimonialsProps) {
+  const tUi = useTranslations("ui");
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const count = items.length;
@@ -77,7 +79,7 @@ export function Testimonials({ eyebrow, heading, items }: TestimonialsProps) {
                   key={i}
                   type="button"
                   onClick={() => go(i)}
-                  aria-label={`Show testimonial ${i + 1}`}
+                  aria-label={tUi("showTestimonial", { n: i + 1 })}
                   aria-current={i === index}
                   className={`h-2 rounded-full transition-all ${i === index ? "w-6 bg-[var(--color-teal-ink)]" : "w-2 bg-[var(--color-ink)]/20 hover:bg-[var(--color-ink)]/40"}`}
                 />
@@ -86,7 +88,7 @@ export function Testimonials({ eyebrow, heading, items }: TestimonialsProps) {
             <button
               type="button"
               onClick={() => go(index - 1)}
-              aria-label="Previous testimonial"
+              aria-label={tUi("prevTestimonial")}
               className="absolute top-1/3 -start-2 hidden h-9 w-9 items-center justify-center rounded-full border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--color-ink)]/75 transition-colors hover:text-[var(--color-ink)] sm:flex"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 rtl:-scale-x-100"><path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" /></svg>
@@ -94,7 +96,7 @@ export function Testimonials({ eyebrow, heading, items }: TestimonialsProps) {
             <button
               type="button"
               onClick={() => go(index + 1)}
-              aria-label="Next testimonial"
+              aria-label={tUi("nextTestimonial")}
               className="absolute top-1/3 -end-2 hidden h-9 w-9 items-center justify-center rounded-full border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--color-ink)]/75 transition-colors hover:text-[var(--color-ink)] sm:flex"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 rtl:-scale-x-100"><path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" /></svg>

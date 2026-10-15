@@ -59,7 +59,7 @@ export async function loadCatalog(): Promise<CatalogService[]> {
     include: { department: true },
     orderBy: [{ department: { order: "asc" } }, { order: "asc" }],
   });
-  const tiers = await getTierGateNotesForServices(services.map((s) => s.id));
+  const [tiers, tiersAr] = await Promise.all([getTierGateNotesForServices(services.map((s) => s.id)), getTierGateNotesForServices(services.map((s) => s.id), "ar")]);
   return services.map((s) => ({
     id: s.id,
     slug: s.slug,
@@ -73,6 +73,7 @@ export async function loadCatalog(): Promise<CatalogService[]> {
     onlineBookable: s.onlineBookable,
     inCenterOnly: s.inCenterOnly,
     tierName: tiers[s.id] ?? null,
+    tierNameAr: tiersAr[s.id] ?? null,
   }));
 }
 
@@ -316,7 +317,7 @@ async function buildPorts(
         const m = messageOf(err);
         if (m.includes("no longer available") || m.includes("just taken") || m.includes("in the past")) return { ok: false, reason: "taken" };
         const tier = /available to (.+) members/i.exec(m);
-        if (tier) return { ok: false, reason: "tier", tierName: tier[1] };
+        if (tier) return { ok: false, reason: "tier", tierName: (await getTierGateNotesForServices([serviceId], locale))[serviceId] ?? tier[1] };
         if (m.includes("not available for online booking") || m.includes("not currently available")) return { ok: false, reason: "unavailable" };
         console.error("[assistant] booking failed", err);
         return { ok: false, reason: "error" };

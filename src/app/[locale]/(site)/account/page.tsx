@@ -212,9 +212,9 @@ export default async function AccountPage({ params }: AccountPageProps) {
           <LoyaltyPanel
             locale={locale}
             balance={loyalty.balance}
-            currentTierName={loyalty.currentTier?.name ?? null}
+            currentTierName={loyalty.currentTier ? localized(locale, loyalty.currentTier.name, loyalty.currentTier.nameAr || loyalty.currentTier.name) : null}
             currentTierMinPoints={loyalty.currentTier?.minPoints ?? 0}
-            nextTierName={loyalty.nextTier?.name ?? null}
+            nextTierName={loyalty.nextTier ? localized(locale, loyalty.nextTier.name, loyalty.nextTier.nameAr || loyalty.nextTier.name) : null}
             pointsToNextTier={loyalty.pointsToNextTier}
             nextTierMinPoints={loyalty.nextTier?.minPoints ?? null}
             transactions={loyalty.transactions.map((txn) => ({

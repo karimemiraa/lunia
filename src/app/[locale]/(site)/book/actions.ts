@@ -1,4 +1,5 @@
 "use server";
+import { getTierGateNotesForServices } from "@/modules/booking/accessRules";
 
 // Server actions backing the public booking wizard (BookingWizard.tsx). All
 // three are intentionally public (no requireAdmin) — this is the online
@@ -156,11 +157,15 @@ async function applyGiftCardBestEffort(code: string | undefined, bookingId: stri
 
 const TIER_GATE_PATTERN = /available to (.+) members/i;
 
-function mapBookingError(err: unknown, t: Awaited<ReturnType<typeof getTranslations>>): string {
+async function mapBookingError(err: unknown, t: Awaited<ReturnType<typeof getTranslations>>, serviceId?: string, locale?: string): Promise<string> {
   const message = messageOf(err);
   if (message.includes("no longer available") || message.includes("just taken")) return t("slotTaken");
   const tierMatch = TIER_GATE_PATTERN.exec(message);
-  if (tierMatch) return t("tierGated", { tier: tierMatch[1] });
+  if (tierMatch) {
+    // The booking module names the tier in English; show the customer's language.
+    const localizedTier = serviceId ? (await getTierGateNotesForServices([serviceId], locale === "en" ? "en" : "ar"))[serviceId] : undefined;
+    return t("tierGated", { tier: localizedTier ?? tierMatch[1] });
+  }
   if (message.includes("not currently available for booking") || message.includes("not available for online booking")) {
     return t("serviceUnavailable");
   }
@@ -251,7 +256,8 @@ export async function verifyAndBook(input: VerifyAndBookInput): Promise<VerifyAn
       },
     };
   } catch (err) {
-    return { ok: false, error: mapBookingError(err, t) };
+    const raw = input && typeof input === "object" ? (input as { serviceId?: unknown }) : {};
+    return { ok: false, error: await mapBookingError(err, t, typeof raw.serviceId === "string" ? raw.serviceId : undefined, extractRawLocale(input)) };
   }
 }
 
@@ -337,7 +343,10 @@ export async function applyPackageToBookingAction(
     const result = await consumePackageSession(packagePurchaseId, bookingId);
     return { ok: true, sessionsRemaining: result.sessionsRemaining };
   } catch (err) {
-    return { ok: false, error: messageOf(err) || t("generic") };
+    const message = messageOf(err);
+    if (message.includes("No sessions remaining")) return { ok: false, error: t("packageEmpty") };
+    if (message.includes("has expired")) return { ok: false, error: t("packageExpired") };
+    return { ok: false, error: t("generic") };
   }
 }
 

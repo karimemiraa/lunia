@@ -69,7 +69,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
     searchParams,
   ]);
 
-  const tierNotes = await getTierGateNotesForServices(services.map((service) => service.id));
+  const tierNotes = await getTierGateNotesForServices(services.map((service) => service.id), locale);
 
   const serviceDTOs: BookableServiceDTO[] = services.map((service) => ({
     id: service.id,

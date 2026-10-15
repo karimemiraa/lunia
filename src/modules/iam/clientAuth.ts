@@ -95,7 +95,7 @@ async function resolveOtpChannel(
 }
 
 function otpSubject(locale: string): string {
-  return locale.toLowerCase().startsWith("ar") ? "رمز الدخول إلى لونيا" : "Your Lunia code";
+  return locale.toLowerCase().startsWith("ar") ? "رمز التحقق من لونيا" : "Your Lunia code";
 }
 
 export interface RequestOtpOptions {

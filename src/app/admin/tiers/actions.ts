@@ -67,6 +67,7 @@ export async function createTierAction(_prev: TierActionState | null, formData: 
     await createTier({
       key,
       name,
+      nameAr: String(formData.get("nameAr") ?? ""),
       priority: numberOrUndefined(formData, "priority"),
       discountPct: numberOrUndefined(formData, "discountPct"),
     });
@@ -97,6 +98,7 @@ export async function updateTierAction(_prev: TierActionState | null, formData: 
   try {
     await updateTier(id, {
       name: name || undefined,
+      nameAr: formData.has("nameAr") ? String(formData.get("nameAr") ?? "") : undefined,
       priority: numberOrUndefined(formData, "priority"),
       discountPct: numberOrUndefined(formData, "discountPct"),
     });

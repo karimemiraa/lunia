@@ -17,8 +17,9 @@ export function CreateRoomForm() {
       className="flex flex-col gap-4 lunia-card p-5"
     >
       <h2 className="text-lg font-semibold text-[var(--color-ink)]">Create room</h2>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <Field label="Name" name="name" placeholder="e.g. Treatment Room 3" required />
+        <Field label="Name (Arabic)" name="nameAr" placeholder="مثال: غرفة العلاج 3" dir="rtl" />
         <Field label="Capacity" name="capacity" type="number" placeholder="1" />
         <Field label="Order" name="order" type="number" placeholder="0" />
       </div>

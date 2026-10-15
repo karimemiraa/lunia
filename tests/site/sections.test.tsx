@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
+import arMessages from "@/messages/ar.json";
 
 import { Hero } from "@/components/site/Hero";
 import { JourneySticky } from "@/components/site/home/JourneySticky";
@@ -95,7 +97,13 @@ describe("Testimonials", () => {
       { quote: "My skin has never felt this alive.", author: "R." },
       { quote: "A completely different kind of care.", author: "S." },
     ];
-    render(<Testimonials heading="What clients say" items={items} />);
+    render(
+      <NextIntlClientProvider locale="ar" messages={arMessages}>
+        <Testimonials heading="What clients say" items={items} />
+      </NextIntlClientProvider>,
+    );
+    // Slider controls speak the page's language.
+    expect(screen.getByRole("button", { name: "الرأي التالي" })).toBeInTheDocument();
 
     for (const item of items) {
       expect(screen.getByText(item.quote)).toBeInTheDocument();

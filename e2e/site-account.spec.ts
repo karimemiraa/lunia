@@ -113,15 +113,15 @@ async function bookFarOutAppointment(page: Page, phone: string, preferredWeekday
 // the page rather than a real SMS. Ends on /account.
 async function loginAtAccountPage(page: Page, locale: "en" | "ar", phone: string) {
   await page.goto(`/${locale}/account/login`);
-  await page.getByLabel(locale === "ar" ? "الجوال أو البريد الإلكتروني" : "Phone or email").fill(phone);
-  await page.getByRole("button", { name: locale === "ar" ? "إرسال رمز التأكيد" : "Send verification code" }).click();
+  await page.getByLabel(locale === "ar" ? "الجوال أو الإيميل" : "Phone or email").fill(phone);
+  await page.getByRole("button", { name: locale === "ar" ? "أرسلي رمز التحقق" : "Send verification code" }).click();
 
   const devCodeEl = page.getByTestId("dev-otp-code");
   await expect(devCodeEl).toBeVisible({ timeout: 10_000 });
   const code = (await devCodeEl.textContent())?.match(/\d{6}/)?.[0];
   expect(code).toBeTruthy();
 
-  await page.getByLabel(locale === "ar" ? "رمز التأكيد" : "Verification code").fill(code!);
+  await page.getByLabel(locale === "ar" ? "رمز التحقق" : "Verification code").fill(code!);
   await page.getByRole("button", { name: locale === "ar" ? "تسجيل الدخول" : "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`/${locale}/account$`), { timeout: 10_000 });
 }

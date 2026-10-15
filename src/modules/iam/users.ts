@@ -12,6 +12,7 @@ export interface StaffUserRow {
   id: string;
   email: string | null;
   fullName: string;
+  fullNameAr: string | null;
   title: string | null;
   isActive: boolean;
   roleIds: string[];
@@ -29,6 +30,7 @@ export async function listStaffUsers(): Promise<StaffUserRow[]> {
     id: u.id,
     email: u.email,
     fullName: u.staffProfile?.fullName ?? "",
+    fullNameAr: u.staffProfile?.fullNameAr ?? null,
     title: u.staffProfile?.title ?? null,
     isActive: u.isActive,
     roleIds: u.roles.map((r) => r.roleId),
@@ -39,6 +41,7 @@ export async function listStaffUsers(): Promise<StaffUserRow[]> {
 export interface CreateStaffUserInput {
   email: string;
   fullName: string;
+  fullNameAr?: string;
   password: string;
   title?: string;
   roleIds: string[];
@@ -67,11 +70,18 @@ export async function createStaffUser(input: CreateStaffUserInput): Promise<{ id
       email,
       passwordHash,
       isActive: true,
-      staffProfile: { create: { fullName, title: input.title?.trim() || null } },
+      staffProfile: { create: { fullName, fullNameAr: input.fullNameAr?.trim() || null, title: input.title?.trim() || null } },
       roles: { create: roleIds.map((roleId) => ({ roleId })) },
     },
   });
   return { id: user.id };
+}
+
+/** Sets the name customers see on Arabic pages (blank clears it). */
+export async function setStaffArabicName(userId: string, fullNameAr: string): Promise<void> {
+  const profile = await prisma.staffProfile.findUnique({ where: { userId } });
+  if (!profile) throw new Error("Not a staff user");
+  await prisma.staffProfile.update({ where: { userId }, data: { fullNameAr: fullNameAr.trim().slice(0, 120) || null } });
 }
 
 /** Replaces a staff user's role assignments with exactly `roleIds`. */

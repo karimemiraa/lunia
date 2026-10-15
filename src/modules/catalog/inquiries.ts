@@ -79,7 +79,7 @@ export async function replyToInquiry(id: string, body: string, _byUserId: string
   if (!inquiry.email) throw new Error("This inquiry has no email address to reply to");
 
   const { resolveSenderForChannel } = await import("@/modules/comms/sender");
-  const subject = inquiry.locale === "ar" ? "رد من لونيا" : "A reply from Lunia";
+  const subject = inquiry.locale === "ar" ? "رد من لونيا على رسالتك" : "A reply from Lunia";
   const emailSender = await resolveSenderForChannel("email");
   const result = await emailSender.send({
     channel: "email",

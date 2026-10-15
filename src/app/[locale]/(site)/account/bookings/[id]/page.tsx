@@ -91,8 +91,8 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
   const canReschedule = (booking.status === "CONFIRMED" || booking.status === "REQUESTED") && appointment.startAt.getTime() - nowMs > 24 * 3_600_000;
   const minDate = utcToCenterLocal(new Date(nowMs + 24 * 3_600_000)).dateISO;
   const maxDate = utcToCenterLocal(new Date(nowMs + 60 * 86_400_000)).dateISO;
-  const staffName = staff?.staffProfile?.fullName ?? "—";
-  const roomName = room?.name ?? "—";
+  const staffName = staff?.staffProfile ? localized(locale, staff.staffProfile.fullName, staff.staffProfile.fullNameAr || staff.staffProfile.fullName) : "—";
+  const roomName = room ? localized(locale, room.name, room.nameAr || room.name) : "—";
 
   return (
     <main className="flex flex-col">

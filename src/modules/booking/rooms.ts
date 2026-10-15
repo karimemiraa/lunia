@@ -9,12 +9,14 @@ import { prisma } from "@/lib/db";
 
 export interface CreateRoomInput {
   name: string;
+  nameAr?: string | null;
   capacity?: number;
   order?: number;
 }
 
 export interface UpdateRoomInput {
   name?: string;
+  nameAr?: string | null;
   capacity?: number;
   order?: number;
   isActive?: boolean;
@@ -22,12 +24,14 @@ export interface UpdateRoomInput {
 
 const createRoomSchema = z.object({
   name: z.string().min(1),
+  nameAr: z.string().trim().max(80).nullable().optional(),
   capacity: z.number().int().min(1).optional(),
   order: z.number().int().optional(),
 });
 
 const updateRoomSchema = z.object({
   name: z.string().min(1).optional(),
+  nameAr: z.string().trim().max(80).nullable().optional(),
   capacity: z.number().int().min(1).optional(),
   order: z.number().int().optional(),
   isActive: z.boolean().optional(),
@@ -42,6 +46,7 @@ export async function createRoom(input: CreateRoomInput): Promise<Room> {
   return prisma.room.create({
     data: {
       name: data.name,
+      nameAr: data.nameAr === undefined ? undefined : data.nameAr || null,
       capacity: data.capacity ?? 1,
       order: data.order ?? 0,
     },
@@ -60,6 +65,7 @@ export async function updateRoom(id: string, input: UpdateRoomInput): Promise<Ro
     where: { id },
     data: {
       name: data.name,
+      nameAr: data.nameAr === undefined ? undefined : data.nameAr || null,
       capacity: data.capacity,
       order: data.order,
       isActive: data.isActive,

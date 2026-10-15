@@ -64,7 +64,8 @@ export default async function AccountLoginPage({ params }: AccountLoginPageProps
           {/* Left: animated Lunia brand stage */}
           <div className="lunia-authpanel relative flex min-h-[220px] items-center justify-center p-10 md:min-h-[560px]">
             <span
-              aria-label="Lunia"
+              role="img"
+              aria-label={t("brandLabel")}
               dir="ltr"
               className="lunia-wordmark-anim relative z-10 select-none font-[family-name:var(--font-display)] text-6xl font-medium tracking-[0.18em] text-[var(--color-cream)] sm:text-7xl"
             >

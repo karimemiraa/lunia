@@ -49,6 +49,10 @@ export function CreateUserForm({ roles }: { roles: RoleOption[] }) {
                 <input name="fullName" type="text" required maxLength={120} className="lunia-input" autoComplete="off" />
               </label>
               <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">Name in Arabic (shown to customers)</span>
+                <input name="fullNameAr" type="text" dir="rtl" maxLength={120} className="lunia-input" autoComplete="off" />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
                 <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">Title (optional)</span>
                 <input name="title" type="text" maxLength={120} className="lunia-input" autoComplete="off" />
               </label>

@@ -994,6 +994,8 @@ export function BookingWizard({
                   type="text"
                   autoCapitalize="characters"
                   dir="ltr"
+                  // The placeholder is an example code (Latin by design).
+                  data-i18n-ignore=""
                   placeholder={t("contact.giftCardPlaceholder")}
                   value={giftCardCode}
                   onChange={(e) => setGiftCardCode(e.target.value.toUpperCase())}

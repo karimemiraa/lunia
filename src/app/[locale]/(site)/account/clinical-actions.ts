@@ -36,7 +36,10 @@ async function requestIp(): Promise<string | null> {
 
 // A health declaration or consent signature must come from the customer, never
 // from staff previewing their account ("view as customer").
-const PREVIEW_BLOCKED = "Not available while viewing as this customer — they need to do this themselves.";
+/** Shown when staff "view as customer" tries a change only the customer may make. */
+async function previewBlocked(locale: string): Promise<string> {
+  return (await getTranslations({ locale: asLocale(locale), namespace: "impersonation" }))("blocked");
+}
 async function isStaffPreview(): Promise<boolean> {
   return isImpersonationSession((await cookies()).get(CLIENT_SESSION_COOKIE)?.value);
 }
@@ -47,7 +50,7 @@ export async function saveMyHealthProfile(locale: string, answers: unknown): Pro
   const t = await getTranslations({ locale: asLocale(locale), namespace: "health.errors" });
   const clientProfileId = await currentClientProfileId();
   if (!clientProfileId) return { ok: false, error: t("notAuthenticated") };
-  if (await isStaffPreview()) return { ok: false, error: PREVIEW_BLOCKED };
+  if (await isStaffPreview()) return { ok: false, error: await previewBlocked(locale) };
   try {
     await submitIntake({ clientProfileId, answers, submittedBy: "CLIENT" });
   } catch {
@@ -68,7 +71,7 @@ export async function signMyConsent(
   const t = await getTranslations({ locale: loc, namespace: "consents.sign.errors" });
   const clientProfileId = await currentClientProfileId();
   if (!clientProfileId) return { ok: false, error: t("notAuthenticated") };
-  if (await isStaffPreview()) return { ok: false, error: PREVIEW_BLOCKED };
+  if (await isStaffPreview()) return { ok: false, error: await previewBlocked(locale) };
 
   // Only forms currently offered to this client (required or optional) can be
   // signed from the account; tie the signature to the booking that needs it.

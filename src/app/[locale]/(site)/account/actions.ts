@@ -43,7 +43,10 @@ async function requireClientProfileId(): Promise<string | null> {
 // Staff "view as customer" previews may book/cancel for the customer, but
 // must never act AS them on identity or consent: set a password (that would
 // outlive the 1-hour preview), change marketing consent, etc.
-const PREVIEW_BLOCKED = "Not available while viewing as this customer — they need to do this themselves.";
+/** Shown when staff "view as customer" tries a change only the customer may make. */
+async function previewBlocked(locale: string): Promise<string> {
+  return (await getTranslations({ locale: asAccountLocale(locale), namespace: "impersonation" }))("blocked");
+}
 async function isStaffPreview(): Promise<boolean> {
   return isImpersonationSession((await cookies()).get(CLIENT_SESSION_COOKIE)?.value);
 }
@@ -212,7 +215,7 @@ export async function updateNotificationPreference(
   if (!clientProfileId) {
     return { ok: false, error: t("notAuthenticated") };
   }
-  if (await isStaffPreview()) return { ok: false, error: PREVIEW_BLOCKED };
+  if (await isStaffPreview()) return { ok: false, error: await previewBlocked(locale) };
 
   try {
     const data = notificationPreferenceSchema.parse(input);
@@ -288,7 +291,7 @@ export async function setMyPassword(newPassword: string, locale: string): Promis
   const t = await getTranslations({ locale: asAccountLocale(locale), namespace: "account.security.errors" });
   const userId = await requireClientUserId();
   if (!userId) return { ok: false, error: t("notAuthenticated") };
-  if (await isStaffPreview()) return { ok: false, error: PREVIEW_BLOCKED };
+  if (await isStaffPreview()) return { ok: false, error: await previewBlocked(locale) };
 
   if (typeof newPassword !== "string" || newPassword.length < MIN_CLIENT_PASSWORD_LENGTH) {
     return { ok: false, error: t("passwordTooShort", { min: MIN_CLIENT_PASSWORD_LENGTH }) };

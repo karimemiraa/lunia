@@ -139,6 +139,11 @@ export interface AdvanceResult {
 
 // --- Construction -------------------------------------------------------
 
+/** The gated tier's name in the conversation's language. */
+function tierLabel(s: { tierName: string | null; tierNameAr?: string | null }, locale: Locale): string {
+  return (locale === "ar" ? s.tierNameAr || s.tierName : s.tierName) ?? "";
+}
+
 export function newSession(locale: Locale): Session {
   const session: Session = {
     state: "ask_concern",
@@ -469,7 +474,7 @@ class Turn {
       price: c.priceFrom(formatSar(L, service.priceMinor)),
       why: whyFor(service.slug, L === "ar" ? service.summaryAr : service.summaryEn, L),
       bookable: !result.careful && isOnlineBookable(service),
-      note: !isOnlineBookable(service) || result.careful ? c.recNotOnline : service.tierName ? c.recTierNote(service.tierName) : undefined,
+      note: !isOnlineBookable(service) || result.careful ? c.recNotOnline : service.tierName ? c.recTierNote(tierLabel(service, this.s.locale)) : undefined,
     }));
 
     if (updated) this.say(c.recUpdated);
@@ -526,7 +531,7 @@ class Turn {
     }
     this.s.flow.bookServiceId = svc.id;
     this.s.flow.dayPage = 0;
-    if (svc.tierName) this.say(c.bookTierGate(svc.tierName));
+    if (svc.tierName) this.say(c.bookTierGate(tierLabel(svc, this.s.locale)));
     this.say(c.bookPickDay(serviceName(svc, L)));
     this.showDays();
   }

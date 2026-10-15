@@ -125,24 +125,24 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
       // dev devCode is not returned).
       const code = typeof payload.code === "string" ? payload.code : "";
       return isAr
-        ? `رمز الدخول إلى لونيا هو ${code}. صالح لمدة ٥ دقائق.`
+        ? `رمز التحقق من لونيا: ${code}. صالح لمدة 5 دقائق، لا تشاركينه مع أي أحد.`
         : `Your Lunia verification code is ${code}. It is valid for 5 minutes.`;
     }
     case "CONFIRMATION":
       return isAr
-        ? `تم تأكيد حجزك في لونيا${ref}. نتطلع لرؤيتك قريباً.`
+        ? `تم تأكيد حجزك في لونيا${ref}. بانتظارك!`
         : `Your Lunia booking is confirmed${ref}. We look forward to seeing you.`;
     case "REMINDER_24H":
       return isAr
-        ? `تذكير: موعدك في لونيا غداً${ref}. نراك قريباً!`
+        ? `تذكير: موعدك في لونيا بكرة${ref}. نشوفك على خير!`
         : `Reminder: your Lunia appointment is tomorrow${ref}. See you soon!`;
     case "POST_VISIT":
       return isAr
-        ? `شكراً لزيارتك لونيا${ref}. نتمنى أن تكون تجربتك ممتازة.`
+        ? `شكراً على زيارتك للونيا${ref}. إن شاء الله عجبتك التجربة.`
         : `Thank you for visiting Lunia${ref}. We hope you had a great experience.`;
     case "WAITLIST_OPEN":
       return isAr
-        ? `تفتح لديك فرصة حجز في لونيا -- تم فتح موعد كنت بانتظاره. احجز الآن قبل أن يُحجز.`
+        ? `خبر حلو! انفتح موعد في لونيا كنتِ تنتظرينه. احجزيه الحين قبل لا ينحجز.`
         : `A spot just opened up at Lunia for a time you were waiting for. Book now before it's taken.`;
     case "REVIEW_REQUEST": {
       // The tokenized submit link -- reviews.ts always sets payload.link, but
@@ -152,7 +152,7 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
       const linkPartAr = link ? ` ${link}` : "";
       const linkPartEn = link ? ` ${link}` : "";
       return isAr
-        ? `شكراً لزيارتك لونيا${ref}. نسعد بمشاركتك رأيك:${linkPartAr}`
+        ? `شكراً على زيارتك للونيا${ref}. يهمنا نسمع رأيك:${linkPartAr}`
         : `Thank you for visiting Lunia${ref}. We'd love to hear about your experience:${linkPartEn}`;
     }
     case "CALLBACK_ACK": {
@@ -160,7 +160,7 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
       // the human "tomorrow at 10:00" the visitor was promised.
       const when = typeof payload.when === "string" && payload.when ? ` ${payload.when}` : "";
       return isAr
-        ? `وصلنا طلبك في لونيا، وبتتصل فيك أخصائية${when}. شكراً لك.`
+        ? `وصلنا طلبك في لونيا، وبتتصل فيك وحدة من أخصائياتنا${when}. شكراً لك.`
         : `We've received your request at Lunia. A specialist will call you${when}. Thank you.`;
     }
     case "INVOICE": {
@@ -170,7 +170,7 @@ export function renderMessageBody(kind: string, locale: string, payload: Record<
       const number = typeof payload.invoiceNumber === "string" ? payload.invoiceNumber : "";
       const payLine = typeof payload.payLine === "string" && payload.payLine ? `\n\n${payload.payLine}` : "";
       return isAr
-        ? `فاتورتك من لونيا ${number} جاهزة: ${link}${payLine}`
+        ? `فاتورتك من لونيا رقم ${number} جاهزة: ${link}${payLine}`
         : `Your Lunia invoice ${number} is ready: ${link}${payLine}`;
     }
     case "PACKAGE_EXPIRING":
@@ -485,23 +485,23 @@ function subjectForKind(kind: string, locale: string): string {
   const isAr = locale.toLowerCase().startsWith("ar");
   switch (kind) {
     case "OTP":
-      return isAr ? "رمز الدخول إلى لونيا" : "Your Lunia code";
+      return isAr ? "رمز التحقق من لونيا" : "Your Lunia code";
     case "CONFIRMATION":
-      return isAr ? "تأكيد حجزك في لونيا" : "Your Lunia booking is confirmed";
+      return isAr ? "تم تأكيد حجزك في لونيا" : "Your Lunia booking is confirmed";
     case "REMINDER_24H":
-      return isAr ? "تذكير بموعدك في لونيا" : "Your Lunia appointment reminder";
+      return isAr ? "تذكير بموعدك بكرة في لونيا" : "Your Lunia appointment reminder";
     case "POST_VISIT":
-      return isAr ? "شكراً لزيارتك لونيا" : "Thank you for visiting Lunia";
+      return isAr ? "شكراً على زيارتك للونيا" : "Thank you for visiting Lunia";
     case "WAITLIST_OPEN":
-      return isAr ? "فتح موعد كنت بانتظاره في لونيا" : "A spot opened up at Lunia";
+      return isAr ? "انفتح موعد كنتِ تنتظرينه في لونيا" : "A spot opened up at Lunia";
     case "REVIEW_REQUEST":
-      return isAr ? "شاركينا رأيك في زيارتك لونيا" : "Share your Lunia experience";
+      return isAr ? "شاركينا رأيك في زيارتك للونيا" : "Share your Lunia experience";
     case "CALLBACK_ACK":
       return isAr ? "وصلنا طلب الاتصال" : "We'll call you shortly";
     case "INVOICE":
       return isAr ? "فاتورتك من لونيا" : "Your Lunia invoice";
     case "PACKAGE_EXPIRING":
-      return isAr ? "باقتك في لونيا تنتهي قريباً" : "Your Lunia package expires soon";
+      return isAr ? "باقتك في لونيا قربت تنتهي" : "Your Lunia package expires soon";
     case "WIN_BACK":
       return isAr ? "اشتقنا لك في لونيا" : "We miss you at Lunia";
     default:

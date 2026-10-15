@@ -32,6 +32,15 @@ export function TierRow({ tier }: { tier: MembershipTier }) {
             aria-label={`${tier.key} name`}
             className={`${inputClass} w-40`}
           />
+          <input
+            type="text"
+            name="nameAr"
+            dir="rtl"
+            defaultValue={tier.nameAr ?? ""}
+            placeholder="الاسم بالعربي"
+            aria-label={`${tier.key} Arabic name`}
+            className={`${inputClass} mt-1 w-40`}
+          />
         </form>
       </td>
       <td className="px-4 py-2">

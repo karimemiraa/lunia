@@ -127,6 +127,6 @@ test.describe("contact page", () => {
     await page.goto("/ar/contact");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-    await expect(page.getByRole("button", { name: "ارسال الطلب" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "أرسلي الطلب" })).toBeVisible();
   });
 });

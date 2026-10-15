@@ -351,6 +351,8 @@ export interface LoyaltyTierInfo {
   id: string;
   key: string;
   name: string;
+  /** Arabic display name, when set. */
+  nameAr: string | null;
   minPoints: number;
 }
 
@@ -363,7 +365,7 @@ export interface LoyaltySummary {
 }
 
 function toTierInfo(tier: MembershipTier): LoyaltyTierInfo {
-  return { id: tier.id, key: tier.key, name: tier.name, minPoints: tier.minPoints };
+  return { id: tier.id, key: tier.key, name: tier.name, nameAr: tier.nameAr ?? null, minPoints: tier.minPoints };
 }
 
 /**

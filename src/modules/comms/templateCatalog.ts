@@ -93,43 +93,43 @@ export const LOCALE_LABELS: Record<string, string> = {
 // admin edits from.
 export const DEFAULT_BODIES: Record<string, { ar: string; en: string }> = {
   PACKAGE_EXPIRING: {
-    ar: "هلا {{name}}، باقتك {{packageName}} في لونيا باقي فيها {{sessionsLeft}} جلسة وتنتهي بتاريخ {{expiresOn}}.\n\nاحجزي جلستك الحين عشان ما تضيع:\n{{link}}",
+    ar: "هلا {{name}}، باقتك {{packageName}} في لونيا باقي فيها {{sessionsLeft}} جلسة، وتنتهي بتاريخ {{expiresOn}}.\n\nاحجزي جلستك الحين عشان ما تروح عليك:\n{{link}}",
     en: "Hi {{name}}, your Lunia {{packageName}} package still has {{sessionsLeft}} session(s) left and expires on {{expiresOn}}.\n\nBook your next session before it does:\n{{link}}",
   },
   WIN_BACK: {
-    ar: "هلا {{name}}، اشتقنا لك في لونيا!\n\nصار لك فترة من آخر زيارة ({{lastService}}). بشرتك تستاهل اهتمام — احجزي موعدك القادم من هنا:\n{{link}}",
+    ar: "هلا {{name}}، اشتقنا لك في لونيا!\n\nصار لك فترة من آخر زيارة ({{lastService}})، وبشرتك تستاهل شوية اهتمام. احجزي موعدك الجاي من هنا:\n{{link}}",
     en: "Hi {{name}}, we miss you at Lunia!\n\nIt's been a while since your last visit ({{lastService}}). Your skin deserves some care — book your next appointment here:\n{{link}}",
   },
   CONFIRMATION: {
-    ar: "تم تأكيد حجزك في لونيا لخدمة {{serviceName}} بتاريخ {{dateTime}}.\n\nرقم الحجز: {{bookingId}}\n\nنتشرّف بزيارتك ونتطلّع للقائك قريباً.",
+    ar: "تم تأكيد حجزك في لونيا لـ{{serviceName}} يوم {{dateTime}}.\n\nرقم الحجز: {{bookingId}}\n\nبانتظارك، ونتشرف بزيارتك.",
     en: "Your Lunia booking for {{serviceName}} is confirmed for {{dateTime}}.\n\nBooking reference: {{bookingId}}\n\nWe look forward to welcoming you.",
   },
   REMINDER_24H: {
-    ar: "تذكير ودّي: موعدك في لونيا لخدمة {{serviceName}} غداً {{dateTime}}.\n\nرقم الحجز: {{bookingId}}\n\nإذا رغبت بتعديل الموعد، تواصل معنا وبكل سرور.",
+    ar: "تذكير: موعدك في لونيا لـ{{serviceName}} بكرة {{dateTime}}.\n\nرقم الحجز: {{bookingId}}\n\nإذا تبين تغيرين الموعد، كلمينا وبنرتب لك.",
     en: "A friendly reminder: your Lunia appointment for {{serviceName}} is tomorrow, {{dateTime}}.\n\nBooking reference: {{bookingId}}\n\nLet us know if you'd like to reschedule.",
   },
   POST_VISIT: {
-    ar: "شكراً لزيارتك لونيا لخدمة {{serviceName}}.\n\nنتمنّى أن تكون تجربتك مميّزة، ويسعدنا رؤيتك من جديد.",
+    ar: "شكراً على زيارتك للونيا لـ{{serviceName}}.\n\nإن شاء الله عجبتك التجربة، وننتظرك مرة ثانية.",
     en: "Thank you for visiting Lunia for your {{serviceName}}.\n\nWe hope you had a wonderful experience and can't wait to welcome you back.",
   },
   OTP: {
-    ar: "رمز الدخول إلى لونيا هو {{code}}\n\nصالح لمدة ٥ دقائق. لا تشارك هذا الرمز مع أحد.",
+    ar: "رمز التحقق من لونيا: {{code}}\n\nصالح لمدة 5 دقائق. لا تشاركين الرمز مع أي أحد.",
     en: "Your Lunia verification code is {{code}}\n\nIt is valid for 5 minutes. Please don't share it with anyone.",
   },
   WAITLIST_OPEN: {
-    ar: "بشرى سارّة! تم فتح موعد في لونيا لخدمة {{serviceName}} كنت بانتظاره.\n\nسارع بالحجز قبل أن يُحجز.",
+    ar: "خبر حلو! انفتح موعد في لونيا لـ{{serviceName}} اللي كنتِ تنتظرينه.\n\nاحجزيه الحين قبل لا ينحجز.",
     en: "Good news! A spot just opened at Lunia for {{serviceName}}.\n\nBook now before it's taken.",
   },
   REVIEW_REQUEST: {
-    ar: "شكراً لزيارتك لونيا لخدمة {{serviceName}}.\n\nيسعدنا سماع رأيك عن تجربتك:\n{{link}}",
+    ar: "شكراً على زيارتك للونيا لـ{{serviceName}}.\n\nيهمنا نسمع رأيك في تجربتك، ما ياخذ إلا دقيقة:\n{{link}}",
     en: "Thank you for visiting Lunia for your {{serviceName}}.\n\nWe'd love to hear about your experience:\n{{link}}",
   },
   CALLBACK_ACK: {
-    ar: "هلا {{name}}، وصلنا طلبك في لونيا.\n\nبتتصل فيك أخصائية {{when}}.\n\nشكراً لك.",
+    ar: "هلا {{name}}، وصلنا طلبك في لونيا.\n\nبتتصل فيك وحدة من أخصائياتنا {{when}}.\n\nشكراً لك.",
     en: "Hi {{name}}, we've received your request at Lunia.\n\nA specialist will call you {{when}}.\n\nThank you.",
   },
   INVOICE: {
-    ar: "أهلاً {{name}}، فاتورتك من لونيا رقم {{invoiceNumber}} بمبلغ {{total}} جاهزة، تقدرين تشوفينها وتطبعينها من هنا:\n{{link}}\n\n{{payLine}}",
+    ar: "هلا {{name}}، فاتورتك من لونيا رقم {{invoiceNumber}} بمبلغ {{total}} جاهزة. تقدرين تشوفينها وتطبعينها من هنا:\n{{link}}\n\n{{payLine}}",
     en: "Hi {{name}}, your Lunia invoice {{invoiceNumber}} for {{total}} is ready. View or print it here:\n{{link}}\n\n{{payLine}}",
   },
 };
@@ -145,23 +145,23 @@ export function subjectForTemplate(kind: string, locale: string): string {
   const isAr = locale.toLowerCase().startsWith("ar");
   switch (kind) {
     case "OTP":
-      return isAr ? "رمز الدخول إلى لونيا" : "Your Lunia code";
+      return isAr ? "رمز التحقق من لونيا" : "Your Lunia code";
     case "CONFIRMATION":
-      return isAr ? "تأكيد حجزك في لونيا" : "Your Lunia booking is confirmed";
+      return isAr ? "تم تأكيد حجزك في لونيا" : "Your Lunia booking is confirmed";
     case "REMINDER_24H":
-      return isAr ? "تذكير بموعدك في لونيا" : "Your Lunia appointment reminder";
+      return isAr ? "تذكير بموعدك بكرة في لونيا" : "Your Lunia appointment reminder";
     case "POST_VISIT":
-      return isAr ? "شكراً لزيارتك لونيا" : "Thank you for visiting Lunia";
+      return isAr ? "شكراً على زيارتك للونيا" : "Thank you for visiting Lunia";
     case "WAITLIST_OPEN":
-      return isAr ? "فتح موعد كنت بانتظاره في لونيا" : "A spot opened up at Lunia";
+      return isAr ? "انفتح موعد كنتِ تنتظرينه في لونيا" : "A spot opened up at Lunia";
     case "REVIEW_REQUEST":
-      return isAr ? "شاركنا رأيك في زيارتك لونيا" : "Share your Lunia experience";
+      return isAr ? "شاركينا رأيك في زيارتك للونيا" : "Share your Lunia experience";
     case "CALLBACK_ACK":
       return isAr ? "وصلنا طلب الاتصال" : "We'll call you shortly";
     case "INVOICE":
       return isAr ? "فاتورتك من لونيا" : "Your Lunia invoice";
     case "PACKAGE_EXPIRING":
-      return isAr ? "باقتك في لونيا تنتهي قريباً" : "Your Lunia package expires soon";
+      return isAr ? "باقتك في لونيا قربت تنتهي" : "Your Lunia package expires soon";
     case "WIN_BACK":
       return isAr ? "اشتقنا لك في لونيا" : "We miss you at Lunia";
     default:

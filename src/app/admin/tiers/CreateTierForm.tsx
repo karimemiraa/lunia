@@ -17,9 +17,10 @@ export function CreateTierForm() {
       className="flex flex-col gap-4 lunia-card p-5"
     >
       <h2 className="text-lg font-semibold text-[var(--color-ink)]">Create tier</h2>
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-5">
         <Field label="Key" name="key" placeholder="e.g. gold" required />
         <Field label="Name" name="name" placeholder="e.g. Gold" required />
+        <Field label="Name (Arabic)" name="nameAr" placeholder="مثال: ذهبية" dir="rtl" />
         <Field label="Priority" name="priority" type="number" placeholder="0" />
         <Field label="Discount %" name="discountPct" type="number" placeholder="0" />
       </div>

@@ -30,6 +30,15 @@ export function RoomRow({ room }: { room: Room }) {
             aria-label={`${room.name} name`}
             className={`${inputClass} w-40`}
           />
+          <input
+            type="text"
+            name="nameAr"
+            dir="rtl"
+            defaultValue={room.nameAr ?? ""}
+            placeholder="الاسم بالعربي"
+            aria-label={`${room.name} Arabic name`}
+            className={`${inputClass} mt-1 w-40`}
+          />
         </form>
       </td>
       <td className="px-4 py-2">

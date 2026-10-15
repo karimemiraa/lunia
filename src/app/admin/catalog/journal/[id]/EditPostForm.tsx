@@ -32,6 +32,7 @@ export function EditPostForm({ post, media }: EditPostFormProps) {
           <span className="text-[var(--color-ink)]/70">{post.slug}</span>
         </div>
         <Field label="Author name" name="authorName" defaultValue={post.authorName ?? ""} />
+        <Field label="Author name (Arabic)" name="authorNameAr" defaultValue={post.authorNameAr ?? ""} dir="rtl" />
       </div>
       <Field label="Order" name="order" type="number" defaultValue={String(post.order)} />
 

@@ -29,7 +29,7 @@ export async function SereneFooter({ locale }: SereneFooterProps) {
     getSetting("business").catch(() => null),
   ]);
   const year = new Date().getFullYear();
-  const businessName = business ? (isAr ? business.nameAr : business.nameEn) : "LUNIA";
+  const businessName = business ? (isAr ? business.nameAr : business.nameEn) : tCommon("brandName");
   const address = business ? (isAr ? business.addressAr : business.addressEn) : null;
 
   return (
@@ -46,7 +46,7 @@ export async function SereneFooter({ locale }: SereneFooterProps) {
       <div className="border-t border-[var(--line)]">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-12 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className="flex flex-col gap-3">
-            <span className="srn-brand"><span className="srn-medallion"><span aria-hidden="true" className="lunia-emblem" /></span><span role="img" aria-label="LUNIA — Skin & Hair" className="lunia-logo h-5" /></span>
+            <span className="srn-brand"><span className="srn-medallion"><span aria-hidden="true" className="lunia-emblem" /></span><span role="img" aria-label={tCommon("logoLabel")} className="lunia-logo h-5" /></span>
             <p className="max-w-xs text-sm leading-relaxed text-[var(--color-ink)]/65">{businessName}</p>
             {address && <address className="max-w-xs text-sm not-italic leading-relaxed text-[var(--color-ink)]/55">{address}</address>}
           </div>
@@ -65,7 +65,7 @@ export async function SereneFooter({ locale }: SereneFooterProps) {
       </div>
 
       <div className="border-t border-[var(--line)]">
-        <p className="mx-auto max-w-6xl px-6 py-5 text-xs text-[var(--color-ink)]/50">© {year} LUNIA. {tFooter("rights")}</p>
+        <p className="mx-auto max-w-6xl px-6 py-5 text-xs text-[var(--color-ink)]/50">© {year} {tCommon("brandName")}. {tFooter("rights")}</p>
       </div>
     </footer>
   );

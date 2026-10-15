@@ -122,7 +122,7 @@ export default async function JournalPostPage({ params }: JournalPostPageProps) 
     description: localized(locale, post.excerptEn, post.excerptAr),
     url: postUrl,
     datePublished: (post.publishedAt ?? post.createdAt).toISOString(),
-    author: post.authorName ?? tCommon("brandName"),
+    author: (locale === "ar" ? post.authorNameAr || post.authorName : post.authorName) ?? tCommon("brandName"),
   });
 
   // Post bodies are plain text with paragraphs separated by blank lines —
@@ -148,7 +148,7 @@ export default async function JournalPostPage({ params }: JournalPostPageProps) 
           <p className="lx-lead lunia-animate-fade-up lunia-delay-2 mt-6 max-w-2xl">{localized(locale, post.excerptEn, post.excerptAr)}</p>
           {post.authorName && (
             <p className="lunia-animate-fade-up lunia-delay-3 mt-6 text-[0.9rem] text-[var(--color-ink)]/75">
-              {tPost("byLabel")} {post.authorName}
+              {tPost("byLabel")} {locale === "ar" ? post.authorNameAr || post.authorName : post.authorName}
             </p>
           )}
         </header>
