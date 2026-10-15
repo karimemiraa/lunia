@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getStaffT } from "../../_i18n/display";
+import { tCtx } from "./format";
 
 const TABS = [
   { key: "employees", href: "/admin/hr", label: "Employees" },
@@ -7,9 +9,10 @@ const TABS = [
   { key: "payroll", href: "/admin/hr/payroll", label: "Payroll" },
 ] as const;
 
-export function HrTabs({ active }: { active: (typeof TABS)[number]["key"] }) {
+export async function HrTabs({ active }: { active: (typeof TABS)[number]["key"] }) {
+  const t = await getStaffT();
   return (
-    <nav aria-label="HR sections" className="mb-6 flex flex-wrap gap-2">
+    <nav aria-label={t("HR sections")} className="mb-6 flex flex-wrap gap-2">
       {TABS.map((tab) => (
         <Link
           key={tab.key}
@@ -21,7 +24,7 @@ export function HrTabs({ active }: { active: (typeof TABS)[number]["key"] }) {
               : "border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--color-ink)]/75 hover:bg-[var(--surface-2)]"
           }`}
         >
-          {tab.label}
+          {tab.key === "leave" ? tCtx(t, tab.label, "Leave (section)") : t(tab.label)}
         </Link>
       ))}
     </nav>

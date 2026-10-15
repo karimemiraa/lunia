@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState, type ReactNode } from "react";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 export interface DataTableColumn<T> {
   key: string;
@@ -24,6 +25,7 @@ export function DataTable<T>({
   searchPlaceholder = "Search...",
   emptyMessage = "No results.",
 }: DataTableProps<T>) {
+  const t = useStaffT();
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -51,13 +53,13 @@ export function DataTable<T>({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={searchPlaceholder}
+            placeholder={t(searchPlaceholder)}
             className="lunia-input ps-9"
           />
         </div>
       )}
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead>
             <tr className="border-b border-[var(--line)] bg-[var(--surface-2)]">
               {columns.map((column) => (
@@ -65,7 +67,7 @@ export function DataTable<T>({
                   key={column.key}
                   className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--color-ink)]/55"
                 >
-                  {column.header}
+                  {t(column.header)}
                 </th>
               ))}
             </tr>
@@ -74,7 +76,7 @@ export function DataTable<T>({
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-6 text-center text-[var(--color-ink)]/60">
-                  {emptyMessage}
+                  {t(emptyMessage)}
                 </td>
               </tr>
             ) : (

@@ -4,6 +4,7 @@ import { requireAdmin } from "./requireAdmin";
 import { askAssistant, buildViewer } from "@/modules/staffAssistant/assistant";
 import { createEditRequest } from "@/modules/editRequests/editRequests";
 import type { AssistantReply, ChatTurn } from "@/modules/staffAssistant/types";
+import { getStaffT } from "../_i18n/display";
 
 const MAX_QUESTION = 1000;
 
@@ -14,8 +15,9 @@ const MAX_QUESTION = 1000;
  */
 export async function askAssistantAction(question: string, history: ChatTurn[] = []): Promise<AssistantReply> {
   const user = await requireAdmin();
+  const t = await getStaffT();
   const q = typeof question === "string" ? question.trim().slice(0, MAX_QUESTION) : "";
-  if (!q) return { text: "Type a question first.", source: "rules" };
+  if (!q) return { text: t("Type a question first."), source: "rules" };
   const safeHistory: ChatTurn[] = Array.isArray(history)
     ? history
         .filter((t) => t && (t.role === "user" || t.role === "assistant") && typeof t.text === "string" && t.text.trim())
@@ -27,7 +29,7 @@ export async function askAssistantAction(question: string, history: ChatTurn[] =
     return await askAssistant(q, safeHistory, viewer);
   } catch (error) {
     console.error("[ask-lunia] failed:", error);
-    return { text: "Sorry — something went wrong on my side. Please try again in a moment.", source: "rules" };
+    return { text: t("Sorry — something went wrong on my side. Please try again in a moment."), source: "rules" };
   }
 }
 
@@ -55,6 +57,7 @@ export async function createEditRequestAction(input: { title: string; details: s
   } catch (error) {
     const issue = (error as { issues?: { message: string }[] })?.issues?.[0]?.message;
     if (!issue) console.error("[ask-lunia] edit request failed:", error);
-    return { error: issue ?? "Couldn't send the request. Please try again." };
+    const t = await getStaffT();
+    return { error: issue ? t(issue) : t("Couldn't send the request. Please try again.") };
   }
 }

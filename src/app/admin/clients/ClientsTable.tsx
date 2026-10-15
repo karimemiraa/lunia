@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { bulkAddTagAction, bulkAssignOwnerAction } from "./actions";
+import { useStaffT, useStaffLocale } from "../_i18n/StaffI18n";
+import { intlLocale, type StaffLocale, type T } from "../_i18n/t";
 
 export interface ClientRowDTO {
   id: string;
@@ -54,9 +56,12 @@ const DENSITY_KEY = "lunia.clients.density.v1";
 const PAGE_SIZE = 25;
 
 const CENTER_TZ = "Asia/Riyadh";
-const dateFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, day: "numeric", month: "short", year: "numeric" });
-const fmtDate = (iso: string | null) => (iso ? dateFmt.format(new Date(iso)) : "None");
-const fmtSar = (minor: number) => `${(minor / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })} SAR`;
+const dateFmts: Partial<Record<StaffLocale, Intl.DateTimeFormat>> = {};
+function dateFmt(locale: StaffLocale): Intl.DateTimeFormat {
+  return (dateFmts[locale] ??= new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, day: "numeric", month: "short", year: "numeric" }));
+}
+const fmtDate = (iso: string | null, locale: StaffLocale, t: T) => (iso ? dateFmt(locale).format(new Date(iso)) : t("None"));
+const fmtSar = (minor: number, t: T) => `${(minor / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${t("SAR")}`;
 
 const STATUS_META = {
   active: { label: "Active", className: "bg-[var(--color-teal)]/20 text-[var(--color-teal-ink)]" },
@@ -148,6 +153,8 @@ function SortableTh({
 // bulk-selection bar wired to the tag/owner server actions.
 export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTableProps) {
   const router = useRouter();
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const [columns, setColumns] = useState<ColumnKey[]>(DEFAULT_COLUMNS);
   const [dense, setDense] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
@@ -248,12 +255,16 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
     tableRef.current?.querySelectorAll<HTMLElement>("[data-row]")[next]?.scrollIntoView({ block: "nearest" });
   }
 
-  function runBulk(label: string, action: () => Promise<{ ok: true; count: number } | { ok: false; error: string }>) {
+  function runBulk(kind: "Tag added" | "Owner set", action: () => Promise<{ ok: true; count: number } | { ok: false; error: string }>) {
     setNotice(null);
     startTransition(async () => {
       const result = await action();
       if (result.ok) {
-        setNotice({ tone: "ok", text: `${label} for ${result.count} customer${result.count === 1 ? "" : "s"}.` });
+        setNotice({ tone: "ok", text:
+            kind === "Tag added"
+              ? t(result.count === 1 ? "Tag added for 1 customer." : "Tag added for {count} customers.", { count: result.count })
+              : t(result.count === 1 ? "Owner set for 1 customer." : "Owner set for {count} customers.", { count: result.count }),
+        });
         setSelected(new Set());
         router.refresh();
       } else setNotice({ tone: "error", text: result.error });
@@ -270,23 +281,23 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
       {/* Toolbar: density + columns */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-[var(--color-ink)]/55" aria-live="polite">
-          {rows.length} {rows.length === 1 ? "customer" : "customers"}
-          {selected.size > 0 && ` · ${selected.size} selected`}
+          {rows.length === 1 ? t("1 customer") : t("{count} customers", { count: rows.length })}
+          {selected.size > 0 && ` · ${t("{count} selected", { count: selected.size })}`}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={toggleDensity} aria-pressed={dense} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9" disabled={!prefsLoaded}>
-            {dense ? "Comfortable" : "Compact"}
+            {dense ? t("Comfortable") : t("Compact")}
           </button>
           <div className="relative">
             <button type="button" onClick={() => setChooserOpen((o) => !o)} aria-expanded={chooserOpen} aria-haspopup="true" className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9" disabled={!prefsLoaded}>
-              Columns
+              {t("Columns")}
             </button>
             {chooserOpen && (
-              <div className="absolute end-0 z-20 mt-1 flex w-48 flex-col gap-1 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] p-2 shadow-[var(--shadow-md)]" role="group" aria-label="Choose columns">
+              <div className="absolute end-0 z-20 mt-1 flex w-48 flex-col gap-1 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] p-2 shadow-[var(--shadow-md)]" role="group" aria-label={t("Choose columns")}>
                 {ALL_COLUMNS.map((c) => (
                   <label key={c.key} className="flex min-h-9 cursor-pointer items-center gap-2 rounded px-2 text-sm text-[var(--color-ink)] hover:bg-[var(--surface-2)]">
                     <input type="checkbox" checked={columns.includes(c.key)} onChange={() => toggleColumn(c.key)} className="h-4 w-4 accent-[var(--color-teal-ink)]" />
-                    {c.label}
+                    {t(c.label)}
                   </label>
                 ))}
               </div>
@@ -298,7 +309,7 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
       {/* Bulk bar */}
       {canManage && selected.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--color-teal)]/50 bg-[var(--color-teal)]/10 px-3 py-2" data-testid="bulk-bar">
-          <span className="text-sm font-medium text-[var(--color-ink)]">{selected.size} selected</span>
+          <span className="text-sm font-medium text-[var(--color-ink)]">{t("{count} selected", { count: selected.size })}</span>
           <form
             className="flex items-center gap-1.5"
             onSubmit={(e) => {
@@ -307,11 +318,11 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
             }}
           >
             <label className="sr-only" htmlFor="bulk-tag">
-              Tag to add
+              {t("Tag to add")}
             </label>
-            <input id="bulk-tag" value={tag} onChange={(e) => setTag(e.target.value)} placeholder="Tag" maxLength={40} className="lunia-input min-h-9 w-32 py-1 text-sm" />
+            <input id="bulk-tag" value={tag} onChange={(e) => setTag(e.target.value)} placeholder={t("Tag")} maxLength={40} className="lunia-input min-h-9 w-32 py-1 text-sm" />
             <button type="submit" disabled={isPending || !tag.trim()} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-9 disabled:opacity-60">
-              Add tag
+              {t("Add tag")}
             </button>
           </form>
           <form
@@ -322,10 +333,10 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
             }}
           >
             <label className="sr-only" htmlFor="bulk-owner">
-              Owner
+              {t("Owner")}
             </label>
             <select id="bulk-owner" value={owner} onChange={(e) => setOwner(e.target.value)} className="lunia-input min-h-9 w-40 py-1 text-sm">
-              <option value="">Unassigned</option>
+              <option value="">{t("Unassigned")}</option>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -333,16 +344,16 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
               ))}
             </select>
             <button type="submit" disabled={isPending} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-9 disabled:opacity-60">
-              Assign owner
+              {t("Assign owner")}
             </button>
           </form>
           {canBroadcast && (
-            <Link href="/admin/comms/broadcast" className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9" title="Tag the selection first, then pick the audience in Broadcast">
-              Broadcast
+            <Link href="/admin/comms/broadcast" className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9" title={t("Tag the selection first, then pick the audience in Broadcast")}>
+              {t("Broadcast")}
             </Link>
           )}
           <button type="button" onClick={() => setSelected(new Set())} className="lunia-btn lunia-btn-ghost lunia-btn-sm ms-auto min-h-9">
-            Clear
+            {t("Clear")}
           </button>
         </div>
       )}
@@ -357,20 +368,20 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
         ref={tableRef}
         tabIndex={0}
         onKeyDown={onKeyDown}
-        aria-label="Customers. Use arrow keys to move, Enter to open, Space to select."
+        aria-label={t("Customers. Use arrow keys to move, Enter to open, Space to select.")}
         className="hidden overflow-x-auto lunia-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] md:block"
       >
-        <table className="w-full text-left text-sm" data-testid="clients-table">
+        <table className="w-full text-start text-sm" data-testid="clients-table">
           <thead>
             <tr className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
               {canManage && (
                 <th className={`${cell} w-8`}>
-                  <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all" className="h-4 w-4 accent-[var(--color-teal-ink)]" />
+                  <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label={t("Select all")} className="h-4 w-4 accent-[var(--color-teal-ink)]" />
                 </th>
               )}
-              <SortableTh sortKey="name" label="Customer" cell={cell} sort={sort} onSort={toggleSort} />
+              <SortableTh sortKey="name" label={t("Customer")} cell={cell} sort={sort} onSort={toggleSort} />
               {visible.map((c) => (
-                <SortableTh key={c.key} sortKey={c.key} label={c.label} alignEnd={c.align === "end"} cell={cell} sort={sort} onSort={toggleSort} />
+                <SortableTh key={c.key} sortKey={c.key} label={t(c.label)} alignEnd={c.align === "end"} cell={cell} sort={sort} onSort={toggleSort} />
               ))}
             </tr>
           </thead>
@@ -378,7 +389,7 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={visible.length + 2} className="px-4 py-12 text-center text-[var(--color-ink)]/55">
-                  No customers match this view. Try clearing the filters or add a lead.
+                  {t("No customers match this view. Try clearing the filters or add a lead.")}
                 </td>
               </tr>
             ) : (
@@ -393,14 +404,14 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
                 >
                   {canManage && (
                     <td className={cell}>
-                      <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} aria-label={`Select ${r.fullName}`} className="h-4 w-4 accent-[var(--color-teal-ink)]" />
+                      <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} aria-label={t("Select {name}", { name: r.fullName })} className="h-4 w-4 accent-[var(--color-teal-ink)]" />
                     </td>
                   )}
                   <td className={cell}>
                     <Link href={`/admin/clients/${r.id}`} className="font-medium text-[var(--color-ink)] hover:text-[var(--color-teal-ink)] hover:underline">
-                      {r.fullName || "Unnamed customer"}
+                      {r.fullName || t("Unnamed customer")}
                     </Link>
-                    <div className="text-xs text-[var(--color-ink)]/50">{r.phone ?? r.email ?? "None"}</div>
+                    <div className="text-xs text-[var(--color-ink)]/50" dir="ltr">{r.phone ?? r.email ?? t("None")}</div>
                   </td>
                   {visible.map((c) => (
                     <td key={c.key} className={`${cell} ${c.align === "end" ? "text-end" : ""} text-[var(--color-ink)]/75`}>
@@ -417,22 +428,22 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
       {/* Cards (below md) */}
       <ul className="flex flex-col gap-2 md:hidden" data-testid="clients-cards">
         {rows.length === 0 ? (
-          <li className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-10 text-center text-sm text-[var(--color-ink)]/55">No customers match this view.</li>
+          <li className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-10 text-center text-sm text-[var(--color-ink)]/55">{t("No customers match this view.")}</li>
         ) : (
           pageRows.map((r) => (
             <li key={r.id} className="lunia-card flex items-start gap-3 px-4 py-3">
-              {canManage && <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} aria-label={`Select ${r.fullName}`} className="mt-1 h-5 w-5 accent-[var(--color-teal-ink)]" />}
+              {canManage && <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} aria-label={t("Select {name}", { name: r.fullName })} className="mt-1 h-5 w-5 accent-[var(--color-teal-ink)]" />}
               <Link href={`/admin/clients/${r.id}`} className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="flex items-center justify-between gap-2">
-                  <span className="truncate font-medium text-[var(--color-ink)]">{r.fullName || "Unnamed customer"}</span>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-medium ${STATUS_META[r.status].className}`}>{STATUS_META[r.status].label}</span>
+                  <span className="truncate font-medium text-[var(--color-ink)]">{r.fullName || t("Unnamed customer")}</span>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-medium ${STATUS_META[r.status].className}`}>{t(STATUS_META[r.status].label)}</span>
                 </span>
-                <span className="text-xs text-[var(--color-ink)]/55">{r.phone ?? r.email ?? "No contact"}</span>
+                <span className="text-xs text-[var(--color-ink)]/55">{r.phone ?? r.email ?? t("No contact")}</span>
                 <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[var(--color-ink)]/65">
                   <span>{r.stageLabel}</span>
-                  <span>{fmtSar(r.ltvMinor)}</span>
-                  {r.owedMinor > 0 && <span className="text-[#7c6a2f]">Owes {fmtSar(r.owedMinor)}</span>}
-                  {r.nextAppointmentIso && <span>Next {fmtDate(r.nextAppointmentIso)}</span>}
+                  <span>{fmtSar(r.ltvMinor, t)}</span>
+                  {r.owedMinor > 0 && <span className="text-[#7c6a2f]">{t("Owes {amount}", { amount: fmtSar(r.owedMinor, t) })}</span>}
+                  {r.nextAppointmentIso && <span>{t("Next {date}", { date: fmtDate(r.nextAppointmentIso, locale, t) })}</span>}
                 </span>
               </Link>
             </li>
@@ -442,19 +453,19 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
 
       {/* Pagination */}
       {sorted.length > PAGE_SIZE && (
-        <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-ink)]/65">
+        <nav aria-label={t("Pagination")} className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-ink)]/65">
           <span className="tabular-nums">
-            {rangeStart}–{rangeEnd} of {sorted.length}
+            {t("{start}–{end} of {total}", { start: rangeStart, end: rangeEnd, total: sorted.length })}
           </span>
           <div className="flex items-center gap-1">
-            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-40" aria-label="Previous page">
-              Previous
+            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-40" aria-label={t("Previous page")}>
+              {t("Previous")}
             </button>
             <span className="px-2 tabular-nums" aria-current="page">
               {safePage} / {pageCount}
             </span>
-            <button type="button" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={safePage >= pageCount} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-40" aria-label="Next page">
-              Next
+            <button type="button" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={safePage >= pageCount} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-40" aria-label={t("Next page")}>
+              {t("Next")}
             </button>
           </div>
         </nav>
@@ -464,6 +475,8 @@ export function ClientsTable({ rows, staff, canManage, canBroadcast }: ClientsTa
 }
 
 function Cell({ row, col }: { row: ClientRowDTO; col: ColumnKey }) {
+  const t = useStaffT();
+  const locale = useStaffLocale();
   switch (col) {
     case "stage":
       return (
@@ -472,39 +485,39 @@ function Cell({ row, col }: { row: ClientRowDTO; col: ColumnKey }) {
             <span className="h-2 w-2 rounded-full" style={{ background: row.stageColor || "var(--color-ink)" }} />
             {row.stageLabel}
           </span>
-          {row.nextFollowUpIso && <div className="mt-0.5 text-[0.7rem] text-[var(--color-ink)]/45">Follow up {fmtDate(row.nextFollowUpIso)}</div>}
+          {row.nextFollowUpIso && <div className="mt-0.5 text-[0.7rem] text-[var(--color-ink)]/45">{t("Follow up {date}", { date: fmtDate(row.nextFollowUpIso, locale, t) })}</div>}
         </>
       );
     case "owner":
-      return <>{row.ownerName ?? "Unassigned"}</>;
+      return <>{row.ownerName ?? t("Unassigned")}</>;
     case "source":
-      return <>{row.source ?? "None"}</>;
+      return <>{row.source ?? t("None")}</>;
     case "tier":
-      return <>{row.tierName ?? "Guest"}</>;
+      return <>{row.tierName ?? t("Guest")}</>;
     case "tags":
       return row.tags.length ? (
         <span className="flex flex-wrap gap-1">
-          {row.tags.map((t) => (
-            <span key={t} className="rounded-full bg-[var(--color-teal)]/15 px-2 py-0.5 text-[0.65rem] font-medium text-[var(--color-teal-ink)]">
-              {t}
+          {row.tags.map((tg) => (
+            <span key={tg} className="rounded-full bg-[var(--color-teal)]/15 px-2 py-0.5 text-[0.65rem] font-medium text-[var(--color-teal-ink)]">
+              {tg}
             </span>
           ))}
         </span>
       ) : (
-        <>None</>
+        <>{t("None")}</>
       );
     case "ltv":
-      return <span className="font-medium tabular-nums text-[var(--color-ink)]">{fmtSar(row.ltvMinor)}</span>;
+      return <span className="font-medium tabular-nums text-[var(--color-ink)]">{fmtSar(row.ltvMinor, t)}</span>;
     case "owed":
-      return row.owedMinor > 0 ? <span className="font-medium tabular-nums text-[#7c6a2f]">{fmtSar(row.owedMinor)}</span> : <span className="tabular-nums">0 SAR</span>;
+      return row.owedMinor > 0 ? <span className="font-medium tabular-nums text-[#7c6a2f]">{fmtSar(row.owedMinor, t)}</span> : <span className="tabular-nums">{fmtSar(0, t)}</span>;
     case "visits":
       return <span className="tabular-nums">{row.bookingCount}</span>;
     case "lastVisit":
-      return <>{fmtDate(row.lastVisitIso)}</>;
+      return <>{fmtDate(row.lastVisitIso, locale, t)}</>;
     case "nextAppt":
-      return <>{fmtDate(row.nextAppointmentIso)}</>;
+      return <>{fmtDate(row.nextAppointmentIso, locale, t)}</>;
     case "status":
-      return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_META[row.status].className}`}>{STATUS_META[row.status].label}</span>;
+      return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_META[row.status].className}`}>{t(STATUS_META[row.status].label)}</span>;
     default:
       return null;
   }

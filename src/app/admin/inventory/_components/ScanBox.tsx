@@ -4,12 +4,15 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { findProductByCodeAction } from "../actions";
+import { useStaffT } from "../../_i18n/StaffI18n";
+import { withSlot } from "./ui";
 
 // "Scan to find": a USB/Bluetooth barcode scanner behaves like a keyboard --
 // it types the code and presses Enter -- so a plain input + submit is enough.
 // A match opens the product; no match offers to create one with that barcode.
 export function ScanBox() {
   const router = useRouter();
+  const t = useStaffT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [code, setCode] = useState("");
   const [missing, setMissing] = useState<string | null>(null);
@@ -37,9 +40,9 @@ export function ScanBox() {
   }
 
   return (
-    <form onSubmit={submit} className="lunia-card flex flex-col gap-2 p-4" role="search" aria-label="Scan to find a product">
+    <form onSubmit={submit} className="lunia-card flex flex-col gap-2 p-4" role="search" aria-label={t("Scan to find a product")}>
       <label htmlFor="inventory-scan" className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">
-        Scan to find
+        {t("Scan to find")}
       </label>
       <div className="flex gap-2">
         <input
@@ -47,20 +50,28 @@ export function ScanBox() {
           ref={inputRef}
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          placeholder="Scan a barcode or type a SKU, then Enter"
+          dir="ltr"
+          placeholder={t("Scan a barcode or type a SKU, then Enter")}
           autoComplete="off"
           inputMode="text"
           className="lunia-input min-h-11"
         />
         <button type="submit" disabled={isPending} className="lunia-btn lunia-btn-ghost min-h-11 disabled:opacity-60">
-          {isPending ? "Finding…" : "Find"}
+          {isPending ? t("Finding…") : t("Find")}
         </button>
       </div>
       {missing && (
         <p className="text-sm text-[var(--color-ink)]/70">
-          No product with code <span className="font-mono">{missing}</span>.{" "}
+          {withSlot(
+            t,
+            "No product with code {code}.",
+            "code",
+            <span className="font-mono" dir="ltr">
+              {missing}
+            </span>,
+          )}{" "}
           <Link href={`/admin/inventory/products/new?barcode=${encodeURIComponent(missing)}`} className="font-medium text-[var(--color-teal-ink)] underline">
-            Create one with this barcode
+            {t("Create one with this barcode")}
           </Link>
         </p>
       )}

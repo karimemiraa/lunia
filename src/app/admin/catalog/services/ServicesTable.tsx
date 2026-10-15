@@ -2,6 +2,7 @@
 
 import type { Department, Service } from "@prisma/client";
 import { DataTable, type Column } from "../../_ui/DataTable";
+import { useStaffLocale, useStaffT } from "../../_i18n/StaffI18n";
 import { ConfirmDeleteButton } from "../../_components/ConfirmDeleteButton";
 import { deleteServiceAction } from "./actions";
 
@@ -11,19 +12,28 @@ interface ServicesTableProps {
 }
 
 export function ServicesTable({ services, departmentsById }: ServicesTableProps) {
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const columns: Column<Service>[] = [
-    { key: "nameEn", header: "Name", primary: true, value: (s) => s.nameEn, render: (s) => s.nameEn },
-    { key: "department", header: "Department", value: (s) => departmentsById[s.departmentId]?.nameEn ?? "None" },
-    { key: "slug", header: "Slug", value: (s) => s.slug },
-    { key: "order", header: "Order", numeric: true, value: (s) => s.order },
-    { key: "isPublished", header: "Published", value: (s) => (s.isPublished ? "Yes" : "No") },
+    { key: "nameEn", header: t("Name"), primary: true, value: (s) => s.nameEn, render: (s) => (locale === "ar" && s.nameAr ? s.nameAr : s.nameEn) },
+    {
+      key: "department",
+      header: t("Department"),
+      value: (s) => {
+        const d = departmentsById[s.departmentId];
+        return d ? (locale === "ar" && d.nameAr ? d.nameAr : d.nameEn) : t("None");
+      },
+    },
+    { key: "slug", header: t("Slug"), value: (s) => s.slug },
+    { key: "order", header: t("Order"), numeric: true, value: (s) => s.order },
+    { key: "isPublished", header: t("Published"), value: (s) => (s.isPublished ? t("Yes") : t("No")) },
     {
       key: "edit",
       header: "",
       sortable: false,
       render: (s) => (
         <a href={`/admin/catalog/services/${s.id}`} className="text-sm font-medium text-[var(--color-teal)] hover:underline">
-          Edit
+          {t("Edit")}
         </a>
       ),
     },
@@ -36,7 +46,7 @@ export function ServicesTable({ services, departmentsById }: ServicesTableProps)
           <input type="hidden" name="id" value={s.id} />
           <ConfirmDeleteButton
             action={deleteServiceAction}
-            confirmMessage={`Delete service "${s.nameEn}"? This cannot be undone.`}
+            confirmMessage={t('Delete service "{name}"? This cannot be undone.', { name: locale === "ar" && s.nameAr ? s.nameAr : s.nameEn })}
           />
         </form>
       ),
@@ -50,9 +60,9 @@ export function ServicesTable({ services, departmentsById }: ServicesTableProps)
       rowKey={(s) => s.id}
       initialSort={{ key: "nameEn", dir: "asc" }}
       search={(s) => `${s.nameEn} ${s.slug}`}
-      searchPlaceholder="Search services..."
-      empty="No services yet."
-      ariaLabel="Services"
+      searchPlaceholder={t("Search services...")}
+      empty={t("No services yet.")}
+      ariaLabel={t("Services")}
     />
   );
 }

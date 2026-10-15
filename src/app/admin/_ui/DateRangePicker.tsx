@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { labelTextClass } from "./labels";
+import { Tr } from "../_i18n/StaffI18n";
+import { TLabelled } from "./Translated";
 
 /**
  * From/To date inputs for a GET form plus quick-range shortcut links.
@@ -10,11 +12,11 @@ export function DateRangeFields({ fromISO, toISO, fromName = "from", toName = "t
   return (
     <>
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className={labelTextClass}>From</span>
+        <span className={labelTextClass}><Tr>From</Tr></span>
         <input type="date" name={fromName} defaultValue={fromISO} max={toISO} className="lunia-input min-h-11 text-base md:text-sm" />
       </label>
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className={labelTextClass}>To</span>
+        <span className={labelTextClass}><Tr>To</Tr></span>
         <input type="date" name={toName} defaultValue={toISO} min={fromISO} className="lunia-input min-h-11 text-base md:text-sm" />
       </label>
     </>
@@ -41,16 +43,16 @@ export function rangeShortcuts(todayISO: string): { label: string; from: string;
 export function DateRangeShortcuts({ base, todayISO, params, activeFrom, activeTo, only }: { base: string; todayISO: string; params: Record<string, string | undefined>; activeFrom?: string; activeTo?: string; only?: string[] }): ReactNode {
   const list = rangeShortcuts(todayISO).filter((s) => !only || only.includes(s.label));
   return (
-    <div className="flex flex-wrap gap-2 print:hidden" aria-label="Quick ranges">
+    <TLabelled className="flex flex-wrap gap-2 print:hidden" label="Quick ranges">
       {list.map((s) => {
         const qs = new URLSearchParams(Object.entries({ ...params, from: s.from, to: s.to }).filter(([, v]) => v) as [string, string][]);
         const isActive = activeFrom === s.from && activeTo === s.to;
         return (
           <Link key={s.label} href={`${base}?${qs.toString()}`} aria-current={isActive ? "page" : undefined} className={`lunia-btn lunia-btn-sm min-h-11 ${isActive ? "lunia-btn-forest" : "lunia-btn-ghost"}`}>
-            {s.label}
+            <Tr>{s.label}</Tr>
           </Link>
         );
       })}
-    </div>
+    </TLabelled>
   );
 }

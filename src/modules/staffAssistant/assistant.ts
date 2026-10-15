@@ -9,6 +9,7 @@ import { getSetting } from "@/modules/cms/settings";
 import { PERMISSIONS, type PermissionKey } from "@/modules/iam/permissions";
 import { answerWithAi, createAiClient, type AssistantAiClient } from "./ai";
 import { answerWithRules } from "./rules";
+import { localizeReply } from "./localize";
 import type { AssistantReply, AssistantViewer, ChatTurn } from "./types";
 
 /** Superadmin secret holding the Anthropic API key for the staff assistant. */
@@ -26,7 +27,18 @@ export async function buildViewer(user: { id: string; permissions: Set<Permissio
     name: profile?.staffProfile?.fullName?.trim() || profile?.email || "there",
     permissions: user.permissions,
     hiddenHrefs,
+    locale: await staffLocale(),
   };
+}
+
+/** The staff console language from the Display-menu cookie (English outside a request). */
+async function staffLocale(): Promise<"en" | "ar"> {
+  try {
+    const { cookies } = await import("next/headers");
+    return (await cookies()).get("lunia_staff_locale")?.value === "ar" ? "ar" : "en";
+  } catch {
+    return "en";
+  }
 }
 
 /** The key from Superadmin, or the ANTHROPIC_API_KEY env var as a fallback. */
@@ -51,10 +63,10 @@ export async function askAssistant(question: string, history: ChatTurn[], viewer
   }
   if (client) {
     try {
-      return await answerWithAi(client, question, history, viewer, now);
+      return localizeReply(await answerWithAi(client, question, history, viewer, now), viewer.locale);
     } catch (error) {
       (opts.onAiError ?? ((e) => console.error("[ask-lunia] AI failed, using built-in answers:", e)))(error);
     }
   }
-  return answerWithRules(question, viewer, now);
+  return localizeReply(await answerWithRules(question, viewer, now), viewer.locale);
 }

@@ -1,6 +1,7 @@
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffLocale, getStaffT } from "../_i18n/display";
 import { listMedia } from "@/modules/cms/media";
 import { updateAlt, deleteMediaAction } from "./actions";
 import { UploadForm } from "./UploadForm";
@@ -24,6 +25,8 @@ const inputClass =
 export default async function MediaLibraryPage() {
   const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
   const media = await listMedia();
+  const t = await getStaffT();
+  const locale = await getStaffLocale();
 
   return (
     <AdminShell user={user} title="Media" description="Upload and manage images and video used across the site.">
@@ -32,7 +35,7 @@ export default async function MediaLibraryPage() {
       </div>
 
       {media.length === 0 ? (
-        <p className="text-sm text-[var(--color-ink)]/60">No media uploaded yet.</p>
+        <p className="text-sm text-[var(--color-ink)]/60">{t("No media uploaded yet.")}</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {media.map((item) => (
@@ -47,7 +50,7 @@ export default async function MediaLibraryPage() {
                   // eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded assets, no static domain to configure for next/image
                   <img
                     src={`/api/media/${item.storageKey}`}
-                    alt={item.altEn ?? item.filename}
+                    alt={(locale === "ar" ? item.altAr || item.altEn : item.altEn) ?? item.filename}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -58,7 +61,7 @@ export default async function MediaLibraryPage() {
               <p className="truncate text-xs font-medium text-[var(--color-ink)]" title={item.filename}>
                 {item.filename}
               </p>
-              <p className="text-[11px] text-[var(--color-ink)]/60">
+              <p className="text-[11px] text-[var(--color-ink)]/60" dir="ltr">
                 {formatBytes(item.sizeBytes)}
                 {item.width && item.height ? ` · ${item.width}×${item.height}` : ""}
               </p>
@@ -66,11 +69,11 @@ export default async function MediaLibraryPage() {
               <form action={updateAlt} className="flex flex-col gap-2">
                 <input type="hidden" name="id" value={item.id} />
                 <label className="flex flex-col gap-1 text-xs">
-                  <span className="text-[var(--color-ink)]/70">Alt (EN)</span>
-                  <input type="text" name="altEn" defaultValue={item.altEn ?? ""} className={inputClass} />
+                  <span className="text-[var(--color-ink)]/70">{t("Alt (EN)")}</span>
+                  <input type="text" name="altEn" dir="ltr" defaultValue={item.altEn ?? ""} className={inputClass} />
                 </label>
                 <label className="flex flex-col gap-1 text-xs">
-                  <span className="text-[var(--color-ink)]/70">Alt (AR)</span>
+                  <span className="text-[var(--color-ink)]/70">{t("Alt (AR)")}</span>
                   <input type="text" name="altAr" dir="rtl" defaultValue={item.altAr ?? ""} className={inputClass} />
                 </label>
                 <div className="mt-1 flex items-center justify-between gap-2">
@@ -78,7 +81,7 @@ export default async function MediaLibraryPage() {
                     type="submit"
                     className="lunia-btn lunia-btn-primary lunia-btn-sm"
                   >
-                    Save alt text
+                    {t("Save alt text")}
                   </button>
                   <DeleteButton action={deleteMediaAction} />
                 </div>

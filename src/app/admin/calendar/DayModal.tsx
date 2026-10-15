@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useIsClient } from "../_components/useIsClient";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 interface DayModalProps {
   /** Where the close button / backdrop / Escape navigates to (drops the day param). */
@@ -20,6 +21,7 @@ interface DayModalProps {
 export function DayModal({ closeHref, title, children }: DayModalProps) {
   const router = useRouter();
   const mounted = useIsClient();
+  const t = useStaffT();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -50,7 +52,7 @@ export function DayModal({ closeHref, title, children }: DayModalProps) {
           <h2 className="font-[family-name:var(--font-display)] text-xl">{title}</h2>
           <Link
             href={closeHref}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-on-ink)]/70 transition-colors hover:bg-white/10 hover:text-[var(--color-on-ink)]"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">

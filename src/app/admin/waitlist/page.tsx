@@ -6,6 +6,9 @@ import { getFrontDeskServices } from "@/modules/booking/serviceSettings";
 import { utcToCenterLocal } from "@/modules/booking/availability";
 import { WaitlistAddForm, type WaitlistServiceDTO } from "./WaitlistAddForm";
 import { WaitlistTable, type WaitlistRowDTO } from "./WaitlistTable";
+import { getStaffDisplay } from "../_i18n/display";
+import { makeT } from "../_i18n/t";
+import { nameIn, waitlistStatusText } from "../calendar/labels";
 
 interface WaitlistPageProps {
   searchParams: Promise<{ status?: string }>;
@@ -23,6 +26,8 @@ export default async function WaitlistPage({ searchParams }: WaitlistPageProps) 
   const canManage = user.permissions.has(PERMISSIONS.BOOKING_MANAGE);
 
   const params = await searchParams;
+  const { locale } = await getStaffDisplay();
+  const t = makeT(locale);
   const statusFilter = isStatusFilter(params.status) ? params.status : undefined;
   const todayISO = utcToCenterLocal(new Date()).dateISO;
 
@@ -32,14 +37,14 @@ export default async function WaitlistPage({ searchParams }: WaitlistPageProps) 
   ]);
 
   const rows: WaitlistRowDTO[] = entries.map((entry) => {
-    const contactName = entry.clientProfile?.fullName ?? entry.name ?? "Unknown";
+    const contactName = entry.clientProfile?.fullName ?? entry.name ?? t("Unknown");
     const contactDetail = entry.clientProfile
       ? entry.clientProfile.user.phone ?? entry.clientProfile.user.email ?? null
       : entry.phone ?? entry.email ?? null;
     return {
       id: entry.id,
       serviceId: entry.serviceId,
-      serviceName: entry.service.nameEn,
+      serviceName: nameIn(locale, entry.service.nameEn, entry.service.nameAr),
       desiredDateISO: entry.desiredDateISO,
       desiredWindow: entry.desiredWindow,
       contactName,
@@ -52,8 +57,8 @@ export default async function WaitlistPage({ searchParams }: WaitlistPageProps) 
 
   const waitlistServices: WaitlistServiceDTO[] = frontDeskServices.map((service) => ({
     id: service.id,
-    name: service.nameEn,
-    departmentName: service.department.nameEn,
+    name: nameIn(locale, service.nameEn, service.nameAr),
+    departmentName: nameIn(locale, service.department.nameEn, service.department.nameAr),
   }));
 
   return (
@@ -75,7 +80,7 @@ export default async function WaitlistPage({ searchParams }: WaitlistPageProps) 
                   : "border border-[var(--color-ink)]/20 text-[var(--color-ink)]/70 hover:bg-[var(--color-ink)]/5"
               }`}
             >
-              {status || "All"}
+              {status ? waitlistStatusText(status, locale, t) : t("All")}
             </a>
           );
         })}

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { getStaffT } from "../../../../_i18n/display";
 
 /** The customer a patient-file sub-page is about, or a 404. */
 export async function loadClient(clientProfileId: string) {
@@ -8,5 +9,5 @@ export async function loadClient(clientProfileId: string) {
     select: { id: true, fullName: true, user: { select: { phone: true, email: true } } },
   });
   if (!client) notFound();
-  return { ...client, displayName: client.fullName || client.user.phone || client.user.email || "Customer" };
+  return { ...client, displayName: client.fullName || client.user.phone || client.user.email || (await getStaffT())("Customer") };
 }

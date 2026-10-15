@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 export interface LocalizedValue {
   en: string;
@@ -26,6 +27,7 @@ const inputClass =
  * value for callers that want it live (e.g. a client-side preview).
  */
 export function LocalizedField({ label, name, defaultValue, type = "text", required, onChange }: LocalizedFieldProps) {
+  const t = useStaffT();
   const [value, setValue] = useState<LocalizedValue>(defaultValue ?? { en: "", ar: "" });
 
   function update(lang: keyof LocalizedValue, next: string) {
@@ -36,10 +38,10 @@ export function LocalizedField({ label, name, defaultValue, type = "text", requi
 
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="mb-1 text-sm font-medium text-[var(--color-ink)]">{label}</legend>
+      <legend className="mb-1 text-sm font-medium text-[var(--color-ink)]">{t(label)}</legend>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/70">
-          English
+          {t("English")}
           {type === "textarea" ? (
             <textarea
               name={`${name}.en`}
@@ -62,7 +64,7 @@ export function LocalizedField({ label, name, defaultValue, type = "text", requi
           )}
         </label>
         <label className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/70">
-          Arabic
+          {t("Arabic")}
           {type === "textarea" ? (
             <textarea
               name={`${name}.ar`}

@@ -9,6 +9,7 @@ import { SalesTab } from "./_components/SalesTab";
 import { ReceivablesTab } from "./_components/ReceivablesTab";
 import { resolveAccountingRange, dateISOOf, type VatPeriod } from "@/modules/accounting/periods";
 import { getOpenCashSession } from "@/modules/accounting/cash";
+import { getStaffT } from "../_i18n/display";
 
 const ACCOUNTING_TABS = [
   { id: "overview", label: "Overview" },
@@ -21,7 +22,7 @@ const ACCOUNTING_TABS = [
 type TabId = (typeof ACCOUNTING_TABS)[number]["id"];
 
 function isTab(value: string | undefined): value is TabId {
-  return ACCOUNTING_TABS.some((t) => t.id === value);
+  return ACCOUNTING_TABS.some((tab) => tab.id === value);
 }
 
 interface AccountingPageProps {
@@ -31,6 +32,7 @@ interface AccountingPageProps {
 export default async function AccountingPage({ searchParams }: AccountingPageProps) {
   const user = await requireAccounting();
   const params = await searchParams;
+  const t = await getStaffT();
   const tab: TabId = isTab(params.tab) ? params.tab : "overview";
   const range = resolveAccountingRange(params.from, params.to);
   const period: VatPeriod = params.period === "month" ? "month" : "quarter";
@@ -49,23 +51,23 @@ export default async function AccountingPage({ searchParams }: AccountingPagePro
       actions={
         <div className="flex flex-wrap gap-2 print:hidden">
           <Link href="/admin/accounting/cash" className="lunia-btn lunia-btn-ghost min-h-11" data-testid="cash-drawer-link">
-            Cash drawer{openSession ? " (open)" : ""}
+            {openSession ? t("Cash drawer (open)") : t("Cash drawer")}
           </Link>
           <Link href="/admin/accounting/expenses" className="lunia-btn lunia-btn-ghost min-h-11">
-            Expenses
+            {t("Expenses")}
           </Link>
         </div>
       }
     >
       <PrintStyles />
       <div className="flex flex-col gap-6">
-        <nav aria-label="Accounting reports" className="flex gap-1 overflow-x-auto border-b border-[var(--line)] print:hidden">
-          {ACCOUNTING_TABS.map((t) => {
-            const qs = new URLSearchParams({ tab: t.id, from: range.fromISO, to: range.toISO });
-            const selected = t.id === tab;
+        <nav aria-label={t("Accounting reports")} className="flex gap-1 overflow-x-auto border-b border-[var(--line)] print:hidden">
+          {ACCOUNTING_TABS.map((item) => {
+            const qs = new URLSearchParams({ tab: item.id, from: range.fromISO, to: range.toISO });
+            const selected = item.id === tab;
             return (
               <Link
-                key={t.id}
+                key={item.id}
                 href={`/admin/accounting?${qs.toString()}`}
                 aria-current={selected ? "page" : undefined}
                 className={`-mb-px flex min-h-11 shrink-0 items-center border-b-2 px-4 text-sm font-medium transition-colors ${
@@ -74,7 +76,7 @@ export default async function AccountingPage({ searchParams }: AccountingPagePro
                     : "border-transparent text-[var(--color-ink)]/55 hover:text-[var(--color-ink)]"
                 }`}
               >
-                {t.label}
+                {t(item.label)}
               </Link>
             );
           })}
@@ -86,10 +88,10 @@ export default async function AccountingPage({ searchParams }: AccountingPagePro
               <RangeForm action="/admin/accounting" fromISO={range.fromISO} toISO={range.toISO} hidden={{ tab }}>
                 {tab === "vat" && (
                   <label className="flex flex-col gap-1 text-sm">
-                    <span className={labelClass}>Group by</span>
+                    <span className={labelClass}>{t("Group by")}</span>
                     <select name="period" defaultValue={period} className="lunia-input min-h-11">
-                      <option value="quarter">Quarter</option>
-                      <option value="month">Month</option>
+                      <option value="quarter">{t("Quarter")}</option>
+                      <option value="month">{t("Month")}</option>
                     </select>
                   </label>
                 )}
@@ -98,7 +100,7 @@ export default async function AccountingPage({ searchParams }: AccountingPagePro
             </div>
             <RangeShortcuts base="/admin/accounting" todayISO={todayISO} params={keep} />
             <p className="hidden text-sm print:block">
-              Period: {range.fromISO} to {range.toISO}
+              {t("Period: {from} to {to}", { from: range.fromISO, to: range.toISO })}
             </p>
           </div>
         )}

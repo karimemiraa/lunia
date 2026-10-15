@@ -2,6 +2,7 @@
 
 import { DataTable, type Column, type CellValue } from "../_ui/DataTable";
 import type { ReportColumn } from "@/modules/reports/reports";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 interface ReportRowWithKey {
   __key: string;
@@ -23,6 +24,7 @@ interface ReportTableProps {
  * handled by the page's own range-aware export link, not DataTable.
  */
 export function ReportTable({ columns, rows }: ReportTableProps) {
+  const t = useStaffT();
   const dataTableColumns: Column<ReportRowWithKey>[] = columns.map((column, index) => ({
     key: column.key,
     header: column.label,
@@ -41,7 +43,7 @@ export function ReportTable({ columns, rows }: ReportTableProps) {
         cards={false}
         search={(row) => columns.map((column) => String(row[column.key] ?? "")).join(" ")}
         searchPlaceholder="Search rows..."
-        empty="No rows for this report and range."
+        empty={t("No rows for this report and range.")}
         ariaLabel="Report rows"
       />
     </div>

@@ -2,6 +2,11 @@
 // library. Renders as a `role="img"` region with an aria-label summarizing
 // the series for assistive tech, plus a visually-hidden (`sr-only`) table
 // carrying the exact values.
+//
+// Server-safe: values are formatted here, the text is rendered (in the staff
+// language) by LineChartView.
+
+import { LineChartView } from "./ChartViews";
 
 export interface LineChartDatum {
   date: string;
@@ -40,58 +45,16 @@ function buildPoints(data: LineChartDatum[]): string {
 }
 
 export function LineChart({ title, data, valueFormatter = defaultFormatter, emptyMessage = "No data yet." }: LineChartProps) {
-  const points = buildPoints(data);
-  const first = data[0];
-  const last = data[data.length - 1];
   const total = data.reduce((sum, d) => sum + d.value, 0);
-
-  const summary =
-    data.length === 0
-      ? `${title}: no data.`
-      : `${title}: from ${first!.date} (${valueFormatter(first!.value)}) to ${last!.date} (${valueFormatter(last!.value)}), total ${valueFormatter(total)}.`;
-
+  const rows = data.map((d) => ({ key: d.date, label: d.date, value: d.value, text: valueFormatter(d.value) }));
   return (
-    <div className="rounded-lg border border-[var(--color-ink)]/10 bg-[var(--color-page)] p-5 shadow-sm">
-      <h3 className="mb-4 text-sm font-medium text-[var(--color-ink)]/70">{title}</h3>
-
-      {data.length === 0 ? (
-        <p className="text-sm text-[var(--color-ink)]/50" role="img" aria-label={summary}>
-          {emptyMessage}
-        </p>
-      ) : (
-        <div role="img" aria-label={summary}>
-          <svg
-            viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
-            className="h-28 w-full"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <polyline points={points} fill="none" stroke="var(--color-teal)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-          </svg>
-          <div className="mt-2 flex justify-between text-xs text-[var(--color-ink)]/50">
-            <span>{first!.date}</span>
-            <span>{last!.date}</span>
-          </div>
-        </div>
-      )}
-
-      <table className="sr-only">
-        <caption>{title}</caption>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((datum) => (
-            <tr key={datum.date}>
-              <td>{datum.date}</td>
-              <td>{valueFormatter(datum.value)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <LineChartView
+      title={title}
+      rows={rows}
+      points={buildPoints(data)}
+      totalText={valueFormatter(total)}
+      emptyMessage={emptyMessage}
+      viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
+    />
   );
 }

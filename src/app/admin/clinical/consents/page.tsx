@@ -5,13 +5,16 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { ensureDefaultConsentForms, listConsentForms } from "@/modules/clinical/consents";
 import { recordAudit } from "@/modules/iam/audit";
 import { servicesForPicker } from "./servicesForPicker";
-
-const dFmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", dateStyle: "medium" });
+import { getStaffLocale } from "../../_i18n/display";
+import { intlLocale, makeT } from "../../_i18n/t";
 
 // Consent-form templates. The first visit seeds three defaults (general
 // treatment, photography, post-surgery drainage) when none exist yet.
 export default async function ConsentFormsPage() {
   const user = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  const locale = await getStaffLocale();
+  const t = makeT(locale);
+  const dFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: "Asia/Riyadh", dateStyle: "medium" });
   const seeded = await ensureDefaultConsentForms();
   if (seeded > 0) {
     await recordAudit({
@@ -22,7 +25,7 @@ export default async function ConsentFormsPage() {
     });
   }
   const [forms, services] = await Promise.all([listConsentForms(), servicesForPicker()]);
-  const serviceName = new Map(services.map((s) => [s.id, s.label]));
+  const serviceName = new Map(services.map((s) => [s.id, locale === "ar" ? s.labelAr : s.label]));
 
   return (
     <AdminShell
@@ -31,13 +34,13 @@ export default async function ConsentFormsPage() {
       description="Bilingual consent templates customers sign online or at the desk. Editing the wording creates a new version; signed copies keep the exact text they agreed to."
       actions={
         <Link href="/admin/clinical/consents/new" className="lunia-btn lunia-btn-forest min-h-11">
-          New form
+          {t("New form")}
         </Link>
       }
     >
       {seeded > 0 && (
         <p className="mb-5 rounded-[var(--radius-sm)] bg-[var(--color-teal)]/12 px-4 py-3 text-sm text-[var(--color-ink)]">
-          We added {seeded} starter templates. Please have your medical director review the wording before relying on them.
+          {t("We added {count} starter templates. Please have your medical director review the wording before relying on them.", { count: seeded })}
         </p>
       )}
       <ul className="grid gap-3 md:grid-cols-2" data-testid="consent-forms-list">
@@ -53,17 +56,17 @@ export default async function ConsentFormsPage() {
               <span
                 className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${f.isActive ? "bg-[var(--color-teal)]/20 text-[var(--color-teal-ink)]" : "bg-[var(--color-ink)]/8 text-[var(--color-ink)]/55"}`}
               >
-                {f.isActive ? "Active" : "Inactive"}
+                {f.isActive ? t("Active") : t("Inactive")}
               </span>
             </div>
             <p className="text-xs text-[var(--color-ink)]/55">
-              <span className="font-mono">{f.key}</span> · v{f.version} · updated {dFmt.format(f.updatedAt)} · {f._count.signatures} signature{f._count.signatures === 1 ? "" : "s"}
+              <span className="font-mono" dir="ltr">{f.key}</span> · {t("v{version}", { version: f.version })} · {t("updated {date}", { date: dFmt.format(f.updatedAt) })} · {f._count.signatures === 1 ? t("1 signature") : t("{count} signatures", { count: f._count.signatures })}
             </p>
             <p className="text-xs text-[var(--color-ink)]/65">
-              {f.serviceIds.length === 0 ? "Not tied to a service" : `Required for: ${f.serviceIds.map((id) => serviceName.get(id) ?? "Removed service").join(", ")}`}
+              {f.serviceIds.length === 0 ? t("Not tied to a service") : t("Required for: {services}", { services: f.serviceIds.map((id) => serviceName.get(id) ?? t("Removed service")).join(locale === "ar" ? "، " : ", ") })}
             </p>
             <Link href={`/admin/clinical/consents/${f.id}`} className="lunia-btn lunia-btn-ghost lunia-btn-sm mt-auto min-h-11 self-start">
-              Edit
+              {t("Edit")}
             </Link>
           </li>
         ))}

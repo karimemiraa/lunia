@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cancelPurchaseOrderAction, markOrderedAction, receivePurchaseOrderAction } from "../actions";
-import { labelText } from "./ui";
+import { labelText, qtyUnit } from "./ui";
 import { useConfirm } from "../../_ui/ConfirmDialog";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 export interface ReceiveLine {
   id: string;
@@ -18,6 +19,7 @@ export interface ReceiveLine {
 // that arrived (defaults to everything outstanding) plus optional lot/expiry.
 export function PoReceiveForm({ poId, lines }: { poId: string; lines: ReceiveLine[] }) {
   const router = useRouter();
+  const t = useStaffT();
   const outstanding = lines.filter((l) => l.qty > l.receivedQty);
   const [rows, setRows] = useState(() =>
     Object.fromEntries(outstanding.map((l) => [l.id, { qty: String(l.qty - l.receivedQty), lot: "", expires: "" }])),
@@ -38,8 +40,8 @@ export function PoReceiveForm({ poId, lines }: { poId: string; lines: ReceiveLin
       expiresAt: rows[l.id].expires || undefined,
     }));
     const bad = payload.find((p, i) => !Number.isInteger(p.qty) || p.qty < 0 || p.qty > outstanding[i].qty - outstanding[i].receivedQty);
-    if (bad) return setError("Received quantities must be whole numbers, no more than what's outstanding.");
-    if (payload.every((p) => p.qty === 0)) return setError("Enter what arrived on at least one line.");
+    if (bad) return setError(t("Received quantities must be whole numbers, no more than what's outstanding."));
+    if (payload.every((p) => p.qty === 0)) return setError(t("Enter what arrived on at least one line."));
     startTransition(async () => {
       const result = await receivePurchaseOrderAction(poId, { lines: payload });
       if (!result.ok) return setError(result.error);
@@ -52,10 +54,11 @@ export function PoReceiveForm({ poId, lines }: { poId: string; lines: ReceiveLin
   return (
     <form onSubmit={submit} className="lunia-card flex flex-col gap-4 p-5">
       <div>
-        <h3 className="text-base font-semibold">Receive goods</h3>
+        <h3 className="text-base font-semibold">{t("Receive goods")}</h3>
         <p className="text-sm text-[var(--color-ink)]/60">
-          Enter what actually arrived. Anything left outstanding keeps the order open as partially received. Lot and expiry are optional but
-          power the expiring-soon alerts.
+          {t(
+            "Enter what actually arrived. Anything left outstanding keeps the order open as partially received. Lot and expiry are optional but power the expiring-soon alerts.",
+          )}
         </p>
       </div>
       <ul className="flex flex-col divide-y divide-[var(--line)]">
@@ -64,11 +67,11 @@ export function PoReceiveForm({ poId, lines }: { poId: string; lines: ReceiveLin
             <div className="min-w-[12rem] flex-1">
               <div className="text-sm font-medium">{l.productName}</div>
               <div className="text-xs text-[var(--color-ink)]/55">
-                {l.qty - l.receivedQty} of {l.qty} {l.unit} outstanding
+                {t("{outstanding} of {total} outstanding", { outstanding: l.qty - l.receivedQty, total: qtyUnit(l.qty, l.unit, t) })}
               </div>
             </div>
             <label className="flex w-24 flex-col gap-1">
-              <span className={labelText}>Received</span>
+              <span className={labelText}>{t("Received")}</span>
               <input
                 type="number"
                 min={0}
@@ -76,15 +79,15 @@ export function PoReceiveForm({ poId, lines }: { poId: string; lines: ReceiveLin
                 step={1}
                 value={rows[l.id].qty}
                 onChange={(e) => update(l.id, { qty: e.target.value })}
-                className="lunia-input min-h-11 text-right tabular-nums"
+                className="lunia-input min-h-11 text-end tabular-nums"
               />
             </label>
             <label className="flex w-36 flex-col gap-1">
-              <span className={labelText}>Lot no.</span>
-              <input value={rows[l.id].lot} onChange={(e) => update(l.id, { lot: e.target.value })} className="lunia-input min-h-11 font-mono" />
+              <span className={labelText}>{t("Lot no.")}</span>
+              <input dir="ltr" value={rows[l.id].lot} onChange={(e) => update(l.id, { lot: e.target.value })} className="lunia-input min-h-11 font-mono" />
             </label>
             <label className="flex w-44 flex-col gap-1">
-              <span className={labelText}>Expiry date</span>
+              <span className={labelText}>{t("Expiry date")}</span>
               <input type="date" value={rows[l.id].expires} onChange={(e) => update(l.id, { expires: e.target.value })} className="lunia-input min-h-11" />
             </label>
           </li>
@@ -97,7 +100,7 @@ export function PoReceiveForm({ poId, lines }: { poId: string; lines: ReceiveLin
       )}
       <div>
         <button type="submit" disabled={isPending} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
-          {isPending ? "Receiving…" : "Receive into stock"}
+          {isPending ? t("Receiving…") : t("Receive into stock")}
         </button>
       </div>
     </form>
@@ -106,16 +109,17 @@ export function PoReceiveForm({ poId, lines }: { poId: string; lines: ReceiveLin
 
 export function PoStatusActions({ poId, status }: { poId: string; status: string }) {
   const [confirm, confirmDialog] = useConfirm();
+  const t = useStaffT();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  async function run(action: (id: string) => Promise<{ ok: boolean; error?: string }>, confirmText?: string) {
-    if (confirmText && !(await confirm({ title: confirmText, danger: /^cancel/i.test(confirmText) }))) return;
+  async function run(action: (id: string) => Promise<{ ok: boolean; error?: string }>, confirmText?: string, danger = false) {
+    if (confirmText && !(await confirm({ title: t(confirmText), danger }))) return;
     setError(null);
     startTransition(async () => {
       const result = await action(poId);
-      if (!result.ok) return setError(result.error ?? "Something went wrong.");
+      if (!result.ok) return setError(result.error ?? t("Something went wrong."));
       router.refresh();
     });
   }
@@ -125,7 +129,7 @@ export function PoStatusActions({ poId, status }: { poId: string; status: string
       {confirmDialog}
       {status === "DRAFT" && (
         <button type="button" disabled={isPending} onClick={() => run(markOrderedAction, "Mark this order as sent to the supplier? Lines can no longer be edited.")} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
-          Mark as ordered
+          {t("Mark as ordered")}
         </button>
       )}
       {["DRAFT", "ORDERED", "PARTIAL"].includes(status) && (
@@ -136,11 +140,12 @@ export function PoStatusActions({ poId, status }: { poId: string; status: string
             run(
               cancelPurchaseOrderAction,
               status === "PARTIAL" ? "Close this order? What has already been received stays in stock; nothing more is expected." : "Cancel this purchase order?",
+              status !== "PARTIAL",
             )
           }
           className="lunia-btn lunia-btn-danger min-h-11"
         >
-          {status === "PARTIAL" ? "Close (cancel rest)" : "Cancel order"}
+          {status === "PARTIAL" ? t("Close (cancel rest)") : t("Cancel order")}
         </button>
       )}
       {error && (

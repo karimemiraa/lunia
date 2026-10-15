@@ -10,13 +10,17 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../_i18n/display";
+import type { T } from "../_i18n/t";
 import { recordAudit } from "@/modules/iam/audit";
 import { approveReview, rejectReview } from "@/modules/reviews/reviews";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-function messageOf(err: unknown): string {
-  return err instanceof Error ? err.message : "Something went wrong.";
+function messageOf(err: unknown, t: T): string {
+  if (!(err instanceof Error)) return t("Something went wrong.");
+  const notFound = /^Review "(.*)" not found$/.exec(err.message);
+  return notFound ? t('Review "{id}" not found', { id: notFound[1] }) : t(err.message);
 }
 
 function revalidateReviews(): void {
@@ -35,7 +39,7 @@ export async function approveReviewAction(reviewId: string): Promise<ActionResul
       summary: `Approved review "${review.id}" (rating ${review.rating}/5)`,
     });
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: messageOf(err, await getStaffT()) };
   }
   revalidateReviews();
   return { ok: true };
@@ -53,7 +57,7 @@ export async function rejectReviewAction(reviewId: string): Promise<ActionResult
       summary: `Rejected review "${review.id}"`,
     });
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: messageOf(err, await getStaffT()) };
   }
   revalidateReviews();
   return { ok: true };

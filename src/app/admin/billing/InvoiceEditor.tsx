@@ -13,6 +13,7 @@ import { MoneyInput } from "../_ui/MoneyInput";
 import { Stepper, SectionCard } from "../_ui/Layout";
 import { StatusPill } from "../_ui/StatusPill";
 import { POS_STEPS } from "./ui";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
 
 type Kind = "SERVICE" | "PRODUCT" | "PACKAGE" | "GIFT_CARD" | "OTHER";
 
@@ -77,6 +78,8 @@ const inputCls = "lunia-input min-h-11 text-base md:text-sm";
  */
 export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVatRateBp, settingsIssues, quickPicks = [] }: Props) {
   const router = useRouter();
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [shortage, setShortage] = useState<{ id: string; message: string } | null>(null);
@@ -122,15 +125,15 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
     }));
     const bad = lines.findIndex((l) => !Number.isInteger(l.qty) || l.qty <= 0 || l.unitPriceMinor === null || l.discountMinor === null);
     const disc = parseSarToMinor(invoiceDiscount || "0");
-    if (bad >= 0) return { error: `Check line ${bad + 1}: quantity and amounts must be valid numbers.` };
-    if (disc === null) return { error: "Invoice discount must be an amount like 50 or 49.50." };
+    if (bad >= 0) return { error: t("Check line {n}: quantity and amounts must be valid numbers.", { n: bad + 1 }) };
+    if (disc === null) return { error: t("Invoice discount must be an amount like 50 or 49.50.") };
     try {
       const clean = lines as { qty: number; unitPriceMinor: number; discountMinor: number; vatRateBp: number }[];
       return { lines: clean, discount: disc, ...draftAmounts(clean, disc, pricesIncludeVat) };
     } catch (e) {
-      return { error: e instanceof Error ? e.message : "Invalid amounts" };
+      return { error: t(e instanceof Error ? e.message : "Invalid amounts") };
     }
-  }, [rows, invoiceDiscount, pricesIncludeVat]);
+  }, [rows, invoiceDiscount, pricesIncludeVat, t]);
 
   function update(key: number, patch: Partial<RowState>) {
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -217,11 +220,11 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
     try {
       data = payload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Invalid input");
+      setError(e instanceof Error ? e.message : t("Invalid input"));
       return;
     }
     if (thenIssue && data.lines.length === 0) {
-      setError("Add at least one line before issuing.");
+      setError(t("Add at least one line before issuing."));
       scanRef.current?.focus();
       return;
     }
@@ -244,7 +247,7 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
         }
       }
       if (!invoiceId || thenIssue) router.push(`/admin/billing/${savedRes.id}`);
-      else setSaved("Draft saved.");
+      else setSaved(t("Draft saved."));
       router.refresh();
     });
   }
@@ -279,16 +282,16 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
 
   return (
     <div className="flex flex-col gap-5">
-      <Stepper steps={POS_STEPS} current={0} />
+      <Stepper steps={POS_STEPS.map((s) => ({ ...s, label: t(s.label) }))} current={0} />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
         {/* ---------- Left: build the sale ---------- */}
         <div className="flex flex-col gap-5">
-          <SectionCard title="Add items" description={`Prices entered ${pricesIncludeVat ? "including" : "excluding"} VAT (tax settings).`}>
+          <SectionCard title={t("Add items")} description={pricesIncludeVat ? t("Prices entered including VAT (tax settings).") : t("Prices entered excluding VAT (tax settings).")}>
             <ScanBox ref={scanRef} onAdd={addHit} onBump={bumpLast} />
             {quickPicks.length > 0 && (
               <div className="mt-4">
-                <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/50">Most sold</p>
+                <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/50">{t("Most sold")}</p>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
                   {quickPicks.map((h) => (
                     <button
@@ -300,9 +303,9 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
                       }}
                       className="flex min-h-[4.25rem] flex-col items-start justify-between gap-1 rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-2 text-start transition-colors hover:border-[var(--color-teal)] hover:bg-[var(--color-teal)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)]"
                     >
-                      <span className="line-clamp-2 text-sm font-medium leading-snug text-[var(--color-ink)]">{h.name}</span>
+                      <span className="line-clamp-2 text-sm font-medium leading-snug text-[var(--color-ink)]">{locale === "ar" ? h.nameAr || h.name : h.name}</span>
                       <span className="flex w-full items-center justify-between gap-2 text-xs text-[var(--color-ink)]/55">
-                        <span>{KIND_LABEL[h.kind]}</span>
+                        <span>{t(KIND_LABEL[h.kind])}</span>
                         <span className="tabular-nums">{formatAmount(h.priceMinor)}</span>
                       </span>
                     </button>
@@ -312,17 +315,17 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
             )}
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={() => addCustom("OTHER")} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11">
-                Custom line
+                {t("Custom line")}
               </button>
               <button type="button" onClick={() => addCustom("GIFT_CARD")} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11">
-                Gift card sale
+                {t("Gift card sale")}
               </button>
             </div>
           </SectionCard>
 
-          <SectionCard title={`Lines${rows.length ? ` (${rows.length})` : ""}`} padded={false}>
+          <SectionCard title={rows.length ? t("Lines ({count})", { count: rows.length }) : t("Lines")} padded={false}>
             {rows.length === 0 ? (
-              <p className="px-5 py-8 text-center text-sm text-[var(--color-ink)]/55">Scan a barcode, search the catalog or tap a tile to add the first line.</p>
+              <p className="px-5 py-8 text-center text-sm text-[var(--color-ink)]/55">{t("Scan a barcode, search the catalog or tap a tile to add the first line.")}</p>
             ) : (
               <ul className="flex flex-col divide-y divide-[var(--line)]">
                 {rows.map((r, i) => {
@@ -333,28 +336,29 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
                     <li key={r.key} className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_8.5rem_7.5rem_7rem_5.5rem_6.5rem_2.75rem] md:items-end">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2 text-xs text-[var(--color-ink)]/55">
-                          <StatusPill tone={r.kind === "PRODUCT" ? "info" : r.kind === "GIFT_CARD" ? "accent" : "neutral"}>{KIND_LABEL[r.kind]}</StatusPill>
-                          {lowStock && <span className="font-medium text-[var(--status-danger-ink)]">Only {r.stockQty} in stock</span>}
+                          <StatusPill tone={r.kind === "PRODUCT" ? "info" : r.kind === "GIFT_CARD" ? "accent" : "neutral"}>{t(KIND_LABEL[r.kind])}</StatusPill>
+                          {lowStock && <span className="font-medium text-[var(--status-danger-ink)]">{t("Only {count} in stock", { count: r.stockQty })}</span>}
                         </div>
                         <input
                           id={`line-desc-${r.key}`}
-                          aria-label={`Line ${i + 1} description`}
+                          aria-label={t("Line {n} description", { n: i + 1 })}
                           value={r.description}
-                          placeholder={r.kind === "OTHER" ? "Describe the item" : undefined}
+                          placeholder={r.kind === "OTHER" ? t("Describe the item") : undefined}
                           onChange={(e) => update(r.key, { description: e.target.value })}
                           className={inputCls}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:contents">
                         <div className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/55">
-                          <span id={`qty-label-${r.key}`}>Qty</span>
+                          <span id={`qty-label-${r.key}`}>{t("Qty")}</span>
                           <div className="flex items-stretch overflow-hidden rounded-[var(--radius-sm)] border border-[var(--line-strong)]" role="group" aria-labelledby={`qty-label-${r.key}`}>
-                            <button type="button" aria-label="Decrease quantity" onClick={() => bumpQty(r.key, -1)} disabled={qtyNum <= 1} className="min-h-11 w-10 shrink-0 text-lg text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)] disabled:opacity-30">
+                            <button type="button" aria-label={t("Decrease quantity")} onClick={() => bumpQty(r.key, -1)} disabled={qtyNum <= 1} className="min-h-11 w-10 shrink-0 text-lg text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)] disabled:opacity-30">
                               −
                             </button>
                             <input
                               inputMode="numeric"
-                              aria-label={`Line ${i + 1} quantity`}
+                              dir="ltr"
+                              aria-label={t("Line {n} quantity", { n: i + 1 })}
                               value={r.qty}
                               onChange={(e) => update(r.key, { qty: e.target.value.replace(/\D/g, "") })}
                               onKeyDown={(e) => {
@@ -368,21 +372,21 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
                               }}
                               className="min-h-11 w-full min-w-0 border-x border-[var(--line)] bg-[var(--surface)] text-center text-base tabular-nums focus:outline-none md:text-sm"
                             />
-                            <button type="button" aria-label="Increase quantity" onClick={() => bumpQty(r.key, 1)} className="min-h-11 w-10 shrink-0 text-lg text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]">
+                            <button type="button" aria-label={t("Increase quantity")} onClick={() => bumpQty(r.key, 1)} className="min-h-11 w-10 shrink-0 text-lg text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]">
                               +
                             </button>
                           </div>
                         </div>
                         <label className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/55">
-                          Unit price
-                          <input inputMode="decimal" value={r.price} onChange={(e) => update(r.key, { price: e.target.value })} placeholder="0.00" className={`${inputCls} text-end tabular-nums`} />
+                          {t("Unit price")}
+                          <input inputMode="decimal" dir="ltr" value={r.price} onChange={(e) => update(r.key, { price: e.target.value })} placeholder="0.00" className={`${inputCls} text-end tabular-nums`} />
                         </label>
                         <label className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/55">
-                          Discount
-                          <input inputMode="decimal" value={r.discount} onChange={(e) => update(r.key, { discount: e.target.value })} placeholder="0.00" className={`${inputCls} text-end tabular-nums`} />
+                          {t("Discount")}
+                          <input inputMode="decimal" dir="ltr" value={r.discount} onChange={(e) => update(r.key, { discount: e.target.value })} placeholder="0.00" className={`${inputCls} text-end tabular-nums`} />
                         </label>
                         <label className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/55">
-                          VAT
+                          {t("VAT")}
                           <select value={r.vatRateBp} onChange={(e) => update(r.key, { vatRateBp: Number(e.target.value) })} className={inputCls}>
                             <option value={defaultVatRateBp}>{defaultVatRateBp / 100}%</option>
                             {defaultVatRateBp !== 0 && <option value={0}>0%</option>}
@@ -392,11 +396,11 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
                       <div className="flex items-center justify-between gap-2 md:contents">
                         <p className="text-end text-sm font-medium tabular-nums md:pb-3">
                           {computed ? formatAmount(computed.totalMinor) : "—"}
-                          <span className="block text-[0.65rem] font-normal text-[var(--color-ink)]/45">incl. VAT</span>
+                          <span className="block text-[0.65rem] font-normal text-[var(--color-ink)]/45">{t("incl. VAT")}</span>
                         </p>
                         <button
                           type="button"
-                          aria-label={`Remove line ${i + 1}`}
+                          aria-label={t("Remove line {n}", { n: i + 1 })}
                           onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))}
                           className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--status-danger-bg)] hover:text-[var(--status-danger-ink)] md:mb-1"
                         >
@@ -432,27 +436,27 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
             onVat={setCustomerVat}
           />
 
-          <SectionCard title="Totals">
+          <SectionCard title={t("Totals")}>
             <div className="flex flex-col gap-3">
-              <MoneyInput label="Invoice discount" value={invoiceDiscount} onChange={(t) => setInvoiceDiscount(t)} vat={pricesIncludeVat ? "incl" : "excl"} />
+              <MoneyInput label={t("Invoice discount")} value={invoiceDiscount} onChange={(v) => setInvoiceDiscount(v)} vat={pricesIncludeVat ? "incl" : "excl"} />
               {showNotes ? (
-                <TextareaField label="Notes (printed on the invoice)" name="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+                <TextareaField label={t("Notes (printed on the invoice)")} name="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
               ) : (
                 <button type="button" onClick={() => setShowNotes(true)} className="self-start text-sm text-[var(--color-teal-ink)] underline-offset-4 hover:underline">
-                  Add a note
+                  {t("Add a note")}
                 </button>
               )}
               <div className="flex flex-col gap-1.5 border-t border-[var(--line)] pt-3 text-sm">
                 {totals ? (
                   <>
-                    <Row label="Subtotal (excl. VAT)" value={totals.subtotalMinor} />
-                    {totals.discountMinor > 0 && <Row label="Invoice discount" value={-totals.discountMinor} />}
-                    <Row label="Taxable amount" value={totals.taxableMinor} />
-                    <Row label="VAT" value={totals.vatMinor} />
+                    <Row label={t("Subtotal (excl. VAT)")} value={totals.subtotalMinor} />
+                    {totals.discountMinor > 0 && <Row label={t("Invoice discount")} value={-totals.discountMinor} />}
+                    <Row label={t("Taxable amount")} value={totals.taxableMinor} />
+                    <Row label={t("VAT")} value={totals.vatMinor} />
                     <div className="mt-1 flex items-baseline justify-between border-t border-[var(--line)] pt-3">
-                      <span className="font-medium">Total incl. VAT</span>
+                      <span className="font-medium">{t("Total incl. VAT")}</span>
                       <span className="text-2xl font-medium tabular-nums">
-                        {formatAmount(totals.totalMinor)} <span className="text-sm text-[var(--color-ink)]/55">SAR</span>
+                        {formatAmount(totals.totalMinor)} <span className="text-sm text-[var(--color-ink)]/55">{t("SAR")}</span>
                       </span>
                     </div>
                   </>
@@ -465,9 +469,9 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
               {saved && <InlineStatus success={saved} />}
               {settingsIssues.length > 0 && (
                 <Notice>
-                  Issuing is blocked until the tax settings are complete: {settingsIssues.join(", ")}.{" "}
+                  {t("Issuing is blocked until the tax settings are complete: {items}.", { items: settingsIssues.map((i) => t(i)).join(t(", ")) })}{" "}
                   <Link href="/admin/billing/settings" className="font-medium underline">
-                    Open tax settings
+                    {t("Open tax settings")}
                   </Link>
                 </Notice>
               )}
@@ -475,10 +479,10 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
               <div className="flex flex-col gap-2 pt-1">
                 <button type="button" disabled={!canIssue} onClick={() => save(true)} aria-busy={pending || undefined} className="lunia-btn lunia-btn-forest min-h-12 w-full text-base disabled:cursor-not-allowed disabled:opacity-50">
                   {pending && <Spinner />}
-                  Issue invoice
+                  {t("Issue invoice")}
                 </button>
                 <button type="button" disabled={pending} onClick={() => save(false)} className="lunia-btn lunia-btn-forest-outline min-h-11 w-full disabled:opacity-50">
-                  Save draft
+                  {t("Save draft")}
                 </button>
               </div>
             </div>
@@ -486,9 +490,9 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
 
           {invoiceId && (
             <div className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-dashed border-[var(--line-strong)] px-4 py-3 text-xs text-[var(--color-ink)]/60">
-              <span>Not going ahead? The draft is kept for the record.</span>
-              <ConfirmButton title="Void this draft?" description="It stays in the list as void and can no longer be issued. Nothing is charged." confirmLabel="Void draft" onConfirm={voidIt} pending={pending}>
-                Void draft
+              <span>{t("Not going ahead? The draft is kept for the record.")}</span>
+              <ConfirmButton title={t("Void this draft?")} description={t("It stays in the list as void and can no longer be issued. Nothing is charged.")} confirmLabel={t("Void draft")} onConfirm={voidIt} pending={pending}>
+                {t("Void draft")}
               </ConfirmButton>
             </div>
           )}
@@ -497,9 +501,9 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
 
       <ConfirmDialog
         open={!!shortage}
-        title="Not enough stock"
-        description={`${shortage?.message ?? ""} Issue anyway and let stock go negative?`}
-        confirmLabel="Issue anyway"
+        title={t("Not enough stock")}
+        description={t("{message} Issue anyway and let stock go negative?", { message: shortage?.message ?? "" })}
+        confirmLabel={t("Issue anyway")}
         danger
         pending={pending}
         onConfirm={issueAnyway}
@@ -542,6 +546,8 @@ function ScanBox({ onAdd, onBump, ref }: ScanBoxProps) {
   const debounced = useDebounced(q);
   const reqId = useRef(0);
   const listId = "pos-scan-results";
+  const t = useStaffT();
+  const locale = useStaffLocale();
 
   useEffect(() => {
     if (!open) return;
@@ -577,12 +583,12 @@ function ScanBox({ onAdd, onBump, ref }: ScanBoxProps) {
     <div className="relative">
       <Field
         ref={ref}
-        label="Scan barcode or search the catalog"
+        label={t("Scan barcode or search the catalog")}
         name="scan"
         type="search"
         autoFocus
         autoComplete="off"
-        placeholder="Barcode, product, service or package…"
+        placeholder={t("Barcode, product, service or package…")}
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => setOpen(true)}
@@ -619,7 +625,7 @@ function ScanBox({ onAdd, onBump, ref }: ScanBoxProps) {
             </svg>
           )
         }
-        help="Enter adds the highlighted item. With the box empty, + and − change the last line's quantity."
+        help={t("Enter adds the highlighted item. With the box empty, + and − change the last line's quantity.")}
       />
       {open && hits.length > 0 && (
         <ul id={listId} role="listbox" className="absolute inset-x-0 top-[4.6rem] z-20 max-h-80 overflow-y-auto rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
@@ -634,9 +640,9 @@ function ScanBox({ onAdd, onBump, ref }: ScanBoxProps) {
                 className={`flex min-h-11 w-full items-center justify-between gap-3 px-4 py-2 text-start text-sm ${i === active ? "bg-[var(--surface-2)]" : "hover:bg-[var(--surface-2)]"}`}
               >
                 <span className="flex min-w-0 items-center gap-2">
-                  <StatusPill tone={h.kind === "PRODUCT" ? "info" : "neutral"}>{KIND_LABEL[h.kind]}</StatusPill>
-                  <span className="truncate">{h.name}</span>
-                  {h.kind === "PRODUCT" && <span className="shrink-0 text-xs text-[var(--color-ink)]/45">{h.stockQty} in stock</span>}
+                  <StatusPill tone={h.kind === "PRODUCT" ? "info" : "neutral"}>{t(KIND_LABEL[h.kind])}</StatusPill>
+                  <span className="truncate">{locale === "ar" ? h.nameAr || h.name : h.name}</span>
+                  {h.kind === "PRODUCT" && <span className="shrink-0 text-xs text-[var(--color-ink)]/45">{t("{count} in stock", { count: h.stockQty })}</span>}
                 </span>
                 <span className="shrink-0 tabular-nums text-[var(--color-ink)]/70">{formatAmount(h.priceMinor)}</span>
               </button>
@@ -661,6 +667,7 @@ function CustomerPicker(props: {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<ClientHit[]>([]);
   const [more, setMore] = useState(!!props.vat);
+  const t = useStaffT();
   const debounced = useDebounced(q);
   useEffect(() => {
     let live = true;
@@ -676,26 +683,26 @@ function CustomerPicker(props: {
 
   return (
     <SectionCard
-      title="Customer"
+      title={t("Customer")}
       actions={
         props.clientProfileId ? (
           <span className="flex items-center gap-2">
             <Link href={`/admin/clients/${props.clientProfileId}`} className="rounded-full bg-[var(--color-teal)]/20 px-2.5 py-1 text-xs font-medium text-[var(--color-teal-ink)]">
-              Linked profile
+              {t("Linked profile")}
             </Link>
             <button type="button" onClick={() => props.onPick(null)} className="min-h-11 px-2 text-xs text-[var(--color-ink)]/60 underline-offset-4 hover:underline">
-              Unlink
+              {t("Unlink")}
             </button>
           </span>
         ) : (
-          <StatusPill tone="neutral">Walk-in</StatusPill>
+          <StatusPill tone="neutral">{t("Walk-in")}</StatusPill>
         )
       }
     >
       <div className="flex flex-col gap-3">
         {!props.clientProfileId && (
           <div className="relative">
-            <Field label="Find a customer" name="customer-search" type="search" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, phone or email" />
+            <Field label={t("Find a customer")} name="customer-search" type="search" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Name, phone or email")} />
             {hits.length > 0 && (
               <ul className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
                 {hits.map((c) => (
@@ -709,7 +716,7 @@ function CustomerPicker(props: {
                       className="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-2 text-start text-sm hover:bg-[var(--surface-2)]"
                     >
                       <span>{c.name}</span>
-                      <span className="text-xs text-[var(--color-ink)]/50">{c.phone ?? c.email}</span>
+                      <span dir="ltr" className="text-xs text-[var(--color-ink)]/50">{c.phone ?? c.email}</span>
                     </button>
                   </li>
                 ))}
@@ -717,13 +724,13 @@ function CustomerPicker(props: {
             )}
           </div>
         )}
-        <Field label="Name on invoice" name="customerName" value={props.name} onChange={(e) => props.onName(e.target.value)} placeholder="Walk-in customer" autoComplete="off" />
-        <Field label="Phone" name="customerPhone" type="tel" inputMode="tel" autoComplete="off" value={props.phone} onChange={(e) => props.onPhone(e.target.value)} help="Needed to send the invoice by WhatsApp or SMS." />
+        <Field label={t("Name on invoice")} name="customerName" value={props.name} onChange={(e) => props.onName(e.target.value)} placeholder={t("Walk-in customer")} autoComplete="off" />
+        <Field label={t("Phone")} name="customerPhone" type="tel" inputMode="tel" dir="ltr" autoComplete="off" value={props.phone} onChange={(e) => props.onPhone(e.target.value)} help={t("Needed to send the invoice by WhatsApp or SMS.")} />
         {more ? (
-          <Field label="Customer VAT no." name="customerVat" inputMode="numeric" pattern="3\d{13}3" value={props.vat} onChange={(e) => props.onVat(e.target.value)} placeholder="3xxxxxxxxxxxxx3" help="Businesses only — 15 digits starting and ending in 3." />
+          <Field label={t("Customer VAT no.")} name="customerVat" inputMode="numeric" dir="ltr" pattern="3\d{13}3" value={props.vat} onChange={(e) => props.onVat(e.target.value)} placeholder="3xxxxxxxxxxxxx3" help={t("Businesses only — 15 digits starting and ending in 3.")} />
         ) : (
           <button type="button" onClick={() => setMore(true)} className="self-start text-sm text-[var(--color-teal-ink)] underline-offset-4 hover:underline">
-            Add a business VAT number
+            {t("Add a business VAT number")}
           </button>
         )}
       </div>

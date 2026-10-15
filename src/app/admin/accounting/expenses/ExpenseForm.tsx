@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { PaymentMethod } from "@prisma/client";
 import { saveExpenseAction, type ExpenseFormState } from "./actions";
 import { InlineStatus } from "../../_ui/Form";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 export interface ExpenseFormValues {
   id?: string;
@@ -43,6 +44,7 @@ export function ExpenseForm({ initial, categories, methods, receiptAccept }: Exp
   const [categoryId, setCategoryId] = useState(initial.categoryId);
   const [amount, setAmount] = useState(initial.amount);
   const [vat, setVat] = useState(initial.vat);
+  const t = useStaffT();
 
   const amountMinor = toMinor(amount);
   const vatMinor = vat.trim() === "" ? 0 : toMinor(vat);
@@ -54,48 +56,49 @@ export function ExpenseForm({ initial, categories, methods, receiptAccept }: Exp
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className={label}>Date paid</span>
-          <input type="date" name="paidDate" required defaultValue={initial.paidDate} className="lunia-input min-h-11" />
+          <span className={label}>{t("Date paid")}</span>
+          <input type="date" dir="ltr" name="paidDate" required defaultValue={initial.paidDate} className="lunia-input min-h-11" />
         </label>
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className={label}>Category</span>
+          <span className={label}>{t("Category")}</span>
           <select name="categoryId" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="lunia-input min-h-11">
-            <option value="">Uncategorized</option>
+            <option value="">{t("Uncategorized")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {t(c.name)}
               </option>
             ))}
-            <option value="__new">New category…</option>
+            <option value="__new">{t("New category…")}</option>
           </select>
         </label>
         {categoryId === "__new" && (
           <label className="flex flex-col gap-1.5 text-sm sm:col-span-2">
-            <span className={label}>New category name</span>
+            <span className={label}>{t("New category name")}</span>
             <input name="newCategory" required maxLength={80} className="lunia-input min-h-11" autoFocus />
           </label>
         )}
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className={label}>Vendor</span>
-          <input name="vendor" defaultValue={initial.vendor} maxLength={160} placeholder="e.g. Saudi Electricity Co." className="lunia-input min-h-11" />
+          <span className={label}>{t("Vendor")}</span>
+          <input name="vendor" defaultValue={initial.vendor} maxLength={160} placeholder={t("e.g. Saudi Electricity Co.")} className="lunia-input min-h-11" />
         </label>
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className={label}>Reference</span>
-          <input name="reference" defaultValue={initial.reference} maxLength={120} placeholder="Invoice or transfer number" className="lunia-input min-h-11" />
+          <span className={label}>{t("Reference")}</span>
+          <input name="reference" dir="ltr" defaultValue={initial.reference} maxLength={120} placeholder={t("Invoice or transfer number")} className="lunia-input min-h-11" />
         </label>
         <label className="flex flex-col gap-1.5 text-sm sm:col-span-2">
-          <span className={label}>Description</span>
+          <span className={label}>{t("Description")}</span>
           <input name="description" required defaultValue={initial.description} maxLength={500} className="lunia-input min-h-11" />
         </label>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className={label}>Amount excl. VAT (SAR)</span>
+          <span className={label}>{t("Amount excl. VAT (SAR)")}</span>
           <input
             name="amount"
             required
             inputMode="decimal"
+            dir="ltr"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
@@ -104,12 +107,13 @@ export function ExpenseForm({ initial, categories, methods, receiptAccept }: Exp
         </label>
         <div className="flex flex-col gap-1.5 text-sm">
           <label htmlFor="expense-vat" className={label}>
-            Input VAT (SAR)
+            {t("Input VAT (SAR)")}
           </label>
           <input
             id="expense-vat"
             name="vat"
             inputMode="decimal"
+            dir="ltr"
             value={vat}
             onChange={(e) => setVat(e.target.value)}
             placeholder="0.00"
@@ -125,21 +129,21 @@ export function ExpenseForm({ initial, categories, methods, receiptAccept }: Exp
               15%
             </button>
             <button type="button" className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11" onClick={() => setVat("0")}>
-              No VAT
+              {t("No VAT")}
             </button>
           </div>
         </div>
         <div className="flex flex-col gap-1.5 text-sm">
-          <span className={label}>Total paid</span>
+          <span className={label}>{t("Total paid")}</span>
           <p className="min-h-11 py-2.5 text-lg font-medium tabular-nums text-[var(--color-ink)]" aria-live="polite">
-            {total === null ? "-" : `${fmt(total)} SAR`}
+            {total === null ? "-" : `${fmt(total)} ${t("SAR")}`}
           </p>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className={label}>Paid by</span>
+          <span className={label}>{t("Paid by")}</span>
           <select name="method" defaultValue={initial.method} className="lunia-input min-h-11">
             {methods.map((m) => (
               <option key={m.value} value={m.value}>
@@ -150,7 +154,7 @@ export function ExpenseForm({ initial, categories, methods, receiptAccept }: Exp
         </label>
         <div className="flex flex-col gap-1.5 text-sm">
           <label htmlFor="expense-receipt" className={label}>
-            {initial.hasReceipt ? "Replace receipt" : "Receipt (optional)"}
+            {initial.hasReceipt ? t("Replace receipt") : t("Receipt (optional)")}
           </label>
           <input id="expense-receipt" type="file" name="receipt" accept={receiptAccept} className="min-h-11 py-2 text-sm" />
           {initial.hasReceipt && initial.id && (
@@ -161,15 +165,15 @@ export function ExpenseForm({ initial, categories, methods, receiptAccept }: Exp
                 rel="noopener"
                 className="text-[var(--color-teal-ink)] underline-offset-2 hover:underline"
               >
-                View current receipt
+                {t("View current receipt")}
               </a>
               <label className="inline-flex min-h-11 items-center gap-2">
                 <input type="checkbox" name="removeReceipt" className="h-4 w-4" />
-                Remove it
+                {t("Remove it")}
               </label>
             </div>
           )}
-          <span className="text-xs text-[var(--color-ink)]/50">PDF or photo, up to 10MB. Stored privately.</span>
+          <span className="text-xs text-[var(--color-ink)]/50">{t("PDF or photo, up to 10MB. Stored privately.")}</span>
         </div>
       </div>
 
@@ -177,10 +181,10 @@ export function ExpenseForm({ initial, categories, methods, receiptAccept }: Exp
 
       <div className="flex flex-wrap gap-3">
         <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
-          {pending ? "Saving…" : initial.id ? "Save changes" : "Record expense"}
+          {pending ? t("Saving…") : initial.id ? t("Save changes") : t("Record expense")}
         </button>
         <Link href="/admin/accounting/expenses" className="lunia-btn lunia-btn-ghost min-h-11">
-          Cancel
+          {t("Cancel")}
         </Link>
       </div>
     </form>

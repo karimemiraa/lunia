@@ -16,12 +16,14 @@ import {
   logCallbackOutcome,
 } from "@/modules/assistant/callbacks";
 import { CALLBACK_WINDOWS } from "@/modules/assistant/types";
+import { getStaffT } from "../_i18n/display";
+import type { T } from "../_i18n/t";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-function messageOf(err: unknown): string {
-  if (err instanceof z.ZodError) return err.issues[0]?.message ?? "Please check the form.";
-  return err instanceof Error ? err.message : "Something went wrong.";
+function messageOf(err: unknown, t: T): string {
+  if (err instanceof z.ZodError) return t(err.issues[0]?.message ?? "Please check the form.");
+  return err instanceof Error ? t(err.message) : t("Something went wrong.");
 }
 
 const idSchema = z.string().min(1).max(64);
@@ -31,7 +33,7 @@ export async function assignToMeAction(id: string): Promise<ActionResult> {
   try {
     await assignCallback(idSchema.parse(id), admin.id);
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: messageOf(err, await getStaffT()) };
   }
   await recordAudit({ actorUserId: admin.id, action: "CALLBACK_ASSIGN", entityType: "CallbackRequest", entityId: id, summary: "Assigned a call-back to themselves" });
   revalidatePath("/admin/callbacks");
@@ -51,7 +53,7 @@ export async function logOutcomeAction(input: z.input<typeof outcomeSchema>): Pr
     data = outcomeSchema.parse(input);
     await logCallbackOutcome({ id: data.id, outcome: data.outcome, note: data.note || undefined, byUserId: admin.id });
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: messageOf(err, await getStaffT()) };
   }
   await recordAudit({
     actorUserId: admin.id,
@@ -99,7 +101,7 @@ export async function createCallbackAction(_prev: CreateCallbackState | null, fo
       summary: `Added a call-back for "${data.name}"`,
     });
   } catch (err) {
-    return { error: messageOf(err) };
+    return { error: messageOf(err, await getStaffT()) };
   }
   revalidatePath("/admin/callbacks");
   return { success: true };

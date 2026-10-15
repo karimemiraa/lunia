@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
 import { BROADCAST_CHANNELS, sendBroadcast, type BroadcastChannel } from "@/modules/comms/broadcast";
 
 export interface BroadcastActionState {
@@ -18,6 +19,7 @@ export async function sendBroadcastAction(
   formData: FormData,
 ): Promise<BroadcastActionState> {
   const admin = await requireAdmin(PERMISSIONS.MARKETING_MANAGE);
+  const t = await getStaffT();
 
   const channel = String(formData.get("channel") ?? "");
   const locale = String(formData.get("locale") ?? "ar");
@@ -27,16 +29,16 @@ export async function sendBroadcastAction(
   const audienceLabel = String(formData.get("audienceLabel") ?? audience);
 
   if (!BROADCAST_CHANNELS.includes(channel as BroadcastChannel)) {
-    return { error: "Please choose a valid channel." };
+    return { error: t("Please choose a valid channel.") };
   }
   if (!body) {
-    return { error: "Please write a message before sending." };
+    return { error: t("Please write a message before sending.") };
   }
   if (channel === "email" && !subject) {
-    return { error: "Email broadcasts need a subject line." };
+    return { error: t("Email broadcasts need a subject line.") };
   }
   if (!audience) {
-    return { error: "Please choose an audience." };
+    return { error: t("Please choose an audience.") };
   }
 
   try {
@@ -59,6 +61,6 @@ export async function sendBroadcastAction(
       },
     };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to send broadcast." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to send broadcast.") };
   }
 }

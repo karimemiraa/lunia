@@ -4,11 +4,13 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPurchaseOrderAction, suggestReorderAction, updatePurchaseOrderAction } from "../actions";
 import { formatSarMinor, minorToSarInput, parseSarToMinor } from "@/modules/inventory/money";
-import { labelClass, labelText } from "./ui";
+import { labelClass, labelText, productName, qtyUnit } from "./ui";
+import { useStaffLocale, useStaffT } from "../../_i18n/StaffI18n";
 
 export interface PoProductOption {
   id: string;
   nameEn: string;
+  nameAr?: string | null;
   sku: string | null;
   unit: string;
   costMinor: number;
@@ -38,6 +40,8 @@ const newKey = () => `l${++keySeq}`;
 
 export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Props) {
   const router = useRouter();
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const [supplierId, setSupplierId] = useState(initial.supplierId);
   const [notes, setNotes] = useState(initial.notes);
   const [lines, setLines] = useState<Line[]>(() =>
@@ -54,7 +58,7 @@ export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Pr
   // Products from this supplier first, then everything else.
   const pickable = products
     .filter((p) => !used.has(p.id))
-    .sort((a, b) => Number(b.supplierId === supplierId) - Number(a.supplierId === supplierId) || a.nameEn.localeCompare(b.nameEn));
+    .sort((a, b) => Number(b.supplierId === supplierId) - Number(a.supplierId === supplierId) || productName(a, locale).localeCompare(productName(b, locale)));
 
   function addLine(productId: string) {
     const p = byId.get(productId);
@@ -74,7 +78,7 @@ export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Pr
       if (!result.ok) return setError(result.error);
       const suggestions = result.data!;
       if (suggestions.length === 0) {
-        setInfo(supplierId ? "Nothing from this supplier is at or below its reorder level." : "Nothing is at or below its reorder level.");
+        setInfo(supplierId ? t("Nothing from this supplier is at or below its reorder level.") : t("Nothing is at or below its reorder level."));
         return;
       }
       setLines((prev) => {
@@ -90,7 +94,7 @@ export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Pr
           .map((s) => ({ key: newKey(), productId: s.productId, qty: String(s.qty), cost: minorToSarInput(s.unitCostMinor) }));
         return [...merged, ...added];
       });
-      setInfo(`Suggested ${suggestions.length} product(s) at or below their reorder level, topped up to 2x the reorder level.`);
+      setInfo(t("Suggested {count} product(s) at or below their reorder level, topped up to 2x the reorder level.", { count: suggestions.length }));
     });
   }
 
@@ -109,16 +113,19 @@ export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Pr
   function save(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    if (!supplierId) return setError("Choose a supplier.");
-    if (parsed.length === 0) return setError("Add at least one product.");
+    if (!supplierId) return setError(t("Choose a supplier."));
+    if (parsed.length === 0) return setError(t("Add at least one product."));
     const bad = parsed.find((l) => !Number.isInteger(l.qtyN) || l.qtyN < 1 || l.costMinor === null);
-    if (bad) return setError(`Check the quantity and unit cost for ${byId.get(bad.productId)?.nameEn ?? "a line"}.`);
+    if (bad) {
+      const p = byId.get(bad.productId);
+      return setError(p ? t("Check the quantity and unit cost for {name}.", { name: productName(p, locale) }) : t("Check the quantity and unit cost for a line."));
+    }
     const payload = { supplierId, notes, lines: parsed.map((l) => ({ productId: l.productId, qty: l.qtyN, unitCostMinor: l.costMinor! })) };
     startTransition(async () => {
       if (poId) {
         const result = await updatePurchaseOrderAction(poId, payload);
         if (!result.ok) return setError(result.error);
-        setInfo("Draft saved.");
+        setInfo(t("Draft saved."));
         router.refresh();
       } else {
         const result = await createPurchaseOrderAction(payload);
@@ -132,9 +139,9 @@ export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Pr
     <form onSubmit={save} className="flex flex-col gap-6">
       <div className="lunia-card grid gap-4 p-5 sm:grid-cols-2">
         <label className={labelClass}>
-          <span className={labelText}>Supplier</span>
+          <span className={labelText}>{t("Supplier")}</span>
           <select required value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className="lunia-input min-h-11">
-            <option value="">Choose a supplier</option>
+            <option value="">{t("Choose a supplier")}</option>
             {suppliers.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -143,15 +150,15 @@ export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Pr
           </select>
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Notes for the supplier</span>
-          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Delivery instructions, reference…" className="lunia-input min-h-11" />
+          <span className={labelText}>{t("Notes for the supplier")}</span>
+          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("Delivery instructions, reference…")} className="lunia-input min-h-11" />
         </label>
       </div>
 
       <div className="lunia-card flex flex-col gap-4 p-5">
         <div className="flex flex-wrap items-end gap-3">
           <label className={`${labelClass} min-w-[16rem] flex-1`}>
-            <span className={labelText}>Add product</span>
+            <span className={labelText}>{t("Add product")}</span>
             <select
               value={picker}
               onChange={(e) => {
@@ -160,24 +167,24 @@ export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Pr
               }}
               className="lunia-input min-h-11"
             >
-              <option value="">Choose a product…</option>
+              <option value="">{t("Choose a product…")}</option>
               {pickable.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.nameEn}
-                  {p.sku ? ` (${p.sku})` : ""} · {p.stockQty} {p.unit} in stock
+                  {productName(p, locale)}
+                  {p.sku ? ` (${p.sku})` : ""} · {t("{qty} in stock", { qty: qtyUnit(p.stockQty, p.unit, t) })}
                 </option>
               ))}
             </select>
           </label>
           <button type="button" onClick={suggest} disabled={isPending} className="lunia-btn lunia-btn-forest-outline min-h-11 disabled:opacity-60">
-            Suggest reorder
+            {t("Suggest reorder")}
           </button>
         </div>
         {info && <p className="text-sm text-[var(--color-teal-ink)]">{info}</p>}
 
         {lines.length === 0 ? (
           <p className="rounded border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/60">
-            No lines yet. Add products or use Suggest reorder.
+            {t("No lines yet. Add products or use Suggest reorder.")}
           </p>
         ) : (
           <ul className="flex flex-col divide-y divide-[var(--line)]">
@@ -187,29 +194,30 @@ export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Pr
               return (
                 <li key={l.key} className="flex flex-wrap items-end gap-3 py-3">
                   <div className="min-w-[12rem] flex-1">
-                    <div className="text-sm font-medium">{p?.nameEn ?? "Unknown product"}</div>
+                    <div className="text-sm font-medium">{p ? productName(p, locale) : t("Unknown product")}</div>
                     {p && (
                       <div className="text-xs text-[var(--color-ink)]/55">
-                        {p.stockQty} {p.unit} in stock{p.reorderLevel ? ` · reorder at ${p.reorderLevel}` : ""}
+                        {t("{qty} in stock", { qty: qtyUnit(p.stockQty, p.unit, t) })}
+                        {p.reorderLevel ? ` · ${t("reorder at {level}", { level: p.reorderLevel })}` : ""}
                       </div>
                     )}
                   </div>
                   <label className="flex w-24 flex-col gap-1">
-                    <span className={labelText}>Qty</span>
-                    <input type="number" min={1} step={1} value={l.qty} onChange={(e) => updateLine(l.key, { qty: e.target.value })} className="lunia-input min-h-11 text-right tabular-nums" />
+                    <span className={labelText}>{t("Qty")}</span>
+                    <input type="number" min={1} step={1} value={l.qty} onChange={(e) => updateLine(l.key, { qty: e.target.value })} className="lunia-input min-h-11 text-end tabular-nums" />
                   </label>
                   <label className="flex w-32 flex-col gap-1">
-                    <span className={labelText}>Unit cost</span>
-                    <input inputMode="decimal" value={l.cost} onChange={(e) => updateLine(l.key, { cost: e.target.value })} className="lunia-input min-h-11 text-right tabular-nums" />
+                    <span className={labelText}>{t("Unit cost")}</span>
+                    <input inputMode="decimal" value={l.cost} onChange={(e) => updateLine(l.key, { cost: e.target.value })} className="lunia-input min-h-11 text-end tabular-nums" />
                   </label>
-                  <div className="w-28 pb-3 text-right text-sm tabular-nums">{lineTotal !== null ? formatSarMinor(lineTotal) : "—"}</div>
+                  <div className="w-28 pb-3 text-end text-sm tabular-nums">{lineTotal !== null ? formatSarMinor(lineTotal) : "—"}</div>
                   <button
                     type="button"
                     onClick={() => setLines((prev) => prev.filter((x) => x.key !== l.key))}
                     className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11"
-                    aria-label={`Remove ${p?.nameEn ?? "line"}`}
+                    aria-label={p ? t("Remove {name}", { name: productName(p, locale) }) : t("Remove line")}
                   >
-                    Remove
+                    {t("Remove")}
                   </button>
                 </li>
               );
@@ -217,7 +225,7 @@ export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Pr
           </ul>
         )}
         <div className="flex justify-end gap-6 border-t border-[var(--line)] pt-3 text-sm">
-          <span className="text-[var(--color-ink)]/60">Total excl. VAT</span>
+          <span className="text-[var(--color-ink)]/60">{t("Total excl. VAT")}</span>
           <span className="font-semibold tabular-nums">{formatSarMinor(total)}</span>
         </div>
       </div>
@@ -229,7 +237,7 @@ export function PoEditor({ poId, suppliers, products, initial, autoSuggest }: Pr
       )}
       <div>
         <button type="submit" disabled={isPending} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
-          {isPending ? "Saving…" : poId ? "Save draft" : "Create draft"}
+          {isPending ? t("Saving…") : poId ? t("Save draft") : t("Create draft")}
         </button>
       </div>
     </form>

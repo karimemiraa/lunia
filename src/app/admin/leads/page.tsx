@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
+import { getStaffT } from "../_i18n/display";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { listPipeline, listLeadSources } from "@/modules/crm/leads";
 import { listStages } from "@/modules/crm/pipeline";
@@ -13,6 +14,7 @@ interface LeadsPageProps {
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const user = await requireAdmin(PERMISSIONS.CLIENT_VIEW);
+  const t = await getStaffT();
   const canManage = user.permissions.has(PERMISSIONS.CLIENT_MANAGE);
   const { direction, source } = await searchParams;
 
@@ -44,22 +46,22 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       actions={
         canManage ? (
           <Link href="/admin/clients" className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">
-            All customers
+            {t("All customers")}
           </Link>
         ) : undefined
       }
     >
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-ink)]/45">Direction</span>
-          <Link href={qs({ direction: undefined })} className={chip(!direction)}>All</Link>
-          <Link href={qs({ direction: "INBOUND" })} className={chip(direction === "INBOUND")}>Inbound</Link>
-          <Link href={qs({ direction: "OUTBOUND" })} className={chip(direction === "OUTBOUND")}>Outbound</Link>
+          <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-ink)]/45">{t("Direction")}</span>
+          <Link href={qs({ direction: undefined })} className={chip(!direction)}>{t("All")}</Link>
+          <Link href={qs({ direction: "INBOUND" })} className={chip(direction === "INBOUND")}>{t("Inbound")}</Link>
+          <Link href={qs({ direction: "OUTBOUND" })} className={chip(direction === "OUTBOUND")}>{t("Outbound")}</Link>
         </div>
         {sources.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-ink)]/45">Channel</span>
-            <Link href={qs({ source: undefined })} className={chip(!source)}>All</Link>
+            <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-ink)]/45">{t("Channel")}</span>
+            <Link href={qs({ source: undefined })} className={chip(!source)}>{t("All")}</Link>
             {sources.map((s) => (
               <Link key={s} href={qs({ source: s })} className={chip(source === s)}>{s}</Link>
             ))}

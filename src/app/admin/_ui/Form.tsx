@@ -3,6 +3,13 @@
 import { useEffect, useRef, useState, type FormHTMLAttributes, type ReactNode, type SubmitEvent } from "react";
 import { useFormStatus } from "react-dom";
 import "./tokens.css";
+import { useStaffT } from "../_i18n/StaffI18n";
+
+/** Plain-string content goes through the staff dictionary (unknown text stays as is). */
+function useTr() {
+  const t = useStaffT();
+  return (node: ReactNode): ReactNode => (typeof node === "string" ? t(node) : node);
+}
 
 /** Focuses the first invalid control in a form; returns false when none. */
 export function focusFirstInvalid(form: HTMLFormElement): boolean {
@@ -99,6 +106,7 @@ interface SubmitButtonProps {
 /** Submit button that shows a pending state while its form is submitting. */
 export function SubmitButton({ children, pendingLabel, variant = "primary", size = "md", className = "", disabled, formAction, name, value, pending: forced }: SubmitButtonProps) {
   const status = useFormStatus();
+  const tr = useTr();
   const pending = forced ?? status.pending;
   return (
     <button
@@ -111,7 +119,7 @@ export function SubmitButton({ children, pendingLabel, variant = "primary", size
       className={`lunia-btn ${VARIANT_CLASS[variant]} ${size === "sm" ? "lunia-btn-sm min-h-11" : "min-h-11"} disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       {pending && <Spinner />}
-      {pending ? (pendingLabel ?? children) : children}
+      {tr(pending ? (pendingLabel ?? children) : children)}
     </button>
   );
 }
@@ -129,7 +137,10 @@ export function Spinner({ className = "h-4 w-4" }: { className?: string }) {
  * report save results. `size="sm"` is the compact icon + text form for table
  * rows and button rows; the default is a block banner for full forms.
  */
-export function InlineStatus({ success, error, size = "md", className = "" }: { success?: ReactNode; error?: ReactNode; size?: "sm" | "md"; className?: string }) {
+export function InlineStatus({ success: rawSuccess, error: rawError, size = "md", className = "" }: { success?: ReactNode; error?: ReactNode; size?: "sm" | "md"; className?: string }) {
+  const tr = useTr();
+  const success = tr(rawSuccess);
+  const error = tr(rawError);
   if (!success && !error) return null;
   if (size === "sm") {
     return error ? (
@@ -164,6 +175,7 @@ export function InlineStatus({ success, error, size = "md", className = "" }: { 
 
 /** Non-blocking notice (warnings, hints) in the same voice as InlineStatus. */
 export function Notice({ tone = "warning", children, className = "" }: { tone?: "warning" | "info"; children: ReactNode; className?: string }) {
+  const tr = useTr();
   const cls = tone === "warning" ? "bg-[var(--status-warning-bg)] text-[var(--status-warning-ink)]" : "bg-[var(--status-info-bg)] text-[var(--status-info-ink)]";
-  return <p className={`rounded-[var(--radius-sm)] px-4 py-3 text-sm ${cls} ${className}`}>{children}</p>;
+  return <p className={`rounded-[var(--radius-sm)] px-4 py-3 text-sm ${cls} ${className}`}>{tr(children)}</p>;
 }

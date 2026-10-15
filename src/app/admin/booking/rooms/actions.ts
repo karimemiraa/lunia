@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
+import { errorText } from "../../calendar/actionError";
 import { createRoom, updateRoom, deleteRoom } from "@/modules/booking/rooms";
 
 export interface RoomActionState {
@@ -22,7 +24,7 @@ export async function createRoomAction(_prev: RoomActionState | null, formData: 
 
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
-    return { error: "Name is required." };
+    return { error: (await getStaffT())("Name is required.") };
   }
 
   try {
@@ -33,7 +35,7 @@ export async function createRoomAction(_prev: RoomActionState | null, formData: 
       order: numberOrUndefined(formData, "order"),
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create room." };
+    return { error: await errorText(err, "Failed to create room.") };
   }
 
   revalidatePath("/admin/booking/rooms");
@@ -45,7 +47,7 @@ export async function updateRoomAction(_prev: RoomActionState | null, formData: 
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
-    return { error: "Missing room." };
+    return { error: (await getStaffT())("Missing room.") };
   }
 
   const name = String(formData.get("name") ?? "").trim();
@@ -59,7 +61,7 @@ export async function updateRoomAction(_prev: RoomActionState | null, formData: 
       isActive: formData.get("isActive") === "on",
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update room." };
+    return { error: await errorText(err, "Failed to update room.") };
   }
 
   revalidatePath("/admin/booking/rooms");
@@ -75,13 +77,13 @@ export async function deleteRoomAction(_prev: RoomActionState | null, formData: 
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
-    return { error: "Missing room." };
+    return { error: (await getStaffT())("Missing room.") };
   }
 
   try {
     await deleteRoom(id);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to delete room." };
+    return { error: await errorText(err, "Failed to delete room.") };
   }
 
   revalidatePath("/admin/booking/rooms");

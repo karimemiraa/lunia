@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { PrintButton } from "./PrintButton";
+import { Tr } from "../../_i18n/StaffI18n";
 
 export const labelClass = "text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60";
 
@@ -51,7 +52,7 @@ export function ResponsiveTable<T>({
   testId?: string;
 }) {
   if (rows.length === 0) {
-    return <p className="lunia-card px-5 py-6 text-center text-sm text-[var(--color-ink)]/60">{emptyMessage}</p>;
+    return <p className="lunia-card px-5 py-6 text-center text-sm text-[var(--color-ink)]/60"><Tr>{emptyMessage}</Tr></p>;
   }
   return (
     <div data-testid={testId}>
@@ -133,16 +134,16 @@ export function RangeForm({
     <form method="get" action={action} className="flex flex-wrap items-end gap-3 print:hidden" data-testid="accounting-range-form">
       {Object.entries(hidden).map(([name, value]) => (value ? <input key={name} type="hidden" name={name} value={value} /> : null))}
       <label className="flex flex-col gap-1 text-sm">
-        <span className={labelClass}>From</span>
-        <input type="date" name="from" defaultValue={fromISO} className="lunia-input min-h-11" />
+        <span className={labelClass}><Tr>From</Tr></span>
+        <input type="date" name="from" dir="ltr" defaultValue={fromISO} className="lunia-input min-h-11" />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        <span className={labelClass}>To</span>
-        <input type="date" name="to" defaultValue={toISO} className="lunia-input min-h-11" />
+        <span className={labelClass}><Tr>To</Tr></span>
+        <input type="date" name="to" dir="ltr" defaultValue={toISO} className="lunia-input min-h-11" />
       </label>
       {children}
       <button type="submit" className="lunia-btn lunia-btn-forest min-h-11">
-        Apply
+        <Tr>Apply</Tr>
       </button>
     </form>
   );
@@ -167,7 +168,7 @@ export function RangeShortcuts({ base, todayISO, params }: { base: string; today
         const qs = new URLSearchParams(Object.entries({ ...params, from: s.from, to: s.to }).filter(([, v]) => v) as [string, string][]);
         return (
           <Link key={s.label} href={`${base}?${qs.toString()}`} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11">
-            {s.label}
+            <Tr>{s.label}</Tr>
           </Link>
         );
       })}
@@ -180,7 +181,7 @@ export function ReportActions({ exportHref }: { exportHref: string }) {
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
       <a href={exportHref} className="lunia-btn lunia-btn-forest-outline min-h-11" data-testid="accounting-export-csv">
-        Export CSV
+        <Tr>Export CSV</Tr>
       </a>
       <PrintButton />
     </div>

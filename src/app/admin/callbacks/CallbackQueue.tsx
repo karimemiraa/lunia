@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { assignToMeAction, logOutcomeAction } from "./actions";
 import { StatusPill } from "../assistant/_ui";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
+import { intlLocale, type StaffLocale } from "../_i18n/t";
 
 export interface CallbackCardDTO {
   id: string;
@@ -40,14 +42,18 @@ const OUTCOMES = [
 type OutcomeValue = (typeof OUTCOMES)[number]["value"];
 
 const WINDOW_LABELS: Record<string, string> = { asap: "As soon as possible", morning: "Morning", afternoon: "Afternoon", evening: "Evening" };
+// Arabic labels for the request source (English keeps the raw lowercase value).
+const SOURCE_LABELS: Record<string, string> = { WEBSITE: "website", WHATSAPP: "whatsapp", STAFF: "staff" };
 
-function formatDateTime(iso: string | null): string {
+function formatDateTime(iso: string | null, locale: StaffLocale): string {
   if (!iso) return "—";
-  return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Riyadh" }).format(new Date(iso));
+  return new Intl.DateTimeFormat(intlLocale(locale), { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Riyadh" }).format(new Date(iso));
 }
 
 function Card({ card, canManage }: { card: CallbackCardDTO; canManage: boolean }) {
   const router = useRouter();
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const [pending, start] = useTransition();
   const [choice, setChoice] = useState<OutcomeValue | null>(null);
   const [note, setNote] = useState("");
@@ -58,7 +64,7 @@ function Card({ card, canManage }: { card: CallbackCardDTO; canManage: boolean }
     start(async () => {
       setError(null);
       const res = await fn();
-      if (!res.ok) setError(res.error ?? "Something went wrong.");
+      if (!res.ok) setError(res.error ?? t("Something went wrong."));
       else {
         setChoice(null);
         setNote("");
@@ -78,30 +84,30 @@ function Card({ card, canManage }: { card: CallbackCardDTO; canManage: boolean }
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {card.overdue && <span className="text-xs font-semibold uppercase tracking-wide text-[#8a6d1f]">Due now</span>}
+          {card.overdue && <span className="text-xs font-semibold uppercase tracking-wide text-[#8a6d1f]">{t("Due now")}</span>}
           <StatusPill value={card.status} />
         </div>
       </div>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-4">
         <div>
-          <dt className="text-[0.68rem] uppercase tracking-wide text-[var(--color-ink)]/50">Call</dt>
-          <dd>{formatDateTime(card.dueAtIso)}</dd>
+          <dt className="text-[0.68rem] uppercase tracking-wide text-[var(--color-ink)]/50">{t("Call")}</dt>
+          <dd>{formatDateTime(card.dueAtIso, locale)}</dd>
         </div>
         <div>
-          <dt className="text-[0.68rem] uppercase tracking-wide text-[var(--color-ink)]/50">Prefers</dt>
-          <dd>{card.preferredWindow ? WINDOW_LABELS[card.preferredWindow] ?? card.preferredWindow : "Any time"}</dd>
+          <dt className="text-[0.68rem] uppercase tracking-wide text-[var(--color-ink)]/50">{t("Prefers")}</dt>
+          <dd>{card.preferredWindow ? (WINDOW_LABELS[card.preferredWindow] ? t(WINDOW_LABELS[card.preferredWindow]) : card.preferredWindow) : t("Any time")}</dd>
         </div>
         <div>
-          <dt className="text-[0.68rem] uppercase tracking-wide text-[var(--color-ink)]/50">Attempts</dt>
+          <dt className="text-[0.68rem] uppercase tracking-wide text-[var(--color-ink)]/50">{t("Attempts")}</dt>
           <dd>
             {card.attempts}
-            {card.outcome ? ` · ${card.outcome.replace(/_/g, " ").toLowerCase()}` : ""}
+            {card.outcome ? ` · ${locale === "ar" ? t(OUTCOMES.find((o) => o.value === card.outcome)?.label ?? card.outcome) : card.outcome.replace(/_/g, " ").toLowerCase()}` : ""}
           </dd>
         </div>
         <div>
-          <dt className="text-[0.68rem] uppercase tracking-wide text-[var(--color-ink)]/50">Owner</dt>
-          <dd>{card.assignedToName ?? "Unassigned"}</dd>
+          <dt className="text-[0.68rem] uppercase tracking-wide text-[var(--color-ink)]/50">{t("Owner")}</dt>
+          <dd>{card.assignedToName ?? t("Unassigned")}</dd>
         </div>
       </dl>
 
@@ -113,40 +119,40 @@ function Card({ card, canManage }: { card: CallbackCardDTO; canManage: boolean }
         </p>
       )}
       <p className="text-xs text-[var(--color-ink)]/50">
-        {card.source === "CHAT" ? "Website assistant" : card.source.toLowerCase()} · requested {formatDateTime(card.createdAtIso)} · {card.locale.toUpperCase()}
-        {card.handledByName && ` · last handled by ${card.handledByName} ${formatDateTime(card.handledAtIso)}`}
+        {t("{source} · requested {date} · {language}", { source: card.source === "CHAT" ? t("Website assistant") : SOURCE_LABELS[card.source] ? t(SOURCE_LABELS[card.source]) : card.source.toLowerCase(), date: formatDateTime(card.createdAtIso, locale), language: card.locale.toUpperCase() })}
+        {card.handledByName && ` · ${t("last handled by {name} {date}", { name: card.handledByName, date: formatDateTime(card.handledAtIso, locale) })}`}
       </p>
 
       <div className="flex flex-wrap gap-2">
         <a href={`tel:${card.phone}`} className="lunia-btn lunia-btn-forest min-h-11">
-          Call {card.phoneDisplay}
+          {t("Call {phone}", { phone: card.phoneDisplay })}
         </a>
         {card.clientProfileId && (
           <Link href={`/admin/clients/${card.clientProfileId}`} className="lunia-btn lunia-btn-ghost min-h-11">
-            Customer
+            {t("Customer")}
           </Link>
         )}
         {card.chatSessionId && (
           <Link href={`/admin/assistant/${card.chatSessionId}`} className="lunia-btn lunia-btn-ghost min-h-11">
-            Chat
+            {t("Chat")}
           </Link>
         )}
         {canManage && (
           <Link href={bookHref} className="lunia-btn lunia-btn-ghost min-h-11">
-            Book for this customer
+            {t("Book for this customer")}
           </Link>
         )}
         {canManage && isOpen && !card.assignedToMe && (
           <button type="button" disabled={pending} onClick={() => run(() => assignToMeAction(card.id))} className="lunia-btn lunia-btn-ghost min-h-11 disabled:opacity-60">
-            Assign to me
+            {t("Assign to me")}
           </button>
         )}
       </div>
 
       {canManage && isOpen && (
         <div className="border-t border-[var(--line)] pt-3">
-          <p className="mb-2 text-[0.68rem] font-medium uppercase tracking-wide text-[var(--color-ink)]/55">Log this call</p>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Call outcome">
+          <p className="mb-2 text-[0.68rem] font-medium uppercase tracking-wide text-[var(--color-ink)]/55">{t("Log this call")}</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t("Call outcome")}>
             {OUTCOMES.map((o) => (
               <button
                 key={o.value}
@@ -159,7 +165,7 @@ function Card({ card, canManage }: { card: CallbackCardDTO; canManage: boolean }
                     : "border border-[var(--color-ink)]/20 text-[var(--color-ink)]/75 hover:bg-[var(--color-ink)]/5"
                 }`}
               >
-                {o.label}
+                {t(o.label)}
               </button>
             ))}
           </div>
@@ -170,8 +176,8 @@ function Card({ card, canManage }: { card: CallbackCardDTO; canManage: boolean }
                 onChange={(e) => setNote(e.target.value)}
                 maxLength={2000}
                 rows={2}
-                placeholder="Note (optional)"
-                aria-label="Call note"
+                placeholder={t("Note (optional)")}
+                aria-label={t("Call note")}
                 className="lunia-input min-h-11 flex-1"
               />
               <button
@@ -180,7 +186,7 @@ function Card({ card, canManage }: { card: CallbackCardDTO; canManage: boolean }
                 onClick={() => run(() => logOutcomeAction({ id: card.id, outcome: choice, note }))}
                 className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60"
               >
-                {pending ? "Saving…" : choice === "NO_ANSWER" ? "Save and reschedule" : "Save"}
+                {pending ? t("Saving…") : choice === "NO_ANSWER" ? t("Save and reschedule") : t("Save")}
               </button>
             </div>
           )}
@@ -196,10 +202,11 @@ function Card({ card, canManage }: { card: CallbackCardDTO; canManage: boolean }
 }
 
 export function CallbackQueue({ cards, canManage }: { cards: CallbackCardDTO[]; canManage: boolean }) {
+  const t = useStaffT();
   if (cards.length === 0) {
     return (
       <p className="rounded border border-dashed border-[var(--color-ink)]/20 px-4 py-8 text-center text-sm text-[var(--color-ink)]/60">
-        Nothing in the queue.
+        {t("Nothing in the queue.")}
       </p>
     );
   }

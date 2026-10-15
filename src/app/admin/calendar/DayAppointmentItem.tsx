@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import type { BookingStatus } from "@prisma/client";
 import { AppointmentMenu } from "./AppointmentMenu";
 import { saveCenterNoteAction } from "./actions";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
+import { bookingStatusText } from "./labels";
 
 interface DayAppointmentItemProps {
   bookingId: string;
@@ -46,6 +48,7 @@ function NotesSection({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const t = useStaffT();
   const [note, setNote] = useState(centerNote ?? "");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +73,7 @@ function NotesSection({
       {customerNote && (
         <div className="flex flex-col gap-1">
           <span className="text-[0.65rem] font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/45">
-            Customer&rsquo;s note
+            {t("Customer’s note")}
           </span>
           <p className="whitespace-pre-wrap text-sm text-[var(--color-ink)]/85">{customerNote}</p>
         </div>
@@ -78,7 +81,7 @@ function NotesSection({
       {canManage ? (
         <div className="flex flex-col gap-1.5">
           <span className="text-[0.65rem] font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/45">
-            Note for customer (shown on their appointment page)
+            {t("Note for customer (shown on their appointment page)")}
           </span>
           <textarea
             value={note}
@@ -87,21 +90,21 @@ function NotesSection({
               setSaved(false);
             }}
             rows={2}
-            placeholder="e.g. Please arrive 10 minutes early and avoid retinol for 3 days before your visit."
+            placeholder={t("e.g. Please arrive 10 minutes early and avoid retinol for 3 days before your visit.")}
             className="lunia-input text-sm"
           />
           <div className="flex items-center gap-2">
             <button type="button" onClick={save} disabled={isPending} className="lunia-btn lunia-btn-forest lunia-btn-sm disabled:opacity-60">
-              {isPending ? "Saving…" : "Save note"}
+              {isPending ? t("Saving…") : t("Save note")}
             </button>
-            {saved && <span className="text-xs font-medium text-[var(--color-teal-ink,#2f6d67)]">Saved ✓</span>}
+            {saved && <span className="text-xs font-medium text-[var(--color-teal-ink,#2f6d67)]">{t("Saved")} ✓</span>}
             {error && <span className="text-xs text-red-600">{error}</span>}
           </div>
         </div>
       ) : (
         centerNote && (
           <div className="flex flex-col gap-1">
-            <span className="text-[0.65rem] font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/45">Note for customer</span>
+            <span className="text-[0.65rem] font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/45">{t("Note for customer")}</span>
             <p className="whitespace-pre-wrap text-sm text-[var(--color-ink)]/85">{centerNote}</p>
           </div>
         )
@@ -134,6 +137,8 @@ function Detail({ label, value }: { label: string; value: string }) {
 // the row stays open while you act on it.
 export function DayAppointmentItem(props: DayAppointmentItemProps) {
   const [open, setOpen] = useState(false);
+  const t = useStaffT();
+  const locale = useStaffLocale();
 
   return (
     <div
@@ -151,17 +156,17 @@ export function DayAppointmentItem(props: DayAppointmentItemProps) {
         <span className="flex min-w-0 items-baseline gap-3">
           <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--color-ink)]">{props.timeLabel}</span>
           <span className="flex min-w-0 flex-col">
-            <span className="truncate text-sm text-[var(--color-ink)]">{props.clientName}</span>
-            {props.clientPhone && <span className="truncate text-xs text-[var(--color-ink)]/50">{props.clientPhone}</span>}
+            <span className="truncate text-sm text-[var(--color-ink)]">{t(props.clientName)}</span>
+            {props.clientPhone && <span className="truncate text-xs text-[var(--color-ink)]/50"><bdi dir="ltr">{props.clientPhone}</bdi></span>}
           </span>
         </span>
         <span className="flex shrink-0 items-center gap-2">
           <span className={`rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${STATUS_STYLES[props.status] ?? "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/70"}`}>
-            {props.status.replace("_", " ")}
+            {bookingStatusText(props.status, locale, t)}
           </span>
           {props.seriesId && (
-            <span className="rounded-full bg-[var(--color-teal)]/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--color-teal-ink)]" title="Part of a recurring series">
-              Series
+            <span className="rounded-full bg-[var(--color-teal)]/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--color-teal-ink)]" title={t("Part of a recurring series")}>
+              {t("Series")}
             </span>
           )}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-4 w-4 text-[var(--color-ink)]/40 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true">
@@ -173,10 +178,10 @@ export function DayAppointmentItem(props: DayAppointmentItemProps) {
       {open && (
         <div className="flex flex-col gap-3 border-t border-[var(--line)] px-4 py-3">
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-            <Detail label="Time" value={props.fullTimeLabel} />
-            <Detail label="Service" value={props.serviceName} />
-            <Detail label="Staff" value={props.staffName} />
-            <Detail label="Room" value={props.roomName} />
+            <Detail label={t("Time")} value={props.fullTimeLabel} />
+            <Detail label={t("Service")} value={props.serviceName} />
+            <Detail label={t("Staff")} value={props.staffName} />
+            <Detail label={t("Room")} value={props.roomName} />
           </dl>
           <NotesSection
             bookingId={props.bookingId}

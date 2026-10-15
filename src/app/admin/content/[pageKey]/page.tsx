@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { AdminShell } from "../../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
 import { getPageContent } from "@/modules/cms/pageContent";
 import { listMedia } from "@/modules/cms/media";
 import { ContentEditorForm } from "./ContentEditorForm";
@@ -19,6 +20,7 @@ interface ContentEditorPageProps {
 export default async function ContentEditorPage({ params }: ContentEditorPageProps) {
   const { pageKey } = await params;
   const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
 
   const label = PAGE_LABELS[pageKey];
   if (!label) notFound();
@@ -29,7 +31,7 @@ export default async function ContentEditorPage({ params }: ContentEditorPagePro
   const emptyLocalized = { en: "", ar: "" };
 
   return (
-    <AdminShell user={user} title={`Content: ${label}`} description="Edit the hero section for this page.">
+    <AdminShell user={user} title={t("Content: {page}", { page: t(label) })} description="Edit the hero section for this page.">
       <ContentEditorForm
         pageKey={pageKey}
         media={media.map((item) => ({

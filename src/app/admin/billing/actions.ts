@@ -26,15 +26,33 @@ import { createPayLink } from "@/modules/billing/payments/links";
 import { searchCatalog, searchClients, redeemablePackages, type CatalogHit, type ClientHit } from "@/modules/billing/lookup";
 import { saveTaxSettings, type TaxSettings } from "@/modules/billing/settings";
 import { formatSarMinor } from "@/modules/billing/money";
+import { getStaffT } from "../_i18n/display";
+import type { T } from "../_i18n/t";
 
 export type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string; stockShortage?: boolean };
 
-function messageOf(err: unknown): string {
-  if (err instanceof BillingError) return err.message;
-  if (err instanceof z.ZodError) return err.issues[0]?.message ?? "Invalid input.";
-  if (err instanceof Error && /Gift card|package|balance|expired|voided|redeemed/i.test(err.message)) return err.message;
+// Module errors are written in English; translate them for the staff locale.
+// A few carry values, so those are rebuilt from their parts.
+function localizeMessage(t: T, msg: string): string {
+  const settings = /^Complete the tax settings before issuing: (.+)$/.exec(msg);
+  if (settings) return t("Complete the tax settings before issuing: {items}", { items: settings[1].split(", ").map((s) => t(s)).join(t(", ")) });
+  const credit = /^Only (\d+) × "(.*)" left to credit$/.exec(msg);
+  if (credit) return t("Only {qty} × «{item}» left to credit", { qty: credit[1], item: credit[2] });
+  const refund = /^Refund exceeds the refundable amount \((.+) SAR\)$/.exec(msg);
+  if (refund) return t("Refund exceeds the refundable amount ({amount} SAR)", { amount: refund[1] });
+  return t(msg);
+}
+
+function messageOf(err: unknown, t: T): string {
+  if (err instanceof InsufficientStockError) {
+    const items = err.shortages.map((s) => t("{name} ({available} left, {requested} needed)", { name: s.name, available: s.available, requested: s.requested }));
+    return t("Not enough stock: {items}", { items: items.join(t(", ")) });
+  }
+  if (err instanceof BillingError) return localizeMessage(t, err.message);
+  if (err instanceof z.ZodError) return t(err.issues[0]?.message ?? "Invalid input.");
+  if (err instanceof Error && /Gift card|package|balance|expired|voided|redeemed/i.test(err.message)) return t(err.message);
   console.error("[billing action]", err);
-  return "Something went wrong — please try again.";
+  return t("Something went wrong — please try again.");
 }
 
 function revalidate(id?: string) {
@@ -44,17 +62,19 @@ function revalidate(id?: string) {
 
 export async function saveDraftAction(invoiceId: string | null, input: DraftInput): Promise<ActionResult<{ id: string }>> {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
+  const t = await getStaffT();
   try {
     const inv = invoiceId ? await updateDraft(invoiceId, input) : await createDraft(input, user.id);
     revalidate(inv.id);
     return { ok: true, id: inv.id };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: messageOf(err, t) };
   }
 }
 
 export async function issueInvoiceAction(invoiceId: string, allowNegativeStock = false): Promise<ActionResult<{ number: string }>> {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
+  const t = await getStaffT();
   try {
     const inv = await issueInvoice(invoiceId, { actorId: user.id, allowNegativeStock });
     await recordAudit({
@@ -67,24 +87,26 @@ export async function issueInvoiceAction(invoiceId: string, allowNegativeStock =
     revalidate(inv.id);
     return { ok: true, number: inv.number };
   } catch (err) {
-    return { ok: false, error: messageOf(err), stockShortage: err instanceof InsufficientStockError };
+    return { ok: false, error: messageOf(err, t), stockShortage: err instanceof InsufficientStockError };
   }
 }
 
 export async function voidDraftAction(invoiceId: string): Promise<ActionResult> {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
+  const t = await getStaffT();
   try {
     await voidDraft(invoiceId);
     await recordAudit({ actorUserId: user.id, action: "billing.invoice.void", entityType: "Invoice", entityId: invoiceId, summary: "Voided a draft invoice" });
     revalidate(invoiceId);
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: messageOf(err, t) };
   }
 }
 
 export async function recordPaymentAction(input: RecordPaymentInput): Promise<ActionResult<{ changeMinor: number }>> {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
+  const t = await getStaffT();
   try {
     const res = await recordPayment(input, { actorId: user.id, allowOverpay: false });
     await recordAudit({
@@ -97,12 +119,13 @@ export async function recordPaymentAction(input: RecordPaymentInput): Promise<Ac
     revalidate(res.invoice.id);
     return { ok: true, changeMinor: res.changeMinor };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: messageOf(err, t) };
   }
 }
 
 export async function createCreditNoteAction(input: CreditNoteInput): Promise<ActionResult<{ id: string; number: string }>> {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
+  const t = await getStaffT();
   try {
     const cn = await createCreditNote(input, { actorId: user.id });
     await recordAudit({
@@ -116,7 +139,7 @@ export async function createCreditNoteAction(input: CreditNoteInput): Promise<Ac
     revalidate(cn.id);
     return { ok: true, id: cn.id, number: cn.number };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: messageOf(err, t) };
   }
 }
 
@@ -127,8 +150,9 @@ export async function sendInvoiceAction(
   locale: "ar" | "en",
 ): Promise<ActionResult<{ recipient?: string }>> {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
+  const t = await getStaffT();
   const res = await sendInvoice(invoiceId, { channel, includePayLink, locale });
-  if (!res.ok) return { ok: false, error: res.error ?? "Sending failed" };
+  if (!res.ok) return { ok: false, error: t(res.error ?? "Sending failed") };
   await recordAudit({
     actorUserId: user.id,
     action: "billing.invoice.send",
@@ -142,13 +166,14 @@ export async function sendInvoiceAction(
 
 export async function createPayLinkAction(invoiceId: string): Promise<ActionResult<{ url: string }>> {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
+  const t = await getStaffT();
   try {
     const link = await createPayLink(invoiceId);
     await recordAudit({ actorUserId: user.id, action: "billing.paylink.create", entityType: "Invoice", entityId: invoiceId, summary: `Pay link for ${formatSarMinor(link.amountMinor)}` });
     revalidate(invoiceId);
     return { ok: true, url: link.url ?? "" };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: messageOf(err, t) };
   }
 }
 
@@ -172,8 +197,9 @@ export async function clientPackagesAction(clientProfileId: string) {
 // front-desk billing:manage that reception holds.
 export async function saveTaxSettingsAction(value: TaxSettings): Promise<ActionResult> {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
+  const t = await getStaffT();
   if (!user.permissions.has(PERMISSIONS.SETTINGS_MANAGE) && !user.permissions.has(PERMISSIONS.ACCOUNTING_MANAGE)) {
-    return { ok: false, error: "You need settings or accounting access to change tax details." };
+    return { ok: false, error: t("You need settings or accounting access to change tax details.") };
   }
   try {
     const saved = await saveTaxSettings(value);
@@ -187,6 +213,6 @@ export async function saveTaxSettingsAction(value: TaxSettings): Promise<ActionR
     revalidatePath("/admin/billing/settings");
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: messageOf(err, t) };
   }
 }

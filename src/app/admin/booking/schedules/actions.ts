@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
+import { errorText } from "../../calendar/actionError";
 import { setSchedulesForStaff, type StaffScheduleEntryInput } from "@/modules/booking/staffSchedules";
 
 export interface ScheduleActionState {
@@ -28,7 +30,7 @@ export async function updateScheduleAction(
 
   const staffUserId = String(formData.get("staffUserId") ?? "").trim();
   if (!staffUserId) {
-    return { error: "Missing staff member." };
+    return { error: (await getStaffT())("Missing staff member.") };
   }
 
   const entries: StaffScheduleEntryInput[] = Array.from({ length: 7 }, (_, weekday) => {
@@ -41,7 +43,7 @@ export async function updateScheduleAction(
   try {
     await setSchedulesForStaff(staffUserId, entries);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update schedule." };
+    return { error: await errorText(err, "Failed to update schedule.") };
   }
 
   revalidatePath("/admin/booking/schedules");

@@ -8,6 +8,7 @@ import { PrintButton } from "@/components/clinical/PrintButton";
 import { SignedConsentDocument } from "@/components/clinical/SignedConsentDocument";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
+import { getStaffT, getStaffLocale } from "../../../../../_i18n/display";
 
 interface Props {
   params: Promise<{ id: string; signatureId: string }>;
@@ -18,6 +19,7 @@ interface Props {
 export default async function AdminSignedConsentPage({ params }: Props) {
   const { id, signatureId } = await params;
   await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  const [t, staffLocale] = await Promise.all([getStaffT(), getStaffLocale()]);
   const signature = await getSignature(signatureId);
   if (!signature || signature.clientProfileId !== id) notFound();
 
@@ -35,9 +37,9 @@ export default async function AdminSignedConsentPage({ params }: Props) {
     <div className="min-h-screen bg-[var(--surface-2)] px-4 py-8 print:bg-white print:p-0">
       <div className="mx-auto mb-6 flex max-w-3xl flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href={`/admin/clients/${id}`} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11">
-          Back to customer
+          {t("Back to customer")}
         </Link>
-        <PrintButton label="Print" className="lunia-btn lunia-btn-forest lunia-btn-sm min-h-11" />
+        <PrintButton label={t("Print")} className="lunia-btn lunia-btn-forest lunia-btn-sm min-h-11" />
       </div>
       <SignedConsentDocument
         snapshot={signature.bodySnapshot}
@@ -48,11 +50,11 @@ export default async function AdminSignedConsentPage({ params }: Props) {
         signatureData={signature.signatureData}
         labels={{ signedBy: labels.signedBy, signedAt: labels.signedAt, version: labels.version }}
         footer={
-          <p dir="ltr" className="border-t border-[var(--color-ink)]/10 pt-3 text-xs text-[var(--color-ink)]/55">
-            Record {signature.id} · {signature.consentForm.key}
-            {signature.ip ? ` · IP ${signature.ip}` : ""}
-            {witness ? ` · Witnessed at the desk by ${witness.staffProfile?.fullName || witness.email}` : " · Signed online by the customer"}
-            {signature.bookingId ? ` · Booking ${signature.bookingId}` : ""}
+          <p dir={staffLocale === "ar" ? "rtl" : "ltr"} className="border-t border-[var(--color-ink)]/10 pt-3 text-xs text-[var(--color-ink)]/55">
+            {t("Record {id}", { id: signature.id })} · {signature.consentForm.key}
+            {signature.ip ? ` · ${t("IP {ip}", { ip: signature.ip })}` : ""}
+            {witness ? ` · ${t("Witnessed at the desk by {name}", { name: witness.staffProfile?.fullName || witness.email })}` : ` · ${t("Signed online by the customer")}`}
+            {signature.bookingId ? ` · ${t("Booking {id}", { id: signature.bookingId })}` : ""}
           </p>
         }
       />

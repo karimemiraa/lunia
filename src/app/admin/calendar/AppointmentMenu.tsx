@@ -8,6 +8,7 @@ import { Modal } from "../_components/Modal";
 import { checkInAction, startAction, completeAction, cancelAction, cancelSeriesFromAction, noShowAction, rescheduleAction, getCalendarSlotsAction, type CalendarSlotDTO } from "./actions";
 import { SlotPicker } from "./SlotPicker";
 import { useConfirm } from "../_ui/ConfirmDialog";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
 
 export interface AppointmentMenuProps {
   bookingId: string;
@@ -48,6 +49,8 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
   const [confirm, confirmDialog] = useConfirm();
   const { bookingId, appointmentId, serviceId, status, started, defaultDate, clientProfileId, invoice, treatmentRecordId, canManage, canBill, canClinical, layout = "menu", hubLink = true } = props;
   const router = useRouter();
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const [isPending, startTransition] = useTransition();
   const [pendingIntent, setPendingIntent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -103,21 +106,24 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
   }
 
   async function doCancelSeries() {
-    if (!(await confirm({ title: `Cancel this and all later visits in ${props.clientName}'s series?`, description: "Earlier and completed visits are kept.", confirmLabel: "Cancel series" }))) return;
+    if (!(await confirm({ title: t("Cancel this and all later visits in {name}'s series?", { name: props.clientName }), description: t("Earlier and completed visits are kept."), confirmLabel: t("Cancel series") }))) return;
     run("cancel-series", async () => {
       const result = await cancelSeriesFromAction(bookingId);
-      if (result.ok) setNotice({ text: `${result.cancelled} visit${result.cancelled === 1 ? "" : "s"} cancelled.` });
+      if (result.ok) setNotice({ text: result.cancelled === 1 ? t("1 visit cancelled.") : t("{count} visits cancelled.", { count: result.cancelled }) });
       return result.ok ? { ok: true } : result;
     });
   }
 
   async function doCancel() {
-    if (!(await confirm({ title: `Cancel this appointment for ${props.clientName}?`, confirmLabel: "Cancel appointment" }))) return;
+    if (!(await confirm({ title: t("Cancel this appointment for {name}?", { name: props.clientName }), confirmLabel: t("Cancel appointment") }))) return;
     run("cancel", async () => {
       const result = await cancelAction(bookingId);
       if (result.ok && result.waitlistNotified > 0) {
         setNotice({
-          text: `${result.waitlistNotified} ${result.waitlistNotified === 1 ? "person was" : "people were"} waiting for this day and ${result.waitlistNotified === 1 ? "has" : "have"} been notified.`,
+          text:
+            result.waitlistNotified === 1
+              ? t("1 person was waiting for this day and has been notified.")
+              : t("{count} people were waiting for this day and have been notified.", { count: result.waitlistNotified }),
           href: "/admin/waitlist?status=NOTIFIED",
         });
       }
@@ -125,7 +131,7 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
     });
   }
 
-  const label = (intent: string, idle: string, busy: string) => (pendingIntent === intent ? busy : idle);
+  const label = (intent: string, idle: string, busy: string) => t(pendingIntent === intent ? busy : idle);
 
   // The primary next step is always a direct button (also what the e2e flow clicks).
   const primary = canCheckIn ? (
@@ -134,7 +140,8 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
     </button>
   ) : canStart ? (
     <button type="button" disabled={isPending} onClick={() => run("start", () => startAction(bookingId))} className={btnPrimary}>
-      {label("start", "Start", "Starting…")}
+      {/* "Start" alone is the generic «البداية» in Arabic; the button means start the session. */}
+      {label("start", locale === "ar" ? "Start the session" : "Start", "Starting…")}
     </button>
   ) : canComplete ? (
     <button type="button" disabled={isPending} onClick={() => run("complete", () => completeAction(bookingId))} className={btnPrimary}>
@@ -142,7 +149,7 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
     </button>
   ) : status === "COMPLETED" && showCheckout && !invoice ? (
     <Link href={`/admin/billing/new?booking=${bookingId}`} className={btnPrimary}>
-      Checkout
+      {t("Checkout")}
     </Link>
   ) : null;
 
@@ -150,7 +157,7 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
     <>
       {hubLink && (
         <Link href={`/admin/calendar/${appointmentId}`} className={layout === "inline" ? btnOutline : item}>
-          Open appointment page
+          {t("Open appointment page")}
         </Link>
       )}
       {canComplete && (canCheckIn || canStart) && (
@@ -161,23 +168,23 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
       {showCheckout &&
         (invoice ? (
           <Link href={`/admin/billing/${invoice.id}`} className={layout === "inline" ? btnOutline : item}>
-            {invoice.status === "DRAFT" ? "Open draft invoice" : `Invoice ${invoice.number}`}
+            {invoice.status === "DRAFT" ? t("Open draft invoice") : t("Invoice {number}", { number: invoice.number })}
           </Link>
         ) : (
           !(status === "COMPLETED" && primary) && (
             <Link href={`/admin/billing/new?booking=${bookingId}`} className={layout === "inline" ? btnOutline : item}>
-              Checkout
+              {t("Checkout")}
             </Link>
           )
         ))}
       {canClinical && (
         <Link href={treatmentRecordId ? `/admin/clients/${clientProfileId}/clinical/treatment/${treatmentRecordId}` : `/admin/clients/${clientProfileId}/clinical/treatment?appointmentId=${appointmentId}`} className={layout === "inline" ? btnOutline : item}>
-          {treatmentRecordId ? "Treatment record" : "Add treatment record"}
+          {treatmentRecordId ? t("Treatment record") : t("Add treatment record")}
         </Link>
       )}
       {canReschedule && (
         <button type="button" disabled={isPending} onClick={() => { setOpen(false); setRescheduleOpen(true); }} className={layout === "inline" ? btnOutline : item}>
-          Reschedule
+          {t("Reschedule")}
         </button>
       )}
       {canNoShow && (
@@ -185,7 +192,7 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
           type="button"
           disabled={isPending}
           onClick={async () => {
-            if (await confirm({ title: "Mark this appointment as a no-show?", confirmLabel: "Mark no-show" })) run("no-show", () => noShowAction(bookingId));
+            if (await confirm({ title: t("Mark this appointment as a no-show?"), confirmLabel: t("Mark no-show") })) run("no-show", () => noShowAction(bookingId));
           }}
           className={layout === "inline" ? btnOutline : item}
         >
@@ -193,7 +200,7 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
         </button>
       )}
       <Link href={`/admin/clients/${clientProfileId}`} className={layout === "inline" ? btnOutline : item}>
-        Open customer
+        {t("Open customer")}
       </Link>
       {canCancel && (
         <button type="button" disabled={isPending} onClick={doCancel} className={layout === "inline" ? btnDanger : `${item} text-red-700 hover:bg-red-50`}>
@@ -224,7 +231,7 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
             aria-haspopup="menu"
             aria-expanded={open}
             aria-controls={menuId}
-            aria-label={`Actions for ${props.clientName}`}
+            aria-label={t("Actions for {name}", { name: props.clientName })}
             onClick={() => setOpen((o) => !o)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-ink)]/70 transition-colors duration-150 ease-out hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)]"
           >
@@ -252,14 +259,14 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
           {notice.text}{" "}
           {notice.href && (
             <Link href={notice.href} className="font-medium text-[var(--color-teal-ink)] underline">
-              Open waitlist
+              {t("Open waitlist")}
             </Link>
           )}
         </p>
       )}
 
       {rescheduleOpen && (
-        <Modal title={`Reschedule ${props.clientName}`} onClose={() => { setRescheduleOpen(false); setRescheduleSlot(null); }}>
+        <Modal title={t("Reschedule {name}", { name: props.clientName })} onClose={() => { setRescheduleOpen(false); setRescheduleSlot(null); }}>
           <div className="flex flex-col gap-4">
             <SlotPicker
               serviceId={serviceId}
@@ -272,7 +279,7 @@ export function AppointmentMenu(props: AppointmentMenuProps) {
             />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => { setRescheduleOpen(false); setRescheduleSlot(null); }} className="lunia-btn lunia-btn-ghost min-h-11">
-                Close
+                {t("Close")}
               </button>
               <button
                 type="button"

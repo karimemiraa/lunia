@@ -34,6 +34,10 @@ import { EnrolForm } from "../../memberships/MembershipsClient";
 import { TimelineFeed, type TimelineEntryDTO } from "./c360/TimelineFeed";
 import { QuickActions } from "./c360/QuickActions";
 import { Icon, type IconName } from "./c360/icons";
+import { timelineStatusLabel } from "./c360/timelineText";
+import { getStaffT, getStaffLocale } from "../../_i18n/display";
+import { translateIn } from "../../_i18n/t";
+import { intlLocale, type StaffLocale, type T } from "../../_i18n/t";
 
 interface ClientDetailPageProps {
   params: Promise<{ id: string }>;
@@ -43,13 +47,30 @@ interface ClientDetailPageProps {
 const CENTER_TZ = "Asia/Riyadh";
 const ACTIVE_WINDOW_DAYS = 90;
 
-function formatSar(minor: number): string {
-  return `${(minor / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} SAR`;
+function makeFormatters(locale: StaffLocale, t: T) {
+  const dtFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" });
+  const dFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, dateStyle: "medium" });
+  return {
+    formatSar: (minor: number) => `${(minor / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${t("SAR")}`,
+    formatDateTime: (d: Date) => dtFmt.format(d),
+    formatDate: (d: Date | undefined | null) => (d ? dFmt.format(d) : t("None")),
+  };
 }
-const dtFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" });
-const dFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, dateStyle: "medium" });
-const formatDateTime = (d: Date) => dtFmt.format(d);
-const formatDate = (d: Date | undefined | null) => (d ? dFmt.format(d) : "None");
+
+/** Rewrites the English next-best-action text (src/modules/crm/nextBestAction) for the staff locale. */
+function localizeAction(a: NextBestAction, t: T, ar: boolean): { title: string; reason: string; cta: string } {
+  if (!ar) return { title: a.title, reason: a.reason, cta: a.cta };
+  let m: RegExpMatchArray | null;
+  const sar = (s: string) => s.replace(/ SAR$/, ` ${t("SAR")}`);
+  const title = (m = a.title.match(/^Return their call \((\d+) open\)$/)) ? t("Return their call ({count} open)", { count: m[1] }) : t(a.title);
+  let reason = t(a.reason);
+  if ((m = a.reason.match(/^(.+) has (.+) outstanding\.$/))) reason = t("{number} has {amount} outstanding.", { number: m[1], amount: sar(m[2]!) });
+  else if ((m = a.reason.match(/^(.+) is required for an upcoming appointment\.$/))) reason = t("{title} is required for an upcoming appointment.", { title: m[1] });
+  else if ((m = a.reason.match(/^Overdue by (\d+) days?\.$/))) reason = t("Overdue by {count} day(s).", { count: m[1] });
+  else if ((m = a.reason.match(/^(\d+) prepaid sessions? remaining and nothing scheduled\.$/))) reason = t("{count} prepaid session(s) remaining and nothing scheduled.", { count: m[1] });
+  else if ((m = a.reason.match(/^Last visit was (\d+) days ago and nothing is scheduled\.$/))) reason = t("Last visit was {count} days ago and nothing is scheduled.", { count: m[1] });
+  return { title, reason, cta: t(a.cta) };
+}
 const dateISOFor = (d: Date) => new Date(d.getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 const STATUS_STYLES: Record<string, string> = {
@@ -66,6 +87,18 @@ const LIFECYCLE = {
   active: { label: "Active", className: "bg-[var(--color-teal)]/20 text-[var(--color-teal-ink)]" },
   lapsed: { label: "Lapsed", className: "bg-[var(--color-ink)]/8 text-[var(--color-ink)]/55" },
 };
+
+// System loyalty reasons (src/modules/crm/loyalty); anything else is staff-typed text.
+const LOYALTY_REASON_CODES = new Set(["EARN", "REDEEM", "ADJUST", "TIER"]);
+
+/** Intake contraindication flag text (src/modules/clinical/intakeRules) in the staff locale. */
+function flagTitle(title: string, t: T): string {
+  let m: RegExpMatchArray | null;
+  if ((m = title.match(/^Isotretinoin within 6 months \((\d+) days ago\)$/))) return t("Isotretinoin within 6 months ({count} days ago)", { count: m[1] });
+  if ((m = title.match(/^Recent (.+) \((\d+) days ago\)$/))) return t("Recent {procedure} ({count} days ago)", { procedure: t(m[1]!), count: m[2] });
+  if ((m = title.match(/^Allergies: (.+)$/))) return t("Allergies: {list}", { list: m[1] });
+  return t(title);
+}
 
 const PRIORITY_STYLE: Record<NextBestAction["priority"], string> = {
   high: "border-[var(--color-gold)]/60 bg-[var(--color-gold)]/10",
@@ -136,6 +169,11 @@ const contactLink =
 export default async function ClientDetailPage({ params, searchParams }: ClientDetailPageProps) {
   const [{ id }, { tab }] = await Promise.all([params, searchParams]);
   const user = await requireAdmin(PERMISSIONS.CLIENT_VIEW);
+  const t = await getStaffT();
+  const locale = await getStaffLocale();
+  const ar = locale === "ar";
+  const { formatSar, formatDate, formatDateTime } = makeFormatters(locale, t);
+  const tierName = (tier: { name: string; nameAr?: string | null }) => (ar ? tier.nameAr || tier.name : tier.name);
   const canManage = user.permissions.has(PERMISSIONS.CLIENT_MANAGE);
   const canWriteNotes = user.permissions.has(PERMISSIONS.VISITNOTE_WRITE);
   const canClinical = user.permissions.has(PERMISSIONS.CLINICAL_MANAGE);
@@ -185,7 +223,7 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
     .filter((i) => i.kind === "INVOICE" && (i.status === "ISSUED" || i.status === "PARTIALLY_PAID") && i.totalMinor > i.paidMinor)
     .map((i) => ({ id: i.id, number: i.number, outstandingMinor: i.totalMinor - i.paidMinor }));
   const outstandingMinor = unpaidInvoices.reduce((s, i) => s + i.outstandingMinor, 0);
-  const missingConsents = consentRows.filter((r) => r.required && !r.upToDate).map((r) => ({ formId: r.formId, title: r.titleEn, bookingIds: r.bookingIds }));
+  const missingConsents = consentRows.filter((r) => r.required && !r.upToDate).map((r) => ({ formId: r.formId, title: ar ? r.titleAr || r.titleEn : r.titleEn, bookingIds: r.bookingIds }));
   const highFlags = intake?.flags.filter((f) => f.severity === "high") ?? [];
   const cautionFlags = intake?.flags.filter((f) => f.severity === "caution") ?? [];
   const stage = pipelineStages.find((s) => s.key === detail.profile.stage);
@@ -213,31 +251,34 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
   // --- Tab: Overview (timeline + next best action) ----------------------------
   const overview = (
     <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
-      <SectionCard title="Timeline">
+      <SectionCard title={t("Timeline")}>
         <TimelineFeed entries={timelineDto} canSeePhotos={canClinical} />
       </SectionCard>
       <aside className="flex flex-col gap-4">
         <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
-          <Icon name="spark" className="h-4 w-4 text-[var(--color-teal-ink)]" /> Next best action
+          <Icon name="spark" className="h-4 w-4 text-[var(--color-teal-ink)]" /> {t("Next best action")}
         </h2>
         {actions.length === 0 ? (
-          <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-5 text-sm text-[var(--color-ink)]/55">Nothing pressing. They are booked, paid up and consented.</p>
+          <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-5 text-sm text-[var(--color-ink)]/55">{t("Nothing pressing. They are booked, paid up and consented.")}</p>
         ) : (
           <ol className="flex flex-col gap-2" data-testid="next-best-actions">
-            {actions.map((a) => (
-              <li key={a.key} className={`flex flex-col gap-1.5 rounded-[var(--radius-sm)] border px-4 py-3 ${PRIORITY_STYLE[a.priority]}`}>
-                <p className="text-sm font-medium text-[var(--color-ink)]">{a.title}</p>
-                <p className="text-xs text-[var(--color-ink)]/60">{a.reason}</p>
-                <Link href={a.href} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm mt-1 min-h-9 w-fit">
-                  {a.cta}
-                </Link>
-              </li>
-            ))}
+            {actions.map((a) => {
+              const text = localizeAction(a, t, ar);
+              return (
+                <li key={a.key} className={`flex flex-col gap-1.5 rounded-[var(--radius-sm)] border px-4 py-3 ${PRIORITY_STYLE[a.priority]}`}>
+                  <p className="text-sm font-medium text-[var(--color-ink)]">{text.title}</p>
+                  <p className="text-xs text-[var(--color-ink)]/60">{text.reason}</p>
+                  <Link href={a.href} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm mt-1 min-h-9 w-fit">
+                    {text.cta}
+                  </Link>
+                </li>
+              );
+            })}
           </ol>
         )}
         {whatsappConversation && (
           <Link href={`/admin/whatsapp?c=${whatsappConversation.id}`} className="text-xs text-[var(--color-teal-ink)] hover:underline">
-            Open WhatsApp thread
+            {t("Open WhatsApp thread")}
           </Link>
         )}
       </aside>
@@ -246,10 +287,10 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
 
   // --- Tab: Notes (comments) ----------------------------------------------------
   const notesTab = (
-    <SectionCard title="Comments">
+    <SectionCard title={t("Comments")}>
       {canWriteNotes && <VisitNoteForm clientProfileId={cid} />}
       {detail.visitNotes.length === 0 ? (
-        <Empty>No comments yet.</Empty>
+        <Empty>{t("No comments yet.")}</Empty>
       ) : (
         <ul className="flex flex-col gap-3" data-testid="visit-notes-list">
           {detail.visitNotes.map((note) => (
@@ -263,16 +304,16 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
   // --- Tab: Appointments -------------------------------------------------------
   const appointments =
     detail.bookings.length === 0 ? (
-      <Empty>No bookings yet.</Empty>
+      <Empty>{t("No bookings yet.")}</Empty>
     ) : (
       <div className="overflow-x-auto lunia-card">
-        <table className="w-full text-left text-sm" data-testid="treatment-history-table">
+        <table className="w-full text-start text-sm" data-testid="treatment-history-table">
           <thead>
             <tr className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
-              <th className="px-4 py-3 font-semibold">Service</th>
-              <th className="px-4 py-3 font-semibold">Date</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Related</th>
+              <th className="px-4 py-3 font-semibold">{t("Service")}</th>
+              <th className="px-4 py-3 font-semibold">{t("Date")}</th>
+              <th className="px-4 py-3 font-semibold">{t("Status")}</th>
+              <th className="px-4 py-3 font-semibold">{t("Related")}</th>
             </tr>
           </thead>
           <tbody>
@@ -284,28 +325,28 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
                   <td className="px-4 py-3 text-[var(--color-ink)]/80">{formatDateTime(booking.startAt)}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${STATUS_STYLES[booking.status] ?? "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/70"}`}>
-                      {booking.status.replace("_", " ")}
+                      {ar ? timelineStatusLabel(booking.status, t) : booking.status.replace("_", " ")}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <span className="flex flex-wrap gap-1.5">
                       {booking.appointmentId ? (
                         <Chip icon="calendar" href={`/admin/calendar/${booking.appointmentId}`} tone="teal">
-                          Open appointment
+                          {t("Open appointment")}
                         </Chip>
                       ) : (
                         <Chip icon="calendar" href={`/admin/calendar?day=${dateISOFor(booking.startAt)}`}>
-                          Calendar
+                          {t("Calendar")}
                         </Chip>
                       )}
                       {inv && (
                         <Chip icon="receipt" href={`/admin/billing/${inv.id}`} tone="teal">
-                          {inv.status === "DRAFT" ? "Draft invoice" : inv.number}
+                          {inv.status === "DRAFT" ? t("Draft invoice") : inv.number}
                         </Chip>
                       )}
                       {booking.treatmentRecordId && canClinical && (
                         <Chip icon="treatment" href={`/admin/clients/${cid}/clinical/treatment/${booking.treatmentRecordId}`} tone="teal">
-                          Treatment record
+                          {t("Treatment record")}
                         </Chip>
                       )}
                     </span>
@@ -319,33 +360,35 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
     );
 
   // --- Tab: Loyalty ------------------------------------------------------------
-  const mFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Riyadh", day: "numeric", month: "short", year: "numeric" });
+  const mFmt = new Intl.DateTimeFormat(intlLocale(locale), { timeZone: "Asia/Riyadh", day: "numeric", month: "short", year: "numeric" });
   const membershipTab = canBill ? (
     <div className="flex flex-col gap-4" data-testid="client-membership">
       {membership ? (
         <div className="lunia-card flex flex-col gap-2 p-5 text-sm">
           <p className="text-base font-semibold">
-            {membership.plan.nameEn} · {(membership.plan.priceMinor / 100).toLocaleString("en-US")} SAR / month
+            {t("{plan} · {price} SAR / month", { plan: ar ? membership.plan.nameAr || membership.plan.nameEn : membership.plan.nameEn, price: (membership.plan.priceMinor / 100).toLocaleString("en-US") })}
           </p>
           <p>
-            Status: <span className="font-medium">{membership.status === "PAST_DUE" ? "Past due — benefits paused until paid" : membership.status.charAt(0) + membership.status.slice(1).toLowerCase()}</span>
+            {t("Status:")} <span className="font-medium">{membership.status === "PAST_DUE" ? t("Past due — benefits paused until paid") : t(membership.status.charAt(0) + membership.status.slice(1).toLowerCase())}</span>
           </p>
           <p className="tabular-nums">
-            Current month: {mFmt.format(membership.currentPeriodStart)} – {mFmt.format(new Date(membership.currentPeriodEnd.getTime() - 1))} ·{" "}
-            {membership.cycles[0]?.status === "PAID" ? "paid" : "unpaid"}
+            {t(membership.cycles[0]?.status === "PAID" ? "Current month: {start} – {end} · paid" : "Current month: {start} – {end} · unpaid", {
+              start: mFmt.format(membership.currentPeriodStart),
+              end: mFmt.format(new Date(membership.currentPeriodEnd.getTime() - 1)),
+            })}
           </p>
-          {membership.cancelAt && <p>Ends {mFmt.format(membership.cancelAt)}</p>}
+          {membership.cancelAt && <p>{t("Ends {date}", { date: mFmt.format(membership.cancelAt) })}</p>}
           <Link href="/admin/memberships" className="w-fit text-sm underline underline-offset-2">
-            Manage in Memberships
+            {t("Manage in Memberships")}
           </Link>
         </div>
       ) : memberPlans.length > 0 ? (
         <div className="lunia-card flex flex-col gap-3 p-5">
-          <p className="text-sm text-[var(--color-ink)]/70">Not a member yet.</p>
-          <EnrolForm plans={memberPlans.map((p) => ({ id: p.id, nameEn: p.nameEn, priceMinor: p.priceMinor }))} defaultClient={{ id: cid, name: detail.profile.fullName }} />
+          <p className="text-sm text-[var(--color-ink)]/70">{t("Not a member yet.")}</p>
+          <EnrolForm plans={memberPlans.map((p) => ({ id: p.id, nameEn: p.nameEn, nameAr: p.nameAr, priceMinor: p.priceMinor }))} defaultClient={{ id: cid, name: detail.profile.fullName }} />
         </div>
       ) : (
-        <p className="text-sm text-[var(--color-ink)]/65">No membership plans are offered yet (Finance → Memberships).</p>
+        <p className="text-sm text-[var(--color-ink)]/65">{t("No membership plans are offered yet (Finance → Memberships).")}</p>
       )}
     </div>
   ) : null;
@@ -353,9 +396,9 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
   const loyaltyTab = (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Metric label="Balance" value={`${loyalty.balance.toLocaleString("en-US")} pts`} />
-        <Metric label="Current tier" value={loyalty.currentTier?.name ?? "Guest"} />
-        <Metric label="Next tier" value={loyalty.nextTier ? loyalty.nextTier.name : "Top tier"} hint={loyalty.nextTier ? `${loyalty.pointsToNextTier?.toLocaleString("en-US")} pts to go` : undefined} />
+        <Metric label={t("Balance")} value={t("{points} pts", { points: loyalty.balance.toLocaleString("en-US") })} />
+        <Metric label={t("Current tier")} value={loyalty.currentTier ? tierName(loyalty.currentTier) : t("Guest")} />
+        <Metric label={t("Next tier")} value={loyalty.nextTier ? tierName(loyalty.nextTier) : t("Top tier")} hint={loyalty.nextTier ? t("{points} pts to go", { points: loyalty.pointsToNextTier?.toLocaleString("en-US") }) : undefined} />
       </div>
       <span className="hidden" data-testid="loyalty-balance">
         {loyalty.balance.toLocaleString("en-US")} pts
@@ -363,20 +406,20 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
       {canManage && <LoyaltyAdjustForm clientProfileId={cid} />}
       {loyalty.transactions.length > 0 && (
         <div className="overflow-x-auto lunia-card">
-          <table className="w-full text-left text-sm" data-testid="loyalty-transactions-table">
+          <table className="w-full text-start text-sm" data-testid="loyalty-transactions-table">
             <thead>
               <tr className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
-                <th className="px-4 py-3 font-semibold">Date</th>
-                <th className="px-4 py-3 font-semibold">Reason</th>
-                <th className="px-4 py-3 text-right font-semibold">Points</th>
+                <th className="px-4 py-3 font-semibold">{t("Date")}</th>
+                <th className="px-4 py-3 font-semibold">{t("Reason")}</th>
+                <th className="px-4 py-3 text-end font-semibold">{t("Points")}</th>
               </tr>
             </thead>
             <tbody>
               {loyalty.transactions.map((txn) => (
                 <tr key={txn.id} className="border-t border-[var(--line)]">
                   <td className="px-4 py-3 text-[var(--color-ink)]/80">{formatDateTime(txn.createdAt)}</td>
-                  <td className="px-4 py-3 text-[var(--color-ink)]/80">{txn.reason}</td>
-                  <td className={`px-4 py-3 text-right font-medium ${txn.deltaPoints < 0 ? "text-red-700" : "text-[var(--color-ink)]"}`}>
+                  <td className="px-4 py-3 text-[var(--color-ink)]/80">{LOYALTY_REASON_CODES.has(txn.reason) ? t(txn.reason) : txn.reason}</td>
+                  <td dir="ltr" className={`px-4 py-3 text-end font-medium ${txn.deltaPoints < 0 ? "text-red-700" : "text-[var(--color-ink)]"}`}>
                     {txn.deltaPoints > 0 ? "+" : ""}
                     {txn.deltaPoints}
                   </td>
@@ -392,16 +435,16 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
   // --- Tab: Credits ------------------------------------------------------------
   const creditsTab = (
     <div className="flex flex-col gap-8">
-      <SectionCard title="Gift cards">
+      <SectionCard title={t("Gift cards")}>
         {credits.giftCards.length === 0 ? (
-          <Empty>No active gift cards.</Empty>
+          <Empty>{t("No active gift cards.")}</Empty>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {credits.giftCards.map((g) => (
               <li key={g.id} className="lunia-card flex items-center justify-between px-4 py-3">
                 <div>
-                  <p className="font-mono text-sm text-[var(--color-ink)]">{g.code}</p>
-                  <p className="text-xs text-[var(--color-ink)]/50">{g.expiresAt ? `Expires ${formatDate(g.expiresAt)}` : "No expiry"}</p>
+                  <p className="font-mono text-sm text-[var(--color-ink)]" dir="ltr">{g.code}</p>
+                  <p className="text-xs text-[var(--color-ink)]/50">{g.expiresAt ? t("Expires {date}", { date: formatDate(g.expiresAt) }) : t("No expiry")}</p>
                 </div>
                 <span className="font-medium text-[var(--color-ink)]">{formatSar(g.balanceMinor)}</span>
               </li>
@@ -409,21 +452,21 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
           </ul>
         )}
       </SectionCard>
-      <SectionCard title="Packages">
+      <SectionCard title={t("Packages")}>
         {credits.packages.length === 0 ? (
-          <Empty>No active packages.</Empty>
+          <Empty>{t("No active packages.")}</Empty>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {credits.packages.map((p) => (
               <li key={p.id} className="lunia-card flex items-center justify-between gap-3 px-4 py-3">
-                <span className="text-sm text-[var(--color-ink)]">{p.packageNameEn}</span>
+                <span className="text-sm text-[var(--color-ink)]">{ar ? p.packageNameAr || p.packageNameEn : p.packageNameEn}</span>
                 <span className="flex items-center gap-3">
                   <span className="font-medium text-[var(--color-ink)]">
-                    {p.sessionsRemaining}/{p.sessionsTotal} sessions
+                    {t("{remaining}/{total} sessions", { remaining: p.sessionsRemaining, total: p.sessionsTotal })}
                   </span>
                   {p.sessionsRemaining > 0 && canBook && (
                     <Link href={bookHref} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9">
-                      Book next
+                      {t("Book next")}
                     </Link>
                   )}
                 </span>
@@ -450,16 +493,16 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
   ) : (
     <dl className="grid gap-4 lunia-card p-5 sm:grid-cols-2">
       <div>
-        <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Skin type</dt>
-        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.skinType ?? "None"}</dd>
+        <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">{t("Skin type")}</dt>
+        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.skinType ?? t("None")}</dd>
       </div>
       <div>
-        <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Concerns</dt>
-        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.skinConcerns.join(", ") || "None"}</dd>
+        <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">{t("Concerns")}</dt>
+        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.skinConcerns.join(ar ? "، " : ", ") || t("None")}</dd>
       </div>
       <div>
-        <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Allergies</dt>
-        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.allergies ?? "None"}</dd>
+        <dt className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">{t("Allergies")}</dt>
+        <dd className="text-sm text-[var(--color-ink)]">{detail.profile.allergies ?? t("None")}</dd>
       </div>
     </dl>
   );
@@ -472,12 +515,12 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
       direction={detail.profile.direction}
       source={detail.profile.sourceChannel}
       nextFollowUpIso={detail.profile.nextFollowUpAt ? detail.profile.nextFollowUpAt.toISOString() : null}
-      staff={staffUsers.map((s) => ({ id: s.id, name: s.fullName || s.email || "Staff" }))}
-      stages={pipelineStages.map((s) => ({ value: s.key, label: s.label }))}
+      staff={staffUsers.map((s) => ({ id: s.id, name: s.fullName || s.email || t("Staff") }))}
+      stages={pipelineStages.map((s) => ({ value: s.key, label: t(s.label) }))}
       activities={leadActivities.map((a) => ({ id: a.id, kind: a.kind, outcome: a.outcome, body: a.body, authorName: a.authorName, createdAtIso: a.createdAt.toISOString() }))}
     />
   ) : (
-    <Empty>You do not have access to the sales pipeline.</Empty>
+    <Empty>{t("You do not have access to the sales pipeline.")}</Empty>
   );
 
   // --- Tab: Invoices (billing:manage) ------------------------------------------
@@ -485,18 +528,18 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
     <div className="flex flex-col gap-3">
       <div className="flex justify-end">
         <Link href={`/admin/billing/new?client=${cid}`} className="lunia-btn lunia-btn-forest-outline min-h-[44px]">
-          New invoice
+          {t("New invoice")}
         </Link>
       </div>
       {invoices.rows.length === 0 ? (
-        <Empty>No invoices yet.</Empty>
+        <Empty>{t("No invoices yet.")}</Empty>
       ) : (
         <ul className="flex flex-col gap-2" data-testid="client-invoices">
           {invoices.rows.map((inv) => (
             <li key={inv.id}>
               <Link href={`/admin/billing/${inv.id}`} className="lunia-card flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
                 <span className="flex items-center gap-3">
-                  <span className="font-medium">{inv.status === "DRAFT" ? "Draft" : inv.number}</span>
+                  <span className="font-medium">{inv.status === "DRAFT" ? t("Draft") : inv.number}</span>
                   <StatusBadge status={inv.status} kind={inv.kind} />
                 </span>
                 <span className="flex items-center gap-3">
@@ -515,16 +558,16 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
   ) : null;
 
   const tabs: ProfileTabDef[] = [
-    { id: "overview", label: "Overview", content: overview, badge: actions.length },
-    { id: "notes", label: "Notes", content: notesTab, badge: detail.visitNotes.length },
-    { id: "pipeline", label: "Pipeline", content: pipelineTab, badge: leadActivities.length },
-    { id: "appointments", label: "Appointments", content: appointments, badge: detail.bookings.length },
-    { id: "clinical", label: "Clinical", content: clinicalTab },
-    ...(canClinical ? [{ id: "patient", label: "Patient file", content: <PatientFileTab clientProfileId={cid} /> }] : []),
-    { id: "loyalty", label: "Loyalty", content: loyaltyTab },
-    ...(membershipTab ? [{ id: "membership", label: "Membership", content: membershipTab }] : []),
-    { id: "credits", label: "Credits", content: creditsTab, badge: credits.giftCards.length + credits.packages.length },
-    ...(invoicesTab ? [{ id: "invoices", label: "Invoices", content: invoicesTab, badge: invoices?.rows.length }] : []),
+    { id: "overview", label: t("Overview"), content: overview, badge: actions.length },
+    { id: "notes", label: t("Notes"), content: notesTab, badge: detail.visitNotes.length },
+    { id: "pipeline", label: t("Pipeline"), content: pipelineTab, badge: leadActivities.length },
+    { id: "appointments", label: t("Appointments"), content: appointments, badge: detail.bookings.length },
+    { id: "clinical", label: t("Clinical"), content: clinicalTab },
+    ...(canClinical ? [{ id: "patient", label: t("Patient file"), content: <PatientFileTab clientProfileId={cid} /> }] : []),
+    { id: "loyalty", label: t("Loyalty"), content: loyaltyTab },
+    ...(membershipTab ? [{ id: "membership", label: t("Membership"), content: membershipTab }] : []),
+    { id: "credits", label: t("Credits"), content: creditsTab, badge: credits.giftCards.length + credits.packages.length },
+    ...(invoicesTab ? [{ id: "invoices", label: t("Invoices"), content: invoicesTab, badge: invoices?.rows.length }] : []),
   ];
 
   return (
@@ -535,19 +578,19 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 flex-col gap-2.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${LIFECYCLE[lifecycle].className}`}>{LIFECYCLE[lifecycle].label}</span>
+                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${LIFECYCLE[lifecycle].className}`}>{t(LIFECYCLE[lifecycle].label)}</span>
                 <span className="inline-flex rounded-full bg-[var(--color-ink)]/8 px-2.5 py-0.5 text-xs font-medium text-[var(--color-ink)]/70" data-testid="current-tier">
-                  {detail.tier?.name ?? "No tier (guest)"}
+                  {detail.tier ? tierName(detail.tier) : t("No tier (guest)")}
                 </span>
                 {stage && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-ink)]/[0.06] px-2.5 py-0.5 text-xs font-medium text-[var(--color-ink)]/75">
                     <span className="h-2 w-2 rounded-full" style={{ background: stage.color || "var(--color-ink)" }} />
-                    {stage.label}
+                    {t(stage.label)}
                   </span>
                 )}
                 {owner && <Chip icon="user">{owner.fullName}</Chip>}
-                {detail.source && <span className="inline-flex rounded-full bg-[var(--color-ink)]/8 px-2.5 py-0.5 text-xs text-[var(--color-ink)]/60">via {detail.source}</span>}
-                <span className="text-xs text-[var(--color-ink)]/45">Customer since {formatDate(detail.profile.createdAt)}</span>
+                {detail.source && <span className="inline-flex rounded-full bg-[var(--color-ink)]/8 px-2.5 py-0.5 text-xs text-[var(--color-ink)]/60">{t("via {source}", { source: translateIn(detail.source, "source", locale) })}</span>}
+                <span className="text-xs text-[var(--color-ink)]/45">{t("Customer since {date}", { date: formatDate(detail.profile.createdAt) })}</span>
               </div>
 
               {/* Contact actions */}
@@ -559,43 +602,43 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
                 )}
                 {detail.phone && (
                   <a href={`https://wa.me/${detail.phone.replace(/[^\d]/g, "")}`} target="_blank" rel="noreferrer" className={contactLink}>
-                    <Icon name="whatsapp" className="h-3.5 w-3.5" /> WhatsApp
+                    <Icon name="whatsapp" className="h-3.5 w-3.5" /> {t("WhatsApp")}
                   </a>
                 )}
                 {detail.email && (
-                  <a href={`mailto:${detail.email}`} className={contactLink}>
+                  <a href={`mailto:${detail.email}`} dir="ltr" className={contactLink}>
                     <Icon name="mail" className="h-3.5 w-3.5" /> {detail.email}
                   </a>
                 )}
-                {!detail.phone && !detail.email && <span className="text-[var(--color-ink)]/55">No contact on file</span>}
+                {!detail.phone && !detail.email && <span className="text-[var(--color-ink)]/55">{t("No contact on file")}</span>}
               </div>
 
               {/* Consent + safety chips */}
               <div className="flex flex-wrap gap-1.5" data-testid="profile-chips">
-                <Chip icon={detail.profile.consentTreatmentAt ? "check" : "warning"} tone={detail.profile.consentTreatmentAt ? "ok" : "warn"} title={detail.profile.consentTreatmentAt ? `Given ${formatDate(detail.profile.consentTreatmentAt)}` : undefined}>
-                  Treatment consent {detail.profile.consentTreatmentAt ? "on file" : "missing"}
+                <Chip icon={detail.profile.consentTreatmentAt ? "check" : "warning"} tone={detail.profile.consentTreatmentAt ? "ok" : "warn"} title={detail.profile.consentTreatmentAt ? t("Given {date}", { date: formatDate(detail.profile.consentTreatmentAt) }) : undefined}>
+                  {detail.profile.consentTreatmentAt ? t("Treatment consent on file") : t("Treatment consent missing")}
                 </Chip>
                 <Chip icon={detail.profile.consentDataAt ? "check" : "warning"} tone={detail.profile.consentDataAt ? "ok" : "warn"}>
-                  Data consent {detail.profile.consentDataAt ? "on file" : "missing"}
+                  {detail.profile.consentDataAt ? t("Data consent on file") : t("Data consent missing")}
                 </Chip>
                 {missingConsents.map((c) => (
                   <Chip key={c.formId} icon="consent" tone={c.bookingIds.length > 0 ? "danger" : "warn"} href={`/admin/clients/${cid}/clinical/sign/${c.formId}`}>
-                    Sign: {c.title}
+                    {t("Sign: {title}", { title: c.title })}
                   </Chip>
                 ))}
                 {detail.profile.allergies && (
                   <Chip icon="warning" tone="danger" title={detail.profile.allergies}>
-                    Allergies: {detail.profile.allergies.length > 40 ? `${detail.profile.allergies.slice(0, 39)}…` : detail.profile.allergies}
+                    {t("Allergies: {list}", { list: detail.profile.allergies.length > 40 ? `${detail.profile.allergies.slice(0, 39)}…` : detail.profile.allergies })}
                   </Chip>
                 )}
                 {highFlags.map((f) => (
-                  <Chip key={f.key} icon="warning" tone="danger" href={`/admin/clients/${cid}/clinical/intake`} title={f.review}>
-                    {f.title}
+                  <Chip key={f.key} icon="warning" tone="danger" href={`/admin/clients/${cid}/clinical/intake`} title={t(f.review)}>
+                    {flagTitle(f.title, t)}
                   </Chip>
                 ))}
                 {cautionFlags.map((f) => (
-                  <Chip key={f.key} icon="warning" tone="warn" href={`/admin/clients/${cid}/clinical/intake`} title={f.review}>
-                    {f.title}
+                  <Chip key={f.key} icon="warning" tone="warn" href={`/admin/clients/${cid}/clinical/intake`} title={t(f.review)}>
+                    {flagTitle(f.title, t)}
                   </Chip>
                 ))}
                 {detail.profile.tags.map((tag) => (
@@ -639,14 +682,14 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
 
         {/* KPI strip */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="kpi-strip">
-          <Metric label="Lifetime value" value={formatSar(detail.ltvMinor)} />
-          <Metric label="Visits" value={String(completed.length)} hint={`${detail.bookings.length} bookings`} href={`/admin/clients/${cid}?tab=appointments`} />
-          <Metric label="Last visit" value={formatDate(lastVisitAt)} />
-          <Metric label="Next appt" value={formatDate(nextAppt)} href={nextAppt ? `/admin/calendar?day=${dateISOFor(nextAppt)}` : undefined} />
-          <Metric label="Loyalty" value={`${loyalty.balance.toLocaleString("en-US")} pts`} hint={loyalty.currentTier?.name} href={`/admin/clients/${cid}?tab=loyalty`} />
-          {canBill && <Metric label="Outstanding" value={formatSar(outstandingMinor)} hint={unpaidInvoices.length ? `${unpaidInvoices.length} unpaid` : "All paid"} href={`/admin/clients/${cid}?tab=invoices`} />}
-          <Metric label="Packages" value={`${packageSessions} left`} hint={credits.packages.length ? `${credits.packages.length} active` : undefined} href={`/admin/clients/${cid}?tab=credits`} />
-          <Metric label="Gift cards" value={formatSar(giftCardBalance)} hint={credits.giftCards.length ? `${credits.giftCards.length} active` : undefined} href={`/admin/clients/${cid}?tab=credits`} />
+          <Metric label={t("Lifetime value")} value={formatSar(detail.ltvMinor)} />
+          <Metric label={t("Visits")} value={String(completed.length)} hint={t("{count} bookings", { count: detail.bookings.length })} href={`/admin/clients/${cid}?tab=appointments`} />
+          <Metric label={t("Last visit")} value={formatDate(lastVisitAt)} />
+          <Metric label={t("Next appt")} value={formatDate(nextAppt)} href={nextAppt ? `/admin/calendar?day=${dateISOFor(nextAppt)}` : undefined} />
+          <Metric label={t("Loyalty")} value={t("{points} pts", { points: loyalty.balance.toLocaleString("en-US") })} hint={loyalty.currentTier ? tierName(loyalty.currentTier) : undefined} href={`/admin/clients/${cid}?tab=loyalty`} />
+          {canBill && <Metric label={t("Outstanding")} value={formatSar(outstandingMinor)} hint={unpaidInvoices.length ? t("{count} unpaid", { count: unpaidInvoices.length }) : t("All paid")} href={`/admin/clients/${cid}?tab=invoices`} />}
+          <Metric label={t("Packages")} value={t("{count} left", { count: packageSessions })} hint={credits.packages.length ? t("{count} active", { count: credits.packages.length }) : undefined} href={`/admin/clients/${cid}?tab=credits`} />
+          <Metric label={t("Gift cards")} value={formatSar(giftCardBalance)} hint={credits.giftCards.length ? t("{count} active", { count: credits.giftCards.length }) : undefined} href={`/admin/clients/${cid}?tab=credits`} />
         </div>
 
         <ProfileTabs tabs={tabs} initialTab={tab} />

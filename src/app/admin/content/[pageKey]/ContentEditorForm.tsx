@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { LocalizedField, type LocalizedValue } from "../../_components/LocalizedField";
 import { savePageContent, type SavePageContentState } from "../actions";
 import { InlineStatus } from "../../_ui/Form";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 export interface MediaOption {
   id: string;
@@ -28,6 +29,7 @@ const selectClass =
 
 export function ContentEditorForm({ pageKey, media, heroMediaId, headline, cta, intro }: ContentEditorFormProps) {
   const [state, action, pending] = useActionState(savePageContent, initialState);
+  const t = useStaffT();
   const [selectedMediaId, setSelectedMediaId] = useState(heroMediaId ?? "");
 
   const selectedMedia = media.find((item) => item.id === selectedMediaId);
@@ -38,14 +40,14 @@ export function ContentEditorForm({ pageKey, media, heroMediaId, headline, cta, 
 
       <fieldset className="flex flex-col gap-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Hero media</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Hero media")}</span>
           <select
             name="heroMediaId"
             value={selectedMediaId}
             onChange={(event) => setSelectedMediaId(event.target.value)}
             className={selectClass}
           >
-            <option value="">None</option>
+            <option value="">{t("None")}</option>
             {media.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.filename}
@@ -66,9 +68,9 @@ export function ContentEditorForm({ pageKey, media, heroMediaId, headline, cta, 
         )}
       </fieldset>
 
-      <LocalizedField label="Headline" name="headline" defaultValue={headline} />
-      <LocalizedField label="Call to action" name="cta" defaultValue={cta} />
-      <LocalizedField label="Intro" name="intro" type="textarea" defaultValue={intro} />
+      <LocalizedField label={t("Headline")} name="headline" defaultValue={headline} />
+      <LocalizedField label={t("Call to action")} name="cta" defaultValue={cta} />
+      <LocalizedField label={t("Intro")} name="intro" type="textarea" defaultValue={intro} />
 
       <div className="flex items-center gap-3">
         <button
@@ -76,9 +78,9 @@ export function ContentEditorForm({ pageKey, media, heroMediaId, headline, cta, 
           disabled={pending}
           className="lunia-btn lunia-btn-primary disabled:opacity-60"
         >
-          {pending ? "Saving…" : "Save"}
+          {pending ? t("Saving…") : t("Save")}
         </button>
-        <InlineStatus success={state?.success ? "Saved." : undefined} />
+        <InlineStatus success={state?.success ? t("Saved.") : undefined} />
         <InlineStatus error={state?.error} />
       </div>
     </form>

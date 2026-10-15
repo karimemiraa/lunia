@@ -5,6 +5,8 @@ import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS, ALL_PERMISSION_KEYS, type PermissionKey } from "@/modules/iam/permissions";
 import { createRole, setRolePermissions, deleteRole, listRolesWithPermissions } from "@/modules/iam/roles";
 import { recordAudit } from "@/modules/iam/audit";
+import { getStaffT } from "../_i18n/display";
+import { translateError } from "../hr/_components/errors";
 
 export interface RoleActionState {
   error?: string;
@@ -17,10 +19,11 @@ export interface RoleActionState {
 // validates too), and replaces the role's grants with that set.
 export async function saveRolePermissions(_prev: RoleActionState | null, formData: FormData): Promise<RoleActionState> {
   const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const t = await getStaffT();
 
   const roleId = String(formData.get("roleId") ?? "").trim();
   if (!roleId) {
-    return { error: "Missing role." };
+    return { error: t("Missing role.") };
   }
 
   const checked = formData.getAll("permissions").map(String);
@@ -38,7 +41,7 @@ export async function saveRolePermissions(_prev: RoleActionState | null, formDat
   try {
     await setRolePermissions(roleId, keys);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to save permissions." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Failed to save permissions.") };
   }
 
   await recordAudit({
@@ -54,17 +57,18 @@ export async function saveRolePermissions(_prev: RoleActionState | null, formDat
 
 export async function createRoleAction(_prev: RoleActionState | null, formData: FormData): Promise<RoleActionState> {
   const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const t = await getStaffT();
 
   const key = String(formData.get("key") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   if (!key || !name) {
-    return { error: "Key and name are required." };
+    return { error: t("Key and name are required.") };
   }
 
   try {
     await createRole({ key, name });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create role." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Failed to create role.") };
   }
 
   await recordAudit({
@@ -82,16 +86,17 @@ export async function createRoleAction(_prev: RoleActionState | null, formData: 
 // service's error here in case it's ever reached directly.
 export async function deleteRoleAction(_prev: RoleActionState | null, formData: FormData): Promise<RoleActionState> {
   const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const t = await getStaffT();
 
   const roleId = String(formData.get("roleId") ?? "").trim();
   if (!roleId) {
-    return { error: "Missing role." };
+    return { error: t("Missing role.") };
   }
 
   try {
     await deleteRole(roleId);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to delete role." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Failed to delete role.") };
   }
 
   await recordAudit({

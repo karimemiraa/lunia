@@ -6,14 +6,16 @@ import { centerLocalToUtc, utcToCenterLocal, weekdayForDateISO } from "@/modules
 import { StatCard } from "@/components/admin/charts/StatCard";
 import { BarChart, type BarChartDatum } from "@/components/admin/charts/BarChart";
 import { LineChart, type LineChartDatum } from "@/components/admin/charts/LineChart";
+import { getStaffT } from "../_i18n/display";
+import type { T } from "../_i18n/t";
 
 const LAST_N_DAYS = 30;
 const TOP_SERVICES_LIMIT = 6;
 
 /** priceMinor / revenueMinor are stored in halalas (1/100 SAR). */
-function formatSar(minor: number): string {
+function formatSar(minor: number, t: T): string {
   const major = minor / 100;
-  return `${major.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR`;
+  return `${major.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t("SAR")}`;
 }
 
 function formatCount(value: number): string {
@@ -45,6 +47,9 @@ function buildDailyRevenueSeries(byDay: DayStat[], fromISO: string, toISO: strin
 
 export default async function BusinessDashboardPage() {
   const user = await requireAdmin(PERMISSIONS.ANALYTICS_VIEW);
+  const t = await getStaffT();
+  const sar = (minor: number) => formatSar(minor, t);
+  const bookings = (n: number) => t("{count} bookings", { count: formatCount(n) });
 
   const now = new Date();
   const { dateISO: todayISO } = utcToCenterLocal(now);
@@ -86,52 +91,52 @@ export default async function BusinessDashboardPage() {
       <div className="flex flex-col gap-8">
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
-            Revenue (realized)
+            {t("Revenue (realized)")}
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard label="Today" value={formatSar(todayStats.revenueMinor)} subNote={`${formatCount(todayStats.totalBookings)} bookings`} />
+            <StatCard label={t("Today")} value={sar(todayStats.revenueMinor)} subNote={bookings(todayStats.totalBookings)} />
             <StatCard
-              label="This Week"
-              value={formatSar(weekStats.revenueMinor)}
-              subNote={`${formatCount(weekStats.totalBookings)} bookings`}
+              label={t("This Week")}
+              value={sar(weekStats.revenueMinor)}
+              subNote={bookings(weekStats.totalBookings)}
             />
             <StatCard
-              label="This Month"
-              value={formatSar(monthStats.revenueMinor)}
-              subNote={`${formatCount(monthStats.totalBookings)} bookings`}
+              label={t("This Month")}
+              value={sar(monthStats.revenueMinor)}
+              subNote={bookings(monthStats.totalBookings)}
             />
           </div>
         </section>
 
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">Bookings</h2>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">{t("Bookings")}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <StatCard label="Total Bookings (This Month)" value={formatCount(monthStats.totalBookings)} />
+            <StatCard label={t("Total Bookings (This Month)")} value={formatCount(monthStats.totalBookings)} />
             <StatCard
-              label="Upcoming Appointments"
+              label={t("Upcoming Appointments")}
               value={formatCount(upcoming)}
-              subNote="Confirmed or checked-in, not yet completed"
+              subNote={t("Confirmed or checked-in, not yet completed")}
             />
           </div>
         </section>
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
-            New vs Returning Customers (This Month)
+            {t("New vs Returning Customers (This Month)")}
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <StatCard label="New Customers" value={formatCount(monthStats.newClients)} />
-            <StatCard label="Returning Bookings" value={formatCount(monthStats.returningBookings)} />
+            <StatCard label={t("New Customers")} value={formatCount(monthStats.newClients)} />
+            <StatCard label={t("Returning Bookings")} value={formatCount(monthStats.returningBookings)} />
           </div>
         </section>
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <BarChart title="Top Services (This Month)" data={topServices} valueFormatter={formatSar} emptyMessage="No bookings yet this month." />
+          <BarChart title={t("Top Services (This Month)")} data={topServices} valueFormatter={sar} emptyMessage={t("No bookings yet this month.")} />
           <LineChart
-            title={`Revenue over the last ${LAST_N_DAYS} days`}
+            title={t("Revenue over the last {count} days", { count: LAST_N_DAYS })}
             data={dailyRevenue}
-            valueFormatter={formatSar}
-            emptyMessage="No revenue data yet."
+            valueFormatter={sar}
+            emptyMessage={t("No revenue data yet.")}
           />
         </section>
       </div>

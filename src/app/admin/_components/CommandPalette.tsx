@@ -7,7 +7,8 @@ import { SEARCH_GROUPS, SEARCH_GROUP_LABELS, type GlobalSearchResult, type Searc
 import { paletteSearchAction } from "./search.actions";
 import { I } from "./AdminNav";
 import type { NavIconKey, PaletteAction } from "./navCatalog";
-import { st, type StaffLocale } from "../_i18n/staffLocale";
+import { type StaffLocale } from "../_i18n/staffLocale";
+import { makeT } from "../_i18n/t";
 
 export type { PaletteAction };
 
@@ -99,7 +100,7 @@ function isMac(): boolean {
 }
 
 export function CommandPalette({ pages, actions, locale = "en" }: CommandPaletteProps) {
-  const t = (text: string) => st(text, locale);
+  const t = useMemo(() => makeT(locale), [locale]);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -201,7 +202,7 @@ export function CommandPalette({ pages, actions, locale = "en" }: CommandPalette
             sub: hit.subtitle,
             href: hit.href,
             section: SEARCH_GROUP_LABELS[g],
-            badge: hit.badge,
+            badge: hit.badge && t(hit.badge),
             icon: I[GROUP_ICON[g]],
           });
         }
@@ -209,7 +210,7 @@ export function CommandPalette({ pages, actions, locale = "en" }: CommandPalette
     }
     list.push(...actionItems, ...pageItems);
     return list;
-  }, [query, actions, pages, recent, results]);
+  }, [query, actions, pages, recent, results, t]);
 
   useEffect(() => {
     const el = listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`);
@@ -376,7 +377,7 @@ export function CommandPalette({ pages, actions, locale = "en" }: CommandPalette
 
                 {items.length === 0 && !loading && (
                   <li role="presentation" className="px-6 py-10 text-center">
-                    <p className="text-sm font-medium text-[var(--color-ink)]">{t("No matches for")} “{q}”</p>
+                    <p className="text-sm font-medium text-[var(--color-ink)]">{t("No matches for “{q}”", { q })}</p>
                     <p className="mt-1 text-xs text-[var(--color-ink)]/55">{t("Try a customer name or phone, an invoice number, a product SKU or barcode, or a page name.")}</p>
                     <button
                       type="button"
@@ -394,7 +395,7 @@ export function CommandPalette({ pages, actions, locale = "en" }: CommandPalette
                   <li role="presentation" className="px-4 py-2 text-xs text-[var(--color-ink)]/50">{t("Searching records…")}</li>
                 )}
                 {noRecordHits && items.length > 0 && !loading && (
-                  <li role="presentation" className="px-4 py-2 text-xs text-[var(--color-ink)]/50">No customers, bookings, invoices or products match — showing pages and actions.</li>
+                  <li role="presentation" className="px-4 py-2 text-xs text-[var(--color-ink)]/50">{t("No customers, bookings, invoices or products match — showing pages and actions.")}</li>
                 )}
               </ul>
 

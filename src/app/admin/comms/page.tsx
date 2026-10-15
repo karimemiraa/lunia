@@ -6,6 +6,9 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { getCommsConfig, type CommsProvider } from "@/modules/comms/config";
 import { listCommunicationLog, COMMUNICATION_LOG_STATUSES } from "@/modules/comms/log";
 import { KIND_VALUES } from "@/modules/comms/templates";
+import { KIND_META } from "@/modules/comms/templateCatalog";
+import { getStaffLocale, getStaffT } from "../_i18n/display";
+import type { T } from "../_i18n/t";
 
 interface CommsPageProps {
   searchParams: Promise<{ kind?: string; status?: string; page?: string }>;
@@ -35,12 +38,12 @@ const sectionClass = "flex flex-col gap-4 lunia-card p-5";
 // A "which credential is present" boolean row. Values are NEVER rendered —
 // only whether the underlying env var resolved to a non-empty string, per
 // getCommsConfig()'s contract that secrets never leave that module.
-function CredentialRow({ label, present }: { label: string; present: boolean }) {
+function CredentialRow({ label, present, t }: { label: string; present: boolean; t: T }) {
   return (
     <div className="flex items-center justify-between gap-4 text-sm">
-      <span className="text-[var(--color-ink)]/70">{label}</span>
+      <span className="text-[var(--color-ink)]/70">{t(label)}</span>
       <span className={`font-medium ${present ? "text-[var(--color-teal)]" : "text-[var(--color-ink)]/50"}`}>
-        {present ? "Yes" : "No"}
+        {present ? t("Yes") : t("No")}
       </span>
     </div>
   );
@@ -49,6 +52,9 @@ function CredentialRow({ label, present }: { label: string; present: boolean }) 
 export default async function CommsPage({ searchParams }: CommsPageProps) {
   const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
   const params = await searchParams;
+  const t = await getStaffT();
+  const locale = await getStaffLocale();
+  const STATUS_LABELS: Record<string, string> = { SENT: "Sent", FAILED: "Failed" };
 
   const kind = params.kind && isKind(params.kind) ? params.kind : undefined;
   const status = params.status && isStatus(params.status) ? params.status : undefined;
@@ -77,51 +83,51 @@ export default async function CommsPage({ searchParams }: CommsPageProps) {
           href="/admin/comms/templates"
           className="lunia-btn lunia-btn-ghost"
         >
-          Message templates
+          {t("Message templates")}
         </Link>
       }
     >
       <div className="flex flex-col gap-8">
         <section className={sectionClass} data-testid="comms-provider-status">
-          <h2 className="text-lg font-semibold text-[var(--color-ink)]">Provider status</h2>
+          <h2 className="text-lg font-semibold text-[var(--color-ink)]">{t("Provider status")}</h2>
           {config.provider === "none" ? (
             <p className="text-sm text-[var(--color-ink)]/70" data-testid="comms-provider-none">
-              No provider configured. Messages are logged only (dev/stub).
+              {t("No provider configured. Messages are logged only (dev/stub).")}
             </p>
           ) : (
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="text-[var(--color-ink)]/70">Provider</span>
+                <span className="text-[var(--color-ink)]/70">{t("Provider")}</span>
                 <span className="font-medium text-[var(--color-ink)]" data-testid="comms-provider-name">
                   {PROVIDER_LABELS[config.provider]}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="text-[var(--color-ink)]/70">Configured</span>
+                <span className="text-[var(--color-ink)]/70">{t("Configured")}</span>
                 <span
                   className={`font-medium ${config.configured ? "text-[var(--color-teal)]" : "text-red-600"}`}
                   data-testid="comms-provider-configured"
                 >
-                  {config.configured ? "Yes" : "No"}
+                  {config.configured ? t("Yes") : t("No")}
                 </span>
               </div>
               {config.provider === "meta_whatsapp" && (
                 <>
-                  <CredentialRow label="Access token present" present={!!config.meta?.token} />
-                  <CredentialRow label="Phone number ID present" present={!!config.meta?.phoneId} />
+                  <CredentialRow label="Access token present" t={t} present={!!config.meta?.token} />
+                  <CredentialRow label="Phone number ID present" t={t} present={!!config.meta?.phoneId} />
                 </>
               )}
               {config.provider === "twilio" && (
                 <>
-                  <CredentialRow label="Account SID present" present={!!config.twilio?.accountSid} />
-                  <CredentialRow label="Auth token present" present={!!config.twilio?.authToken} />
-                  <CredentialRow label="From number present" present={!!config.twilio?.from} />
+                  <CredentialRow label="Account SID present" t={t} present={!!config.twilio?.accountSid} />
+                  <CredentialRow label="Auth token present" t={t} present={!!config.twilio?.authToken} />
+                  <CredentialRow label="From number present" t={t} present={!!config.twilio?.from} />
                 </>
               )}
               {config.provider === "unifonic" && (
                 <>
-                  <CredentialRow label="App SID present" present={!!config.unifonic?.appSid} />
-                  <CredentialRow label="Sender ID present" present={!!config.unifonic?.senderId} />
+                  <CredentialRow label="App SID present" t={t} present={!!config.unifonic?.appSid} />
+                  <CredentialRow label="Sender ID present" t={t} present={!!config.unifonic?.senderId} />
                 </>
               )}
             </div>
@@ -129,40 +135,40 @@ export default async function CommsPage({ searchParams }: CommsPageProps) {
         </section>
 
         <section className="flex flex-col gap-4" data-testid="comms-log-section">
-          <h2 className="text-lg font-semibold text-[var(--color-ink)]">Communication log</h2>
+          <h2 className="text-lg font-semibold text-[var(--color-ink)]">{t("Communication log")}</h2>
 
           <form method="get" className="flex flex-wrap items-end gap-3" data-testid="comms-log-filter-form">
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-[var(--color-ink)]">Kind</span>
+              <span className="font-medium text-[var(--color-ink)]">{t("Kind")}</span>
               <select name="kind" defaultValue={kind ?? ""} className={inputClass}>
-                <option value="">All kinds</option>
+                <option value="">{t("All kinds")}</option>
                 {KIND_VALUES.map((k) => (
                   <option key={k} value={k}>
-                    {k}
+                    {locale === "ar" ? t(KIND_META[k]?.label ?? k) : k}
                   </option>
                 ))}
               </select>
             </label>
 
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-[var(--color-ink)]">Status</span>
+              <span className="font-medium text-[var(--color-ink)]">{t("Status")}</span>
               <select name="status" defaultValue={status ?? ""} className={inputClass}>
-                <option value="">All statuses</option>
+                <option value="">{t("All statuses")}</option>
                 {COMMUNICATION_LOG_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {locale === "ar" ? t(STATUS_LABELS[s] ?? s) : s}
                   </option>
                 ))}
               </select>
             </label>
 
             <button type="submit" className="lunia-btn lunia-btn-primary">
-              Filter
+              {t("Filter")}
             </button>
           </form>
 
           <p className="text-sm text-[var(--color-ink)]/60" data-testid="comms-log-row-count">
-            {total} message{total === 1 ? "" : "s"}
+            {total === 1 ? t("1 message") : t("{count} messages", { count: total })}
           </p>
 
           <div data-testid="comms-log-table">
@@ -173,20 +179,20 @@ export default async function CommsPage({ searchParams }: CommsPageProps) {
             <div className="flex items-center gap-3 text-sm" data-testid="comms-log-pagination">
               {page > 1 ? (
                 <a href={pageHref(page - 1)} className="text-[var(--color-teal)] hover:underline">
-                  Previous
+                  {t("Previous")}
                 </a>
               ) : (
-                <span className="text-[var(--color-ink)]/30">Previous</span>
+                <span className="text-[var(--color-ink)]/30">{t("Previous")}</span>
               )}
               <span className="text-[var(--color-ink)]/70">
-                Page {page} of {totalPages}
+                {t("Page {page} of {pageCount}", { page, pageCount: totalPages })}
               </span>
               {page < totalPages ? (
                 <a href={pageHref(page + 1)} className="text-[var(--color-teal)] hover:underline">
-                  Next
+                  {t("Next")}
                 </a>
               ) : (
-                <span className="text-[var(--color-ink)]/30">Next</span>
+                <span className="text-[var(--color-ink)]/30">{t("Next")}</span>
               )}
             </div>
           )}

@@ -9,6 +9,7 @@ import { DateRangeFields, DateRangeShortcuts } from "../_ui/DateRangePicker";
 import { formatSar } from "../_ui/money";
 import { toISODate } from "../_ui/dates";
 import { InvoicesTable, type InvoiceRowDTO } from "./InvoicesTable";
+import { getStaffT } from "../_i18n/display";
 
 interface BillingPageProps {
   searchParams: Promise<{ status?: string; from?: string; to?: string; q?: string; kind?: string }>;
@@ -24,6 +25,7 @@ const dayStart = (iso: string) => new Date(`${iso}T00:00:00+03:00`);
 
 export default async function BillingPage({ searchParams }: BillingPageProps) {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
+  const t = await getStaffT();
   const params = await searchParams;
   const status = (STATUSES as readonly string[]).includes(params.status ?? "") ? (params.status as Status) : undefined;
   const kind = params.kind === "CREDIT_NOTE" || params.kind === "INVOICE" ? params.kind : undefined;
@@ -55,7 +57,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
   }));
 
   const current = { status, kind, from, to, q };
-  const chipValues = [...STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))];
+  const chipValues = [...STATUSES.map((s) => ({ value: s, label: t(STATUS_LABEL[s]) }))];
 
   return (
     <AdminShell
@@ -65,24 +67,24 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
       actions={
         <>
           <Link href="/admin/billing/settings" className="lunia-btn lunia-btn-ghost min-h-11">
-            Tax settings
+            {t("Tax settings")}
           </Link>
           <Link href="/admin/billing/new" className="lunia-btn lunia-btn-forest min-h-11">
-            New sale
+            {t("New sale")}
           </Link>
         </>
       }
     >
       <div className="flex flex-col gap-5">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard label="Invoiced (net of credits)" value={formatSar(totals.totalMinor)} hint="Incl. VAT, for this filter" />
-          <KpiCard label="VAT" value={formatSar(totals.vatMinor)} />
-          <KpiCard label="Collected" value={formatSar(totals.paidMinor)} tone="success" />
-          <KpiCard label="Awaiting payment" value={unpaidCount} tone={unpaidCount > 0 ? "warning" : "neutral"} hint={unpaidCount > 0 ? "Open invoices matching these filters" : "Nothing outstanding"} href={unpaidCount > 0 ? "/admin/billing?status=ISSUED" : undefined} />
+          <KpiCard label={t("Invoiced (net of credits)")} value={formatSar(totals.totalMinor)} hint={t("Incl. VAT, for this filter")} />
+          <KpiCard label={t("VAT")} value={formatSar(totals.vatMinor)} />
+          <KpiCard label={t("Collected")} value={formatSar(totals.paidMinor)} tone="success" />
+          <KpiCard label={t("Awaiting payment")} value={unpaidCount} tone={unpaidCount > 0 ? "warning" : "neutral"} hint={unpaidCount > 0 ? t("Open invoices matching these filters") : t("Nothing outstanding")} href={unpaidCount > 0 ? "/admin/billing?status=ISSUED" : undefined} />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <FilterChips base="/admin/billing" param="status" values={chipValues} active={kind ? undefined : status} params={{ from, to, q }} label="Invoice status" />
+          <FilterChips base="/admin/billing" param="status" values={chipValues} active={kind ? undefined : status} params={{ from, to, q }} label={t("Invoice status")} />
           <Link
             href={kind === "CREDIT_NOTE" ? "/admin/billing" : "/admin/billing?kind=CREDIT_NOTE"}
             aria-current={kind === "CREDIT_NOTE" ? "page" : undefined}
@@ -90,17 +92,17 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
               kind === "CREDIT_NOTE" ? "bg-[var(--color-teal)] text-[var(--color-ink)]" : "border border-[var(--color-ink)]/20 text-[var(--color-ink)]/70 hover:bg-[var(--color-ink)]/5"
             }`}
           >
-            Credit notes
+            {t("Credit notes")}
           </Link>
         </div>
 
-        <FilterBar base="/admin/billing" params={current} keep={["status", "kind"]} searchParam="q" searchPlaceholder="Invoice no., customer name or phone" actions={<DateRangeShortcuts base="/admin/billing" todayISO={todayISO} params={current} activeFrom={from} activeTo={to} only={["Today", "Last 7 days", "This month", "Last month"]} />}>
+        <FilterBar base="/admin/billing" params={current} keep={["status", "kind"]} searchParam="q" searchPlaceholder={t("Invoice no., customer name or phone")} actions={<DateRangeShortcuts base="/admin/billing" todayISO={todayISO} params={current} activeFrom={from} activeTo={to} only={["Today", "Last 7 days", "This month", "Last month"]} />}>
           <DateRangeFields fromISO={from ?? ""} toISO={to ?? ""} />
         </FilterBar>
 
         {rows.length >= 200 && (
           <p className="text-sm text-[var(--color-ink)]/60" data-testid="invoices-truncated">
-            Showing the latest 200 invoices. Use the dates or search to find older ones.
+            {t("Showing the latest 200 invoices. Use the dates or search to find older ones.")}
           </p>
         )}
         <InvoicesTable rows={dto} totals={totals} filtered={!!(status || kind || from || to || q)} />

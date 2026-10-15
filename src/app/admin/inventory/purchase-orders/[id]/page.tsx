@@ -7,9 +7,11 @@ import { getPurchaseOrder, getReceiptsForPo } from "@/modules/inventory/purchase
 import { listProductOptions } from "@/modules/inventory/products";
 import { listSupplierOptions } from "@/modules/inventory/suppliers";
 import { formatSarMinor } from "@/modules/inventory/money";
+import { getStaffLocale, getStaffT } from "../../../_i18n/display";
 import { PoEditor } from "../../_components/PoEditor";
 import { PoReceiveForm, PoStatusActions } from "../../_components/PoReceive";
-import { InventorySubnav, PoStatusBadge, ResponsiveTable, Section, formatDate, formatDateTime } from "../../_components/ui";
+import { arabicProductNames } from "../../_components/arabicNames";
+import { InventorySubnav, PoStatusBadge, ResponsiveTable, Section, formatDate, formatDateTime, productName, qtyUnit } from "../../_components/ui";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -23,21 +25,33 @@ export default async function PurchaseOrderPage({ params }: Props) {
 
   const isDraft = po.status === "DRAFT";
   const canReceive = po.status === "ORDERED" || po.status === "PARTIAL";
-  const [receipts, suppliers, products] = await Promise.all([
+  const [receipts, suppliers, productOptions, t, locale] = await Promise.all([
     getReceiptsForPo(id),
     isDraft ? listSupplierOptions() : Promise.resolve([]),
     isDraft ? listProductOptions() : Promise.resolve([]),
+    getStaffT(),
+    getStaffLocale(),
   ]);
+  const arNames = await arabicProductNames(locale, [...productOptions.map((p) => p.id), ...receipts.map((m) => m.productId)]);
+  const products = productOptions.map((p) => ({ ...p, nameAr: arNames.get(p.id) ?? null }));
+  const description = [
+    po.supplier.name,
+    t("created {date}", { date: formatDate(po.createdAt, locale) }),
+    po.orderedAt ? t("ordered {date}", { date: formatDate(po.orderedAt, locale) }) : null,
+    po.receivedAt ? t("received {date}", { date: formatDate(po.receivedAt, locale) }) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const supplierOptions = suppliers.some((s) => s.id === po.supplierId) ? suppliers : [...suppliers, { id: po.supplier.id, name: po.supplier.name }];
 
   return (
     <AdminShell
       user={user}
       title={po.number}
-      description={`${po.supplier.name} · created ${formatDate(po.createdAt)}${po.orderedAt ? ` · ordered ${formatDate(po.orderedAt)}` : ""}${po.receivedAt ? ` · received ${formatDate(po.receivedAt)}` : ""}`}
+      description={description}
       actions={
         <Link href={`/admin/inventory/purchase-orders/${po.id}/print`} target="_blank" className="lunia-btn lunia-btn-ghost min-h-11">
-          Print / PDF
+          {t("Print / PDF")}
         </Link>
       }
     >
@@ -61,33 +75,33 @@ export default async function PurchaseOrderPage({ params }: Props) {
         />
       ) : (
         <>
-          {po.notes && <p className="mb-4 text-sm text-[var(--color-ink)]/70">Notes: {po.notes}</p>}
+          {po.notes && <p className="mb-4 text-sm text-[var(--color-ink)]/70">{t("Notes: {notes}", { notes: po.notes })}</p>}
           <ResponsiveTable
             rows={po.lines}
             rowKey={(l) => l.id}
             columns={[
               {
                 key: "product",
-                header: "Product",
+                header: t("Product"),
                 render: (l) => (
                   <Link href={`/admin/inventory/products/${l.product.id}`} className="font-medium hover:underline">
-                    {l.product.nameEn}
+                    {productName(l.product, locale)}
                   </Link>
                 ),
               },
-              { key: "ordered", header: "Ordered", align: "right", render: (l) => `${l.qty} ${l.product.unit}` },
+              { key: "ordered", header: t("Ordered"), align: "right", render: (l) => qtyUnit(l.qty, l.product.unit, t) },
               {
                 key: "received",
-                header: "Received",
+                header: t("Received"),
                 align: "right",
                 render: (l) => <span className={l.receivedQty < l.qty ? "text-[var(--color-ink)]/70" : "font-medium text-[var(--color-teal-ink)]"}>{l.receivedQty}</span>,
               },
-              { key: "cost", header: "Unit cost", align: "right", render: (l) => formatSarMinor(l.unitCostMinor) },
-              { key: "total", header: "Line total", align: "right", render: (l) => formatSarMinor(l.qty * l.unitCostMinor) },
+              { key: "cost", header: t("Unit cost"), align: "right", render: (l) => formatSarMinor(l.unitCostMinor) },
+              { key: "total", header: t("Line total"), align: "right", render: (l) => formatSarMinor(l.qty * l.unitCostMinor) },
             ]}
           />
           <div className="mt-3 flex justify-end gap-6 text-sm">
-            <span className="text-[var(--color-ink)]/60">Total excl. VAT</span>
+            <span className="text-[var(--color-ink)]/60">{t("Total excl. VAT")}</span>
             <span className="font-semibold tabular-nums">{formatSarMinor(po.totalMinor)}</span>
           </div>
         </>
@@ -97,22 +111,22 @@ export default async function PurchaseOrderPage({ params }: Props) {
         <div className="mt-8">
           <PoReceiveForm
             poId={po.id}
-            lines={po.lines.map((l) => ({ id: l.id, productName: l.product.nameEn, unit: l.product.unit, qty: l.qty, receivedQty: l.receivedQty }))}
+            lines={po.lines.map((l) => ({ id: l.id, productName: productName(l.product, locale), unit: l.product.unit, qty: l.qty, receivedQty: l.receivedQty }))}
           />
         </div>
       )}
 
       {receipts.length > 0 && (
-        <Section title="Receipts">
+        <Section title={t("Receipts")}>
           <ResponsiveTable
             rows={receipts}
             rowKey={(m) => m.id}
             columns={[
-              { key: "product", header: "Product", render: (m) => m.product.nameEn },
-              { key: "when", header: "Received", render: (m) => formatDateTime(m.createdAt) },
-              { key: "qty", header: "Qty", align: "right", render: (m) => `${m.qty} ${m.product.unit}` },
-              { key: "lot", header: "Lot", render: (m) => <span className="font-mono text-xs">{m.lotNumber ?? "—"}</span> },
-              { key: "expires", header: "Expires", render: (m) => formatDate(m.expiresAt) },
+              { key: "product", header: t("Product"), render: (m) => arNames.get(m.productId) ?? m.product.nameEn },
+              { key: "when", header: t("Received"), render: (m) => formatDateTime(m.createdAt, locale) },
+              { key: "qty", header: t("Qty"), align: "right", render: (m) => qtyUnit(m.qty, m.product.unit, t) },
+              { key: "lot", header: t("Lot"), render: (m) => <span className="font-mono text-xs">{m.lotNumber ?? "—"}</span> },
+              { key: "expires", header: t("Expires"), render: (m) => formatDate(m.expiresAt, locale) },
             ]}
           />
         </Section>

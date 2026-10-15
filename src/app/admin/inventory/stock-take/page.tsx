@@ -20,6 +20,7 @@ export default async function StockTakePage() {
         products={products.map((p) => ({
           id: p.id,
           nameEn: p.nameEn,
+          nameAr: p.nameAr,
           sku: p.sku,
           barcode: p.barcode,
           category: p.category,

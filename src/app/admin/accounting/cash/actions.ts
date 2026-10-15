@@ -9,6 +9,7 @@ import { requireCashDrawer } from "../_components/access";
 import { recordAudit } from "@/modules/iam/audit";
 import { CashSessionError, closeCashSession, openCashSession } from "@/modules/accounting/cash";
 import { formatMinor, parseSarToMinor } from "@/modules/accounting/periods";
+import { getStaffT } from "../../_i18n/display";
 
 export interface CashFormState {
   error?: string;
@@ -22,8 +23,9 @@ const str = (formData: FormData, key: string) => {
 
 export async function openCashSessionAction(_prev: CashFormState | null, formData: FormData): Promise<CashFormState> {
   const user = await requireCashDrawer();
+  const t = await getStaffT();
   const float = parseSarToMinor(str(formData, "float") || "0");
-  if (float === null) return { error: "Enter the opening float in SAR, e.g. 500." };
+  if (float === null) return { error: t("Enter the opening float in SAR, e.g. 500.") };
   try {
     const session = await openCashSession({ openedById: user.id, openingFloatMinor: float, note: str(formData, "note") });
     await recordAudit({
@@ -34,7 +36,7 @@ export async function openCashSessionAction(_prev: CashFormState | null, formDat
       summary: `Opened the cash drawer with a ${formatMinor(float)} float`,
     });
   } catch (err) {
-    if (err instanceof CashSessionError) return { error: err.message };
+    if (err instanceof CashSessionError) return { error: t(err.message) };
     throw err;
   }
   revalidatePath("/admin/accounting/cash");
@@ -43,8 +45,9 @@ export async function openCashSessionAction(_prev: CashFormState | null, formDat
 
 export async function closeCashSessionAction(_prev: CashFormState | null, formData: FormData): Promise<CashFormState> {
   const user = await requireCashDrawer();
+  const t = await getStaffT();
   const counted = parseSarToMinor(str(formData, "counted"));
-  if (counted === null) return { error: "Enter the counted cash in SAR, e.g. 1840.50." };
+  if (counted === null) return { error: t("Enter the counted cash in SAR, e.g. 1840.50.") };
   let closedId: string;
   try {
     const closed = await closeCashSession({
@@ -62,7 +65,7 @@ export async function closeCashSessionAction(_prev: CashFormState | null, formDa
       summary: `Closed the cash drawer: counted ${formatMinor(counted)}, expected ${formatMinor(closed.expectedCashMinor ?? 0)}, variance ${formatMinor(closed.varianceMinor)}`,
     });
   } catch (err) {
-    if (err instanceof CashSessionError) return { error: err.message };
+    if (err instanceof CashSessionError) return { error: t(err.message) };
     throw err;
   }
   revalidatePath("/admin/accounting/cash");

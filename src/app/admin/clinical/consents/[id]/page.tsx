@@ -6,6 +6,8 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { getConsentForm } from "@/modules/clinical/consents";
 import { ConsentFormEditor } from "../ConsentFormEditor";
 import { servicesForPicker } from "../servicesForPicker";
+import { getStaffLocale } from "../../../_i18n/display";
+import { makeT } from "../../../_i18n/t";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -15,21 +17,23 @@ interface Props {
 export default async function EditConsentFormPage({ params, searchParams }: Props) {
   const [{ id }, { created }] = await Promise.all([params, searchParams]);
   const user = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  const locale = await getStaffLocale();
+  const t = makeT(locale);
   const [form, services] = await Promise.all([getConsentForm(id), servicesForPicker()]);
   if (!form) notFound();
 
   return (
     <AdminShell
       user={user}
-      title={form.titleEn}
-      description={`Version ${form.version}`}
+      title={locale === "ar" ? form.titleAr || form.titleEn : form.titleEn}
+      description={t("Version {version}", { version: form.version })}
       actions={
         <Link href="/admin/clinical/consents" className="lunia-btn lunia-btn-ghost min-h-11">
-          All forms
+          {t("All forms")}
         </Link>
       }
     >
-      {created && <p className="mb-5 rounded-[var(--radius-sm)] bg-[var(--color-teal)]/12 px-4 py-3 text-sm">Form created.</p>}
+      {created && <p className="mb-5 rounded-[var(--radius-sm)] bg-[var(--color-teal)]/12 px-4 py-3 text-sm">{t("Form created.")}</p>}
       <div className="lunia-card p-5 sm:p-8">
         <ConsentFormEditor
           key={form.version}

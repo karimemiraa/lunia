@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../_i18n/display";
 import { channelPerformance, bestChannels, newVsReturning } from "@/modules/crm/marketing";
 import { topClientsByLtv } from "@/modules/crm/ltv";
 import { trafficSources, topPages, bookingConversion } from "@/modules/analytics/queries";
@@ -13,13 +14,9 @@ const TOP_PAGES_LIMIT = 10;
 const TOP_CLIENTS_LIMIT = 10;
 
 /** priceMinor / spendMinor / revenueMinor / ltvMinor are stored in halalas (1/100 SAR). */
-function formatSar(minor: number): string {
+function formatSarWith(minor: number, unit: string): string {
   const major = minor / 100;
-  return `${major.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR`;
-}
-
-function formatSarOrDash(minor: number | null): string {
-  return minor === null ? "None" : formatSar(minor);
+  return `${major.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${unit}`;
 }
 
 function formatCount(value: number): string {
@@ -33,6 +30,9 @@ function formatPercent(rate: number): string {
 export default async function MarketingDashboardPage() {
   const user = await requireAdmin(PERMISSIONS.ANALYTICS_VIEW);
   const canManageCampaigns = user.permissions.has(PERMISSIONS.MARKETING_MANAGE);
+  const t = await getStaffT();
+  const formatSar = (minor: number): string => formatSarWith(minor, t("SAR"));
+  const formatSarOrDash = (minor: number | null): string => (minor === null ? t("None") : formatSar(minor));
 
   // Current center-local month, month-to-date: [start of this month, start of tomorrow).
   const now = new Date();
@@ -64,14 +64,14 @@ export default async function MarketingDashboardPage() {
     <AdminShell
       user={user}
       title="Marketing & Growth"
-      description={`Acquisition cost, lifetime value, and traffic performance for ${monthStartISO.slice(0, 7)} (month to date, center-local time).`}
+      description={t("Acquisition cost, lifetime value, and traffic performance for {month} (month to date, center-local time).", { month: monthStartISO.slice(0, 7) })}
       actions={
         canManageCampaigns ? (
           <Link
             href="/admin/marketing/campaigns"
             className="lunia-btn lunia-btn-primary"
           >
-            Manage campaign spend
+            {t("Manage campaign spend")}
           </Link>
         ) : undefined
       }
@@ -79,37 +79,37 @@ export default async function MarketingDashboardPage() {
       <div className="flex flex-col gap-8">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-lg)] bg-[var(--color-forest)] px-6 py-5 text-[var(--color-on-ink)] shadow-[var(--shadow-sm)]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-teal)]">Marketing & Growth</p>
-          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">Month to date</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-teal)]">{t("Marketing & Growth")}</p>
+          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">{t("Month to date")}</p>
         </div>
         <div className="flex flex-wrap gap-6">
-          <div><p className="text-xs uppercase tracking-wide text-[var(--color-on-ink)]/60">New customers</p><p className="text-2xl font-medium">{formatCount(newVsReturningStats.newClients)}</p></div>
-          <div><p className="text-xs uppercase tracking-wide text-[var(--color-on-ink)]/60">Conversion</p><p className="text-2xl font-medium">{formatPercent(conversion.rate)}</p></div>
-          <div><p className="text-xs uppercase tracking-wide text-[var(--color-on-ink)]/60">Best channel</p><p className="text-2xl font-medium">{best.lowestCac ? best.lowestCac.channel : "None"}</p></div>
+          <div><p className="text-xs uppercase tracking-wide text-[var(--color-on-ink)]/60">{t("New customers")}</p><p className="text-2xl font-medium">{formatCount(newVsReturningStats.newClients)}</p></div>
+          <div><p className="text-xs uppercase tracking-wide text-[var(--color-on-ink)]/60">{t("Conversion")}</p><p className="text-2xl font-medium">{formatPercent(conversion.rate)}</p></div>
+          <div><p className="text-xs uppercase tracking-wide text-[var(--color-on-ink)]/60">{t("Best channel")}</p><p className="text-2xl font-medium">{best.lowestCac ? best.lowestCac.channel : t("None")}</p></div>
         </div>
       </div>
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
-            CAC by Channel
+            {t("CAC by Channel")}
           </h2>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="overflow-x-auto lunia-card">
-              <table className="w-full text-left text-sm" data-testid="cac-table">
+              <table className="w-full text-start text-sm" data-testid="cac-table">
                 <thead className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
                   <tr>
-                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Channel</th>
-                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Acquisitions</th>
-                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Spend</th>
-                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">CAC</th>
-                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Revenue</th>
-                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Avg LTV</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Channel")}</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Acquisitions")}</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Spend")}</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("CAC")}</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Revenue")}</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Avg LTV")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {performance.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-4 py-6 text-center text-[var(--color-ink)]/60">
-                        No channel activity yet this month.
+                        {t("No channel activity yet this month.")}
                       </td>
                     </tr>
                   ) : (
@@ -127,67 +127,67 @@ export default async function MarketingDashboardPage() {
                 </tbody>
               </table>
             </div>
-            <BarChart title="CAC by Channel" data={cacChartData} valueFormatter={formatSar} emptyMessage="No channel has both spend and acquisitions yet." />
+            <BarChart title={t("CAC by Channel")} data={cacChartData} valueFormatter={formatSar} emptyMessage={t("No channel has both spend and acquisitions yet.")} />
           </div>
         </section>
 
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">Best Channels</h2>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">{t("Best Channels")}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <StatCard
-              label="Lowest CAC"
-              value={best.lowestCac ? `${best.lowestCac.channel}: ${formatSar(best.lowestCac.cacMinor)}` : "None"}
-              subNote="Cheapest channel that acquired a customer this month"
+              label={t("Lowest CAC")}
+              value={best.lowestCac ? `${best.lowestCac.channel}: ${formatSar(best.lowestCac.cacMinor)}` : t("None")}
+              subNote={t("Cheapest channel that acquired a customer this month")}
             />
             <StatCard
-              label="Highest Avg LTV"
-              value={best.highestAvgLtv ? `${best.highestAvgLtv.channel}: ${formatSar(best.highestAvgLtv.avgLtvMinor)}` : "None"}
-              subNote="Channel whose acquired customers spend the most, lifetime"
+              label={t("Highest Avg LTV")}
+              value={best.highestAvgLtv ? `${best.highestAvgLtv.channel}: ${formatSar(best.highestAvgLtv.avgLtvMinor)}` : t("None")}
+              subNote={t("Channel whose acquired customers spend the most, lifetime")}
             />
           </div>
         </section>
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
-            New vs Returning
+            {t("New vs Returning")}
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard label="New Customers" value={formatCount(newVsReturningStats.newClients)} />
-            <StatCard label="Returning Bookings" value={formatCount(newVsReturningStats.returningBookings)} />
-            <StatCard label="New Customer Share" value={formatPercent(newShare)} subNote="Of new + returning bookings this month" />
+            <StatCard label={t("New Customers")} value={formatCount(newVsReturningStats.newClients)} />
+            <StatCard label={t("Returning Bookings")} value={formatCount(newVsReturningStats.returningBookings)} />
+            <StatCard label={t("New Customer Share")} value={formatPercent(newShare)} subNote={t("Of new + returning bookings this month")} />
           </div>
         </section>
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
-            Booking Conversion
+            {t("Booking Conversion")}
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard label="Sessions Started Booking" value={formatCount(conversion.startedSessions)} />
-            <StatCard label="Bookings Completed" value={formatCount(conversion.completed)} />
-            <StatCard label="Conversion Rate" value={formatPercent(conversion.rate)} />
+            <StatCard label={t("Sessions Started Booking")} value={formatCount(conversion.startedSessions)} />
+            <StatCard label={t("Bookings Completed")} value={formatCount(conversion.completed)} />
+            <StatCard label={t("Conversion Rate")} value={formatPercent(conversion.rate)} />
           </div>
         </section>
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
-              Traffic Sources
+              {t("Traffic Sources")}
             </h2>
             <div className="overflow-x-auto lunia-card">
-              <table className="w-full text-left text-sm" data-testid="traffic-sources-table">
+              <table className="w-full text-start text-sm" data-testid="traffic-sources-table">
                 <thead className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
                   <tr>
-                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Source</th>
-                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Views</th>
-                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Sessions</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Source")}</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Views")}</th>
+                    <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Sessions")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {traffic.length === 0 ? (
                     <tr>
                       <td colSpan={3} className="px-4 py-6 text-center text-[var(--color-ink)]/60">
-                        No traffic recorded yet this month.
+                        {t("No traffic recorded yet this month.")}
                       </td>
                     </tr>
                   ) : (
@@ -203,30 +203,30 @@ export default async function MarketingDashboardPage() {
               </table>
             </div>
           </div>
-          <BarChart title="Traffic Sources (Views)" data={trafficChartData} emptyMessage="No traffic recorded yet this month." />
+          <BarChart title={t("Traffic Sources (Views)")} data={trafficChartData} emptyMessage={t("No traffic recorded yet this month.")} />
         </section>
 
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">Top Pages</h2>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">{t("Top Pages")}</h2>
           <div className="overflow-x-auto lunia-card">
-            <table className="w-full text-left text-sm" data-testid="top-pages-table">
+            <table className="w-full text-start text-sm" data-testid="top-pages-table">
               <thead className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
                 <tr>
-                  <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Path</th>
-                  <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Views</th>
+                  <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Path")}</th>
+                  <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Views")}</th>
                 </tr>
               </thead>
               <tbody>
                 {pages.length === 0 ? (
                   <tr>
                     <td colSpan={2} className="px-4 py-6 text-center text-[var(--color-ink)]/60">
-                      No page views recorded yet this month.
+                      {t("No page views recorded yet this month.")}
                     </td>
                   </tr>
                 ) : (
                   pages.map((row) => (
                     <tr key={row.path} className="border-t border-[var(--color-ink)]/10">
-                      <td className="px-4 py-2 text-[var(--color-ink)]">{row.path}</td>
+                      <td className="px-4 py-2 text-[var(--color-ink)]" dir="ltr">{row.path}</td>
                       <td className="px-4 py-2 text-[var(--color-ink)]">{formatCount(row.views)}</td>
                     </tr>
                   ))
@@ -238,21 +238,21 @@ export default async function MarketingDashboardPage() {
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">
-            Top Clients by Lifetime Value
+            {t("Top Clients by Lifetime Value")}
           </h2>
           <div className="overflow-x-auto lunia-card">
-            <table className="w-full text-left text-sm" data-testid="top-clients-table">
+            <table className="w-full text-start text-sm" data-testid="top-clients-table">
               <thead className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
                 <tr>
-                  <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Customer</th>
-                  <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Lifetime Value</th>
+                  <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Customer")}</th>
+                  <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Lifetime Value")}</th>
                 </tr>
               </thead>
               <tbody>
                 {topClients.length === 0 ? (
                   <tr>
                     <td colSpan={2} className="px-4 py-6 text-center text-[var(--color-ink)]/60">
-                      No clients with completed bookings yet.
+                      {t("No clients with completed bookings yet.")}
                     </td>
                   </tr>
                 ) : (

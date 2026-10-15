@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
+import { catalogErrorMessage } from "../_errors";
 import { createBrand, updateBrand, deleteBrand } from "@/modules/catalog/brands";
 
 export interface BrandActionState {
@@ -36,6 +38,7 @@ function revalidatePublic(): void {
 
 export async function createBrandAction(_prev: BrandActionState | null, formData: FormData): Promise<BrandActionState> {
   await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
 
   const slug = String(formData.get("slug") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -43,7 +46,7 @@ export async function createBrandAction(_prev: BrandActionState | null, formData
   const whyChosen = readLocalized(formData, "whyChosen");
 
   if (!slug || !name) {
-    return { error: "Slug and name are required." };
+    return { error: t("Slug and name are required.") };
   }
 
   try {
@@ -60,7 +63,7 @@ export async function createBrandAction(_prev: BrandActionState | null, formData
       isPublished: formData.get("isPublished") === "on",
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create brand." };
+    return { error: err instanceof Error ? catalogErrorMessage(err.message, t) : t("Failed to create brand.") };
   }
 
   revalidatePublic();
@@ -69,10 +72,11 @@ export async function createBrandAction(_prev: BrandActionState | null, formData
 
 export async function updateBrandAction(_prev: BrandActionState | null, formData: FormData): Promise<BrandActionState> {
   await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
-    return { error: "Missing brand." };
+    return { error: t("Missing brand.") };
   }
 
   const name = String(formData.get("name") ?? "").trim();
@@ -92,7 +96,7 @@ export async function updateBrandAction(_prev: BrandActionState | null, formData
       isPublished: formData.get("isPublished") === "on",
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update brand." };
+    return { error: err instanceof Error ? catalogErrorMessage(err.message, t) : t("Failed to update brand.") };
   }
 
   revalidatePublic();

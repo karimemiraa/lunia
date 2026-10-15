@@ -104,7 +104,7 @@ export function AskLunia({ locale, aiEnabled }: { locale: StaffLocale; aiEnabled
       try {
         reply = await askAssistantAction(q, history);
       } catch {
-        reply = { text: "I couldn't reach the server. Check your connection and try again.", source: "rules" };
+        reply = { text: t("I couldn't reach the server. Check your connection and try again."), source: "rules" };
       }
       setMessages((prev) => [...prev, { id: newId(), role: "assistant", text: reply.text, reply }]);
       if (reply.requestDraft) setDraft({ title: reply.requestDraft.title ?? "", details: reply.requestDraft.details ?? "", priority: "NORMAL" });
@@ -130,7 +130,7 @@ export function AskLunia({ locale, aiEnabled }: { locale: StaffLocale; aiEnabled
           { id: newId(), role: "assistant", text: `${t("Request sent — the owners will review it.")} “${draft.title}”`, reply: { text: "", source: "rules", suggestions: ["My requests"] } },
         ]);
       } else {
-        setDraftError(res.error ?? "Couldn't send the request.");
+        setDraftError(res.error ?? t("Couldn't send the request."));
       }
     });
   }

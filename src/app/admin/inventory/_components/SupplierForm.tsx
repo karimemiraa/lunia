@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createSupplierAction, deleteSupplierAction, updateSupplierAction } from "../actions";
 import { labelClass, labelText } from "./ui";
 import { useConfirm } from "../../_ui/ConfirmDialog";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 export interface SupplierFormValues {
   id?: string;
@@ -21,6 +22,7 @@ export const EMPTY_SUPPLIER: SupplierFormValues = { name: "", contactName: "", p
 
 export function SupplierForm({ initial, canDelete = false }: { initial: SupplierFormValues; canDelete?: boolean }) {
   const [confirm, confirmDialog] = useConfirm();
+  const t = useStaffT();
   const router = useRouter();
   const isNew = !initial.id;
   const [v, setV] = useState(initial);
@@ -52,7 +54,7 @@ export function SupplierForm({ initial, canDelete = false }: { initial: Supplier
   }
 
   async function remove() {
-    if (!initial.id || !(await confirm({ title: "Delete this supplier?", description: "Products linked to it will keep existing without a supplier.", confirmLabel: "Delete" }))) return;
+    if (!initial.id || !(await confirm({ title: t("Delete this supplier?"), description: t("Products linked to it will keep existing without a supplier."), confirmLabel: t("Delete") }))) return;
     startTransition(async () => {
       const result = await deleteSupplierAction(initial.id!);
       if (!result.ok) return setError(result.error);
@@ -63,35 +65,35 @@ export function SupplierForm({ initial, canDelete = false }: { initial: Supplier
   return (
     <form onSubmit={submit} className="lunia-card flex flex-col gap-4 p-5">
       {confirmDialog}
-      <h3 className="text-base font-semibold">{isNew ? "Add a supplier" : "Supplier details"}</h3>
+      <h3 className="text-base font-semibold">{isNew ? t("Add a supplier") : t("Supplier details")}</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={labelClass}>
-          <span className={labelText}>Company name</span>
+          <span className={labelText}>{t("Company name")}</span>
           <input required value={v.name} onChange={set("name")} className="lunia-input min-h-11" />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Contact person</span>
+          <span className={labelText}>{t("Contact person")}</span>
           <input value={v.contactName} onChange={set("contactName")} className="lunia-input min-h-11" />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Phone</span>
-          <input type="tel" value={v.phone} onChange={set("phone")} className="lunia-input min-h-11" />
+          <span className={labelText}>{t("Phone")}</span>
+          <input type="tel" dir="ltr" value={v.phone} onChange={set("phone")} className="lunia-input min-h-11" />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Email</span>
-          <input type="email" value={v.email} onChange={set("email")} className="lunia-input min-h-11" />
+          <span className={labelText}>{t("Email")}</span>
+          <input type="email" dir="ltr" value={v.email} onChange={set("email")} className="lunia-input min-h-11" />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>VAT number</span>
-          <input value={v.vatNumber} onChange={set("vatNumber")} inputMode="numeric" placeholder="15 digits" className="lunia-input min-h-11 font-mono" />
+          <span className={labelText}>{t("VAT number")}</span>
+          <input dir="ltr" value={v.vatNumber} onChange={set("vatNumber")} inputMode="numeric" placeholder={t("15 digits")} className="lunia-input min-h-11 font-mono" />
         </label>
         <label className="flex min-h-11 items-center gap-3 self-end text-sm">
           <input type="checkbox" checked={v.isActive} onChange={set("isActive")} className="h-5 w-5 accent-[var(--color-teal-ink)]" />
-          Active
+          {t("Active")}
         </label>
         <label className={`${labelClass} sm:col-span-2`}>
-          <span className={labelText}>Notes</span>
-          <textarea rows={3} value={v.notes} onChange={set("notes")} placeholder="Payment terms, delivery days, account number…" className="lunia-input" />
+          <span className={labelText}>{t("Notes")}</span>
+          <textarea rows={3} value={v.notes} onChange={set("notes")} placeholder={t("Payment terms, delivery days, account number…")} className="lunia-input" />
         </label>
       </div>
       {error && (
@@ -99,14 +101,14 @@ export function SupplierForm({ initial, canDelete = false }: { initial: Supplier
           {error}
         </p>
       )}
-      {saved && <p className="text-sm font-medium text-[var(--color-teal-ink)]">Saved.</p>}
+      {saved && <p className="text-sm font-medium text-[var(--color-teal-ink)]">{t("Saved.")}</p>}
       <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={isPending} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
-          {isPending ? "Saving…" : isNew ? "Add supplier" : "Save changes"}
+          {isPending ? t("Saving…") : isNew ? t("Add supplier") : t("Save changes")}
         </button>
         {!isNew && canDelete && (
           <button type="button" onClick={remove} disabled={isPending} className="lunia-btn lunia-btn-danger min-h-11">
-            Delete
+            {t("Delete")}
           </button>
         )}
       </div>

@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { NotificationItem, NotificationType } from "@/modules/notifications/types";
 import { NOTIFICATION_TYPE_LABELS } from "@/modules/notifications/types";
-import { TypeIcon, timeAgo } from "../_components/NotificationBell";
+import { TypeIcon } from "../_components/NotificationBell";
+import { timeAgo, localizeFeedTitle } from "../_components/notificationText";
+import { useStaffT } from "../_i18n/StaffI18n";
 import { readSeen, writeSeen, pruneSeen } from "../_components/notificationSeen";
 import { EmptyState } from "../_components/EmptyState";
 
@@ -15,6 +17,7 @@ interface Props {
 
 // Full notification list with client-side seen state (see notificationSeen.ts).
 export function NotificationList({ items, showSeen }: Props) {
+  const t = useStaffT();
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
   const [hydrated, setHydrated] = useState(false);
 
@@ -42,9 +45,9 @@ export function NotificationList({ items, showSeen }: Props) {
     return (
       <div className="lunia-card">
         <EmptyState
-          title={items.length === 0 ? "Nothing needs your attention" : "Everything here is marked as seen"}
-          body={items.length === 0 ? "New inquiries, due call-backs, unpaid invoices and stock alerts will show up here." : "Switch on “Show seen” to review them again."}
-          action={items.length === 0 ? { href: "/admin", label: "Back to dashboard" } : undefined}
+          title={t(items.length === 0 ? "Nothing needs your attention" : "Everything here is marked as seen")}
+          body={t(items.length === 0 ? "New inquiries, due call-backs, unpaid invoices and stock alerts will show up here." : "Switch on “Show seen” to review them again.")}
+          action={items.length === 0 ? { href: "/admin", label: t("Back to dashboard") } : undefined}
           icon={<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" />}
         />
       </div>
@@ -59,10 +62,10 @@ export function NotificationList({ items, showSeen }: Props) {
           <li key={item.id} className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-ink)]/[0.02] sm:px-5">
             <TypeIcon type={item.type} muted={isSeen} />
             <Link href={item.href} onClick={() => !isSeen && toggle(item.id)} className="min-w-0 flex-1 rounded focus-visible:outline-none focus-visible:shadow-[var(--ring)]">
-              <span className={`block text-sm ${isSeen ? "text-[var(--color-ink)]/60" : "font-medium text-[var(--color-ink)]"}`}>{item.title}</span>
+              <span className={`block text-sm ${isSeen ? "text-[var(--color-ink)]/60" : "font-medium text-[var(--color-ink)]"}`}>{localizeFeedTitle(item.title, t)}</span>
               {item.subtitle && <span className="block text-xs text-[var(--color-ink)]/55">{item.subtitle}</span>}
               <span className="mt-0.5 block text-[0.65rem] text-[var(--color-ink)]/40">
-                {NOTIFICATION_TYPE_LABELS[item.type as NotificationType]} · {timeAgo(item.at)}
+                {t(NOTIFICATION_TYPE_LABELS[item.type as NotificationType])} · {timeAgo(item.at, t)}
               </span>
             </Link>
             <button
@@ -71,7 +74,7 @@ export function NotificationList({ items, showSeen }: Props) {
               className="lunia-btn lunia-btn-ghost lunia-btn-sm shrink-0"
               aria-pressed={isSeen}
             >
-              {isSeen ? "Unsee" : "Mark seen"}
+              {t(isSeen ? "Unsee" : "Mark seen")}
             </button>
           </li>
         );

@@ -5,9 +5,11 @@ import { prisma } from "@/lib/db";
 import { listStaffUsers } from "@/modules/iam/users";
 import { CreateUserForm } from "./CreateUserForm";
 import { UserRow } from "./UserRow";
+import { getStaffT } from "../_i18n/display";
 
 export default async function UsersPage() {
   const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const t = await getStaffT();
   const canViewHr = admin.permissions.has(PERMISSIONS.HR_MANAGE);
 
   const [users, roles] = await Promise.all([
@@ -20,9 +22,9 @@ export default async function UsersPage() {
     <AdminShell user={admin} title="Users" description="Add or remove team members and assign their roles.">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-lg)] bg-[var(--color-forest)] px-6 py-5 text-[var(--color-on-ink)] shadow-[var(--shadow-sm)]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-teal)]">Team</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-teal)]">{t("Team")}</p>
           <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">
-            {users.length} team member{users.length === 1 ? "" : "s"}
+            {t(users.length === 1 ? "{count} team member" : "{count} team members", { count: users.length })}
           </p>
         </div>
         <CreateUserForm roles={roles} />

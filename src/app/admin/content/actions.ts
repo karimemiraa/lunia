@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../_i18n/display";
 import { upsertPageContent, type PageContentData } from "@/modules/cms/pageContent";
 
 export interface SavePageContentState {
@@ -26,10 +27,11 @@ export async function savePageContent(
   formData: FormData,
 ): Promise<SavePageContentState> {
   await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
 
   const pageKey = String(formData.get("pageKey") ?? "").trim();
   if (!pageKey) {
-    return { error: "Missing page key." };
+    return { error: t("Missing page key.") };
   }
 
   const heroMediaIdRaw = String(formData.get("heroMediaId") ?? "").trim();
@@ -53,7 +55,7 @@ export async function savePageContent(
   try {
     await upsertPageContent(pageKey, data);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to save page content." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to save page content.") };
   }
 
   revalidatePath(`/admin/content/${pageKey}`);

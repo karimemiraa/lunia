@@ -5,6 +5,9 @@ import { listStaffOptions } from "@/modules/booking/bookings";
 import { getSchedulesForStaff } from "@/modules/booking/staffSchedules";
 import { StaffPicker } from "./StaffPicker";
 import { ScheduleForm } from "./ScheduleForm";
+import { getStaffDisplay } from "../../_i18n/display";
+import { makeT } from "../../_i18n/t";
+import { loadArabicNames } from "../../calendar/arabicNames";
 
 interface SchedulesPageProps {
   searchParams: Promise<{ staffUserId?: string }>;
@@ -12,7 +15,12 @@ interface SchedulesPageProps {
 
 export default async function SchedulesPage({ searchParams }: SchedulesPageProps) {
   const user = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
-  const staffOptions = await listStaffOptions();
+  const { locale } = await getStaffDisplay();
+  const t = makeT(locale);
+  const staffOptionsEn = await listStaffOptions();
+  // Arabic mode: staff names from StaffProfile.fullNameAr (English fallback).
+  const arNames = await loadArabicNames(locale, { staffUserIds: staffOptionsEn.map((s) => s.id) });
+  const staffOptions = staffOptionsEn.map((s) => ({ ...s, name: arNames.staff.get(s.id) ?? s.name }));
 
   const params = await searchParams;
   const staffUserId =
@@ -25,7 +33,7 @@ export default async function SchedulesPage({ searchParams }: SchedulesPageProps
   return (
     <AdminShell user={user} title="Staff Schedules" description="Set each staff member's weekly working hours.">
       {staffOptions.length === 0 ? (
-        <p className="text-sm text-[var(--color-ink)]/70">No staff members found.</p>
+        <p className="text-sm text-[var(--color-ink)]/70">{t("No staff members found.")}</p>
       ) : (
         <>
           <StaffPicker staffOptions={staffOptions} staffUserId={staffUserId} />

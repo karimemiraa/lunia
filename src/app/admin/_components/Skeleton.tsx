@@ -2,6 +2,9 @@
 // block reserves the space of the content it stands in for, so the swap to
 // real content doesn't shift the layout.
 
+import { Tr } from "../_i18n/StaffI18n";
+import { LoadingStatus } from "./LoadingStatus";
+
 interface SkeletonProps {
   className?: string;
 }
@@ -75,7 +78,7 @@ export function SkeletonTable({ rows = 8, cols = 5 }: { rows?: number; cols?: nu
  */
 export function ShellSkeleton({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen" role="status" aria-live="polite" aria-label="Loading">
+    <LoadingStatus className="flex min-h-screen">
       <div aria-hidden="true" className="hidden h-screen w-60 shrink-0 flex-col gap-2 lunia-teal-field border-e border-[var(--color-ink)]/10 px-3 py-4 md:flex">
         <div className="mb-3 h-8 w-24 rounded-full bg-white/45" />
         {Array.from({ length: 9 }, (_, i) => (
@@ -93,10 +96,10 @@ export function ShellSkeleton({ children }: { children: React.ReactNode }) {
             <div className="lunia-skeleton h-9 w-64" />
           </div>
           <div className="flex flex-col gap-6">{children}</div>
-          <span className="sr-only">Loading…</span>
+          <span className="sr-only"><Tr>Loading…</Tr></span>
         </div>
       </div>
-    </div>
+    </LoadingStatus>
   );
 }
 

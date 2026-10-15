@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 export interface MediaOption {
   id: string;
@@ -26,20 +27,21 @@ const selectClass =
  * brands, journal) all need the same picker for hero/logo media.
  */
 export function MediaPicker({ label, name, media, defaultValue }: MediaPickerProps) {
+  const t = useStaffT();
   const [selectedId, setSelectedId] = useState(defaultValue ?? "");
   const selected = media.find((item) => item.id === selectedId);
 
   return (
     <fieldset className="flex flex-col gap-2">
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-[var(--color-ink)]">{label}</span>
+        <span className="font-medium text-[var(--color-ink)]">{t(label)}</span>
         <select
           name={name}
           value={selectedId}
           onChange={(event) => setSelectedId(event.target.value)}
           className={selectClass}
         >
-          <option value="">None</option>
+          <option value="">{t("None")}</option>
           {media.map((item) => (
             <option key={item.id} value={item.id}>
               {item.filename}

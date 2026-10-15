@@ -230,6 +230,17 @@ Each visit is a normal booking linked by `Booking.seriesId`, with a "Series" bad
   **Set the Arabic name for every specialist**, since customers see it on their booking.
 - **"No English" check:** `e2e/arabic-coverage.spec.ts` opens every public page, each booking step and the signed-in account in Arabic, and fails on any visible English word. Allowed: brand and product names, codes, numbers, emails, phones, and anything marked `lang="en"` or `data-i18n-ignore`. Add new public routes to its list.
 
+### 3.8 Arabic (staff console)
+
+- **Switching:** staff choose «العربية» in the Display menu (half-moon button). The whole console switches to Arabic and right-to-left: menus, page content, dialogs, toasts, dates (Gregorian, Western digits) and Ask Lunia's replies. The choice is remembered per device (cookie `lunia_staff_locale`).
+- **How strings work:** the source text is the English UI text itself: `t("Save changes")` in server code (`getStaffT()`), `useStaffT()` in client components. Arabic lives in `src/app/admin/_i18n/ar/<area>.ts`, one file per admin area, merged in `ar/index.ts`. Missing entries fall back to English.
+- **Words with two meanings** (e.g. "Open" the button vs an opening time) use context keys like `"Open (hours)"` via `translateIn()`. English still shows the plain word.
+- **Tests:**
+  - `tests/admin/i18n.test.ts` fails when an entry isn't Arabic, loses a `{placeholder}`, or translates the same English two different ways. It also checks that every Ask Lunia guide has Arabic quoting real UI labels.
+  - `e2e/admin-arabic.spec.ts` opens every admin page plus one of each detail page in Arabic. It fails when an English UI string from the admin source is still visible.
+- **Adding a screen:** wrap every visible string in `t()` and add its Arabic to that area's dictionary file. Run both tests.
+- **Stays English by design:** audit-log summaries, automation run results, CSV export files, provider names, and anything staff typed (customer names, notes, custom role or stage names).
+
 ## 4. Backup
 
 **Automatic (since 2026-10-14):** the deploy workflow installs

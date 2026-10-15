@@ -8,16 +8,17 @@ import { formatSarMinor } from "@/modules/billing/money";
 import { AppointmentMenu } from "../AppointmentMenu";
 import { HubComments } from "./HubComments";
 import { HubDocuments } from "./HubDocuments";
+import { prisma } from "@/lib/db";
+import { getStaffDisplay } from "../../_i18n/display";
+import { intlLocale, makeT } from "../../_i18n/t";
+import { loadArabicNames } from "../arabicNames";
+import { bookingStatusText, channelText, invoiceStatusText, lineKindText, photoKindText } from "../labels";
 
 interface HubPageProps {
   params: Promise<{ appointmentId: string }>;
 }
 
 const CENTER_TZ = "Asia/Riyadh";
-const dtFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, dateStyle: "full", timeStyle: "short" });
-const tFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, hour: "numeric", minute: "2-digit" });
-const dFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, dateStyle: "medium" });
-const dtShort = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" });
 const dateISOFor = (d: Date) => new Date(d.getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 const STATUS_STYLES: Record<string, string> = {
@@ -89,7 +90,45 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
   const hub = await getAppointmentHub(appointmentId);
   if (!hub) notFound();
 
-  const { booking, appointment, client, invoice, treatmentRecord, siblings, photos, documents, comments, history, stats, checkIn } = hub;
+  const { locale } = await getStaffDisplay();
+  const t = makeT(locale);
+  const il = intlLocale(locale, "en-US");
+  const dtFmt = new Intl.DateTimeFormat(il, { timeZone: CENTER_TZ, dateStyle: "full", timeStyle: "short" });
+  const tFmt = new Intl.DateTimeFormat(il, { timeZone: CENTER_TZ, hour: "numeric", minute: "2-digit" });
+  const dFmt = new Intl.DateTimeFormat(il, { timeZone: CENTER_TZ, dateStyle: "medium" });
+  const dtShort = new Intl.DateTimeFormat(il, { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" });
+  const sar = (minor: number) => (locale === "ar" ? formatSarMinor(minor).replace(/ SAR$/, ` ${t("SAR")}`) : formatSarMinor(minor));
+
+  const { booking, client, invoice, treatmentRecord, photos, documents, stats, checkIn } = hub;
+  let { appointment, siblings, history, comments } = hub;
+  // Arabic mode: service / specialist / room names from their Arabic fields.
+  if (locale === "ar") {
+    const appts = await prisma.appointment.findMany({
+      where: { bookingId: { in: [booking.id, ...history.map((h) => h.bookingId)] } },
+      select: { id: true, bookingId: true, serviceId: true, staffUserId: true, roomId: true },
+      orderBy: { startAt: "asc" },
+    });
+    const ar = await loadArabicNames(locale, {
+      serviceIds: appts.map((a) => a.serviceId),
+      staffUserIds: [...appts.map((a) => a.staffUserId), ...comments.map((c) => c.authorUserId)],
+      roomIds: appts.map((a) => a.roomId),
+    });
+    const byId = new Map(appts.map((a) => [a.id, a]));
+    const svc = (id: string | undefined, en: string) => (id && ar.service.get(id)) || en;
+    const staff = (id: string | undefined, en: string) => (id && ar.staff.get(id)) || en;
+    const room = (id: string | undefined, en: string) => (id && ar.room.get(id)) || en;
+    const cur = byId.get(appointmentId);
+    appointment = { ...appointment, serviceName: svc(appointment.serviceId, appointment.serviceName), staffName: staff(appointment.staffUserId, appointment.staffName), roomName: room(cur?.roomId, appointment.roomName) };
+    siblings = siblings.map((s) => {
+      const a = byId.get(s.appointmentId);
+      return { ...s, serviceName: svc(a?.serviceId, s.serviceName), staffName: staff(a?.staffUserId, s.staffName), roomName: room(a?.roomId, s.roomName) };
+    });
+    history = history.map((h) => {
+      const names = appts.filter((a) => a.bookingId === h.bookingId).map((a) => ar.service.get(a.serviceId));
+      return names.length > 0 && names.every(Boolean) ? { ...h, serviceName: names.join("، ") } : h;
+    });
+    comments = comments.map((c) => ({ ...c, authorName: ar.staff.get(c.authorUserId) ?? c.authorName }));
+  }
   const started = Boolean(checkIn?.seatedAt);
   const clientHref = `/admin/clients/${client.id}`;
 
@@ -100,7 +139,7 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
       description={`${dtFmt.format(appointment.startAt)} · ${client.fullName}`}
       actions={
         <Link href={`/admin/calendar?day=${dateISOFor(appointment.startAt)}`} className="lunia-btn lunia-btn-ghost min-h-11">
-          ← Calendar
+          <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t("Calendar")}
         </Link>
       }
     >
@@ -109,13 +148,13 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
         <div className="lunia-card flex flex-col gap-4 px-5 py-4">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${STATUS_STYLES[booking.status] ?? "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/70"}`}>
-              {booking.status.replace("_", " ")}
+              {bookingStatusText(booking.status, locale, t)}
             </span>
             <span className="text-sm text-[var(--color-ink)]/70">
-              {tFmt.format(appointment.startAt)}–{tFmt.format(appointment.endAt)} · {appointment.durationMin} min
+              {tFmt.format(appointment.startAt)}–{tFmt.format(appointment.endAt)} · {t("{min} min", { min: appointment.durationMin })}
             </span>
-            <span className="text-sm font-medium text-[var(--color-ink)]">{formatSarMinor(appointment.priceMinor)}</span>
-            <span className="text-xs text-[var(--color-ink)]/45">Booked {dFmt.format(booking.createdAt)} · {booking.channel.replace("_", " ").toLowerCase()}</span>
+            <span className="text-sm font-medium text-[var(--color-ink)]">{sar(appointment.priceMinor)}</span>
+            <span className="text-xs text-[var(--color-ink)]/45">{t("Booked {date}", { date: dFmt.format(booking.createdAt) })} · {channelText(booking.channel, locale, t)}</span>
           </div>
           <AppointmentMenu
             bookingId={booking.id}
@@ -140,25 +179,25 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
           {/* Main column */}
           <div className="flex flex-col gap-6">
             {/* Visit details */}
-            <Card title="Visit">
+            <Card title={t("Visit")}>
               <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                <Field label="Service">{appointment.serviceName}</Field>
-                <Field label="Specialist">{appointment.staffName}</Field>
-                <Field label="Room">{appointment.roomName}</Field>
-                <Field label="Arrived">{checkIn ? dtShort.format(checkIn.arrivedAt) : "—"}</Field>
-                <Field label="In room">{checkIn?.seatedAt ? dtShort.format(checkIn.seatedAt) : "—"}</Field>
-                <Field label="Source">{booking.sourceChannel ?? booking.channel.replace("_", " ").toLowerCase()}</Field>
+                <Field label={t("Service")}>{appointment.serviceName}</Field>
+                <Field label={t("Specialist")}>{appointment.staffName}</Field>
+                <Field label={t("Room")}>{appointment.roomName}</Field>
+                <Field label={t("Arrived")}>{checkIn ? dtShort.format(checkIn.arrivedAt) : "—"}</Field>
+                <Field label={t("In room")}>{checkIn?.seatedAt ? dtShort.format(checkIn.seatedAt) : "—"}</Field>
+                <Field label={t("Source")}>{booking.sourceChannel ?? channelText(booking.channel, locale, t)}</Field>
               </dl>
               {(booking.centerNote || booking.customerNote || booking.notes) && (
                 <div className="flex flex-col gap-2 border-t border-[var(--line)] pt-3 text-sm">
-                  {booking.customerNote && <p><span className="font-medium text-[var(--color-ink)]/70">From customer:</span> <span className="text-[var(--color-ink)]/80">{booking.customerNote}</span></p>}
-                  {booking.centerNote && <p><span className="font-medium text-[var(--color-ink)]/70">To customer:</span> <span className="text-[var(--color-ink)]/80">{booking.centerNote}</span></p>}
-                  {booking.notes && <p><span className="font-medium text-[var(--color-ink)]/70">Admin note:</span> <span className="text-[var(--color-ink)]/80">{booking.notes}</span></p>}
+                  {booking.customerNote && <p><span className="font-medium text-[var(--color-ink)]/70">{t("From customer:")}</span> <span className="text-[var(--color-ink)]/80">{booking.customerNote}</span></p>}
+                  {booking.centerNote && <p><span className="font-medium text-[var(--color-ink)]/70">{t("To customer:")}</span> <span className="text-[var(--color-ink)]/80">{booking.centerNote}</span></p>}
+                  {booking.notes && <p><span className="font-medium text-[var(--color-ink)]/70">{t("Admin note:")}</span> <span className="text-[var(--color-ink)]/80">{booking.notes}</span></p>}
                 </div>
               )}
               {siblings.length > 1 && (
                 <div className="flex flex-col gap-2 border-t border-[var(--line)] pt-3">
-                  <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Also in this visit</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">{t("Also in this visit")}</p>
                   <ul className="flex flex-col gap-1.5">
                     {siblings.filter((s) => !s.isCurrent).map((s) => (
                       <li key={s.appointmentId}>
@@ -176,52 +215,52 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
             {/* Rechnung (invoice) + what they bought */}
             {canBill && (
               <Card
-                title="Invoice (Rechnung)"
+                title={t("Invoice (Rechnung)")}
                 action={
                   invoice ? (
-                    <Link href={`/admin/billing/${invoice.id}`} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-9">Open invoice</Link>
+                    <Link href={`/admin/billing/${invoice.id}`} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-9">{t("Open invoice")}</Link>
                   ) : booking.status !== "CANCELLED" && booking.status !== "NO_SHOW" ? (
-                    <Link href={`/admin/billing/new?booking=${booking.id}`} className="lunia-btn lunia-btn-forest lunia-btn-sm min-h-9">Create invoice</Link>
+                    <Link href={`/admin/billing/new?booking=${booking.id}`} className="lunia-btn lunia-btn-forest lunia-btn-sm min-h-9">{t("Create invoice")}</Link>
                   ) : undefined
                 }
               >
                 {invoice ? (
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-[var(--color-ink)]">{invoice.status === "DRAFT" ? "Draft" : invoice.number}</span>
-                      <span className={`${chip} ${INVOICE_STATUS_STYLES[invoice.status] ?? "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/70"}`}>{invoice.status.replace("_", " ")}</span>
-                      {invoice.outstandingMinor > 0 && <span className={`${chip} bg-[var(--color-gold)]/20 text-[#7c6a2f]`}>{formatSarMinor(invoice.outstandingMinor)} due</span>}
+                      <span className="font-medium text-[var(--color-ink)]">{invoice.status === "DRAFT" ? t("Draft") : invoice.number}</span>
+                      <span className={`${chip} ${INVOICE_STATUS_STYLES[invoice.status] ?? "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/70"}`}>{invoiceStatusText(invoice.status, locale, t)}</span>
+                      {invoice.outstandingMinor > 0 && <span className={`${chip} bg-[var(--color-gold)]/20 text-[#7c6a2f]`}>{t("{amount} due", { amount: sar(invoice.outstandingMinor) })}</span>}
                     </div>
                     <div className="overflow-x-auto rounded-[var(--radius-sm)] border border-[var(--line)]">
                       <table className="w-full text-start text-sm">
                         <thead className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
                           <tr>
-                            <th className="px-3 py-2 text-start font-semibold">What they bought</th>
-                            <th className="px-3 py-2 text-end font-semibold">Qty</th>
-                            <th className="px-3 py-2 text-end font-semibold">Total</th>
+                            <th className="px-3 py-2 text-start font-semibold">{t("What they bought")}</th>
+                            <th className="px-3 py-2 text-end font-semibold">{t("Qty")}</th>
+                            <th className="px-3 py-2 text-end font-semibold">{t("Total")}</th>
                           </tr>
                         </thead>
                         <tbody>
                           {invoice.lines.map((l, i) => (
                             <tr key={i} className="border-b border-[var(--line)] last:border-0">
-                              <td className="px-3 py-2 text-[var(--color-ink)]">{l.description}<span className="ms-2 text-[11px] uppercase tracking-wide text-[var(--color-ink)]/40">{l.kind.toLowerCase()}</span></td>
+                              <td className="px-3 py-2 text-[var(--color-ink)]">{l.description}<span className="ms-2 text-[11px] uppercase tracking-wide text-[var(--color-ink)]/40">{lineKindText(l.kind, locale, t)}</span></td>
                               <td className="px-3 py-2 text-end tabular-nums">{l.qty}</td>
-                              <td className="px-3 py-2 text-end tabular-nums">{formatSarMinor(l.totalMinor)}</td>
+                              <td className="px-3 py-2 text-end tabular-nums">{sar(l.totalMinor)}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                     <div className="flex flex-col gap-1 self-end text-sm sm:w-56">
-                      <div className="flex justify-between text-[var(--color-ink)]/70"><span>Subtotal</span><span className="tabular-nums">{formatSarMinor(invoice.subtotalMinor)}</span></div>
-                      {invoice.discountMinor > 0 && <div className="flex justify-between text-[var(--color-ink)]/70"><span>Discount</span><span className="tabular-nums">−{formatSarMinor(invoice.discountMinor)}</span></div>}
-                      <div className="flex justify-between text-[var(--color-ink)]/70"><span>VAT</span><span className="tabular-nums">{formatSarMinor(invoice.vatMinor)}</span></div>
-                      <div className="flex justify-between border-t border-[var(--line)] pt-1 font-medium text-[var(--color-ink)]"><span>Total</span><span className="tabular-nums">{formatSarMinor(invoice.totalMinor)}</span></div>
-                      <div className="flex justify-between text-[var(--color-ink)]/70"><span>Paid</span><span className="tabular-nums">{formatSarMinor(invoice.paidMinor)}</span></div>
+                      <div className="flex justify-between text-[var(--color-ink)]/70"><span>{t("Subtotal")}</span><span className="tabular-nums">{sar(invoice.subtotalMinor)}</span></div>
+                      {invoice.discountMinor > 0 && <div className="flex justify-between text-[var(--color-ink)]/70"><span>{t("Discount")}</span><span className="tabular-nums">−{sar(invoice.discountMinor)}</span></div>}
+                      <div className="flex justify-between text-[var(--color-ink)]/70"><span>{t("VAT")}</span><span className="tabular-nums">{sar(invoice.vatMinor)}</span></div>
+                      <div className="flex justify-between border-t border-[var(--line)] pt-1 font-medium text-[var(--color-ink)]"><span>{t("Total")}</span><span className="tabular-nums">{sar(invoice.totalMinor)}</span></div>
+                      <div className="flex justify-between text-[var(--color-ink)]/70"><span>{t("Paid")}</span><span className="tabular-nums">{sar(invoice.paidMinor)}</span></div>
                     </div>
                   </div>
                 ) : (
-                  <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">No invoice for this visit yet.</p>
+                  <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">{t("No invoice for this visit yet.")}</p>
                 )}
               </Card>
             )}
@@ -229,37 +268,37 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
             {/* Treatment record */}
             {canClinical && (
               <Card
-                title="Treatment record"
+                title={t("Treatment record")}
                 action={
                   <Link
                     href={treatmentRecord ? `${clientHref}/clinical/treatment/${treatmentRecord.id}` : `${clientHref}/clinical/treatment?appointmentId=${appointmentId}`}
                     className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-9"
                   >
-                    {treatmentRecord ? "Open record" : "Add record"}
+                    {treatmentRecord ? t("Open record") : t("Add record")}
                   </Link>
                 }
               >
                 {treatmentRecord ? (
                   <div className="flex flex-col gap-3 text-sm">
                     <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                      <Field label="Performed by">{treatmentRecord.performedByName}</Field>
-                      <Field label="When">{dtShort.format(treatmentRecord.performedAt)}</Field>
-                      {treatmentRecord.followUpAt && <Field label="Follow-up">{dFmt.format(treatmentRecord.followUpAt)}</Field>}
+                      <Field label={t("Performed by")}>{treatmentRecord.performedByName}</Field>
+                      <Field label={t("When")}>{dtShort.format(treatmentRecord.performedAt)}</Field>
+                      {treatmentRecord.followUpAt && <Field label={t("Follow-up")}>{dFmt.format(treatmentRecord.followUpAt)}</Field>}
                     </dl>
                     {treatmentRecord.products.length > 0 && (
-                      <p className="text-[var(--color-ink)]/80"><span className="font-medium text-[var(--color-ink)]/70">Products used:</span> {treatmentRecord.products.map((p) => `${p.name}${p.qty ? ` (${p.qty}${p.unit})` : ""}`).join(", ")}</p>
+                      <p className="text-[var(--color-ink)]/80"><span className="font-medium text-[var(--color-ink)]/70">{t("Products used:")}</span> {treatmentRecord.products.map((p) => `${p.name}${p.qty ? ` (${p.qty}${p.unit})` : ""}`).join(", ")}</p>
                     )}
                     {treatmentRecord.notes && <p className="whitespace-pre-wrap text-[var(--color-ink)]/80">{treatmentRecord.notes}</p>}
-                    {treatmentRecord.skinReaction && <p className="text-[var(--color-ink)]/80"><span className="font-medium text-[var(--color-ink)]/70">Reaction:</span> {treatmentRecord.skinReaction}</p>}
+                    {treatmentRecord.skinReaction && <p className="text-[var(--color-ink)]/80"><span className="font-medium text-[var(--color-ink)]/70">{t("Reaction:")}</span> {treatmentRecord.skinReaction}</p>}
                   </div>
                 ) : (
-                  <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">No treatment record for this appointment yet.</p>
+                  <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">{t("No treatment record for this appointment yet.")}</p>
                 )}
               </Card>
             )}
 
             {/* Documents (files) + clinical photos */}
-            <Card title="Documents" action={canClinical ? <Link href={`${clientHref}?tab=patient`} className="text-xs text-[var(--color-teal-ink)] hover:underline">Patient file</Link> : undefined}>
+            <Card title={t("Documents")} action={canClinical ? <Link href={`${clientHref}?tab=patient`} className="text-xs text-[var(--color-teal-ink)] hover:underline">{t("Patient file")}</Link> : undefined}>
               <HubDocuments
                 appointmentId={appointmentId}
                 bookingId={booking.id}
@@ -269,12 +308,12 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
               />
               {canClinical && photos.length > 0 && (
                 <div className="flex flex-col gap-2 border-t border-[var(--line)] pt-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">Clinical photos</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/50">{t("Clinical photos")}</p>
                   <ul className="flex flex-wrap gap-2">
                     {photos.map((p) => (
                       <li key={p.id}>
                         <a href={`/admin/clinical/photo/${p.id}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-sm text-[var(--color-ink)] transition-colors hover:bg-[var(--surface-2)]">
-                          <span className={`${chip} bg-[var(--color-teal)]/15 text-[var(--color-teal-ink)]`}>{p.kind.toLowerCase()}</span>
+                          <span className={`${chip} bg-[var(--color-teal)]/15 text-[var(--color-teal-ink)]`}>{photoKindText(p.kind, locale, t)}</span>
                           <span className="text-[var(--color-ink)]/70">{p.area || dFmt.format(p.takenAt)}</span>
                         </a>
                       </li>
@@ -285,7 +324,7 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
             </Card>
 
             {/* Comments (visit-scoped) */}
-            <Card title="Comments">
+            <Card title={t("Comments")}>
               <HubComments
                 appointmentId={appointmentId}
                 bookingId={booking.id}
@@ -301,37 +340,37 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
           {/* Aside */}
           <aside className="flex flex-col gap-6">
             {/* Customer */}
-            <Card title="Customer" action={canViewClient ? <Link href={clientHref} className="text-xs text-[var(--color-teal-ink)] hover:underline">Open 360</Link> : undefined}>
+            <Card title={t("Customer")} action={canViewClient ? <Link href={clientHref} className="text-xs text-[var(--color-teal-ink)] hover:underline">{t("Open 360")}</Link> : undefined}>
               <div className="flex flex-col gap-2.5">
                 <p className="font-[family-name:var(--font-display)] text-lg text-[var(--color-ink)]">{client.fullName}</p>
                 <div className="flex flex-col gap-1 text-sm">
                   {client.phone && <a href={`tel:${client.phone}`} dir="ltr" className="text-[var(--color-teal-ink)] hover:underline">{client.phone}</a>}
-                  {client.email && <a href={`mailto:${client.email}`} className="text-[var(--color-ink)]/70 hover:underline">{client.email}</a>}
-                  {!client.phone && !client.email && <span className="text-[var(--color-ink)]/55">No contact on file</span>}
+                  {client.email && <a href={`mailto:${client.email}`} dir="ltr" className="text-[var(--color-ink)]/70 hover:underline">{client.email}</a>}
+                  {!client.phone && !client.email && <span className="text-[var(--color-ink)]/55">{t("No contact on file")}</span>}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {client.tierName && <span className={`${chip} bg-[var(--color-ink)]/8 text-[var(--color-ink)]/70`}>{client.tierName}</span>}
                   <span className={`${chip} ${client.consentTreatmentAt ? "bg-[var(--color-canopy)]/25 text-[var(--color-ink)]" : "bg-[var(--color-gold)]/25 text-[#7c6a2f]"}`}>
-                    Treatment consent {client.consentTreatmentAt ? "✓" : "missing"}
+                    {client.consentTreatmentAt ? t("Treatment consent ✓") : t("Treatment consent missing")}
                   </span>
-                  {client.allergies && <span className={`${chip} bg-red-100 text-red-800`} title={client.allergies}>Allergies: {client.allergies.length > 32 ? `${client.allergies.slice(0, 31)}…` : client.allergies}</span>}
-                  {client.tags.map((t) => <span key={t} className={`${chip} bg-[var(--color-teal)]/20 text-[var(--color-teal-ink)]`}>{t}</span>)}
+                  {client.allergies && <span className={`${chip} bg-red-100 text-red-800`} title={client.allergies}>{t("Allergies: {list}", { list: client.allergies.length > 32 ? `${client.allergies.slice(0, 31)}…` : client.allergies })}</span>}
+                  {client.tags.map((tag) => <span key={tag} className={`${chip} bg-[var(--color-teal)]/20 text-[var(--color-teal-ink)]`}>{tag}</span>)}
                 </div>
               </div>
             </Card>
 
             {/* Quick stats */}
             <div className="grid grid-cols-2 gap-3">
-              <Stat label="Lifetime value" value={formatSarMinor(client.ltvMinor)} />
-              <Stat label="Visits" value={String(stats.completedVisits)} hint={`${stats.totalBookings} bookings`} href={canViewClient ? `${clientHref}?tab=appointments` : undefined} />
-              <Stat label="Last visit" value={stats.lastVisitAt ? dFmt.format(stats.lastVisitAt) : "First"} />
-              <Stat label="Skin type" value={client.skinType || "—"} />
+              <Stat label={t("Lifetime value")} value={sar(client.ltvMinor)} />
+              <Stat label={t("Visits")} value={String(stats.completedVisits)} hint={t("{count} bookings", { count: stats.totalBookings })} href={canViewClient ? `${clientHref}?tab=appointments` : undefined} />
+              <Stat label={t("Last visit")} value={stats.lastVisitAt ? dFmt.format(stats.lastVisitAt) : t("First")} />
+              <Stat label={t("Skin type")} value={client.skinType || "—"} />
             </div>
 
             {/* Visit history */}
-            <Card title="Visit history">
+            <Card title={t("Visit history")}>
               {history.length <= 1 ? (
-                <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-5 text-center text-sm text-[var(--color-ink)]/55">No other visits yet.</p>
+                <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-5 text-center text-sm text-[var(--color-ink)]/55">{t("No other visits yet.")}</p>
               ) : (
                 <ul className="flex flex-col gap-1">
                   {history.map((h) => (
@@ -339,7 +378,7 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
                       {h.isCurrent ? (
                         <div className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] bg-[var(--color-teal)]/10 px-3 py-2 text-sm">
                           <span className="truncate font-medium text-[var(--color-ink)]">{h.serviceName}</span>
-                          <span className="shrink-0 text-xs text-[var(--color-ink)]/55">This visit</span>
+                          <span className="shrink-0 text-xs text-[var(--color-ink)]/55">{t("This visit")}</span>
                         </div>
                       ) : (
                         <Link href={`/admin/calendar/${h.appointmentId}`} className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] px-3 py-2 text-sm hover:bg-[var(--surface-2)]">

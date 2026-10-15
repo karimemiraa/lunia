@@ -8,6 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { requireAdmin } from "../_components/requireAdmin";
+import { getStaffT } from "../_i18n/display";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { recordAudit } from "@/modules/iam/audit";
 import { createProduct, updateProduct, findProductByCode, type CreateProductInput, type ProductInput } from "@/modules/inventory/products";
@@ -28,9 +29,22 @@ import { setServiceConsumables, type ConsumablesInput } from "@/modules/inventor
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
-function messageOf(err: unknown): string {
-  if (err instanceof ZodError) return err.issues[0]?.message ?? "Please check the form.";
-  return err instanceof Error ? err.message : "Something went wrong.";
+// Module errors are English; translate them for Arabic staff. The two
+// messages with values in them are matched and re-phrased with placeholders.
+async function messageOf(err: unknown): Promise<string> {
+  const t = await getStaffT();
+  if (err instanceof ZodError) return t(err.issues[0]?.message ?? "Please check the form.");
+  if (!(err instanceof Error)) return t("Something went wrong.");
+  const msg = err.message;
+  const cancel = /^A (\w+) order can't be cancelled\.$/.exec(msg);
+  if (cancel) {
+    const label = cancel[1].charAt(0).toUpperCase() + cancel[1].slice(1);
+    const translated = t(label);
+    return t("A {status} order can't be cancelled.", { status: translated === label ? cancel[1] : translated });
+  }
+  const over = /^Can't receive (\d+); only (\d+) outstanding on a line\.$/.exec(msg);
+  if (over) return t("Can't receive {qty}; only {outstanding} outstanding on a line.", { qty: over[1], outstanding: over[2] });
+  return t(msg);
 }
 
 async function guard() {
@@ -53,7 +67,7 @@ export async function createProductAction(input: CreateProductInput): Promise<Ac
     revalidateInventory();
     return { ok: true, data: { id: product.id } };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -65,7 +79,7 @@ export async function updateProductAction(id: string, input: ProductInput): Prom
     revalidateInventory();
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -75,7 +89,7 @@ export async function findProductByCodeAction(code: string): Promise<ActionResul
     const product = await findProductByCode(String(code).slice(0, 64));
     return { ok: true, data: product ? { id: product.id } : null };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -99,7 +113,7 @@ export async function adjustStockAction(input: AdjustmentInput): Promise<ActionR
     revalidateInventory();
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -108,7 +122,7 @@ export async function previewStockTakeAction(input: StockTakeInput): Promise<Act
   try {
     return { ok: true, data: await previewStockTake(input) };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -125,7 +139,7 @@ export async function postStockTakeAction(input: StockTakeInput): Promise<Action
     revalidateInventory();
     return { ok: true, data: { adjusted: result.adjusted, counted: result.counted, netValueMinor: result.netValueMinor } };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -141,7 +155,7 @@ export async function createSupplierAction(input: SupplierInput): Promise<Action
     revalidateInventory();
     return { ok: true, data: { id: supplier.id } };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -153,7 +167,7 @@ export async function updateSupplierAction(id: string, input: SupplierInput): Pr
     revalidateInventory();
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -165,7 +179,7 @@ export async function deleteSupplierAction(id: string): Promise<ActionResult> {
     revalidateInventory();
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -178,7 +192,7 @@ export async function suggestReorderAction(supplierId?: string): Promise<ActionR
   try {
     return { ok: true, data: await suggestReorder({ supplierId: supplierId || undefined }) };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -190,7 +204,7 @@ export async function createPurchaseOrderAction(input: PoInput): Promise<ActionR
     revalidateInventory();
     return { ok: true, data: { id: po.id } };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -202,7 +216,7 @@ export async function updatePurchaseOrderAction(id: string, input: PoInput): Pro
     revalidateInventory();
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -214,7 +228,7 @@ export async function markOrderedAction(id: string): Promise<ActionResult> {
     revalidateInventory();
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -226,7 +240,7 @@ export async function cancelPurchaseOrderAction(id: string): Promise<ActionResul
     revalidateInventory();
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -239,7 +253,7 @@ export async function receivePurchaseOrderAction(id: string, input: ReceiveInput
     revalidateInventory();
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -261,6 +275,6 @@ export async function setServiceConsumablesAction(input: ConsumablesInput): Prom
     revalidatePath(`/admin/catalog/services/${input.serviceId}`);
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }

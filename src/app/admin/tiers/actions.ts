@@ -6,6 +6,8 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { createTier, updateTier, deleteTier } from "@/modules/iam/tiers";
 import { recordAudit } from "@/modules/iam/audit";
 import { setSetting } from "@/modules/cms/settings";
+import { getStaffT } from "../_i18n/display";
+import { translateError } from "../hr/_components/errors";
 
 export interface TierActionState {
   error?: string;
@@ -17,14 +19,15 @@ export interface TierActionState {
 // minor-unit values the loyalty service reads via getLoyaltyConfig().
 export async function saveLoyaltyRatesAction(_prev: TierActionState | null, formData: FormData): Promise<TierActionState> {
   const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
 
   const sarPerPoint = Number(formData.get("sarPerPoint"));
   const pointsPerSar = Number(formData.get("pointsPerSar"));
   if (!Number.isFinite(sarPerPoint) || sarPerPoint <= 0) {
-    return { error: "Enter how many SAR earn 1 point (greater than 0)." };
+    return { error: t("Enter how many SAR earn 1 point (greater than 0).") };
   }
   if (!Number.isFinite(pointsPerSar) || pointsPerSar < 1) {
-    return { error: "Enter how many points equal 1 SAR discount (at least 1)." };
+    return { error: t("Enter how many points equal 1 SAR discount (at least 1).") };
   }
 
   const earnMinorPerPoint = Math.round(sarPerPoint * 100);
@@ -33,7 +36,7 @@ export async function saveLoyaltyRatesAction(_prev: TierActionState | null, form
   try {
     await setSetting("loyalty", { earnMinorPerPoint, redeemMinorPerPoint });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to save loyalty rates." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Failed to save loyalty rates.") };
   }
 
   await recordAudit({
@@ -56,11 +59,12 @@ function numberOrUndefined(formData: FormData, name: string): number | undefined
 
 export async function createTierAction(_prev: TierActionState | null, formData: FormData): Promise<TierActionState> {
   const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
 
   const key = String(formData.get("key") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   if (!key || !name) {
-    return { error: "Key and name are required." };
+    return { error: t("Key and name are required.") };
   }
 
   try {
@@ -72,7 +76,7 @@ export async function createTierAction(_prev: TierActionState | null, formData: 
       discountPct: numberOrUndefined(formData, "discountPct"),
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create tier." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Failed to create tier.") };
   }
 
   await recordAudit({
@@ -87,10 +91,11 @@ export async function createTierAction(_prev: TierActionState | null, formData: 
 
 export async function updateTierAction(_prev: TierActionState | null, formData: FormData): Promise<TierActionState> {
   const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
-    return { error: "Missing tier." };
+    return { error: t("Missing tier.") };
   }
 
   const name = String(formData.get("name") ?? "").trim();
@@ -103,7 +108,7 @@ export async function updateTierAction(_prev: TierActionState | null, formData: 
       discountPct: numberOrUndefined(formData, "discountPct"),
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update tier." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Failed to update tier.") };
   }
 
   await recordAudit({
@@ -122,16 +127,17 @@ export async function updateTierAction(_prev: TierActionState | null, formData: 
 // service's error here in case it's ever reached directly.
 export async function deleteTierAction(_prev: TierActionState | null, formData: FormData): Promise<TierActionState> {
   const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
-    return { error: "Missing tier." };
+    return { error: t("Missing tier.") };
   }
 
   try {
     await deleteTier(id);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to delete tier." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Failed to delete tier.") };
   }
 
   await recordAudit({

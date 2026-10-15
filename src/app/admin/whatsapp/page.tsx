@@ -6,17 +6,20 @@ import { listConversations, getConversation } from "@/modules/crm/whatsapp";
 import { listStaffOwners } from "@/modules/crm/clients";
 import { ReplyBox } from "./ReplyBox";
 import { AssigneeSelect } from "./AssigneeSelect";
+import { getStaffLocale, getStaffT } from "../_i18n/display";
+import { intlLocale } from "../_i18n/t";
 
 interface WhatsappPageProps {
   searchParams: Promise<{ c?: string }>;
 }
 
 const CENTER_TZ = "Asia/Riyadh";
-const timeFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" });
 
 export default async function WhatsappPage({ searchParams }: WhatsappPageProps) {
   const user = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
   const params = await searchParams;
+  const t = await getStaffT();
+  const timeFmt = new Intl.DateTimeFormat(intlLocale(await getStaffLocale(), "en-US"), { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" });
 
   const [conversations, staff] = await Promise.all([listConversations(), listStaffOwners()]);
   const activeId = params.c && conversations.some((c) => c.id === params.c) ? params.c : conversations[0]?.id ?? null;
@@ -26,7 +29,7 @@ export default async function WhatsappPage({ searchParams }: WhatsappPageProps) 
     <AdminShell user={user} title="WhatsApp" description="Answer campaign replies and customer messages from one inbox.">
       {conversations.length === 0 ? (
         <p className="rounded-[var(--radius-lg)] border border-dashed border-[var(--line-strong)] px-4 py-16 text-center text-sm text-[var(--color-ink)]/55">
-          No conversations yet. Inbound WhatsApp messages will appear here once the provider webhook is connected.
+          {t("No conversations yet. Inbound WhatsApp messages will appear here once the provider webhook is connected.")}
         </p>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[20rem_1fr]">
@@ -43,10 +46,10 @@ export default async function WhatsappPage({ searchParams }: WhatsappPageProps) 
                     }`}
                   >
                     <span className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-medium text-[var(--color-ink)]">{c.clientName || c.phone}</span>
-                      {c.unread && <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-teal)]" aria-label="Unread" />}
+                      <span className="truncate text-sm font-medium text-[var(--color-ink)]" dir={c.clientName ? undefined : "ltr"}>{c.clientName || c.phone}</span>
+                      {c.unread && <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-teal)]" aria-label={t("Unread")} />}
                     </span>
-                    {c.clientName && <span className="truncate text-xs text-[var(--color-ink)]/45">{c.phone}</span>}
+                    {c.clientName && <span className="truncate text-xs text-[var(--color-ink)]/45" dir="ltr">{c.phone}</span>}
                     {c.lastMessagePreview && <span className="truncate text-xs text-[var(--color-ink)]/55">{c.lastMessagePreview}</span>}
                     {c.ownerName && (
                       <span className="mt-0.5 w-fit rounded-full bg-[var(--color-forest)]/10 px-2 py-0.5 text-[0.65rem] text-[var(--color-forest)]">
@@ -64,14 +67,14 @@ export default async function WhatsappPage({ searchParams }: WhatsappPageProps) 
             <div className="flex max-h-[70vh] flex-col overflow-hidden lunia-card">
               <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3">
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-[var(--color-ink)]">{active.conversation.clientName || active.conversation.phone}</p>
-                  <p className="truncate text-xs text-[var(--color-ink)]/50">{active.conversation.phone}</p>
+                  <p className="truncate font-medium text-[var(--color-ink)]" dir={active.conversation.clientName ? undefined : "ltr"}>{active.conversation.clientName || active.conversation.phone}</p>
+                  <p className="truncate text-xs text-[var(--color-ink)]/50" dir="ltr">{active.conversation.phone}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <AssigneeSelect conversationId={active.conversation.id} ownerId={active.conversation.ownerId} staff={staff} />
                   {active.conversation.clientProfileId && (
                     <Link href={`/admin/clients/${active.conversation.clientProfileId}`} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">
-                      Open profile
+                      {t("Open profile")}
                     </Link>
                   )}
                 </div>
@@ -79,7 +82,7 @@ export default async function WhatsappPage({ searchParams }: WhatsappPageProps) 
 
               <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
                 {active.messages.length === 0 ? (
-                  <p className="text-center text-sm text-[var(--color-ink)]/45">No messages yet.</p>
+                  <p className="text-center text-sm text-[var(--color-ink)]/45">{t("No messages yet.")}</p>
                 ) : (
                   active.messages.map((m) => (
                     <div key={m.id} className={`flex ${m.direction === "OUT" ? "justify-end" : "justify-start"}`}>
@@ -105,7 +108,7 @@ export default async function WhatsappPage({ searchParams }: WhatsappPageProps) 
             </div>
           ) : (
             <div className="flex items-center justify-center lunia-card p-16 text-sm text-[var(--color-ink)]/55">
-              Select a conversation.
+              {t("Select a conversation.")}
             </div>
           )}
         </div>

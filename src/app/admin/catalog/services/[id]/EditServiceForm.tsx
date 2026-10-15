@@ -7,6 +7,7 @@ import { LocalizedField, type LocalizedValue } from "../../../_components/Locali
 import { MediaPicker, type MediaOption } from "../../../_components/MediaPicker";
 import { updateServiceAction, type ServiceActionState } from "../actions";
 import { InlineStatus } from "../../../_ui/Form";
+import { useStaffLocale, useStaffT } from "../../../_i18n/StaffI18n";
 
 const initialState: ServiceActionState = {};
 
@@ -37,6 +38,8 @@ function minorToSar(priceMinor: number): string {
 
 export function EditServiceForm({ service, departments, media, tiers, currentMinTierId }: EditServiceFormProps) {
   const [state, action, pending] = useActionState(updateServiceAction, initialState);
+  const t = useStaffT();
+  const locale = useStaffLocale();
 
   return (
     <form action={action} className="flex max-w-2xl flex-col gap-6">
@@ -44,29 +47,29 @@ export function EditServiceForm({ service, departments, media, tiers, currentMin
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Slug</span>
-          <span className="text-[var(--color-ink)]/70">{service.slug}</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Slug")}</span>
+          <span className="text-[var(--color-ink)]/70" dir="ltr">{service.slug}</span>
         </div>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Department</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Department")}</span>
           <select name="departmentId" required defaultValue={service.departmentId} className={selectClass}>
             {departments.map((department) => (
               <option key={department.id} value={department.id}>
-                {department.nameEn}
+                {locale === "ar" && department.nameAr ? department.nameAr : department.nameEn}
               </option>
             ))}
           </select>
         </label>
       </div>
 
-      <Field label="Order" name="order" type="number" defaultValue={String(service.order)} />
+      <Field label={t("Order")} name="order" type="number" defaultValue={String(service.order)} />
 
-      <LocalizedField label="Name" name="name" defaultValue={pair(service.nameEn, service.nameAr)} required />
-      <LocalizedField label="Summary" name="summary" type="textarea" defaultValue={pair(service.summaryEn, service.summaryAr)} />
+      <LocalizedField label={t("Name")} name="name" defaultValue={pair(service.nameEn, service.nameAr)} required />
+      <LocalizedField label={t("Summary")} name="summary" type="textarea" defaultValue={pair(service.summaryEn, service.summaryAr)} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/70">
-          Benefits (EN, one per line)
+          {t("Benefits (EN, one per line)")}
           <textarea
             name="benefitsEn"
             dir="ltr"
@@ -76,7 +79,7 @@ export function EditServiceForm({ service, departments, media, tiers, currentMin
           />
         </label>
         <label className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/70">
-          Benefits (AR, one per line)
+          {t("Benefits (AR, one per line)")}
           <textarea
             name="benefitsAr"
             dir="rtl"
@@ -87,20 +90,20 @@ export function EditServiceForm({ service, departments, media, tiers, currentMin
         </label>
       </div>
 
-      <MediaPicker label="Hero media" name="heroMediaId" media={media} defaultValue={service.heroMediaId} />
+      <MediaPicker label={t("Hero media")} name="heroMediaId" media={media} defaultValue={service.heroMediaId} />
 
       <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
         <input type="checkbox" name="isPublished" defaultChecked={service.isPublished} className="h-4 w-4" />
-        Published
+        {t("Published")}
       </label>
 
       <fieldset className="flex flex-col gap-4 rounded border border-[var(--color-ink)]/10 p-4">
-        <legend className="px-1 text-sm font-medium text-[var(--color-ink)]">Booking settings</legend>
+        <legend className="px-1 text-sm font-medium text-[var(--color-ink)]">{t("Booking settings")}</legend>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Duration (min)" name="durationMin" type="number" defaultValue={String(service.durationMin)} required />
+          <Field label={t("Duration (min)")} name="durationMin" type="number" defaultValue={String(service.durationMin)} required />
           <Field
-            label="Price (SAR)"
+            label={t("Price (SAR)")}
             name="priceSar"
             type="number"
             step="0.01"
@@ -112,21 +115,21 @@ export function EditServiceForm({ service, departments, media, tiers, currentMin
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
             <input type="checkbox" name="onlineBookable" defaultChecked={service.onlineBookable} className="h-4 w-4" />
-            Online bookable
+            {t("Online bookable")}
           </label>
           <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
             <input type="checkbox" name="inCenterOnly" defaultChecked={service.inCenterOnly} className="h-4 w-4" />
-            In-center only
+            {t("In-center only")}
           </label>
         </div>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Minimum tier</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Minimum tier")}</span>
           <select name="minTierId" defaultValue={currentMinTierId ?? ""} className={selectClass}>
-            <option value="">Open to all customers</option>
+            <option value="">{t("Open to all customers")}</option>
             {tiers.map((tier) => (
               <option key={tier.id} value={tier.id}>
-                {tier.name}
+                {locale === "ar" && tier.nameAr ? tier.nameAr : tier.name}
               </option>
             ))}
           </select>
@@ -139,9 +142,9 @@ export function EditServiceForm({ service, departments, media, tiers, currentMin
           disabled={pending}
           className="lunia-btn lunia-btn-primary disabled:opacity-60"
         >
-          {pending ? "Saving…" : "Save"}
+          {pending ? t("Saving…") : t("Save")}
         </button>
-        <InlineStatus success={state.success ? "Saved." : undefined} />
+        <InlineStatus success={state.success ? t("Saved.") : undefined} />
         <InlineStatus error={state.error} />
       </div>
     </form>

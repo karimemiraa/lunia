@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EmptyState } from "./_components/EmptyState";
+import { Tr } from "./_i18n/StaffI18n";
 
 // Rendered when a record page calls notFound() (customer, invoice, session…).
 export default function AdminNotFound() {
@@ -15,8 +16,8 @@ export default function AdminNotFound() {
           icon={<><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5M8.5 11h5" /></>}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Link href="/admin" className="lunia-btn lunia-btn-forest lunia-btn-sm">Go to dashboard</Link>
-              <Link href="/admin/search" className="lunia-btn lunia-btn-ghost lunia-btn-sm">Search</Link>
+              <Link href="/admin" className="lunia-btn lunia-btn-forest lunia-btn-sm"><Tr>Go to dashboard</Tr></Link>
+              <Link href="/admin/search" className="lunia-btn lunia-btn-ghost lunia-btn-sm"><Tr>Search</Tr></Link>
             </div>
           }
         />

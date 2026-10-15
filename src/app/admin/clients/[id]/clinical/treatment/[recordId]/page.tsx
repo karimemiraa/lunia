@@ -9,24 +9,29 @@ import { utcToCenterLocal } from "@/modules/booking/availability";
 import { loadClient } from "../../_components/loadClient";
 import { loadTreatmentOptions, toLocalInput } from "../../_components/treatmentOptions";
 import { TreatmentForm } from "../../_components/TreatmentForm";
+import { getStaffT, getStaffLocale } from "../../../../../_i18n/display";
+import { intlLocale } from "../../../../../_i18n/t";
 
 interface Props {
   params: Promise<{ id: string; recordId: string }>;
   searchParams: Promise<{ saved?: string }>;
 }
 
-const dtFmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", dateStyle: "medium", timeStyle: "short" });
+const PHOTO_KIND_LABEL: Record<string, string> = { BEFORE: "Before", AFTER: "After", ANALYSIS: "Analysis", OTHER: "Other" };
 
 export default async function EditTreatmentPage({ params, searchParams }: Props) {
   const [{ id, recordId }, { saved }] = await Promise.all([params, searchParams]);
   const user = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  const [t, locale] = await Promise.all([getStaffT(), getStaffLocale()]);
+  const ar = locale === "ar";
+  const dtFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: "Asia/Riyadh", dateStyle: "medium", timeStyle: "short" });
   const client = await loadClient(id);
   const record = await getTreatmentRecord(recordId);
   if (!record || record.clientProfileId !== id) notFound();
 
   const [options, appt, photos] = await Promise.all([
     loadTreatmentOptions(),
-    record.appointmentId ? prisma.appointment.findUnique({ where: { id: record.appointmentId }, select: { startAt: true, service: { select: { nameEn: true } } } }) : null,
+    record.appointmentId ? prisma.appointment.findUnique({ where: { id: record.appointmentId }, select: { startAt: true, service: { select: { nameEn: true, nameAr: true } } } }) : null,
     prisma.clinicalPhoto.findMany({ where: { treatmentRecordId: recordId }, orderBy: { takenAt: "asc" }, select: { id: true, kind: true, area: true } }),
   ]);
   // Keep a since-deactivated specialist selectable on their own old record.
@@ -41,17 +46,17 @@ export default async function EditTreatmentPage({ params, searchParams }: Props)
       description={`${client.displayName} · ${dtFmt.format(record.performedAt)}`}
       actions={
         <Link href={`/admin/clients/${id}`} className="lunia-btn lunia-btn-ghost min-h-11">
-          Back to customer
+          {t("Back to customer")}
         </Link>
       }
     >
       <div className="flex flex-col gap-6">
-        {saved && <p role="status" className="rounded-[var(--radius-sm)] bg-[var(--color-teal)]/15 px-4 py-2.5 text-sm text-[var(--color-ink)]">Saved.</p>}
+        {saved && <p role="status" className="rounded-[var(--radius-sm)] bg-[var(--color-teal)]/15 px-4 py-2.5 text-sm text-[var(--color-ink)]">{t("Saved.")}</p>}
         <div className="lunia-card p-5 sm:p-8">
           <TreatmentForm
             clientProfileId={id}
             recordId={record.id}
-            appointmentLabel={appt ? `${appt.service.nameEn}, ${dtFmt.format(appt.startAt)}` : null}
+            appointmentLabel={appt ? `${ar ? appt.service.nameAr || appt.service.nameEn : appt.service.nameEn}, ${dtFmt.format(appt.startAt)}` : null}
             initial={{
               appointmentId: record.appointmentId,
               serviceId: record.serviceId ?? "",
@@ -70,20 +75,20 @@ export default async function EditTreatmentPage({ params, searchParams }: Props)
         </div>
         <section className="lunia-card flex flex-col gap-4 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">Photos for this session</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-ink)]/60">{t("Photos for this session")}</h2>
             <Link href={`/admin/clients/${id}/clinical/photos?record=${record.id}`} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11">
-              Add photos
+              {t("Add photos")}
             </Link>
           </div>
           {photos.length === 0 ? (
-            <p className="text-sm text-[var(--color-ink)]/55">No photos linked to this session.</p>
+            <p className="text-sm text-[var(--color-ink)]/55">{t("No photos linked to this session.")}</p>
           ) : (
             <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5">
               {photos.map((p) => (
                 <li key={p.id} className="relative overflow-hidden rounded-[var(--radius-sm)] bg-[var(--surface-2)]">
                   {/* eslint-disable-next-line @next/next/no-img-element -- private, auth-gated route */}
-                  <img src={`/admin/clinical/photo/${p.id}`} alt={`${p.kind} ${p.area ?? ""}`} className="aspect-square w-full object-cover" />
-                  <span className="absolute start-1 top-1 rounded bg-black/55 px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase text-white">{p.kind}</span>
+                  <img src={`/admin/clinical/photo/${p.id}`} alt={`${t(PHOTO_KIND_LABEL[p.kind] ?? p.kind)} ${p.area ?? ""}`} className="aspect-square w-full object-cover" />
+                  <span className="absolute start-1 top-1 rounded bg-black/55 px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase text-white">{ar ? t(PHOTO_KIND_LABEL[p.kind] ?? p.kind) : p.kind}</span>
                 </li>
               ))}
             </ul>

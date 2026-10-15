@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "../../../_components/requireAdmin";
 import { AdminShell } from "../../../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT, getStaffLocale } from "../../../_i18n/display";
 import { getServiceById } from "@/modules/catalog/services";
 import { listDepartments } from "@/modules/catalog/departments";
 import { listMedia } from "@/modules/cms/media";
@@ -17,6 +18,8 @@ interface EditServicePageProps {
 export default async function EditServicePage({ params }: EditServicePageProps) {
   const { id } = await params;
   const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
+  const locale = await getStaffLocale();
 
   const [service, departments, media, tiers, minTier] = await Promise.all([
     getServiceById(id),
@@ -28,7 +31,7 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
   if (!service) notFound();
 
   return (
-    <AdminShell user={user} title={`Service: ${service.nameEn}`} description="Edit this service's content, media, and booking settings.">
+    <AdminShell user={user} title={t("Service: {name}", { name: locale === "ar" && service.nameAr ? service.nameAr : service.nameEn })} description="Edit this service's content, media, and booking settings.">
       <EditServiceForm
         service={service}
         departments={departments}

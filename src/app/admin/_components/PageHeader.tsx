@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Tr } from "../_i18n/StaffI18n";
 
 interface PageHeaderProps {
   title: string;
@@ -12,7 +13,7 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
       <div>
         <span className="inline-flex items-center gap-2 text-[0.62rem] font-semibold uppercase tracking-[0.28em] text-[var(--color-teal-ink)]">
           <span aria-hidden="true" className="lunia-glow-mark" />
-          Lunia Admin
+          <Tr>Lunia Admin</Tr>
         </span>
         <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-medium leading-tight text-[var(--color-ink)] sm:text-4xl">
           {title}

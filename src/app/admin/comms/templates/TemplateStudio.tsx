@@ -15,6 +15,7 @@ import {
   subjectForTemplate,
 } from "@/modules/comms/templateCatalog";
 import { InlineStatus } from "../../_ui/Form";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 export interface StudioTemplate {
   kind: string;
@@ -39,6 +40,7 @@ const initialState: TemplateActionState = {};
 // message bubble (no HTML wrapper on those channels).
 function Preview({ kind, locale, channel, body }: { kind: string; locale: string; channel: string; body: string }) {
   const isAr = locale.toLowerCase().startsWith("ar");
+  const t = useStaffT();
   const params = sampleParams(locale);
   const interpolated = interpolateTemplate(body, params);
 
@@ -52,10 +54,10 @@ function Preview({ kind, locale, channel, body }: { kind: string; locale: string
     return (
       <div className="flex flex-col gap-2">
         <p className="text-xs text-[var(--color-ink)]/55">
-          Subject: <span className="font-medium text-[var(--color-ink)]/80">{subjectForTemplate(kind, locale)}</span>
+          {t("Subject:")} <span className="font-medium text-[var(--color-ink)]/80">{subjectForTemplate(kind, locale)}</span>
         </p>
         <iframe
-          title="Email preview"
+          title={t("Email preview")}
           srcDoc={html}
           sandbox=""
           className="h-[520px] w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-white"
@@ -72,7 +74,7 @@ function Preview({ kind, locale, channel, body }: { kind: string; locale: string
         style={{ background: bubbleBg }}
         className="ms-auto max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-[#111b21] shadow-sm"
       >
-        {interpolated || <span className="text-[#111b21]/40">Nothing to preview yet.</span>}
+        {interpolated || <span className="text-[#111b21]/40">{t("Nothing to preview yet.")}</span>}
       </div>
     </div>
   );
@@ -80,6 +82,7 @@ function Preview({ kind, locale, channel, body }: { kind: string; locale: string
 
 function Editor({ template }: { template: StudioTemplate }) {
   const [state, action, pending] = useActionState(updateTemplateAction, initialState);
+  const t = useStaffT();
   const [body, setBody] = useState(template.bodyTemplate);
   const [isActive, setIsActive] = useState(template.isActive);
   const meta = KIND_META[template.kind];
@@ -96,13 +99,14 @@ function Editor({ template }: { template: StudioTemplate }) {
         {meta?.placeholders?.length ? (
           <div className="rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--color-cream)]/50 px-3 py-2.5">
             <p className="text-xs text-[var(--color-ink)]/60">
-              Placeholders — click to insert automatically when the message is sent:
+              {t("Placeholders — click to insert automatically when the message is sent:")}
             </p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {meta.placeholders.map((p) => (
                 <button
                   key={p}
                   type="button"
+                  dir="ltr"
                   onClick={() => setBody((b) => `${b}{{${p}}}`)}
                   className="rounded-full border border-[var(--color-teal)]/40 bg-white px-2.5 py-0.5 font-mono text-xs text-[var(--color-tealInk,#2f6d67)] transition-colors hover:bg-[var(--color-teal)]/10"
                 >
@@ -114,7 +118,7 @@ function Editor({ template }: { template: StudioTemplate }) {
         ) : null}
 
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Message content</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Message content")}</span>
           <textarea
             name="bodyTemplate"
             value={body}
@@ -122,23 +126,24 @@ function Editor({ template }: { template: StudioTemplate }) {
             rows={10}
             required
             dir={template.locale.toLowerCase().startsWith("ar") ? "rtl" : "ltr"}
-            aria-label="Template body"
+            aria-label={t("Template body")}
             className="lunia-input font-normal leading-relaxed"
           />
         </label>
 
         {template.channel !== "email" && (
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-[var(--color-ink)]">Provider template name (optional)</span>
+            <span className="font-medium text-[var(--color-ink)]">{t("Provider template name (optional)")}</span>
             <input
               type="text"
               name="providerTemplateName"
               defaultValue={template.providerTemplateName ?? ""}
-              aria-label="Provider template name"
+              aria-label={t("Provider template name")}
+              dir="ltr"
               className="lunia-input"
             />
             <span className="text-xs text-[var(--color-ink)]/50">
-              Required by WhatsApp/SMS providers (e.g. Meta) for pre-approved templates.
+              {t("Required by WhatsApp/SMS providers (e.g. Meta) for pre-approved templates.")}
             </span>
           </label>
         )}
@@ -150,12 +155,12 @@ function Editor({ template }: { template: StudioTemplate }) {
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
           />
-          Active (send this template)
+          {t("Active (send this template)")}
         </label>
 
         <div className="flex flex-wrap items-center gap-3">
           <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest disabled:opacity-60">
-            {pending ? "Saving…" : "Save template"}
+            {pending ? t("Saving…") : t("Save template")}
           </button>
           {fallback && (
             <button
@@ -163,10 +168,10 @@ function Editor({ template }: { template: StudioTemplate }) {
               onClick={() => setBody(fallback)}
               className="lunia-btn lunia-btn-forest-outline"
             >
-              Reset to default
+              {t("Reset to default")}
             </button>
           )}
-          <InlineStatus size="sm" success={state.success ? "Saved." : undefined} />
+          <InlineStatus size="sm" success={state.success ? t("Saved.") : undefined} />
           <InlineStatus size="sm" error={state.error} />
         </div>
       </form>
@@ -174,7 +179,7 @@ function Editor({ template }: { template: StudioTemplate }) {
       {/* Live preview */}
       <div className="flex flex-col gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-ink)]/50">
-          Exactly what the customer sees
+          {t("Exactly what the customer sees")}
         </p>
         <Preview kind={template.kind} locale={template.locale} channel={template.channel} body={body} />
       </div>
@@ -183,9 +188,10 @@ function Editor({ template }: { template: StudioTemplate }) {
 }
 
 export function TemplateStudio({ templates }: { templates: StudioTemplate[] }) {
+  const t = useStaffT();
   const byKey = useMemo(() => {
     const m = new Map<string, StudioTemplate>();
-    for (const t of templates) m.set(keyOf(t), t);
+    for (const tpl of templates) m.set(keyOf(tpl), tpl);
     return m;
   }, [templates]);
 
@@ -193,14 +199,14 @@ export function TemplateStudio({ templates }: { templates: StudioTemplate[] }) {
   const selected = byKey.get(selKey) ?? templates[0];
 
   if (!selected) {
-    return <p className="text-sm text-[var(--color-ink)]/60">No templates available.</p>;
+    return <p className="text-sm text-[var(--color-ink)]/60">{t("No templates available.")}</p>;
   }
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 sm:max-w-md">
         <label htmlFor="template-picker" className="text-sm font-medium text-[var(--color-ink)]">
-          Choose a message to view or edit
+          {t("Choose a message to view or edit")}
         </label>
         <select
           id="template-picker"
@@ -209,16 +215,16 @@ export function TemplateStudio({ templates }: { templates: StudioTemplate[] }) {
           className="lunia-input"
           data-testid="template-picker"
         >
-          {templates.map((t) => (
-            <option key={keyOf(t)} value={keyOf(t)}>
-              {(KIND_META[t.kind]?.label ?? t.kind)} — {CHANNEL_LABELS[t.channel] ?? t.channel} · {LOCALE_LABELS[t.locale] ?? t.locale}
-              {t.exists ? "" : " (default)"}
-              {t.exists && !t.isActive ? " · inactive" : ""}
+          {templates.map((tpl) => (
+            <option key={keyOf(tpl)} value={keyOf(tpl)}>
+              {t(KIND_META[tpl.kind]?.label ?? tpl.kind)} — {t(CHANNEL_LABELS[tpl.channel] ?? tpl.channel)} · {LOCALE_LABELS[tpl.locale] ?? tpl.locale}
+              {tpl.exists ? "" : ` ${t("(default)")}`}
+              {tpl.exists && !tpl.isActive ? ` · ${t("inactive")}` : ""}
             </option>
           ))}
         </select>
         {KIND_META[selected.kind]?.description && (
-          <p className="text-xs text-[var(--color-ink)]/55">{KIND_META[selected.kind].description}</p>
+          <p className="text-xs text-[var(--color-ink)]/55">{t(KIND_META[selected.kind].description)}</p>
         )}
       </div>
 

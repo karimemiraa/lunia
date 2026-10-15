@@ -11,7 +11,8 @@ import { listServicesUsingProduct } from "@/modules/inventory/consumables";
 import { formatSarMinor } from "@/modules/inventory/money";
 import { ProductForm } from "../../_components/ProductForm";
 import { AdjustmentForm } from "../../_components/AdjustmentForm";
-import { Badge, InventorySubnav, MovementBadge, ResponsiveTable, Section, StatCard, formatDate, formatDateTime } from "../../_components/ui";
+import { getStaffLocale, getStaffT } from "../../../_i18n/display";
+import { Badge, InventorySubnav, MovementBadge, ResponsiveTable, Section, StatCard, formatDate, formatDateTime, productName, qtyUnit, withSlot } from "../../_components/ui";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -25,7 +26,7 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProduct(id);
   if (!product) notFound();
 
-  const [suppliers, categories, ledger, usedBy, openLines] = await Promise.all([
+  const [suppliers, categories, ledger, usedBy, openLines, t, locale] = await Promise.all([
     listSupplierOptions(),
     listCategories(),
     getProductLedger(id, 300),
@@ -34,16 +35,22 @@ export default async function ProductPage({ params }: Props) {
       where: { productId: id, purchaseOrder: { status: { in: ["DRAFT", "ORDERED", "PARTIAL"] } } },
       include: { purchaseOrder: { select: { id: true, number: true, status: true } } },
     }),
+    getStaffT(),
+    getStaffLocale(),
   ]);
 
   // Resolve who made each movement and PO numbers for PO references.
   const actorIds = [...new Set(ledger.map((m) => m.createdById).filter((x): x is string => !!x))];
   const poIds = [...new Set(ledger.filter((m) => m.refType === "PURCHASE_ORDER" && m.refId).map((m) => m.refId!))];
-  const [actors, pos] = await Promise.all([
+  const [actors, pos, servicesAr] = await Promise.all([
     prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, email: true, staffProfile: { select: { fullName: true } } } }),
     prisma.purchaseOrder.findMany({ where: { id: { in: poIds } }, select: { id: true, number: true } }),
+    locale === "ar" && usedBy.length > 0
+      ? prisma.service.findMany({ where: { id: { in: usedBy.map((u) => u.service.id) } }, select: { id: true, nameAr: true } })
+      : Promise.resolve([]),
   ]);
-  const actorName = new Map(actors.map((a) => [a.id, a.staffProfile?.fullName || a.email || "Staff"]));
+  const serviceNameAr = new Map(servicesAr.filter((s) => s.nameAr).map((s) => [s.id, s.nameAr]));
+  const actorName = new Map(actors.map((a) => [a.id, a.staffProfile?.fullName || a.email || t("Staff")]));
   const poNumber = new Map(pos.map((p) => [p.id, p.number]));
   const onOrder = openLines.reduce((sum, l) => sum + (l.qty - l.receivedQty), 0);
   const low = product.stockQty < 0 || (product.reorderLevel > 0 && product.stockQty <= product.reorderLevel);
@@ -54,51 +61,68 @@ export default async function ProductPage({ params }: Props) {
   return (
     <AdminShell
       user={user}
-      title={product.nameEn}
-      description={[product.brandName, product.sku && `SKU ${product.sku}`, product.barcode && `Barcode ${product.barcode}`].filter(Boolean).join(" · ") || undefined}
+      title={productName(product, locale)}
+      description={
+        [product.brandName, product.sku && t("SKU {sku}", { sku: product.sku }), product.barcode && t("Barcode {barcode}", { barcode: product.barcode })]
+          .filter(Boolean)
+          .join(" · ") || undefined
+      }
       actions={
         <Link href="/admin/inventory" className="lunia-btn lunia-btn-ghost min-h-11">
-          All products
+          {t("All products")}
         </Link>
       }
     >
       <InventorySubnav active="/admin/inventory" />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="On hand" value={`${product.stockQty} ${product.unit}`} hint={product.reorderLevel ? `Reorder at ${product.reorderLevel}` : "No reorder level set"} tone={low ? "alert" : undefined} />
-        <StatCard label="On order" value={`${onOrder} ${product.unit}`} hint={`${openLines.length} open purchase order(s)`} />
-        <StatCard label="Cost per unit" value={formatSarMinor(product.costMinor)} hint="Weighted average" />
-        <StatCard label="Stock value" value={formatSarMinor(Math.max(product.stockQty, 0) * product.costMinor)} />
+        <StatCard
+          label={t("On hand")}
+          value={qtyUnit(product.stockQty, product.unit, t)}
+          hint={product.reorderLevel ? t("Reorder at {level}", { level: product.reorderLevel }) : t("No reorder level set")}
+          tone={low ? "alert" : undefined}
+        />
+        <StatCard label={t("On order")} value={qtyUnit(onOrder, product.unit, t)} hint={t("{count} open purchase order(s)", { count: openLines.length })} />
+        <StatCard label={t("Cost per unit")} value={formatSarMinor(product.costMinor)} hint={t("Weighted average")} />
+        <StatCard label={t("Stock value")} value={formatSarMinor(Math.max(product.stockQty, 0) * product.costMinor)} />
       </div>
 
       {(openLines.length > 0 || usedBy.length > 0) && (
         <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm text-[var(--color-ink)]/70">
           {openLines.length > 0 && (
             <p>
-              On order:{" "}
-              {openLines.map((l, i) => (
-                <span key={l.id}>
-                  {i > 0 && ", "}
-                  <Link href={`/admin/inventory/purchase-orders/${l.purchaseOrder.id}`} className="font-medium text-[var(--color-teal-ink)] hover:underline">
-                    {l.purchaseOrder.number}
-                  </Link>{" "}
-                  ({l.qty - l.receivedQty})
-                </span>
-              ))}
+              {withSlot(
+                t,
+                "On order: {list}",
+                "list",
+                openLines.map((l, i) => (
+                  <span key={l.id}>
+                    {i > 0 && t(", ")}
+                    <Link href={`/admin/inventory/purchase-orders/${l.purchaseOrder.id}`} className="font-medium text-[var(--color-teal-ink)] hover:underline">
+                      {l.purchaseOrder.number}
+                    </Link>{" "}
+                    ({l.qty - l.receivedQty})
+                  </span>
+                )),
+              )}
             </p>
           )}
           {usedBy.length > 0 && (
             <p>
-              Used per session in:{" "}
-              {usedBy.map((u, i) => (
-                <span key={u.id}>
-                  {i > 0 && ", "}
-                  <Link href={`/admin/catalog/services/${u.service.id}`} className="font-medium text-[var(--color-teal-ink)] hover:underline">
-                    {u.service.nameEn}
-                  </Link>{" "}
-                  ({u.qty} {product.unit})
-                </span>
-              ))}
+              {withSlot(
+                t,
+                "Used per session in: {list}",
+                "list",
+                usedBy.map((u, i) => (
+                  <span key={u.id}>
+                    {i > 0 && t(", ")}
+                    <Link href={`/admin/catalog/services/${u.service.id}`} className="font-medium text-[var(--color-teal-ink)] hover:underline">
+                      {serviceNameAr.get(u.service.id) ?? u.service.nameEn}
+                    </Link>{" "}
+                    ({qtyUnit(u.qty, product.unit, t)})
+                  </span>
+                )),
+              )}
             </p>
           )}
         </div>
@@ -131,17 +155,17 @@ export default async function ProductPage({ params }: Props) {
         </div>
       </div>
 
-      <Section title="Stock ledger">
+      <Section title={t("Stock ledger")}>
         <ResponsiveTable
           rows={ledger}
           rowKey={(m) => m.id}
-          empty="No movements yet."
+          empty={t("No movements yet.")}
           columns={[
-            { key: "when", header: "When", render: (m) => formatDateTime(m.createdAt) },
-            { key: "type", header: "Type", render: (m) => <MovementBadge type={m.type} /> },
+            { key: "when", header: t("When"), render: (m) => formatDateTime(m.createdAt, locale) },
+            { key: "type", header: t("Type"), render: (m) => <MovementBadge type={m.type} /> },
             {
               key: "qty",
-              header: "Change",
+              header: t("Change"),
               align: "right",
               render: (m) => (
                 <span className={m.qty < 0 ? "text-red-700" : "text-[var(--color-teal-ink)]"}>
@@ -150,22 +174,22 @@ export default async function ProductPage({ params }: Props) {
                 </span>
               ),
             },
-            { key: "balance", header: "Balance", align: "right", render: (m) => <span className={m.balance < 0 ? "font-semibold text-red-700" : "font-medium"}>{m.balance}</span> },
+            { key: "balance", header: t("Balance"), align: "right", render: (m) => <span className={m.balance < 0 ? "font-semibold text-red-700" : "font-medium"}>{m.balance}</span> },
             {
               key: "ref",
-              header: "Reference",
+              header: t("Reference"),
               render: (m) =>
                 m.refType === "PURCHASE_ORDER" && m.refId ? (
                   <Link href={`/admin/inventory/purchase-orders/${m.refId}`} className="text-[var(--color-teal-ink)] hover:underline">
-                    {poNumber.get(m.refId) ?? "Purchase order"}
+                    {poNumber.get(m.refId) ?? t("Purchase order")}
                   </Link>
                 ) : (
-                  <span>{m.refType ? REF_LABELS[m.refType] ?? m.refType : "—"}</span>
+                  <span>{m.refType ? (REF_LABELS[m.refType] ? t(REF_LABELS[m.refType]) : m.refType) : "—"}</span>
                 ),
             },
             {
               key: "lot",
-              header: "Lot / expiry",
+              header: t("Lot / expiry"),
               render: (m) =>
                 m.lotNumber || m.expiresAt ? (
                   <span className="text-xs">
@@ -173,7 +197,11 @@ export default async function ProductPage({ params }: Props) {
                     {m.expiresAt && (
                       <>
                         {" · "}
-                        {m.expiresAt <= new Date() ? <Badge tone="red">exp {formatDate(m.expiresAt)}</Badge> : `exp ${formatDate(m.expiresAt)}`}
+                        {m.expiresAt <= new Date() ? (
+                          <Badge tone="red">{t("exp {date}", { date: formatDate(m.expiresAt, locale) })}</Badge>
+                        ) : (
+                          t("exp {date}", { date: formatDate(m.expiresAt, locale) })
+                        )}
                       </>
                     )}
                   </span>
@@ -181,14 +209,14 @@ export default async function ProductPage({ params }: Props) {
                   "—"
                 ),
             },
-            { key: "cost", header: "Unit cost", align: "right", render: (m) => (m.unitCostMinor !== null ? formatSarMinor(m.unitCostMinor) : "—") },
+            { key: "cost", header: t("Unit cost"), align: "right", render: (m) => (m.unitCostMinor !== null ? formatSarMinor(m.unitCostMinor) : "—") },
             {
               key: "note",
-              header: "Note",
+              header: t("Note"),
               render: (m) => (
                 <span className="text-xs text-[var(--color-ink)]/70">
                   {m.note ?? ""}
-                  {m.createdById && <span className="block text-[var(--color-ink)]/50">{actorName.get(m.createdById) ?? "Staff"}</span>}
+                  {m.createdById && <span className="block text-[var(--color-ink)]/50">{actorName.get(m.createdById) ?? t("Staff")}</span>}
                 </span>
               ),
             },

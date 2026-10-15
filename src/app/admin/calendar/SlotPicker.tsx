@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useTransition } from "react";
 import type { CalendarSlotDTO } from "./actions";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
+import { intlLocale, type StaffLocale } from "../_i18n/t";
 
 /** Asia/Riyadh is fixed at UTC+3 year-round (no DST) — see availability.ts. */
 const CENTER_TZ = "Asia/Riyadh";
 
-function formatTime(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+function formatTime(iso: string, locale: StaffLocale): string {
+  return new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 }
 
 const inputClass =
@@ -48,6 +50,8 @@ function SlotResults({ serviceId, date, fetchSlots, selected, onSelect, preferre
   const [slots, setSlots] = useState<CalendarSlotDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const t = useStaffT();
+  const locale = useStaffLocale();
 
   useEffect(() => {
     startTransition(async () => {
@@ -63,13 +67,13 @@ function SlotResults({ serviceId, date, fetchSlots, selected, onSelect, preferre
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchSlots is stable per-caller; this effect is meant to run exactly once per mount (i.e. once per serviceId+date key from the parent).
   }, []);
 
-  if (isPending) return <p className="text-sm text-[var(--color-ink)]/60">Loading available times…</p>;
+  if (isPending) return <p className="text-sm text-[var(--color-ink)]/60">{t("Loading available times…")}</p>;
   if (error) return (
     <p role="alert" className="text-sm font-medium text-red-700">
       {error}
     </p>
   );
-  if (slots && slots.length === 0) return <p className="text-sm text-[var(--color-ink)]/60">No available times on this day.</p>;
+  if (slots && slots.length === 0) return <p className="text-sm text-[var(--color-ink)]/60">{t("No available times on this day.")}</p>;
   if (!slots) return null;
 
   return (
@@ -89,7 +93,7 @@ function SlotResults({ serviceId, date, fetchSlots, selected, onSelect, preferre
                 : "border-[var(--color-ink)]/20 text-[var(--color-ink)] hover:border-[var(--color-ink)]/40"
             }`}
           >
-            {formatTime(slot.startAt)}
+            {formatTime(slot.startAt, locale)}
           </button>
         );
       })}
@@ -115,10 +119,11 @@ interface SlotPickerProps {
 // carry the resolved (staffUserId, roomId) pair the underlying booking
 // engine assigned, so the caller doesn't need its own staff/room selects.
 export function SlotPicker({ serviceId, date, onDateChange, selected, onSelect, fetchSlots, dateInputId, preferredStartAt, preferredStaffUserId }: SlotPickerProps) {
+  const t = useStaffT();
   return (
     <div className="flex flex-col gap-3">
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-[var(--color-ink)]">Date</span>
+        <span className="font-medium text-[var(--color-ink)]">{t("Date")}</span>
         <input
           id={dateInputId}
           type="date"
@@ -131,7 +136,7 @@ export function SlotPicker({ serviceId, date, onDateChange, selected, onSelect, 
         />
       </label>
 
-      {!serviceId && <p className="text-sm text-[var(--color-ink)]/60">Choose a service first.</p>}
+      {!serviceId && <p className="text-sm text-[var(--color-ink)]/60">{t("Choose a service first.")}</p>}
       {serviceId && date && (
         <SlotResults key={`${serviceId}::${date}`} serviceId={serviceId} date={date} fetchSlots={fetchSlots} selected={selected} onSelect={onSelect} preferredStartAt={preferredStartAt} preferredStaffUserId={preferredStaffUserId} />
       )}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { openPalette } from "./CommandPalette";
 import { st, type StaffLocale } from "../_i18n/staffLocale";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 interface KeyboardShortcutsProps {
   /** Hrefs the viewer may open (permission + hidden-menu filtered). */
@@ -151,12 +152,13 @@ export function KeyboardShortcuts({ allowedHrefs, canBook, locale = "en" }: Keyb
 }
 
 function FragmentRow({ keys, label }: { keys: string[]; label: string }) {
+  const t = useStaffT();
   return (
     <>
       <dt className="flex items-center gap-1">
         {keys.map((k, i) => (
           <span key={i} className="flex items-center gap-1">
-            {i > 0 && <span className="text-xs text-[var(--color-ink)]/40">then</span>}
+            {i > 0 && <span className="text-xs text-[var(--color-ink)]/40">{t("then")}</span>}
             <kbd className="lunia-kbd">{k}</kbd>
           </span>
         ))}

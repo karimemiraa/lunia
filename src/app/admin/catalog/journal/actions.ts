@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
+import { catalogErrorMessage } from "../_errors";
 import { createPost, updatePost, deletePost } from "@/modules/catalog/journal";
 
 export interface PostActionState {
@@ -36,6 +38,7 @@ function revalidatePublic(): void {
 
 export async function createPostAction(_prev: PostActionState | null, formData: FormData): Promise<PostActionState> {
   await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
 
   const slug = String(formData.get("slug") ?? "").trim();
   const title = readLocalized(formData, "title");
@@ -43,7 +46,7 @@ export async function createPostAction(_prev: PostActionState | null, formData: 
   const body = readLocalized(formData, "body");
 
   if (!slug || !title.en || !title.ar || !body.en || !body.ar) {
-    return { error: "Slug, title (EN/AR), and body (EN/AR) are required." };
+    return { error: t("Slug, title (EN/AR), and body (EN/AR) are required.") };
   }
 
   try {
@@ -62,7 +65,7 @@ export async function createPostAction(_prev: PostActionState | null, formData: 
       isPublished: formData.get("isPublished") === "on",
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create post." };
+    return { error: err instanceof Error ? catalogErrorMessage(err.message, t) : t("Failed to create post.") };
   }
 
   revalidatePublic();
@@ -71,10 +74,11 @@ export async function createPostAction(_prev: PostActionState | null, formData: 
 
 export async function updatePostAction(_prev: PostActionState | null, formData: FormData): Promise<PostActionState> {
   await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
-    return { error: "Missing post." };
+    return { error: t("Missing post.") };
   }
 
   const title = readLocalized(formData, "title");
@@ -96,7 +100,7 @@ export async function updatePostAction(_prev: PostActionState | null, formData: 
       isPublished: formData.get("isPublished") === "on",
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update post." };
+    return { error: err instanceof Error ? catalogErrorMessage(err.message, t) : t("Failed to update post.") };
   }
 
   revalidatePublic();

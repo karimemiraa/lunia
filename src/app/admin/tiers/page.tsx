@@ -6,9 +6,11 @@ import { getLoyaltyConfig } from "@/modules/crm/loyalty";
 import { TierRow } from "./TierRow";
 import { CreateTierForm } from "./CreateTierForm";
 import { LoyaltyRatesForm } from "./LoyaltyRatesForm";
+import { getStaffT } from "../_i18n/display";
 
 export default async function TiersPage() {
   const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
   const [tiers, loyalty] = await Promise.all([listTiers(), getLoyaltyConfig()]);
   const sarPerPoint = loyalty.earnMinorPerPoint / 100;
   const pointsPerSar = Math.round(100 / loyalty.redeemMinorPerPoint);
@@ -28,16 +30,16 @@ export default async function TiersPage() {
       </div>
 
       <div className="overflow-x-auto lunia-card">
-        <table className="w-full text-left text-sm" data-testid="tiers-table">
+        <table className="w-full text-start text-sm" data-testid="tiers-table">
           <thead className="bg-[var(--color-cream)]/60">
             <tr>
-              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Key</th>
-              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Name</th>
-              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Priority</th>
-              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Discount %</th>
-              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">System</th>
-              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Save</th>
-              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">Delete</th>
+              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Key")}</th>
+              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Name")}</th>
+              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Priority")}</th>
+              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Discount %")}</th>
+              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("System")}</th>
+              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Save")}</th>
+              <th className="px-4 py-2 font-medium text-[var(--color-ink)]">{t("Delete")}</th>
             </tr>
           </thead>
           <tbody>

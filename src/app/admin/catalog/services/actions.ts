@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
+import { catalogErrorMessage } from "../_errors";
 import { createService, updateService, deleteService } from "@/modules/catalog/services";
 import { updateServiceBookingSettings } from "@/modules/booking/serviceSettings";
 import { setServiceAccessRule } from "@/modules/booking/accessRules";
@@ -51,6 +53,7 @@ export async function createServiceAction(
   formData: FormData,
 ): Promise<ServiceActionState> {
   await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
 
   const slug = String(formData.get("slug") ?? "").trim();
   const departmentId = String(formData.get("departmentId") ?? "").trim();
@@ -58,7 +61,7 @@ export async function createServiceAction(
   const summary = readLocalized(formData, "summary");
 
   if (!slug || !departmentId || !name.en || !name.ar) {
-    return { error: "Slug, department, and name (EN/AR) are required." };
+    return { error: t("Slug, department, and name (EN/AR) are required.") };
   }
 
   try {
@@ -76,7 +79,7 @@ export async function createServiceAction(
       isPublished: formData.get("isPublished") === "on",
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create service." };
+    return { error: err instanceof Error ? catalogErrorMessage(err.message, t) : t("Failed to create service.") };
   }
 
   revalidatePublic();
@@ -88,10 +91,11 @@ export async function updateServiceAction(
   formData: FormData,
 ): Promise<ServiceActionState> {
   await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
-    return { error: "Missing service." };
+    return { error: t("Missing service.") };
   }
 
   const departmentId = String(formData.get("departmentId") ?? "").trim();
@@ -103,10 +107,10 @@ export async function updateServiceAction(
   const minTierId = String(formData.get("minTierId") ?? "").trim();
 
   if (durationMin === undefined || durationMin <= 0) {
-    return { error: "Duration must be a positive number of minutes." };
+    return { error: t("Duration must be a positive number of minutes.") };
   }
   if (priceSar === undefined || priceSar < 0) {
-    return { error: "Price must be zero or greater." };
+    return { error: t("Price must be zero or greater.") };
   }
 
   try {
@@ -130,7 +134,7 @@ export async function updateServiceAction(
     });
     await setServiceAccessRule(id, minTierId || null);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update service." };
+    return { error: err instanceof Error ? catalogErrorMessage(err.message, t) : t("Failed to update service.") };
   }
 
   revalidatePublic();

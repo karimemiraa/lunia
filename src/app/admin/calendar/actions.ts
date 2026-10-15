@@ -18,12 +18,13 @@ import { countWaiting } from "@/modules/booking/waitlist";
 import { utcToCenterLocal } from "@/modules/booking/availability";
 import { prisma } from "@/lib/db";
 import { previewSeries, createSeries, cancelSeriesFrom } from "@/modules/booking/series";
+import { getStaffT } from "../_i18n/display";
+import { errorText } from "./actionError";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-function messageOf(err: unknown): string {
-  return err instanceof Error ? err.message : "Something went wrong.";
-}
+// Module errors are English; errorText() returns them in the staff locale.
+const messageOf = errorText;
 
 function revalidateCalendar(): void {
   revalidatePath("/admin/calendar");
@@ -40,7 +41,7 @@ export async function saveCenterNoteAction(bookingId: string, note: string): Pro
       data: { centerNote: trimmed.length > 0 ? trimmed : null },
     });
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
   revalidateCalendar();
   return { ok: true };
@@ -51,7 +52,7 @@ export async function checkInAction(bookingId: string): Promise<ActionResult> {
   try {
     await checkIn(bookingId);
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
   revalidateCalendar();
   return { ok: true };
@@ -62,7 +63,7 @@ export async function completeAction(bookingId: string): Promise<ActionResult> {
   try {
     await complete(bookingId);
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
   revalidateCalendar();
   return { ok: true };
@@ -85,7 +86,7 @@ export async function cancelAction(bookingId: string): Promise<CancelResult> {
     }
     await cancel(bookingId);
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
   revalidateCalendar();
   revalidatePath("/admin/waitlist");
@@ -98,7 +99,7 @@ export async function startAction(bookingId: string): Promise<ActionResult> {
   try {
     await startService(bookingId);
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
   revalidateCalendar();
   return { ok: true };
@@ -109,7 +110,7 @@ export async function noShowAction(bookingId: string): Promise<ActionResult> {
   try {
     await markNoShow(bookingId);
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
   revalidateCalendar();
   return { ok: true };
@@ -129,7 +130,7 @@ export async function rescheduleAction(
   try {
     await reschedule(bookingId, newStartAtISO, staffUserId, roomId);
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
   revalidateCalendar();
   return { ok: true };
@@ -159,7 +160,7 @@ export async function getCalendarSlotsAction(
       slots: slots.map((slot) => ({ startAt: slot.startAt.toISOString(), staffUserId: slot.staffUserId, roomId: slot.roomId })),
     };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -182,7 +183,7 @@ export async function frontDeskBookAction(input: FrontDeskBookInput): Promise<Ac
   const name = input.name.trim();
   const phone = input.phone.trim();
   if (!input.serviceId || !input.startAt || !input.staffUserId || !input.roomId || !name || !phone) {
-    return { ok: false, error: "Service, time, and client name and phone are required." };
+    return { ok: false, error: (await getStaffT())("Service, time, and client name and phone are required.") };
   }
 
   try {
@@ -197,7 +198,7 @@ export async function frontDeskBookAction(input: FrontDeskBookInput): Promise<Ac
       locale: "en",
     });
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
   revalidateCalendar();
   return { ok: true };
@@ -217,7 +218,7 @@ export async function previewSeriesAction(input: { serviceId: string; firstStart
     const occ = await previewSeries(input);
     return { ok: true, occurrences: occ.map((o) => ({ dateISO: o.dateISO, startAt: o.startAt.toISOString(), available: o.available })) };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -233,13 +234,13 @@ export async function createSeriesAction(input: {
   const admin = await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
   const name = input.name.trim();
   const phone = input.phone.trim();
-  if (!name || !phone) return { ok: false, error: "Customer name and phone are required." };
+  if (!name || !phone) return { ok: false, error: (await getStaffT())("Customer name and phone are required.") };
   try {
     const r = await createSeries({ ...input, client: { name, phone }, createdById: admin.id, locale: "en" });
     revalidateCalendar();
     return { ok: true, booked: r.booked.length, skipped: r.skipped.map((s) => utcToCenterLocal(s.startAt).dateISO) };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }
 
@@ -250,6 +251,6 @@ export async function cancelSeriesFromAction(bookingId: string): Promise<{ ok: t
     revalidateCalendar();
     return { ok: true, cancelled };
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
 }

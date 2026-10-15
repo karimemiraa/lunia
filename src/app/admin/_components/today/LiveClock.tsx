@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useStaffLocale } from "../../_i18n/StaffI18n";
+import { intlLocale } from "../../_i18n/t";
 
-const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", hour: "numeric", minute: "2-digit" });
 
 // Center-local wall clock that ticks every minute. Renders the server's
 // time first so there is no empty flash, then keeps itself current.
 export function LiveClock({ initialISO }: { initialISO: string }) {
+  const locale = useStaffLocale();
+  const fmt = useMemo(() => new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: "Asia/Riyadh", hour: "numeric", minute: "2-digit" }), [locale]);
   const [now, setNow] = useState(() => new Date(initialISO));
   useEffect(() => {
     const tick = () => setNow(new Date());

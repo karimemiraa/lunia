@@ -9,6 +9,7 @@ import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
 import { signAtDeskAction } from "../../actions";
 import { loadClient } from "../../_components/loadClient";
+import { getStaffT } from "../../../../../_i18n/display";
 
 interface Props {
   params: Promise<{ id: string; formId: string }>;
@@ -21,6 +22,7 @@ interface Props {
 export default async function DeskSignPage({ params, searchParams }: Props) {
   const [{ id, formId }, { lang: rawLang }] = await Promise.all([params, searchParams]);
   await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  const t = await getStaffT();
   const client = await loadClient(id);
   const form = await getConsentForm(formId);
   if (!form || !form.isActive) notFound();
@@ -37,12 +39,13 @@ export default async function DeskSignPage({ params, searchParams }: Props) {
     <div className="min-h-screen bg-[var(--color-page,#faf8f4)]">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] bg-white px-4 py-3 sm:px-8">
         <Link href={`/admin/clients/${id}`} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11">
-          Close
+          {t("Close")}
         </Link>
-        <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1" role="group" aria-label="Language">
+        <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1" role="group" aria-label={t("Language")}>
           {(["ar", "en"] as const).map((l) => (
             <Link
               key={l}
+              lang={l}
               href={`${self}?lang=${l}`}
               aria-current={l === lang ? "true" : undefined}
               className={`inline-flex min-h-10 min-w-16 items-center justify-center rounded-full px-4 text-sm font-medium ${l === lang ? "bg-white shadow-sm" : "text-[var(--color-ink)]/60"}`}

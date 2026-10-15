@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { DataTable, type Column } from "../_ui/DataTable";
 import { formatSarMinor } from "@/modules/inventory/money";
-import { Badge } from "./_components/ui";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
+import { Badge, KIND_LABELS, productName, qtyUnit } from "./_components/ui";
 
 export interface ProductRow {
   id: string;
   nameEn: string;
+  nameAr?: string | null;
   brandName: string | null;
   sku: string | null;
   category: string | null;
@@ -32,42 +34,49 @@ function isLow(p: ProductRow): boolean {
  * there is deliberately no second search box here.
  */
 export function ProductsTable({ rows, filtered }: { rows: ProductRow[]; filtered: boolean }) {
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const columns: Column<ProductRow>[] = [
     {
       key: "name",
-      header: "Product",
+      header: t("Product"),
       primary: true,
-      value: (p) => p.nameEn,
+      value: (p) => productName(p, locale),
       render: (p) => (
         <div className="flex flex-col">
           <Link href={`/admin/inventory/products/${p.id}`} className="font-medium text-[var(--color-ink)] hover:text-[var(--color-teal-ink)] hover:underline">
-            {p.nameEn}
+            {productName(p, locale)}
           </Link>
           <span className="text-xs text-[var(--color-ink)]/55">{[p.brandName, p.sku, p.category].filter(Boolean).join(" · ") || "—"}</span>
           {!p.isActive && (
             <span className="mt-1">
-              <Badge>Inactive</Badge>
+              <Badge>{t("Inactive")}</Badge>
             </span>
           )}
         </div>
       ),
     },
-    { key: "kind", header: "Type", value: (p) => p.kind, render: (p) => <span className="text-xs">{p.kind.toLowerCase()}</span> },
+    {
+      key: "kind",
+      header: t("Type"),
+      value: (p) => p.kind,
+      render: (p) => <span className="text-xs">{locale === "ar" && KIND_LABELS[p.kind] ? t(KIND_LABELS[p.kind]) : p.kind.toLowerCase()}</span>,
+    },
     {
       key: "stock",
-      header: "In stock",
+      header: t("In stock"),
       numeric: true,
       value: (p) => p.stockQty,
       render: (p) => (
         <span className={isLow(p) ? "font-semibold text-red-700" : ""}>
-          {p.stockQty} {p.unit}
+          {qtyUnit(p.stockQty, p.unit, t)}
         </span>
       ),
     },
-    { key: "reorder", header: "Reorder at", numeric: true, value: (p) => p.reorderLevel, render: (p) => (p.reorderLevel ? `${p.reorderLevel} ${p.unit}` : "—") },
-    { key: "cost", header: "Cost", numeric: true, value: (p) => p.costMinor, render: (p) => formatSarMinor(p.costMinor) },
-    { key: "price", header: "Price excl. VAT", numeric: true, value: (p) => p.priceMinor ?? -1, render: (p) => (p.priceMinor ? formatSarMinor(p.priceMinor) : "—") },
-    { key: "value", header: "Stock value", numeric: true, value: (p) => Math.max(p.stockQty, 0) * p.costMinor, render: (p) => formatSarMinor(Math.max(p.stockQty, 0) * p.costMinor) },
+    { key: "reorder", header: t("Reorder at"), numeric: true, value: (p) => p.reorderLevel, render: (p) => (p.reorderLevel ? qtyUnit(p.reorderLevel, p.unit, t) : "—") },
+    { key: "cost", header: t("Cost"), numeric: true, value: (p) => p.costMinor, render: (p) => formatSarMinor(p.costMinor) },
+    { key: "price", header: t("Price excl. VAT"), numeric: true, value: (p) => p.priceMinor ?? -1, render: (p) => (p.priceMinor ? formatSarMinor(p.priceMinor) : "—") },
+    { key: "value", header: t("Stock value"), numeric: true, value: (p) => Math.max(p.stockQty, 0) * p.costMinor, render: (p) => formatSarMinor(Math.max(p.stockQty, 0) * p.costMinor) },
   ];
 
   return (
@@ -76,8 +85,8 @@ export function ProductsTable({ rows, filtered }: { rows: ProductRow[]; filtered
       rows={rows}
       rowKey={(p) => p.id}
       cardsBelow="lg"
-      empty={filtered ? "No products match these filters." : "No products yet. Create your first product to start tracking stock."}
-      ariaLabel="Products"
+      empty={filtered ? t("No products match these filters.") : t("No products yet. Create your first product to start tracking stock.")}
+      ariaLabel={t("Products")}
     />
   );
 }

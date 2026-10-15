@@ -1,6 +1,7 @@
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffLocale, getStaffT } from "../_i18n/display";
 import { listReviewsForModeration, getAggregate } from "@/modules/reviews/reviews";
 import { ReviewsTable, type ReviewRowDTO } from "./ReviewsTable";
 import { KpiCard } from "../_ui/Layout";
@@ -20,6 +21,8 @@ function isStatusFilter(value: string | undefined): value is StatusFilter {
 export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
   const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
   const params = await searchParams;
+  const t = await getStaffT();
+  const locale = await getStaffLocale();
   const statusFilter = isStatusFilter(params.status) ? params.status : "PENDING";
 
   const [reviews, aggregate] = await Promise.all([
@@ -30,7 +33,7 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
   const rows: ReviewRowDTO[] = reviews.map((review) => ({
     id: review.id,
     clientName: review.clientProfile?.fullName ?? null,
-    serviceName: review.service?.nameEn ?? null,
+    serviceName: (locale === "ar" && review.service?.nameAr) || review.service?.nameEn || null,
     rating: review.rating,
     title: review.title,
     body: review.body,
@@ -48,10 +51,20 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
       description="Moderate customer reviews collected after their visits. Approved + public-consent reviews feed the site's Testimonials and AggregateRating SEO data."
     >
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <KpiCard label="Public rating" value={aggregate.count > 0 ? `${aggregate.avg.toFixed(1)} / 5` : "—"} hint={aggregate.count > 0 ? `${aggregate.count} published review${aggregate.count === 1 ? "" : "s"}` : "No published reviews yet."} />
+        <KpiCard
+          label={t("Public rating")}
+          value={aggregate.count > 0 ? `${aggregate.avg.toFixed(1)} / 5` : "—"}
+          hint={
+            aggregate.count > 0
+              ? aggregate.count === 1
+                ? t("1 published review")
+                : t("{count} published reviews", { count: aggregate.count })
+              : t("No published reviews yet.")
+          }
+        />
       </div>
 
-      <FilterChips base="/admin/reviews" param="status" values={STATUS_VALUES.map((s) => ({ value: s, label: s.charAt(0) + s.slice(1).toLowerCase() }))} active={statusFilter} defaultLabel="Pending" label="Review status" />
+      <FilterChips base="/admin/reviews" param="status" values={STATUS_VALUES.map((s) => ({ value: s, label: t(s.charAt(0) + s.slice(1).toLowerCase()) }))} active={statusFilter} defaultLabel={t("Pending")} label={t("Review status")} />
       <div className="mt-6">
         <ReviewsTable rows={rows} canModerate={user.permissions.has(PERMISSIONS.CMS_MANAGE)} />
       </div>

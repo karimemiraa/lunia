@@ -13,6 +13,8 @@ import { computeGosi } from "@/modules/hr/payroll";
 import { ActionForm } from "../_components/ActionForm";
 import { badge, badgeBase, dateLabel, minorToInput, sar } from "../_components/format";
 import { saveEmployeeAction } from "../actions";
+import { getStaffLocale } from "../../_i18n/display";
+import { makeT } from "../../_i18n/t";
 
 interface PageProps {
   params: Promise<{ userId: string }>;
@@ -37,6 +39,7 @@ function Input({
   placeholder,
   hint,
   inputMode,
+  dir,
 }: {
   label: string;
   name: string;
@@ -45,6 +48,7 @@ function Input({
   placeholder?: string;
   hint?: string;
   inputMode?: "decimal" | "numeric" | "text";
+  dir?: "ltr" | "rtl";
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
@@ -55,6 +59,7 @@ function Input({
         defaultValue={defaultValue ?? ""}
         placeholder={placeholder}
         inputMode={inputMode}
+        dir={dir}
         className="lunia-input min-h-11"
       />
       {hint && <span className="text-xs text-[var(--color-ink)]/50">{hint}</span>}
@@ -73,6 +78,8 @@ function Check({ label, name, defaultChecked }: { label: string; name: string; d
 
 export default async function EmployeeFilePage({ params }: PageProps) {
   const admin = await requireAdmin(PERMISSIONS.HR_MANAGE);
+  const locale = await getStaffLocale();
+  const t = makeT(locale);
   const { userId } = await params;
   const user = await getEmployeeFile(userId);
   if (!user) notFound();
@@ -80,7 +87,7 @@ export default async function EmployeeFilePage({ params }: PageProps) {
   const r = user.employeeRecord;
   const balance = await getLeaveBalance(userId);
   const flags = r ? documentFlags(r) : [];
-  const name = user.staffProfile?.fullName || user.email || "Staff member";
+  const name = user.staffProfile?.fullName || user.email || t("Staff member");
   const gosi = r
     ? computeGosi({ isSaudi: r.isSaudi, gosiApplicable: r.gosiApplicable, basicMinor: r.basicSalaryMinor, housingMinor: r.housingAllowanceMinor })
     : null;
@@ -89,10 +96,10 @@ export default async function EmployeeFilePage({ params }: PageProps) {
     <AdminShell
       user={admin}
       title={name}
-      description={r ? "Employee file" : "No employee file yet. Fill in the details below to create one."}
+      description={r ? t("Employee file") : t("No employee file yet. Fill in the details below to create one.")}
       actions={
         <Link href="/admin/hr" className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11">
-          All employees
+          {t("All employees")}
         </Link>
       }
     >
@@ -100,7 +107,9 @@ export default async function EmployeeFilePage({ params }: PageProps) {
         <div className="mb-6 flex flex-wrap gap-2" role="status">
           {flags.map((f) => (
             <span key={f.kind} className={`${badgeBase} ${f.status === "expired" ? badge.bad : badge.warn}`}>
-              {f.label} {f.status === "expired" ? `expired ${dateLabel(f.expiryISO)}` : `expires ${dateLabel(f.expiryISO)} (${f.daysLeft} days)`}
+              {f.status === "expired"
+                ? t("{doc} expired {date}", { doc: t(f.label), date: dateLabel(f.expiryISO, locale) })
+                : t("{doc} expires {date} ({days} days)", { doc: t(f.label), date: dateLabel(f.expiryISO, locale), days: f.daysLeft })}
             </span>
           ))}
         </div>
@@ -108,95 +117,102 @@ export default async function EmployeeFilePage({ params }: PageProps) {
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <div className="lunia-card p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-ink)]/55">Monthly fixed pay</p>
-          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">{sar(r ? monthlyFixedPayMinor(r) : 0)}</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-ink)]/55">{t("Monthly fixed pay")}</p>
+          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">{sar(r ? monthlyFixedPayMinor(r) : 0, locale)}</p>
           {gosi && (
             <p className="mt-1 text-xs text-[var(--color-ink)]/55">
-              GOSI: employee {sar(gosi.employeeMinor)} · employer {sar(gosi.employerMinor)}
+              {t("GOSI: employee {employee} · employer {employer}", { employee: sar(gosi.employeeMinor, locale), employer: sar(gosi.employerMinor, locale) })}
             </p>
           )}
         </div>
         <div className="lunia-card p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-ink)]/55">Annual leave entitlement</p>
-          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">{balance.annualDays} days / year</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-ink)]/55">{t("Annual leave entitlement")}</p>
+          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">{t("{days} days / year", { days: balance.annualDays })}</p>
           <p className="mt-1 text-xs text-[var(--color-ink)]/55">
-            {balance.yearsOfService} full year{balance.yearsOfService === 1 ? "" : "s"} of service · statutory {balance.statutoryDays} days
-            (30 after 5 years)
+            {t(balance.yearsOfService === 1 ? "{years} full year of service · statutory {days} days (30 after 5 years)" : "{years} full years of service · statutory {days} days (30 after 5 years)", {
+              years: balance.yearsOfService,
+              days: balance.statutoryDays,
+            })}
           </p>
         </div>
         <div className="lunia-card p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-ink)]/55">Leave balance</p>
-          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">{balance.balanceDays} days</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-ink)]/55">{t("Leave balance")}</p>
+          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">{t("{days} days", { days: balance.balanceDays })}</p>
           <p className="mt-1 text-xs text-[var(--color-ink)]/55">
-            Accrued {balance.accruedDays} · used {balance.usedDays} · pending {balance.pendingDays} (service year from{" "}
-            {dateLabel(balance.serviceYearStartISO)})
+            {t("Accrued {accrued} · used {used} · pending {pending} (service year from {date})", {
+              accrued: balance.accruedDays,
+              used: balance.usedDays,
+              pending: balance.pendingDays,
+              date: dateLabel(balance.serviceYearStartISO, locale),
+            })}
           </p>
         </div>
       </div>
 
-      <ActionForm action={saveEmployeeAction.bind(null, userId)} submitLabel="Save employee file" className="flex flex-col gap-5">
-        <Section title="Identity">
-          <Input label="Nationality" name="nationality" defaultValue={r?.nationality} placeholder="e.g. Saudi, Filipino" />
-          <Check label="Saudi national (GOSI annuities apply)" name="isSaudi" defaultChecked={r?.isSaudi ?? false} />
-          <Input label="National ID / Iqama no." name="nationalId" defaultValue={r?.nationalId} inputMode="numeric" hint="10 digits" />
-          <Input label="ID / Iqama expiry" name="nationalIdExpiry" type="date" defaultValue={dateToISO(r?.nationalIdExpiry)} />
-          <Input label="Passport no." name="passportNo" defaultValue={r?.passportNo} />
-          <Input label="Passport expiry" name="passportExpiry" type="date" defaultValue={dateToISO(r?.passportExpiry)} />
+      <ActionForm action={saveEmployeeAction.bind(null, userId)} submitLabel={t("Save employee file")} className="flex flex-col gap-5">
+        <Section title={t("Identity")}>
+          <Input label={t("Nationality")} name="nationality" defaultValue={r?.nationality} placeholder={t("e.g. Saudi, Filipino")} />
+          <Check label={t("Saudi national (GOSI annuities apply)")} name="isSaudi" defaultChecked={r?.isSaudi ?? false} />
+          <Input label={t("National ID / Iqama no.")} name="nationalId" defaultValue={r?.nationalId} inputMode="numeric" dir="ltr" hint={t("10 digits")} />
+          <Input label={t("ID / Iqama expiry")} name="nationalIdExpiry" type="date" defaultValue={dateToISO(r?.nationalIdExpiry)} />
+          <Input label={t("Passport no.")} name="passportNo" defaultValue={r?.passportNo} dir="ltr" />
+          <Input label={t("Passport expiry")} name="passportExpiry" type="date" defaultValue={dateToISO(r?.passportExpiry)} />
         </Section>
 
-        <Section title="Employment">
-          <Input label="Employee no." name="employeeNo" defaultValue={r?.employeeNo} />
-          <Input label="Job title" name="jobTitle" defaultValue={r?.jobTitle ?? user.staffProfile?.title} />
-          <Input label="Department" name="department" defaultValue={r?.department} />
-          <Input label="Hire date" name="hireDate" type="date" defaultValue={dateToISO(r?.hireDate)} />
+        <Section title={t("Employment")}>
+          <Input label={t("Employee no.")} name="employeeNo" defaultValue={r?.employeeNo} dir="ltr" />
+          <Input label={t("Job title")} name="jobTitle" defaultValue={r?.jobTitle ?? user.staffProfile?.title} />
+          <Input label={t("Department")} name="department" defaultValue={r?.department} />
+          <Input label={t("Hire date")} name="hireDate" type="date" defaultValue={dateToISO(r?.hireDate)} />
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">Contract type</span>
+            <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">{t("Contract type")}</span>
             <select name="contractType" defaultValue={r?.contractType ?? ""} className="lunia-input min-h-11">
-              <option value="">Not set</option>
-              {CONTRACT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {CONTRACT_TYPE_LABELS[t]}
+              <option value="">{t("Not set")}</option>
+              {CONTRACT_TYPES.map((c) => (
+                <option key={c} value={c}>
+                  {t(CONTRACT_TYPE_LABELS[c])}
                 </option>
               ))}
             </select>
           </label>
-          <Input label="Contract end" name="contractEnd" type="date" defaultValue={dateToISO(r?.contractEnd)} hint="Leave empty for open-ended" />
+          <Input label={t("Contract end")} name="contractEnd" type="date" defaultValue={dateToISO(r?.contractEnd)} hint={t("Leave empty for open-ended")} />
         </Section>
 
-        <Section title="Pay" hint="Monthly amounts in SAR. GOSI is calculated on basic + housing.">
-          <Input label="Basic salary" name="basicSalaryMinor" defaultValue={r ? minorToInput(r.basicSalaryMinor) : ""} inputMode="decimal" />
-          <Input label="Housing allowance" name="housingAllowanceMinor" defaultValue={r ? minorToInput(r.housingAllowanceMinor) : ""} inputMode="decimal" />
-          <Input label="Transport allowance" name="transportAllowanceMinor" defaultValue={r ? minorToInput(r.transportAllowanceMinor) : ""} inputMode="decimal" />
-          <Input label="Other allowances" name="otherAllowanceMinor" defaultValue={r ? minorToInput(r.otherAllowanceMinor) : ""} inputMode="decimal" />
+        <Section title={t("Pay")} hint={t("Monthly amounts in SAR. GOSI is calculated on basic + housing.")}>
+          <Input label={t("Basic salary")} name="basicSalaryMinor" defaultValue={r ? minorToInput(r.basicSalaryMinor) : ""} inputMode="decimal" />
+          <Input label={t("Housing allowance")} name="housingAllowanceMinor" defaultValue={r ? minorToInput(r.housingAllowanceMinor) : ""} inputMode="decimal" />
+          <Input label={t("Transport allowance")} name="transportAllowanceMinor" defaultValue={r ? minorToInput(r.transportAllowanceMinor) : ""} inputMode="decimal" />
+          <Input label={t("Other allowances")} name="otherAllowanceMinor" defaultValue={r ? minorToInput(r.otherAllowanceMinor) : ""} inputMode="decimal" />
           <Input
-            label="Commission (%)"
+            label={t("Commission (%)")}
             name="commissionPct"
             defaultValue={r && r.commissionBp ? String(r.commissionBp / 100) : ""}
             inputMode="decimal"
-            hint="Of revenue from their completed appointments"
+            hint={t("Of revenue from their completed appointments")}
           />
-          <Check label="GOSI applies" name="gosiApplicable" defaultChecked={r?.gosiApplicable ?? true} />
+          <Check label={t("GOSI applies")} name="gosiApplicable" defaultChecked={r?.gosiApplicable ?? true} />
           <Input
-            label="IBAN"
+            label={t("IBAN")}
             name="iban"
             defaultValue={r?.iban ? formatIban(r.iban) : ""}
             placeholder="SA00 0000 0000 0000 0000 0000"
-            hint="Saudi IBAN: SA + 22 digits"
+            dir="ltr"
+            hint={t("Saudi IBAN: SA + 22 digits")}
           />
-          <Input label="Bank name" name="bankName" defaultValue={r?.bankName} />
+          <Input label={t("Bank name")} name="bankName" defaultValue={r?.bankName} />
         </Section>
 
-        <Section title="Leave & contacts">
+        <Section title={t("Leave & contacts")}>
           <Input
-            label="Annual leave days (contract)"
+            label={t("Annual leave days (contract)")}
             name="annualLeaveDays"
             type="number"
             defaultValue={String(r?.annualLeaveDays ?? 21)}
-            hint="Minimum 21; raised to 30 automatically after 5 years of service"
+            hint={t("Minimum 21; raised to 30 automatically after 5 years of service")}
           />
-          <Input label="Emergency contact" name="emergencyContact" defaultValue={r?.emergencyContact} placeholder="Name, relation, phone" />
+          <Input label={t("Emergency contact")} name="emergencyContact" defaultValue={r?.emergencyContact} placeholder={t("Name, relation, phone")} />
           <label className="flex flex-col gap-1.5 text-sm sm:col-span-2">
-            <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">Notes</span>
+            <span className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/60">{t("Notes")}</span>
             <textarea name="notes" rows={4} defaultValue={r?.notes ?? ""} className="lunia-input" />
           </label>
         </Section>

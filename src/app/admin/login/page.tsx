@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { login } from "./actions";
 import { InlineStatus } from "../_ui/Form";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 function MailIcon() {
   return (
@@ -74,6 +75,7 @@ function LuniaEmblem() {
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const t = useStaffT();
   return (
     <button
       type="submit"
@@ -83,10 +85,10 @@ function SubmitButton() {
       {pending ? (
         <>
           <span className="h-4 w-4 animate-[lunia-spin-slow_0.8s_linear_infinite] rounded-full border-2 border-[var(--color-ink)]/30 border-t-[var(--color-ink)]" />
-          Signing in
+          {t("Signing in")}
         </>
       ) : (
-        "Sign in"
+        t("Sign in")
       )}
     </button>
   );
@@ -99,6 +101,8 @@ const fieldInput =
 
 export default function LoginPage() {
   const [state, action] = useActionState(login, null);
+  // Before sign-in the language comes from the staff locale cookie alone (English by default).
+  const t = useStaffT();
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
@@ -115,22 +119,22 @@ export default function LoginPage() {
             <span role="img" aria-label="LUNIA — Skin & Hair" className="lunia-logo h-8 text-[var(--color-teal-ink)]" />
           </div>
 
-          <h2 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)]">Welcome back</h2>
-          <p className="mt-2 text-sm text-[var(--color-ink)]/60">Sign in to the Lunia management suite.</p>
+          <h2 className="font-[family-name:var(--font-display)] text-3xl text-[var(--color-ink)]">{t("Welcome back")}</h2>
+          <p className="mt-2 text-sm text-[var(--color-ink)]/60">{t("Sign in to the Lunia management suite.")}</p>
 
           <form action={action} className="mt-8 flex flex-col gap-4">
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--color-ink)]/60">Email</span>
+              <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--color-ink)]/60">{t("Email")}</span>
               <span className={fieldWrap}>
                 <span className="text-[var(--color-ink)]/45">
                   <MailIcon />
                 </span>
-                <input name="email" type="email" autoComplete="email" placeholder="you@lunia.com" className={fieldInput} required />
+                <input name="email" type="email" autoComplete="email" placeholder="you@lunia.com" className={fieldInput} dir="ltr" required />
               </span>
             </label>
 
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--color-ink)]/60">Password</span>
+              <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--color-ink)]/60">{t("Password")}</span>
               <span className={fieldWrap}>
                 <span className="text-[var(--color-ink)]/45">
                   <LockIcon />
@@ -140,6 +144,7 @@ export default function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   placeholder="••••••••"
+                  dir="ltr"
                   className={fieldInput}
                   required
                 />
@@ -152,7 +157,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-8 text-center text-xs text-[var(--color-ink)]/45">
-            Protected area. Access is monitored and audited.
+            {t("Protected area. Access is monitored and audited.")}
           </p>
         </div>
       </section>

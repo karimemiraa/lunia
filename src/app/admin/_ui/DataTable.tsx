@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RowMenu, type MenuItem } from "./RowMenu";
 import { EmptyState, type EmptyStateProps } from "./EmptyState";
 import "./tokens.css";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 export type CellValue = string | number | boolean | Date | null | undefined;
 
@@ -149,6 +150,9 @@ export function DataTable<T>({
   onSortChange,
   onSelectionChange,
 }: DataTableProps<T>) {
+  // Built-in labels, plus string headers/placeholders callers pass in English.
+  const t = useStaffT();
+  const head = (h: ReactNode) => (typeof h === "string" ? t(h) : h);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<{ key: string; dir: SortDir } | null>(initialSort ?? null);
   const [page, setPage] = useState(1);
@@ -231,29 +235,29 @@ export function DataTable<T>({
         <div className="flex flex-wrap items-center gap-2">
           {search && (
             <label className="relative w-full max-w-sm">
-              <span className="sr-only">Search</span>
+              <span className="sr-only">{t("Search")}</span>
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-[var(--color-ink)]/40">
                 <circle cx="11" cy="11" r="6.5" />
                 <path strokeLinecap="round" d="m20 20-3.5-3.5" />
               </svg>
-              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={searchPlaceholder} className="lunia-input ps-9 min-h-11 text-base md:text-sm" />
+              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t(searchPlaceholder)} className="lunia-input ps-9 min-h-11 text-base md:text-sm" />
             </label>
           )}
           {toolbar}
           {exportCsv && (
             <button type="button" onClick={() => downloadCsv(exportCsv, toCsv(columns, sorted))} className="lunia-btn lunia-btn-ghost lunia-btn-sm ms-auto min-h-11" disabled={sorted.length === 0}>
-              Export CSV
+              {t("Export CSV")}
             </button>
           )}
         </div>
       )}
 
       {selectable && selected.size > 0 && (
-        <div role="region" aria-label="Bulk actions" className="flex flex-wrap items-center gap-3 rounded-[var(--radius-sm)] bg-[var(--color-teal)]/15 px-4 py-2 text-sm">
-          <span className="font-medium tabular-nums">{selected.size} selected</span>
+        <div role="region" aria-label={t("Bulk actions")} className="flex flex-wrap items-center gap-3 rounded-[var(--radius-sm)] bg-[var(--color-teal)]/15 px-4 py-2 text-sm">
+          <span className="font-medium tabular-nums">{t("{count} selected", { count: selected.size })}</span>
           {bulkActions?.(selectedRows, clearSelection)}
           <button type="button" onClick={clearSelection} className="ms-auto min-h-11 px-2 text-[var(--color-ink)]/65 underline-offset-4 hover:underline">
-            Clear
+            {t("Clear")}
           </button>
         </div>
       )}
@@ -267,13 +271,13 @@ export function DataTable<T>({
       ) : (
         <>
           <div className={`${hideClass} overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]`}>
-            <table className="w-full text-sm" aria-label={ariaLabel}>
-              {caption && <caption className="sr-only">{caption}</caption>}
+            <table className="w-full text-sm" aria-label={ariaLabel && t(ariaLabel)}>
+              {caption && <caption className="sr-only">{t(caption)}</caption>}
               <thead className="sticky top-0 z-10 bg-[var(--surface-2)]">
                 <tr className="border-b border-[var(--line)]">
                   {selectable && (
                     <th scope="col" className={`${pad} w-11`}>
-                      <input type="checkbox" aria-label="Select all rows on this page" checked={allVisibleSelected} onChange={toggleAll} className="h-5 w-5 accent-[var(--color-forest)]" />
+                      <input type="checkbox" aria-label={t("Select all rows on this page")} checked={allVisibleSelected} onChange={toggleAll} className="h-5 w-5 accent-[var(--color-forest)]" />
                     </th>
                   )}
                   {columns.map((c) => {
@@ -288,18 +292,18 @@ export function DataTable<T>({
                       >
                         {sortable ? (
                           <button type="button" onClick={() => toggleSort(c)} className={`group inline-flex min-h-8 items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] ${c.numeric || c.align === "end" ? "flex-row-reverse" : ""}`}>
-                            <span>{c.header}</span>
+                            <span>{head(c.header)}</span>
                             <SortIcon dir={dir} />
                           </button>
                         ) : (
-                          c.header
+                          head(c.header)
                         )}
                       </th>
                     );
                   })}
                   {rowActions && (
                     <th scope="col" className={`${pad} w-14 text-end`}>
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{t("Actions")}</span>
                     </th>
                   )}
                 </tr>
@@ -312,7 +316,7 @@ export function DataTable<T>({
                     <tr key={k} className={`border-t border-[var(--line)] align-middle transition-colors hover:bg-[var(--color-teal)]/[0.06] ${isSel ? "bg-[var(--color-teal)]/10" : ""}`}>
                       {selectable && (
                         <td className={pad}>
-                          <input type="checkbox" aria-label="Select row" checked={isSel} onChange={() => toggleOne(k)} className="h-5 w-5 accent-[var(--color-forest)]" />
+                          <input type="checkbox" aria-label={t("Select row")} checked={isSel} onChange={() => toggleOne(k)} className="h-5 w-5 accent-[var(--color-forest)]" />
                         </td>
                       )}
                       {columns.map((c) => {
@@ -354,7 +358,7 @@ export function DataTable<T>({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       {selectable && (
-                        <input type="checkbox" aria-label="Select row" checked={selected.has(k)} onChange={() => toggleOne(k)} className="h-5 w-5 shrink-0 accent-[var(--color-forest)]" />
+                        <input type="checkbox" aria-label={t("Select row")} checked={selected.has(k)} onChange={() => toggleOne(k)} className="h-5 w-5 shrink-0 accent-[var(--color-forest)]" />
                       )}
                       <div className="min-w-0 text-base font-medium text-[var(--color-ink)]">
                         {link ? (
@@ -372,7 +376,7 @@ export function DataTable<T>({
                     <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                       {cardCols.map((c) => (
                         <div key={c.key} className="min-w-0">
-                          <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink)]/50">{c.header}</dt>
+                          <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink)]/50">{head(c.header)}</dt>
                           <dd className={`mt-0.5 break-words text-[var(--color-ink)]/90 ${c.numeric ? "tabular-nums" : ""}`}>{c.render ? c.render(row) : String(cellValue(c, row) ?? "")}</dd>
                         </div>
                       ))}
@@ -385,9 +389,9 @@ export function DataTable<T>({
           )}
 
           {size > 0 && (sorted.length > pageSizes[0]! || pageCount > 1) && (
-            <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-ink)]/65">
+            <nav aria-label={t("Pagination")} className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-ink)]/65">
               <label className="inline-flex items-center gap-2">
-                Rows per page
+                {t("Rows per page")}
                 <select value={size} onChange={(e) => setSize(Number(e.target.value))} className="lunia-input min-h-11 w-auto text-base md:text-sm">
                   {pageSizes.map((n) => (
                     <option key={n} value={n}>
@@ -397,17 +401,17 @@ export function DataTable<T>({
                 </select>
               </label>
               <span className="tabular-nums">
-                {(safePage - 1) * size + 1}–{Math.min(safePage * size, sorted.length)} of {sorted.length}
+                {t("{from}–{to} of {total}", { from: (safePage - 1) * size + 1, to: Math.min(safePage * size, sorted.length), total: sorted.length })}
               </span>
               <div className="flex items-center gap-1">
-                <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-40" aria-label="Previous page">
-                  Previous
+                <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-40" aria-label={t("Previous page")}>
+                  {t("Previous")}
                 </button>
                 <span className="px-2 tabular-nums" aria-current="page">
                   {safePage} / {pageCount}
                 </span>
-                <button type="button" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={safePage >= pageCount} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-40" aria-label="Next page">
-                  Next
+                <button type="button" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={safePage >= pageCount} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-40" aria-label={t("Next page")}>
+                  {t("Next")}
                 </button>
               </div>
             </nav>

@@ -4,6 +4,8 @@ import { useId, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createSeriesAction, frontDeskBookAction, getCalendarSlotsAction, previewSeriesAction, type CalendarSlotDTO, type SeriesPreviewDTO } from "./actions";
 import { SlotPicker } from "./SlotPicker";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
+import { intlLocale } from "../_i18n/t";
 
 export interface FrontDeskServiceDTO {
   id: string;
@@ -36,6 +38,8 @@ const labelClass = "flex flex-col gap-1 text-sm";
 // find-or-create-client and double-booking checks.
 export function WalkInForm({ services, defaultDate, defaultName = "", defaultPhone = "", preferredStartAt, preferredStaffUserId }: WalkInFormProps) {
   const router = useRouter();
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const [isPending, startTransition] = useTransition();
 
   const [serviceId, setServiceId] = useState<string>(services[0]?.id ?? "");
@@ -66,11 +70,11 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
     return [...byDept.entries()];
   }, [services]);
 
-  const dFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Riyadh", weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const dFmt = new Intl.DateTimeFormat(intlLocale(locale), { timeZone: "Asia/Riyadh", weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
   function checkDates() {
     if (!serviceId || !selectedSlot) {
-      setError("Choose a service and the first visit's time.");
+      setError(t("Choose a service and the first visit's time."));
       return;
     }
     setError(null);
@@ -87,11 +91,11 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
     setSuccess(null);
 
     if (!serviceId || !selectedSlot) {
-      setError("Choose a service and an available time.");
+      setError(t("Choose a service and an available time."));
       return;
     }
     if (!name.trim() || !phone.trim()) {
-      setError("Customer name and phone are required.");
+      setError(t("Customer name and phone are required."));
       return;
     }
 
@@ -103,7 +107,8 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
       startTransition(async () => {
         const r = await createSeriesAction({ serviceId, firstStartAt: selectedSlot.startAt, staffUserId: selectedSlot.staffUserId, intervalWeeks, count, name, phone });
         if (r.ok) {
-          setSuccess(`${r.booked} visit${r.booked === 1 ? "" : "s"} booked.${r.skipped.length ? ` Not free (book separately): ${r.skipped.join(", ")}.` : ""}`);
+          const booked = r.booked === 1 ? t("1 visit booked.") : t("{count} visits booked.", { count: r.booked });
+          setSuccess(r.skipped.length ? `${booked} ${t("Not free (book separately): {dates}.", { dates: r.skipped.join(locale === "ar" ? "، " : ", ") })}` : booked);
           setName("");
           setPhone("");
           setSelectedSlot(null);
@@ -124,7 +129,7 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
         phone,
       });
       if (result.ok) {
-        setSuccess("Booking created.");
+        setSuccess(t("Booking created."));
         setName("");
         setPhone("");
         setSelectedSlot(null);
@@ -140,11 +145,11 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
   return (
     <form onSubmit={handleSubmit} data-testid="walk-in-form" className="flex flex-col gap-4">
       {services.length === 0 ? (
-        <p className="text-sm text-[var(--color-ink)]/60">No published services to book.</p>
+        <p className="text-sm text-[var(--color-ink)]/60">{t("No published services to book.")}</p>
       ) : (
         <>
           <label className={labelClass}>
-            <span className="font-medium text-[var(--color-ink)]">Service</span>
+            <span className="font-medium text-[var(--color-ink)]">{t("Service")}</span>
             <select
               value={serviceId}
               onChange={(event) => {
@@ -157,7 +162,7 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
                 <optgroup key={departmentName} label={departmentName}>
                   {deptServices.map((service) => (
                     <option key={service.id} value={service.id}>
-                      {service.name} ({service.durationMin} min)
+                      {t("{name} ({min} min)", { name: service.name, min: service.durationMin })}
                     </option>
                   ))}
                 </optgroup>
@@ -182,7 +187,7 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass} htmlFor={nameId}>
-              <span className="font-medium text-[var(--color-ink)]">Customer name</span>
+              <span className="font-medium text-[var(--color-ink)]">{t("Customer name")}</span>
               <input
                 id={nameId}
                 type="text"
@@ -193,10 +198,11 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
               />
             </label>
             <label className={labelClass} htmlFor={phoneId}>
-              <span className="font-medium text-[var(--color-ink)]">Customer phone</span>
+              <span className="font-medium text-[var(--color-ink)]">{t("Customer phone")}</span>
               <input
                 id={phoneId}
                 type="tel"
+                dir="ltr"
                 required
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
@@ -217,12 +223,12 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
                 className="h-4 w-4"
                 data-testid="repeat-toggle"
               />
-              Repeat this booking (a course of visits)
+              {t("Repeat this booking (a course of visits)")}
             </label>
             {repeat && (
               <>
                 <div className="flex flex-wrap items-center gap-2 text-sm">
-                  Every
+                  {t("Every")}
                   <select
                     value={intervalWeeks}
                     onChange={(e) => {
@@ -234,7 +240,7 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
                   >
                     {[1, 2, 3, 4, 6, 8, 12].map((w) => (
                       <option key={w} value={w}>
-                        {w === 1 ? "week" : `${w} weeks`}
+                        {w === 1 ? (locale === "ar" ? t("1 week") : "week") : t("{count} weeks", { count: w })}
                       </option>
                     ))}
                   </select>
@@ -251,9 +257,9 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
                     className="w-20 rounded border border-[var(--color-ink)]/20 px-2 py-1.5 text-sm"
                     data-testid="repeat-count"
                   />
-                  visits, same time
+                  {t("visits, same time")}
                   <button type="button" onClick={checkDates} disabled={checking || !selectedSlot} className="lunia-btn lunia-btn-ghost lunia-btn-sm" data-testid="repeat-check">
-                    {checking ? "Checking…" : "Check dates"}
+                    {checking ? t("Checking…") : t("Check dates")}
                   </button>
                 </div>
                 {preview && (
@@ -261,7 +267,7 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
                     {preview.map((o) => (
                       <li key={o.startAt} className={o.available ? "text-[var(--color-ink)]" : "text-[var(--color-danger)]"}>
                         {o.available ? "✓" : "✗"} {dFmt.format(new Date(o.startAt))}
-                        {!o.available && " — not free, will be skipped"}
+                        {!o.available && ` — ${t("not free, will be skipped")}`}
                       </li>
                     ))}
                   </ul>
@@ -287,12 +293,12 @@ export function WalkInForm({ services, defaultDate, defaultName = "", defaultPho
             className="w-fit lunia-btn lunia-btn-forest disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending
-              ? "Booking…"
+              ? t("Booking…")
               : repeat
                 ? preview
-                  ? `Book ${preview.filter((o) => o.available).length} visits`
-                  : "Check dates"
-                : "Confirm walk-in"}
+                  ? t("Book {count} visits", { count: preview.filter((o) => o.available).length })
+                  : t("Check dates")
+                : t("Confirm walk-in")}
           </button>
         </>
       )}

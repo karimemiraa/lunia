@@ -3,6 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 import { InlineStatus } from "../../_ui/Form";
 import { ConfirmButton } from "../../_ui/ConfirmDialog";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 // Shared state shape for HR server actions driven by <ActionForm>.
 export interface FormState {
@@ -27,12 +28,15 @@ export function ActionForm({
   action,
   children,
   submitLabel,
-  pendingLabel = "Saving…",
+  pendingLabel,
   className = "",
   buttonClassName = "lunia-btn lunia-btn-forest",
   confirmMessage,
 }: ActionFormProps) {
+  const t = useStaffT();
   const [state, formAction, pending] = useActionState(action, {});
+  // Callers pass labels already translated; the default is translated here.
+  const pendingText = pendingLabel ?? t("Saving…");
   return (
     <form action={formAction} className={className}>
       {children}
@@ -42,15 +46,15 @@ export function ActionForm({
           <ConfirmButton
             title={confirmMessage}
             confirmLabel={submitLabel}
-            danger={buttonClassName.includes("danger") || /^delete/i.test(confirmMessage)}
+            danger={buttonClassName.includes("danger") || /^(delete|حذف)/i.test(confirmMessage.trim())}
             pending={pending}
             className={`${buttonClassName} min-h-11`}
           >
-            {pending ? pendingLabel : submitLabel}
+            {pending ? pendingText : submitLabel}
           </ConfirmButton>
         ) : (
           <button type="submit" disabled={pending} className={`${buttonClassName} min-h-11 disabled:opacity-60`}>
-            {pending ? pendingLabel : submitLabel}
+            {pending ? pendingText : submitLabel}
           </button>
         )}
         <InlineStatus size="sm" success={state.success} />

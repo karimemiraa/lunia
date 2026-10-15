@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, 
 import { createPortal } from "react-dom";
 import { Spinner } from "./Form";
 import "./tokens.css";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 const FOCUSABLE = 'a[href],button:not([disabled]),textarea,input:not([type="hidden"]),select,[tabindex]:not([tabindex="-1"])';
 
@@ -29,6 +30,8 @@ export interface ConfirmDialogProps {
  * to the trigger on close. Replaces native confirm() everywhere in admin.
  */
 export function ConfirmDialog({ open, title, description, confirmLabel = "Confirm", cancelLabel = "Cancel", danger = false, pending = false, onConfirm, onCancel, children }: ConfirmDialogProps) {
+  // Callers pass English; t() returns it unchanged when there is no entry.
+  const t = useStaffT();
   const titleId = useId();
   const descId = useId();
   const panel = useRef<HTMLDivElement>(null);
@@ -99,17 +102,17 @@ export function ConfirmDialog({ open, title, description, confirmLabel = "Confir
         className="lx-dialog w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--surface)] p-6 shadow-[var(--shadow-lg)]"
       >
         <h2 id={titleId} className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-ink)]">
-          {title}
+          {t(title)}
         </h2>
         {description && (
           <p id={descId} className="mt-2 text-sm leading-relaxed text-[var(--color-ink)]/70">
-            {description}
+            {typeof description === "string" ? t(description) : description}
           </p>
         )}
         {children && <div className="mt-4">{children}</div>}
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" data-cancel onClick={onCancel} disabled={pending} className="lunia-btn lunia-btn-ghost min-h-11 disabled:opacity-60">
-            {cancelLabel}
+            {t(cancelLabel)}
           </button>
           <button
             type="button"
@@ -119,7 +122,7 @@ export function ConfirmDialog({ open, title, description, confirmLabel = "Confir
             className={`lunia-btn min-h-11 disabled:opacity-60 ${danger ? "lunia-btn-danger" : "lunia-btn-forest"}`}
           >
             {pending && <Spinner />}
-            {confirmLabel}
+            {t(confirmLabel)}
           </button>
         </div>
       </div>
@@ -148,6 +151,7 @@ interface ConfirmButtonProps {
  * confirmation; otherwise it calls onConfirm.
  */
 export function ConfirmButton({ title, description, confirmLabel, danger = true, onConfirm, formAction, children, className, disabled, pending, ...aria }: ConfirmButtonProps) {
+  const t = useStaffT();
   const [open, setOpen] = useState(false);
   const btn = useRef<HTMLButtonElement>(null);
   const cls = className ?? `lunia-btn ${danger ? "lunia-btn-danger" : "lunia-btn-forest-outline"} lunia-btn-sm min-h-11`;
@@ -178,9 +182,10 @@ export function ConfirmButton({ title, description, confirmLabel, danger = true,
         }}
         className={`${cls} disabled:opacity-60`}
         {...aria}
+        aria-label={aria["aria-label"] && t(aria["aria-label"])}
       >
         {pending && <Spinner />}
-        {children}
+        {typeof children === "string" ? t(children) : children}
       </button>
       <ConfirmDialog open={open} title={title} description={description} confirmLabel={confirmLabel ?? (typeof children === "string" ? children : "Confirm")} danger={danger} onConfirm={confirm} onCancel={() => setOpen(false)} />
     </>

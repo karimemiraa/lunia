@@ -15,6 +15,10 @@ import { DayModal } from "./DayModal";
 import { DayGrid, type GridColumn } from "./DayGrid";
 import { WeekView } from "./WeekView";
 import { WalkInForm, type FrontDeskServiceDTO } from "./WalkInForm";
+import { getStaffDisplay } from "../_i18n/display";
+import { intlLocale, makeT } from "../_i18n/t";
+import { loadArabicNames, localizeRows } from "./arabicNames";
+import { nameIn } from "./labels";
 
 interface CalendarPageProps {
   searchParams: Promise<{ view?: string; day?: string; staffUserId?: string; month?: string; name?: string; phone?: string; add?: string; cols?: string; at?: string }>;
@@ -27,9 +31,8 @@ const VIEWS = ["month", "week", "day"] as const;
 type View = (typeof VIEWS)[number];
 
 const CENTER_TZ = "Asia/Riyadh";
-const longDateFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, weekday: "long", day: "numeric", month: "long", year: "numeric" });
-const shortFmt = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", day: "numeric", month: "short" });
 const HOURS_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+const VIEW_LABEL: Record<View, string> = { month: "Month", week: "Week", day: "Day" };
 
 function qs(params: Record<string, string | undefined>): string {
   const sp = new URLSearchParams();
@@ -49,6 +52,10 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const canClinical = user.permissions.has(PERMISSIONS.CLINICAL_MANAGE);
 
   const params = await searchParams;
+  const { locale } = await getStaffDisplay();
+  const t = makeT(locale);
+  const longDateFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const shortFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: "UTC", day: "numeric", month: "short" });
   const todayISO = utcToCenterLocal(new Date()).dateISO;
   // A prefilled "new booking" deep-link (name/phone from a customer page) opens
   // today's modal even without an explicit day param.
@@ -68,7 +75,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
   const weekDays = view === "week" ? weekDaysFor(focusDay) : [];
 
-  const [monthDays, staffOptions, frontDeskServices, dayRows, weekRows, rooms, hours, leaveToday, leaveWeek, waitingWeek] = await Promise.all([
+  const [monthDays, staffOptionsEn, frontDeskServices, dayRowsEn, weekRowsEn, rooms, hours, leaveToday, leaveWeek, waitingWeek] = await Promise.all([
     view === "month" ? listMonthAppointments(month, staffUserId || undefined) : Promise.resolve({}),
     listStaffOptions(),
     canManage ? getFrontDeskServices() : Promise.resolve([]),
@@ -81,10 +88,21 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     view === "week" ? countWaitingByDay(weekDays) : Promise.resolve({}),
   ]);
 
+  // Arabic mode: service / staff / room names from their Arabic fields (English fallback).
+  const weekRowList = Object.values(weekRowsEn as Record<string, typeof dayRowsEn>).flat();
+  const arNames = await loadArabicNames(locale, {
+    serviceIds: [...dayRowsEn, ...weekRowList].map((r) => r.serviceId),
+    staffUserIds: [...staffOptionsEn.map((s) => s.id), ...dayRowsEn.map((r) => r.staffUserId), ...weekRowList.map((r) => r.staffUserId)],
+    roomIds: [...dayRowsEn, ...weekRowList].map((r) => r.roomId),
+  });
+  const staffOptions = staffOptionsEn.map((s) => ({ ...s, name: arNames.staff.get(s.id) ?? s.name }));
+  const dayRows = localizeRows(dayRowsEn, arNames);
+  const weekRows = Object.fromEntries(Object.entries(weekRowsEn as Record<string, typeof dayRowsEn>).map(([d, rows]) => [d, localizeRows(rows, arNames)]));
+
   const walkInServices: FrontDeskServiceDTO[] = frontDeskServices.map((service) => ({
     id: service.id,
-    name: service.nameEn,
-    departmentName: service.department.nameEn,
+    name: nameIn(locale, service.nameEn, service.nameAr),
+    departmentName: nameIn(locale, service.department.nameEn, service.department.nameAr),
     durationMin: service.durationMin,
   }));
   const staffName = new Map(staffOptions.map((s) => [s.id, s.name]));
@@ -94,10 +112,10 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
   const gridColumns: GridColumn[] =
     cols === "room"
-      ? rooms.map((r) => ({ id: r.id, name: r.name }))
+      ? rooms.map((r) => ({ id: r.id, name: nameIn(locale, r.name, r.nameAr) }))
       : staffOptions.filter((s) => !staffUserId || s.id === staffUserId).map((s) => ({ id: s.id, name: s.name, onLeave: leaveToday.has(s.id) }));
 
-  const leaveByDay: Record<string, string[]> = Object.fromEntries(weekDays.map((d, i) => [d, [...(leaveWeek[i] ?? [])].map((id) => staffName.get(id) ?? "Staff")]));
+  const leaveByDay: Record<string, string[]> = Object.fromEntries(weekDays.map((d, i) => [d, [...(leaveWeek[i] ?? [])].map((id) => staffName.get(id) ?? t("Staff"))]));
 
   const base = { view: view === "month" ? undefined : view, staffUserId: staffUserId || undefined, cols: cols === "room" ? "room" : undefined };
   const closeHref = qs({ ...base, month });
@@ -121,8 +139,11 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
           <path strokeLinecap="round" d="M12 5v14M5 12h14" />
         </svg>
-        Add a booking{at && ` at ${at}`}
-        {at && staffUserId && staffName.get(staffUserId) && ` with ${staffName.get(staffUserId)}`}
+        {at && staffUserId && staffName.get(staffUserId)
+          ? t("Add a booking at {time} with {name}", { time: at, name: staffName.get(staffUserId) })
+          : at
+            ? t("Add a booking at {time}", { time: at })
+            : t("Add a booking")}
       </summary>
       <div className="border-t border-[var(--line)] p-4">
         <WalkInForm services={walkInServices} defaultDate={focusDay} defaultName={prefillName} defaultPhone={prefillPhone} preferredStartAt={preferredStartAt} preferredStaffUserId={staffUserId || undefined} />
@@ -135,32 +156,32 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
       {/* Toolbar: view switch, staff chips, walk-in */}
       <div className="mb-5 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-full border border-[var(--line-strong)] p-0.5" role="group" aria-label="Calendar view">
+          <div className="flex items-center gap-1 rounded-full border border-[var(--line-strong)] p-0.5" role="group" aria-label={t("Calendar view")}>
             {VIEWS.map((v) => (
               <Link key={v} href={viewHref(v)} aria-current={view === v ? "page" : undefined} className={`inline-flex min-h-8 items-center rounded-full px-3 text-sm capitalize transition-colors duration-200 ease-out ${view === v ? "bg-[var(--color-ink)] text-[var(--color-on-ink)]" : "text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]"}`}>
-                {v}
+                {locale === "ar" ? t(VIEW_LABEL[v]) : v}
               </Link>
             ))}
           </div>
           {view !== "month" && (
             <div className="flex items-center gap-1">
-              <Link href={prevHref} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9" aria-label={view === "week" ? "Previous week" : "Previous day"}>
+              <Link href={prevHref} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9" aria-label={view === "week" ? t("Previous week") : t("Previous day")}>
                 ‹
               </Link>
               <Link href={qs({ ...base, day: todayISO })} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9">
-                Today
+                {t("Today")}
               </Link>
-              <Link href={nextHref} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9" aria-label={view === "week" ? "Next week" : "Next day"}>
+              <Link href={nextHref} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9" aria-label={view === "week" ? t("Next week") : t("Next day")}>
                 ›
               </Link>
               <h2 className="ms-2 font-[family-name:var(--font-display)] text-lg text-[var(--color-ink)]">{titleFor}</h2>
             </div>
           )}
           {view === "day" && (
-            <div className="flex items-center gap-1 rounded-full border border-[var(--line-strong)] p-0.5" role="group" aria-label="Columns">
+            <div className="flex items-center gap-1 rounded-full border border-[var(--line-strong)] p-0.5" role="group" aria-label={t("Columns")}>
               {(["staff", "room"] as const).map((c) => (
                 <Link key={c} href={qs({ ...base, day: focusDay, cols: c === "room" ? "room" : undefined })} aria-current={cols === c ? "page" : undefined} className={`inline-flex min-h-8 items-center rounded-full px-3 text-xs capitalize ${cols === c ? "bg-[var(--color-ink)] text-[var(--color-on-ink)]" : "text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]"}`}>
-                  By {c}
+                  {c === "staff" ? t("By staff") : t("By room")}
                 </Link>
               ))}
             </div>
@@ -170,18 +191,18 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
                 <path strokeLinecap="round" d="M12 5v14M5 12h14" />
               </svg>
-              Book walk-in
+              {t("Book walk-in")}
             </Link>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by staff" data-testid="staff-chips">
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t("Filter by staff")} data-testid="staff-chips">
           <Link href={staffHref("")} aria-current={!staffUserId ? "page" : undefined} className={chip(!staffUserId)}>
-            All staff
+            {t("All staff")}
           </Link>
           {staffOptions.map((s) => (
             <Link key={s.id} href={staffHref(s.id)} aria-current={staffUserId === s.id ? "page" : undefined} className={chip(staffUserId === s.id)}>
               {s.name}
-              {view === "day" && leaveToday.has(s.id) && <span className="ms-1.5 text-[0.62rem] uppercase opacity-70">off</span>}
+              {view === "day" && leaveToday.has(s.id) && <span className="ms-1.5 text-[0.62rem] uppercase opacity-70">{t("off")}</span>}
             </Link>
           ))}
         </div>
@@ -193,18 +214,18 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
       {view === "day" && (
         <div className="flex flex-col gap-5">
-          {dayHours?.closed && <p className="rounded-[var(--radius-sm)] bg-[var(--color-ink)]/[0.05] px-4 py-2 text-sm text-[var(--color-ink)]/65">The center is closed on this day; existing appointments are still shown.</p>}
+          {dayHours?.closed && <p className="rounded-[var(--radius-sm)] bg-[var(--color-ink)]/[0.05] px-4 py-2 text-sm text-[var(--color-ink)]/65">{t("The center is closed on this day; existing appointments are still shown.")}</p>}
           <DayGrid rows={dayRows} date={focusDay} todayISO={todayISO} columns={gridColumns} mode={cols} hours={gridHours} canManage={canManage} canBill={canBill} canClinical={canClinical} gapHref={gapHref} />
           {walkIn}
         </div>
       )}
 
       {view === "month" && dayOpen && (
-        <DayModal closeHref={closeHref} title={`Schedule for ${longDateFmt.format(new Date(`${dayOpen}T12:00:00Z`))}`}>
+        <DayModal closeHref={closeHref} title={t("Schedule for {date}", { date: longDateFmt.format(new Date(`${dayOpen}T12:00:00Z`)) })}>
           <div className="flex flex-col gap-5">
             <div className="flex justify-end">
               <Link href={dayHref(dayOpen)} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9">
-                Open day view
+                {t("Open day view")}
               </Link>
             </div>
             <DaySchedule rows={dayRows} date={dayOpen} canManage={canManage} canBill={canBill} canClinical={canClinical} />

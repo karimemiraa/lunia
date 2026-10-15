@@ -3,6 +3,7 @@
 import { useActionState, useId, useRef } from "react";
 import { issueGiftCardAction, type CommerceActionState } from "./actions";
 import { InlineStatus } from "../_ui/Form";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 interface ClientOption {
   clientProfileId: string;
@@ -22,6 +23,7 @@ export function IssueGiftCardForm({ clients }: { clients: ClientOption[] }) {
   const clientId = useId();
   const expiryId = useId();
   const formRef = useRef<HTMLFormElement>(null);
+  const t = useStaffT();
 
   return (
     <form
@@ -34,14 +36,14 @@ export function IssueGiftCardForm({ clients }: { clients: ClientOption[] }) {
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label htmlFor={amountId} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Amount (SAR)</span>
-          <input id={amountId} name="amountSar" type="number" min={1} step="0.01" required className={inputClass} />
+          <span className="font-medium text-[var(--color-ink)]">{t("Amount (SAR)")}</span>
+          <input id={amountId} dir="ltr" name="amountSar" type="number" min={1} step="0.01" required className={inputClass} />
         </label>
 
         <label htmlFor={clientId} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Customer (optional)</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Customer (optional)")}</span>
           <select id={clientId} name="clientProfileId" defaultValue="" className={inputClass}>
-            <option value="">Unassigned</option>
+            <option value="">{t("Unassigned")}</option>
             {clients.map((client) => (
               <option key={client.clientProfileId} value={client.clientProfileId}>
                 {client.fullName}
@@ -52,7 +54,7 @@ export function IssueGiftCardForm({ clients }: { clients: ClientOption[] }) {
         </label>
 
         <label htmlFor={expiryId} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Expires (optional)</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Expires (optional)")}</span>
           <input id={expiryId} name="expiresAt" type="date" className={inputClass} />
         </label>
       </div>
@@ -63,14 +65,14 @@ export function IssueGiftCardForm({ clients }: { clients: ClientOption[] }) {
           disabled={pending}
           className="lunia-btn lunia-btn-primary disabled:opacity-60"
         >
-          {pending ? "Issuing…" : "Issue gift card"}
+          {pending ? t("Issuing…") : t("Issue gift card")}
         </button>
         <InlineStatus error={state.error} />
       </div>
 
       {state.success && state.issuedCode && (
         <p className="rounded border border-[var(--color-teal)]/30 bg-[var(--color-teal)]/10 px-4 py-3 text-sm text-[var(--color-ink)]" data-testid="issued-giftcard-code">
-          Gift card issued: <span className="font-mono font-semibold">{state.issuedCode}</span>. Share this code with the recipient.
+          {t("Gift card issued:")} <span dir="ltr" className="font-mono font-semibold">{state.issuedCode}</span>. {t("Share this code with the recipient.")}
         </p>
       )}
     </form>

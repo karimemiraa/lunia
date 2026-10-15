@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { StaffOption } from "@/modules/booking/bookings";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 interface StaffPickerProps {
   staffOptions: StaffOption[];
@@ -13,11 +14,12 @@ interface StaffPickerProps {
 // server-side to re-query that staff member's schedule.
 export function StaffPicker({ staffOptions, staffUserId }: StaffPickerProps) {
   const router = useRouter();
+  const t = useStaffT();
 
   return (
     <div className="mb-6 flex items-end gap-3">
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-[var(--color-ink)]">Staff member</span>
+        <span className="font-medium text-[var(--color-ink)]">{t("Staff member")}</span>
         <select
           value={staffUserId}
           onChange={(event) => router.push(`/admin/booking/schedules?staffUserId=${event.target.value}`)}

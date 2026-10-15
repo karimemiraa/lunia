@@ -58,8 +58,8 @@ export async function AdminShell({ user, title, description, actions, children, 
   }
 
   return (
-    // Arabic mirrors the shell (dir="rtl" puts the sidebar on the right and flips
-    // the chrome); page content below stays English/LTR until it is translated.
+    // Arabic mirrors everything (dir="rtl" puts the sidebar on the right);
+    // page titles and descriptions are translated here, page bodies with t().
     <div dir={locale === "ar" ? "rtl" : "ltr"} lang={locale} className="flex min-h-screen text-[var(--color-ink)]">
       <AdminNav permissions={user.permissions} hiddenHrefs={hiddenHrefs} locale={locale} badges={badges} userId={user.id} />
       <div className="lunia-admin-bg relative min-w-0 flex-1 pt-14 md:pt-0">
@@ -70,16 +70,16 @@ export async function AdminShell({ user, title, description, actions, children, 
             <NotificationBell feed={feed} locale={locale} />
             <DisplayMenu locale={locale} theme={display.theme} />
           </div>
-          <Breadcrumbs leafTitle={title} permissions={permissionList} hiddenHrefs={hiddenHrefs} locale={locale} />
-          <div dir="ltr" lang="en">
-            <PageHeader title={title} description={description} actions={actions} />
+          <Breadcrumbs leafTitle={st(title, locale)} permissions={permissionList} hiddenHrefs={hiddenHrefs} locale={locale} />
+          <div>
+            <PageHeader title={st(title, locale)} description={description ? st(description, locale) : undefined} actions={actions} />
             <div className="lunia-animate-fade-up">{children}</div>
             <Toaster />
           </div>
         </main>
       </div>
       <KeyboardShortcuts allowedHrefs={[...allowedHrefs]} canBook={user.permissions.has(PERMISSIONS.BOOKING_MANAGE) && allowedHrefs.has("/admin/calendar")} locale={locale} />
-      <DocumentTitle title={title} badge={feed.total} />
+      <DocumentTitle title={st(title, locale)} badge={feed.total} />
     </div>
   );
 }

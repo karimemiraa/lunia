@@ -8,6 +8,8 @@ import { sendBroadcastAction, type BroadcastActionState } from "./actions";
 import { renderEmailHtml } from "@/modules/comms/emailLayout";
 import { interpolateTemplate } from "@/modules/comms/templateCatalog";
 import type { AudienceOption } from "@/modules/comms/broadcast";
+import { useStaffT } from "../../_i18n/StaffI18n";
+import { audienceDisplay } from "./audienceLabel";
 
 const initialState: BroadcastActionState = {};
 
@@ -19,6 +21,7 @@ const CHANNELS = [
 
 export function BroadcastComposer({ audiences }: { audiences: AudienceOption[] }) {
   const [state, action, pending] = useActionState(sendBroadcastAction, initialState);
+  const t = useStaffT();
   const [channel, setChannel] = useState("email");
   const [locale, setLocale] = useState("ar");
   const [audience, setAudience] = useState(audiences[0]?.key ?? "all");
@@ -62,40 +65,44 @@ export function BroadcastComposer({ audiences }: { audiences: AudienceOption[] }
         <input type="hidden" name="audienceLabel" value={audienceLabel} />
 
         <div className="grid grid-cols-2 gap-4">
-          <SelectField label="Channel" name="channel" value={channel} onChange={(e) => setChannel(e.target.value)}>
+          <SelectField label={t("Channel")} name="channel" value={channel} onChange={(e) => setChannel(e.target.value)}>
             {CHANNELS.map((c) => (
               <option key={c.value} value={c.value}>
-                {c.label}
+                {t(c.label)}
               </option>
             ))}
           </SelectField>
-          <SelectField label="Language" name="locale" value={locale} onChange={(e) => setLocale(e.target.value)}>
+          <SelectField label={t("Language")} name="locale" value={locale} onChange={(e) => setLocale(e.target.value)}>
             <option value="ar">العربية</option>
-            <option value="en">English</option>
+            <option value="en" lang="en">English</option>
           </SelectField>
         </div>
 
         <SelectField
-          label="Audience"
+          label={t("Audience")}
           name="audience"
           value={audience}
           onChange={(e) => setAudience(e.target.value)}
           data-testid="broadcast-audience"
-          help={`${count} customer${count === 1 ? "" : "s"} will receive this. Customers who opted out of marketing are excluded automatically.`}
+          help={
+            count === 1
+              ? t("1 customer will receive this. Customers who opted out of marketing are excluded automatically.")
+              : t("{count} customers will receive this. Customers who opted out of marketing are excluded automatically.", { count })
+          }
         >
           {audiences.map((a) => (
             <option key={a.key} value={a.key}>
-              {a.label} · {a.count}
+              {audienceDisplay(a.label, t)} · {a.count}
             </option>
           ))}
         </SelectField>
 
         {channel === "email" && (
-          <Field label="Subject line" name="subject" value={subject} onChange={(e) => setSubject(e.target.value)} required maxLength={120} />
+          <Field label={t("Subject line")} name="subject" value={subject} onChange={(e) => setSubject(e.target.value)} required maxLength={120} />
         )}
 
         <TextareaField
-          label="Message"
+          label={t("Message")}
           name="body"
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -106,21 +113,31 @@ export function BroadcastComposer({ audiences }: { audiences: AudienceOption[] }
           placeholder={locale.startsWith("ar") ? "اكتب رسالتك هنا…" : "Write your message here…"}
           help={
             <>
-              Use <code className="font-mono">{"{{name}}"}</code> to greet each customer by their first name.
+              {t("Use {placeholder} to greet each customer by their first name.")
+                .split("{placeholder}")
+                .map((part, i) => (i === 0 ? part : [<code key={i} className="font-mono" dir="ltr">{"{{name}}"}</code>, part]))}
             </>
           }
         />
 
         <div className="flex flex-wrap items-center gap-3">
-          <SubmitButton pending={pending} pendingLabel="Sending…">
-            Send broadcast
+          <SubmitButton pending={pending} pendingLabel={t("Sending…")}>
+            {t("Send broadcast")}
           </SubmitButton>
           <InlineStatus
             success={
               state.result
-                ? `Sent to ${state.result.sentCount} of ${state.result.recipientCount}${state.result.failedCount > 0 ? ` · ${state.result.failedCount} failed` : ""}${
-                    state.result.skippedNoContact > 0 ? ` · ${state.result.skippedNoContact} had no ${channel === "email" ? "email" : "phone"}` : ""
-                  }`
+                ? [
+                    t("Sent to {sent} of {total}", { sent: state.result.sentCount, total: state.result.recipientCount }),
+                    state.result.failedCount > 0 ? t("{count} failed", { count: state.result.failedCount }) : null,
+                    state.result.skippedNoContact > 0
+                      ? channel === "email"
+                        ? t("{count} had no email", { count: state.result.skippedNoContact })
+                        : t("{count} had no phone", { count: state.result.skippedNoContact })
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
                 : undefined
             }
             error={state.error}
@@ -128,18 +145,21 @@ export function BroadcastComposer({ audiences }: { audiences: AudienceOption[] }
         </div>
         <ConfirmDialog
           open={asking}
-          title={`Send to ${count} customer${count === 1 ? "" : "s"}?`}
-          description={`This ${CHANNELS.find((c) => c.value === channel)?.label ?? channel} broadcast goes to “${audienceLabel}” now and cannot be recalled.`}
-          confirmLabel="Send broadcast"
+          title={count === 1 ? t("Send to 1 customer?") : t("Send to {count} customers?", { count })}
+          description={t("This {channel} broadcast goes to “{audience}” now and cannot be recalled.", {
+            channel: t(CHANNELS.find((c) => c.value === channel)?.label ?? channel),
+            audience: audienceDisplay(audienceLabel, t),
+          })}
+          confirmLabel={t("Send broadcast")}
           onConfirm={reallySend}
           onCancel={() => setAsking(false)}
         />
       </form>
 
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-ink)]/50">Preview</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-ink)]/50">{t("Preview")}</p>
         {channel === "email" ? (
-          <iframe title="Broadcast preview" srcDoc={emailHtml} sandbox="" className="h-[520px] w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-white" />
+          <iframe title={t("Broadcast preview")} srcDoc={emailHtml} sandbox="" className="h-[520px] w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-white" />
         ) : (
           <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[#e5ddd5] p-5">
             <div
@@ -147,7 +167,7 @@ export function BroadcastComposer({ audiences }: { audiences: AudienceOption[] }
               style={{ background: channel === "whatsapp" ? "#dcf8c6" : "#e9edf2" }}
               className="ms-auto max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-[#111b21] shadow-sm"
             >
-              {previewBody || <span className="text-[#111b21]/40">Your message will appear here.</span>}
+              {previewBody || <span className="text-[#111b21]/40">{t("Your message will appear here.")}</span>}
             </div>
           </div>
         )}

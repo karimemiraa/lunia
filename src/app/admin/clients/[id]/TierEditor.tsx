@@ -4,6 +4,7 @@ import { useActionState, useId } from "react";
 import { updateTierAction, type ClientActionState } from "./actions";
 import type { MembershipTier } from "@prisma/client";
 import { InlineStatus } from "../../_ui/Form";
+import { useStaffT, useStaffLocale } from "../../_i18n/StaffI18n";
 
 interface TierEditorProps {
   clientProfileId: string;
@@ -20,6 +21,8 @@ const selectClass =
 // [id]/page.tsx) -- updateTierAction re-checks that permission itself
 // regardless, so this component never has to be trusted as the sole gate.
 export function TierEditor({ clientProfileId, currentTierId, tiers }: TierEditorProps) {
+  const t = useStaffT();
+  const ar = useStaffLocale() === "ar";
   const [state, action, pending] = useActionState(updateTierAction, initialState);
   const selectId = useId();
 
@@ -27,12 +30,12 @@ export function TierEditor({ clientProfileId, currentTierId, tiers }: TierEditor
     <form action={action} className="flex flex-wrap items-end gap-3" data-testid="tier-editor">
       <input type="hidden" name="clientProfileId" value={clientProfileId} />
       <label htmlFor={selectId} className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-[var(--color-ink)]">Membership tier</span>
+        <span className="font-medium text-[var(--color-ink)]">{t("Membership tier")}</span>
         <select id={selectId} name="tierId" defaultValue={currentTierId ?? ""} className={selectClass}>
-          <option value="">No tier (guest)</option>
+          <option value="">{t("No tier (guest)")}</option>
           {tiers.map((tier) => (
             <option key={tier.id} value={tier.id}>
-              {tier.name}
+              {ar ? tier.nameAr || tier.name : tier.name}
             </option>
           ))}
         </select>
@@ -42,9 +45,9 @@ export function TierEditor({ clientProfileId, currentTierId, tiers }: TierEditor
         disabled={pending}
         className="lunia-btn lunia-btn-primary disabled:opacity-60"
       >
-        {pending ? "Saving…" : "Save tier"}
+        {pending ? t("Saving…") : t("Save tier")}
       </button>
-      <InlineStatus success={state.success ? "Saved." : undefined} />
+      <InlineStatus success={state.success ? t("Saved.") : undefined} />
       <InlineStatus error={state.error} />
     </form>
   );

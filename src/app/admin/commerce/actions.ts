@@ -15,6 +15,7 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { recordAudit } from "@/modules/iam/audit";
 import { issueGiftCard, voidGiftCard } from "@/modules/commerce/giftcards";
 import { createPackage, purchasePackage, updatePackage } from "@/modules/commerce/packages";
+import { getStaffT } from "../_i18n/display";
 
 export interface CommerceActionState {
   error?: string;
@@ -40,6 +41,7 @@ export async function issueGiftCardAction(
   formData: FormData,
 ): Promise<CommerceActionState> {
   const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
 
   const parsed = issueGiftCardSchema.safeParse({
     amountSar: formData.get("amountSar"),
@@ -47,7 +49,7 @@ export async function issueGiftCardAction(
     expiresAt: formData.get("expiresAt"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { error: t(parsed.error.issues[0]?.message ?? "Invalid input.") };
   }
   const { amountSar, clientProfileId, expiresAt } = parsed.data;
   const initialMinor = Math.round(amountSar * 100);
@@ -56,7 +58,7 @@ export async function issueGiftCardAction(
   if (expiresAt) {
     const parsedDate = new Date(expiresAt);
     if (Number.isNaN(parsedDate.getTime())) {
-      return { error: "Invalid expiry date." };
+      return { error: t("Invalid expiry date.") };
     }
     expiresAtDate = parsedDate;
   }
@@ -79,7 +81,7 @@ export async function issueGiftCardAction(
     revalidateCommerce();
     return { success: true, issuedCode: card.code };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to issue gift card." };
+    return { error: t(err instanceof Error ? err.message : "Failed to issue gift card.") };
   }
 }
 
@@ -88,10 +90,11 @@ export async function voidGiftCardAction(
   formData: FormData,
 ): Promise<CommerceActionState> {
   const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
 
   const giftCardId = String(formData.get("giftCardId") ?? "").trim();
   if (!giftCardId) {
-    return { error: "Missing gift card." };
+    return { error: t("Missing gift card.") };
   }
 
   try {
@@ -104,7 +107,7 @@ export async function voidGiftCardAction(
       summary: `Voided gift card "${card.code}"`,
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to void gift card." };
+    return { error: t(err instanceof Error ? err.message : "Failed to void gift card.") };
   }
 
   revalidateCommerce();
@@ -130,6 +133,7 @@ export async function createPackageAction(
   formData: FormData,
 ): Promise<CommerceActionState> {
   const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
 
   const parsed = createPackageSchema.safeParse({
     nameEn: formData.get("nameEn"),
@@ -141,7 +145,7 @@ export async function createPackageAction(
     validityDays: formData.get("validityDays"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { error: t(parsed.error.issues[0]?.message ?? "Invalid input.") };
   }
   const { nameEn, nameAr, serviceId, sessionsTotal, priceSar, isActive, validityDays } = parsed.data;
 
@@ -167,7 +171,7 @@ export async function createPackageAction(
     revalidateCommerce();
     return { success: true };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create package." };
+    return { error: t(err instanceof Error ? err.message : "Failed to create package.") };
   }
 }
 
@@ -178,8 +182,9 @@ export async function updatePackageAction(
   formData: FormData,
 ): Promise<CommerceActionState> {
   const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
   const packageId = String(formData.get("packageId") ?? "").trim();
-  if (!packageId) return { error: "Missing package." };
+  if (!packageId) return { error: t("Missing package.") };
 
   const parsed = createPackageSchema.safeParse({
     nameEn: formData.get("nameEn"),
@@ -191,7 +196,7 @@ export async function updatePackageAction(
     validityDays: formData.get("validityDays"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { error: t(parsed.error.issues[0]?.message ?? "Invalid input.") };
   }
   const { nameEn, nameAr, serviceId, sessionsTotal, priceSar, isActive, validityDays } = parsed.data;
 
@@ -213,7 +218,7 @@ export async function updatePackageAction(
       summary: `Updated package "${pkg.nameEn}" (${pkg.sessionsTotal} sessions, ${priceSar} SAR, ${validityDays ? `valid ${validityDays} days` : "no expiry"}${pkg.isActive ? "" : ", retired"})`,
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update package." };
+    return { error: t(err instanceof Error ? err.message : "Failed to update package.") };
   }
   revalidateCommerce();
   return { success: true };
@@ -233,13 +238,14 @@ export async function assignPackageAction(
   formData: FormData,
 ): Promise<CommerceActionState> {
   const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
 
   const parsed = assignPackageSchema.safeParse({
     clientProfileId: formData.get("clientProfileId"),
     packageId: formData.get("packageId"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { error: t(parsed.error.issues[0]?.message ?? "Invalid input.") };
   }
   const { clientProfileId, packageId } = parsed.data;
 
@@ -253,7 +259,7 @@ export async function assignPackageAction(
       summary: `Recorded package purchase for client "${clientProfileId}" (package "${packageId}")`,
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to record package purchase." };
+    return { error: t(err instanceof Error ? err.message : "Failed to record package purchase.") };
   }
 
   revalidateCommerce();

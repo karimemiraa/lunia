@@ -4,10 +4,12 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { listRolesWithPermissions } from "@/modules/iam/roles";
 import { RoleCard } from "./RoleCard";
 import { CreateRoleForm } from "./CreateRoleForm";
+import { getStaffT } from "../_i18n/display";
 
 export default async function RolesPage() {
   const user = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
   const roles = await listRolesWithPermissions();
+  const t = await getStaffT();
 
   return (
     <AdminShell
@@ -17,9 +19,9 @@ export default async function RolesPage() {
     >
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-lg)] bg-[var(--color-forest)] px-6 py-5 text-[var(--color-on-ink)] shadow-[var(--shadow-sm)]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-teal)]">Access control</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-teal)]">{t("Access control")}</p>
           <p className="mt-1 font-[family-name:var(--font-display)] text-2xl">
-            {roles.length} role{roles.length === 1 ? "" : "s"}
+            {t(roles.length === 1 ? "{count} role" : "{count} roles", { count: roles.length })}
           </p>
         </div>
         <CreateRoleForm />

@@ -24,6 +24,7 @@ import type { CommsChannelPref } from "@prisma/client";
 import { startOrGetConversation } from "@/modules/crm/whatsapp";
 import { createCallbackRequest, assignCallback } from "@/modules/assistant/callbacks";
 import { scheduleReviewRequest } from "@/modules/reviews/reviews";
+import { getStaffT } from "../../_i18n/display";
 
 export interface ClientActionState {
   error?: string;
@@ -36,15 +37,16 @@ function revalidateClient(clientProfileId: string): void {
 
 export async function addNoteAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.VISITNOTE_WRITE);
+  const t = await getStaffT();
 
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
   const bookingId = String(formData.get("bookingId") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
   if (!clientProfileId) {
-    return { error: "Missing client." };
+    return { error: t("Missing client.") };
   }
   if (!body) {
-    return { error: "Note body cannot be empty." };
+    return { error: t("Note body cannot be empty.") };
   }
 
   try {
@@ -55,7 +57,7 @@ export async function addNoteAction(_prev: ClientActionState | null, formData: F
       body,
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to add visit note." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to add visit note.") };
   }
 
   revalidateClient(clientProfileId);
@@ -69,11 +71,12 @@ export async function addNoteAction(_prev: ClientActionState | null, formData: F
 // documented on visitNotes.ts's deleteVisitNote.
 export async function deleteNoteAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_VIEW);
+  const t = await getStaffT();
 
   const noteId = String(formData.get("noteId") ?? "").trim();
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
   if (!noteId || !clientProfileId) {
-    return { error: "Missing note." };
+    return { error: t("Missing note.") };
   }
 
   try {
@@ -83,7 +86,7 @@ export async function deleteNoteAction(_prev: ClientActionState | null, formData
       await deleteVisitNote(noteId, admin.id);
     }
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to delete visit note." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to delete visit note.") };
   }
 
   revalidateClient(clientProfileId);
@@ -95,18 +98,19 @@ export async function deleteNoteAction(_prev: ClientActionState | null, formData
 // is a curation action over the same content.
 export async function toggleNotePinAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
   await requireAdmin(PERMISSIONS.VISITNOTE_WRITE);
+  const t = await getStaffT();
 
   const noteId = String(formData.get("noteId") ?? "").trim();
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
   const pinned = formData.get("pinned") === "true";
   if (!noteId || !clientProfileId) {
-    return { error: "Missing comment." };
+    return { error: t("Missing comment.") };
   }
 
   try {
     await setNotePinned(noteId, pinned);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update comment." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to update comment.") };
   }
 
   revalidateClient(clientProfileId);
@@ -117,9 +121,10 @@ export async function toggleNotePinAction(_prev: ClientActionState | null, formD
 // audited (contact details are sensitive).
 export async function updateCustomerAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
 
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
-  if (!clientProfileId) return { error: "Missing customer." };
+  if (!clientProfileId) return { error: t("Missing customer.") };
 
   try {
     await updateCustomer(clientProfileId, {
@@ -129,7 +134,7 @@ export async function updateCustomerAction(_prev: ClientActionState | null, form
       source: String(formData.get("source") ?? ""),
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update customer." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to update customer.") };
   }
 
   await recordAudit({
@@ -147,14 +152,15 @@ export async function updateCustomerAction(_prev: ClientActionState | null, form
 // CLIENT_MANAGE, audited, then redirects to the roster.
 export async function deleteCustomerAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
 
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
-  if (!clientProfileId) return { error: "Missing customer." };
+  if (!clientProfileId) return { error: t("Missing customer.") };
 
   try {
     await deleteCustomer(clientProfileId);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to delete customer." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to delete customer.") };
   }
 
   await recordAudit({
@@ -173,18 +179,19 @@ export async function deleteCustomerAction(_prev: ClientActionState | null, form
 // activities (setLeadStage/assignOwner); the follow-up date is set silently.
 export async function updateLeadAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
-  if (!clientProfileId) return { error: "Missing customer." };
+  if (!clientProfileId) return { error: t("Missing customer.") };
 
   const stage = String(formData.get("stage") ?? "").trim();
   const ownerId = String(formData.get("ownerId") ?? "").trim() || null;
   const raw = String(formData.get("nextFollowUpAt") ?? "").trim();
   const date = raw ? new Date(raw) : null;
-  if (raw && Number.isNaN(date!.getTime())) return { error: "Invalid date." };
+  if (raw && Number.isNaN(date!.getTime())) return { error: t("Invalid date.") };
 
   try {
     const current = await prisma.clientProfile.findUnique({ where: { id: clientProfileId }, select: { stage: true, ownerId: true } });
-    if (!current) return { error: "Customer not found." };
+    if (!current) return { error: t("Customer not found.") };
     if ((await stageKeys()).includes(stage) && stage !== current.stage) {
       await setLeadStage(clientProfileId, stage, admin.id);
     }
@@ -193,7 +200,7 @@ export async function updateLeadAction(_prev: ClientActionState | null, formData
     }
     await setFollowUp(clientProfileId, date);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update pipeline." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to update pipeline.") };
   }
   revalidateClient(clientProfileId);
   return { success: true };
@@ -201,9 +208,10 @@ export async function updateLeadAction(_prev: ClientActionState | null, formData
 
 export async function logLeadActivityAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
   const kind = String(formData.get("kind") ?? "").trim();
-  if (!clientProfileId || !kind) return { error: "Pick an activity type." };
+  if (!clientProfileId || !kind) return { error: t("Pick an activity type.") };
   try {
     await logActivity({
       clientProfileId,
@@ -213,7 +221,7 @@ export async function logLeadActivityAction(_prev: ClientActionState | null, for
       body: String(formData.get("body") ?? "") || null,
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to log activity." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to log activity.") };
   }
   revalidateClient(clientProfileId);
   return { success: true };
@@ -221,17 +229,18 @@ export async function logLeadActivityAction(_prev: ClientActionState | null, for
 
 export async function updateTierAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
   await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
 
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
   if (!clientProfileId) {
-    return { error: "Missing client." };
+    return { error: t("Missing client.") };
   }
   const tierId = String(formData.get("tierId") ?? "").trim();
 
   try {
     await updateClientTier(clientProfileId, tierId || null);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update tier." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to update tier.") };
   }
 
   revalidateClient(clientProfileId);
@@ -249,10 +258,11 @@ export async function updateNotificationPreferenceAction(
   formData: FormData,
 ): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
 
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
   if (!clientProfileId) {
-    return { error: "Missing client." };
+    return { error: t("Missing client.") };
   }
 
   const rawChannel = String(formData.get("channel") ?? "");
@@ -266,7 +276,7 @@ export async function updateNotificationPreferenceAction(
   try {
     await upsertPreference(clientProfileId, { channel, remindersOptIn, postVisitOptIn, marketingOptIn });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update notification preferences." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to update notification preferences.") };
   }
 
   await recordAudit({
@@ -301,6 +311,7 @@ export async function adjustLoyaltyPointsAction(
   formData: FormData,
 ): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
 
   const parsed = adjustLoyaltyPointsSchema.safeParse({
     clientProfileId: formData.get("clientProfileId"),
@@ -308,14 +319,14 @@ export async function adjustLoyaltyPointsAction(
     reason: formData.get("reason"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { error: t(parsed.error.issues[0]?.message ?? "Invalid input.") };
   }
   const { clientProfileId, deltaPoints, reason } = parsed.data;
 
   try {
     await adjustPoints(clientProfileId, deltaPoints, reason);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to adjust points." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to adjust points.") };
   }
 
   await recordAudit({
@@ -345,9 +356,10 @@ function csvToList(raw: FormDataEntryValue | null): string[] {
 // so the stored time is when consent was (last) granted.
 export async function saveClinicalAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
 
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
-  if (!clientProfileId) return { error: "Missing client." };
+  if (!clientProfileId) return { error: t("Missing client.") };
 
   const skinTypeRaw = String(formData.get("skinType") ?? "").trim();
   const allergiesRaw = String(formData.get("allergies") ?? "").trim();
@@ -359,7 +371,7 @@ export async function saveClinicalAction(_prev: ClientActionState | null, formDa
     where: { id: clientProfileId },
     select: { consentTreatmentAt: true, consentDataAt: true },
   });
-  if (!existing) return { error: "Client not found." };
+  if (!existing) return { error: t("Client not found.") };
 
   try {
     await prisma.clientProfile.update({
@@ -377,7 +389,7 @@ export async function saveClinicalAction(_prev: ClientActionState | null, formDa
       },
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to save clinical profile." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to save clinical profile.") };
   }
 
   await recordAudit({
@@ -399,14 +411,15 @@ export async function saveClinicalAction(_prev: ClientActionState | null, formDa
 // the inbox itself.
 export async function openWhatsappAction(clientProfileId: string): Promise<{ ok: true; href: string } | { ok: false; error: string }> {
   await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
   const profile = await prisma.clientProfile.findUnique({ where: { id: clientProfileId }, include: { user: { select: { phone: true } } } });
-  if (!profile) return { ok: false, error: "Customer not found." };
-  if (!profile.user.phone) return { ok: false, error: "This customer has no phone number on file." };
+  if (!profile) return { ok: false, error: t("Customer not found.") };
+  if (!profile.user.phone) return { ok: false, error: t("This customer has no phone number on file.") };
   try {
     const conversationId = await startOrGetConversation(profile.user.phone, profile.id);
     return { ok: true, href: `/admin/whatsapp?c=${conversationId}` };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Could not open WhatsApp." };
+    return { ok: false, error: err instanceof Error ? t(err.message) : t("Could not open WhatsApp.") };
   }
 }
 
@@ -421,18 +434,19 @@ const addCallbackSchema = z.object({
 // acknowledgement message — staff decided to call, the customer did not ask).
 export async function addCallbackAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
   const parsed = addCallbackSchema.safeParse({
     clientProfileId: formData.get("clientProfileId"),
     preferredWindow: formData.get("preferredWindow") || "asap",
     topic: formData.get("topic") || undefined,
     notes: formData.get("notes") || undefined,
   });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  if (!parsed.success) return { error: t(parsed.error.issues[0]?.message ?? "Invalid input.") };
   const { clientProfileId, preferredWindow, topic, notes } = parsed.data;
 
   const profile = await prisma.clientProfile.findUnique({ where: { id: clientProfileId }, include: { user: { select: { phone: true, locale: true } } } });
-  if (!profile) return { error: "Customer not found." };
-  if (!profile.user.phone) return { error: "This customer has no phone number on file." };
+  if (!profile) return { error: t("Customer not found.") };
+  if (!profile.user.phone) return { error: t("This customer has no phone number on file.") };
 
   try {
     const row = await createCallbackRequest({
@@ -448,7 +462,7 @@ export async function addCallbackAction(_prev: ClientActionState | null, formDat
     });
     await assignCallback(row.id, admin.id);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to add call-back." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to add call-back.") };
   }
   revalidateClient(clientProfileId);
   revalidatePath("/admin/callbacks");
@@ -459,16 +473,17 @@ export async function addCallbackAction(_prev: ClientActionState | null, formDat
 // completed visit that has none yet (idempotent per booking).
 export async function requestReviewAction(clientProfileId: string): Promise<ClientActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
   const booking = await prisma.booking.findFirst({
     where: { clientProfileId, status: "COMPLETED", review: null },
     orderBy: { createdAt: "desc" },
     include: { appointments: { select: { serviceId: true } } },
   });
-  if (!booking) return { error: "Every completed visit already has a review request." };
+  if (!booking) return { error: t("Every completed visit already has a review request.") };
   try {
     await scheduleReviewRequest(booking, { completedAt: new Date() });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to request a review." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to request a review.") };
   }
   await recordAudit({ actorUserId: admin.id, action: "REVIEW_REQUEST", entityType: "Booking", entityId: booking.id, summary: `Requested a review for booking "${booking.id}"` });
   revalidateClient(clientProfileId);

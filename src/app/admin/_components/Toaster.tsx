@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useStaffT } from "../_i18n/StaffI18n";
 import { TOAST_EVENT, FLASH_COOKIE, decodeFlash, type ToastInput, type ToastTone } from "./toast";
 
 interface ToastRecord extends ToastInput {
@@ -37,6 +38,7 @@ function readFlashCookie(): string | null {
 // - `?toast=` in the URL (stripped from the address bar without a reload),
 // - the `lunia_flash` cookie set by server actions (see flash.ts).
 export function Toaster() {
+  const tr = useStaffT();
   const [toasts, setToasts] = useState<ToastRecord[]>([]);
   const seq = useRef(0);
   const timers = useRef(new Map<number, number>());
@@ -105,13 +107,13 @@ export function Toaster() {
             <path d={TONE_ICON[t.tone]} />
           </svg>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-[var(--color-ink)]">{t.title}</p>
-            {t.body && <p className="mt-0.5 text-xs leading-relaxed text-[var(--color-ink)]/60">{t.body}</p>}
+            <p className="text-sm font-medium text-[var(--color-ink)]">{tr(t.title)}</p>
+            {t.body && <p className="mt-0.5 text-xs leading-relaxed text-[var(--color-ink)]/60">{tr(t.body)}</p>}
           </div>
           <button
             type="button"
             onClick={() => dismiss(t.id)}
-            aria-label="Dismiss notification"
+            aria-label={tr("Dismiss notification")}
             className="-me-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--color-ink)]/[0.06] hover:text-[var(--color-ink)]"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5" aria-hidden="true">

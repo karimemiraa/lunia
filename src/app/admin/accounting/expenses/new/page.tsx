@@ -4,16 +4,18 @@ import { ExpenseForm } from "../ExpenseForm";
 import { EXPENSE_METHODS, METHOD_LABELS, listExpenseCategories } from "@/modules/accounting/expenses";
 import { RECEIPT_ACCEPT } from "@/modules/accounting/receipts";
 import { dateISOOf } from "@/modules/accounting/periods";
+import { getStaffT } from "../../../_i18n/display";
 
 export default async function NewExpensePage() {
   const user = await requireAccounting();
   const categories = await listExpenseCategories();
+  const t = await getStaffT();
 
   return (
     <AdminShell user={user} title="Record expense" description="Enter the amount before VAT and the VAT shown on the vendor's tax invoice.">
       <ExpenseForm
         categories={categories}
-        methods={EXPENSE_METHODS.map((m) => ({ value: m, label: METHOD_LABELS[m] }))}
+        methods={EXPENSE_METHODS.map((m) => ({ value: m, label: t(METHOD_LABELS[m]) }))}
         receiptAccept={RECEIPT_ACCEPT}
         initial={{
           paidDate: dateISOOf(new Date()),

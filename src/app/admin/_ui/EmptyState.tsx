@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Tr } from "../_i18n/StaffI18n";
 
 export interface EmptyStateProps {
   title: string;
@@ -12,7 +13,7 @@ export interface EmptyStateProps {
   compact?: boolean;
 }
 
-/** Helpful empty state with one primary action. Server-safe. */
+/** Helpful empty state with one primary action. Server-safe; string texts go through the staff dictionary. */
 export function EmptyState({ title, description, action, icon, className = "", compact = false }: EmptyStateProps) {
   const isLink = action && typeof action === "object" && "href" in (action as object);
   return (
@@ -24,12 +25,12 @@ export function EmptyState({ title, description, action, icon, className = "", c
           </svg>
         )}
       </span>
-      <p className="text-base font-medium text-[var(--color-ink)]">{title}</p>
-      {description && <p className="max-w-md text-sm leading-relaxed text-[var(--color-ink)]/60">{description}</p>}
+      <p className="text-base font-medium text-[var(--color-ink)]"><Tr>{title}</Tr></p>
+      {description && <p className="max-w-md text-sm leading-relaxed text-[var(--color-ink)]/60">{typeof description === "string" ? <Tr>{description}</Tr> : description}</p>}
       {action &&
         (isLink ? (
           <Link href={(action as { href: string }).href} className="lunia-btn lunia-btn-forest mt-1 min-h-11">
-            {(action as { label: string }).label}
+            <Tr>{(action as { label: string }).label}</Tr>
           </Link>
         ) : (
           <div className="mt-1">{action as ReactNode}</div>

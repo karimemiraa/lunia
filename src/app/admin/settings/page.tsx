@@ -1,5 +1,6 @@
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
+import { getStaffT } from "../_i18n/display";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import {
   getAllSettings,
@@ -22,6 +23,7 @@ const DEFAULT_HOURS: HoursSettings = Object.fromEntries(
 
 export default async function SettingsPage() {
   const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
   const [settings, automations, runs] = await Promise.all([getAllSettings(), getAutomationSettings(), latestJobRuns()]);
 
   const business = settings.business as BusinessSettings | undefined;
@@ -53,7 +55,7 @@ export default async function SettingsPage() {
         const problem = backupProblem(runs.backup);
         return problem ? (
           <p className="mt-6 rounded-[var(--radius-sm)] border border-[var(--color-gold)]/45 bg-[var(--color-gold)]/10 px-4 py-3 text-sm" data-testid="backup-warning">
-            <span className="font-medium">Backups need attention:</span> {problem}
+            <span className="font-medium">{t("Backups need attention:")}</span> {t(problem)}
           </p>
         ) : null;
       })()}

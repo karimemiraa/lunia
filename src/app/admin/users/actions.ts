@@ -5,6 +5,8 @@ import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { createStaffUser, setUserRoles, deleteStaffUser, setStaffArabicName } from "@/modules/iam/users";
 import { recordAudit } from "@/modules/iam/audit";
+import { getStaffT } from "../_i18n/display";
+import { translateError } from "../hr/_components/errors";
 
 export interface UserActionState {
   error?: string;
@@ -13,6 +15,7 @@ export interface UserActionState {
 
 export async function createUserAction(_prev: UserActionState | null, formData: FormData): Promise<UserActionState> {
   const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const t = await getStaffT();
 
   const email = String(formData.get("email") ?? "").trim();
   const fullName = String(formData.get("fullName") ?? "").trim();
@@ -31,7 +34,7 @@ export async function createUserAction(_prev: UserActionState | null, formData: 
       summary: `Created staff user ${email} (${fullName}) with ${roleIds.length} role(s)`,
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create user." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Failed to create user.") };
   }
 
   revalidatePath("/admin/users");
@@ -40,12 +43,13 @@ export async function createUserAction(_prev: UserActionState | null, formData: 
 
 export async function setStaffArabicNameAction(_prev: UserActionState | null, formData: FormData): Promise<UserActionState> {
   const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const t = await getStaffT();
   const userId = String(formData.get("userId") ?? "");
   const fullNameAr = String(formData.get("fullNameAr") ?? "");
   try {
     await setStaffArabicName(userId, fullNameAr);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Couldn't save the Arabic name." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Couldn't save the Arabic name.") };
   }
   await recordAudit({ actorUserId: admin.id, action: "USER_UPDATE", entityType: "User", entityId: userId, summary: `Set Arabic display name to "${fullNameAr.trim()}"` });
   revalidatePath("/admin/users");
@@ -54,15 +58,16 @@ export async function setStaffArabicNameAction(_prev: UserActionState | null, fo
 
 export async function setUserRolesAction(_prev: UserActionState | null, formData: FormData): Promise<UserActionState> {
   const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const t = await getStaffT();
 
   const userId = String(formData.get("userId") ?? "").trim();
-  if (!userId) return { error: "Missing user." };
+  if (!userId) return { error: t("Missing user.") };
   const roleIds = formData.getAll("roleIds").map(String);
 
   try {
     await setUserRoles(userId, roleIds);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update roles." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Failed to update roles.") };
   }
 
   await recordAudit({
@@ -78,16 +83,17 @@ export async function setUserRolesAction(_prev: UserActionState | null, formData
 
 export async function deleteUserAction(_prev: UserActionState | null, formData: FormData): Promise<UserActionState> {
   const admin = await requireAdmin(PERMISSIONS.STAFF_MANAGE);
+  const t = await getStaffT();
 
   const userId = String(formData.get("userId") ?? "").trim();
-  if (!userId) return { error: "Missing user." };
+  if (!userId) return { error: t("Missing user.") };
   // Guard against locking yourself out.
-  if (userId === admin.id) return { error: "You cannot delete your own account." };
+  if (userId === admin.id) return { error: t("You cannot delete your own account.") };
 
   try {
     await deleteStaffUser(userId);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to delete user." };
+    return { error: err instanceof Error ? translateError(t, err.message) : t("Failed to delete user.") };
   }
 
   await recordAudit({

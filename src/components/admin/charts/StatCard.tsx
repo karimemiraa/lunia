@@ -1,7 +1,10 @@
 // Dependency-light stat tile for the admin dashboards: a label, a big
 // value, and an optional sub-note (e.g. a comparison or count). Pure
 // presentation -- callers pre-format the value/subNote strings (money,
-// counts, etc.) so this component stays unit-agnostic.
+// counts, etc.) so this component stays unit-agnostic. Label and sub-note
+// go through the staff dictionary (unknown text stays as is).
+
+import { Tr } from "@/app/admin/_i18n/StaffI18n";
 
 interface StatCardProps {
   label: string;
@@ -16,11 +19,11 @@ export function StatCard({ label, value, subNote }: StatCardProps) {
         aria-hidden="true"
         className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-[var(--color-teal)] to-[var(--color-gold)] opacity-70"
       />
-      <span className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-ink)]/55">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-ink)]/55"><Tr>{label}</Tr></span>
       <span className="font-[family-name:var(--font-display)] text-4xl font-medium leading-none tracking-tight text-[var(--color-ink)]">
         {value}
       </span>
-      {subNote && <span className="text-xs text-[var(--color-ink)]/50">{subNote}</span>}
+      {subNote && <span className="text-xs text-[var(--color-ink)]/50"><Tr>{subNote}</Tr></span>}
     </div>
   );
 }

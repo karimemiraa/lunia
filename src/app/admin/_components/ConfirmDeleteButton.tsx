@@ -2,6 +2,8 @@
 
 import { useRef } from "react";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
+import { hasArabic } from "../_i18n/t";
 
 interface ConfirmDeleteButtonProps {
   action: (formData: FormData) => void | Promise<void>;
@@ -18,10 +20,14 @@ interface ConfirmDeleteButtonProps {
  */
 export function ConfirmDeleteButton({ action, confirmMessage, label = "Delete", title }: ConfirmDeleteButtonProps) {
   const anchor = useRef<HTMLSpanElement>(null);
+  const t = useStaffT();
+  const arabic = useStaffLocale() === "ar";
+  // "<label>?" — in Arabic, fall back to the translated label with «؟» when the question has no entry.
+  const heading = title ?? (arabic && !hasArabic(`${label}?`) ? `${t(label)}؟` : `${label}?`);
   return (
     <span ref={anchor} className="contents">
       <ConfirmDialog
-        title={title ?? `${label}?`}
+        title={heading}
         description={confirmMessage}
         verb={label}
         onConfirm={async () => {
@@ -29,7 +35,7 @@ export function ConfirmDeleteButton({ action, confirmMessage, label = "Delete", 
           await action(form ? new FormData(form) : new FormData());
         }}
       >
-        {label}
+        {t(label)}
       </ConfirmDialog>
     </span>
   );

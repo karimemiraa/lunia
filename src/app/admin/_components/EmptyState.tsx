@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Tr } from "../_i18n/StaffI18n";
 
 interface EmptyStateProps {
   /** A 24px line icon (path children of an <svg>), optional. */
@@ -14,7 +15,8 @@ interface EmptyStateProps {
 }
 
 // Consistent empty state: icon, title, one line of help, one primary action.
-// Server-safe.
+// Server-safe. Title, body and link label go through the staff dictionary
+// (<Tr> returns English text unchanged when there is no entry).
 export function EmptyState({ icon, title, body, action, size = "md", className = "" }: EmptyStateProps) {
   const isLink = action && typeof action === "object" && "href" in (action as object);
   return (
@@ -29,12 +31,12 @@ export function EmptyState({ icon, title, body, action, size = "md", className =
           {icon ?? <path d="M4 7h16M4 12h10M4 17h7" />}
         </svg>
       </span>
-      <p className={`font-medium text-[var(--color-ink)] ${size === "sm" ? "text-sm" : "font-[family-name:var(--font-display)] text-xl"}`}>{title}</p>
-      {body && <p className="max-w-sm text-sm leading-relaxed text-[var(--color-ink)]/60">{body}</p>}
+      <p className={`font-medium text-[var(--color-ink)] ${size === "sm" ? "text-sm" : "font-[family-name:var(--font-display)] text-xl"}`}><Tr>{title}</Tr></p>
+      {body && <p className="max-w-sm text-sm leading-relaxed text-[var(--color-ink)]/60"><Tr>{body}</Tr></p>}
       {action &&
         (isLink ? (
           <Link href={(action as { href: string }).href} className="lunia-btn lunia-btn-forest lunia-btn-sm mt-1">
-            {(action as { label: string }).label}
+            <Tr>{(action as { label: string }).label}</Tr>
           </Link>
         ) : (
           <div className="mt-1">{action as ReactNode}</div>

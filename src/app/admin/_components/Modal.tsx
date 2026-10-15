@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useIsClient } from "./useIsClient";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 interface ModalProps {
   title: string;
@@ -22,6 +23,7 @@ interface ModalProps {
 // (sitting low / uncentered, page unscrollable). The portal escapes it.
 export function Modal({ title, onClose, children, widthClass = "max-w-xl" }: ModalProps) {
   const mounted = useIsClient();
+  const t = useStaffT();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,15 +47,15 @@ export function Modal({ title, onClose, children, widthClass = "max-w-xl" }: Mod
       }}
       role="dialog"
       aria-modal="true"
-      aria-label={title}
+      aria-label={t(title)}
     >
       <div className={`flex max-h-[88vh] w-full flex-col overflow-hidden rounded-[var(--radius-lg)] bg-[var(--surface)] shadow-[var(--shadow-lg)] ${widthClass}`}>
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--line)] bg-[var(--color-forest)] px-6 py-4 text-[var(--color-on-ink)]">
-          <h2 className="font-[family-name:var(--font-display)] text-xl">{title}</h2>
+          <h2 className="font-[family-name:var(--font-display)] text-xl">{t(title)}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-on-ink)]/70 transition-colors hover:bg-white/10 hover:text-[var(--color-on-ink)]"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">

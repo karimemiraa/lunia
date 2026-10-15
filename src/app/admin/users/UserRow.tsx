@@ -6,6 +6,8 @@ import { setUserRolesAction, deleteUserAction, setStaffArabicNameAction, type Us
 import type { StaffUserRow } from "@/modules/iam/users";
 import { ConfirmButton } from "../_ui/ConfirmDialog";
 import { InlineStatus } from "../_ui/Form";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
+import { translateIn } from "../_i18n/t";
 
 interface RoleOption {
   id: string;
@@ -25,6 +27,8 @@ export function UserRow({
   isSelf: boolean;
   canViewHr?: boolean;
 }) {
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const [roleState, roleAction, rolePending] = useActionState(setUserRolesAction, initialState);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteUserAction, initialState);
   const [nameArState, nameArAction, nameArPending] = useActionState(setStaffArabicNameAction, initialState);
@@ -33,10 +37,12 @@ export function UserRow({
     <div className="lunia-card flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between" data-testid="user-row">
       <div className="min-w-0">
         <p className="font-medium text-[var(--color-ink)]">
-          {user.fullName || "Unnamed"}
-          {isSelf && <span className="ms-2 rounded-full bg-[var(--color-teal)]/20 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--color-teal-ink)]">You</span>}
+          {user.fullName || t("Unnamed")}
+          {isSelf && <span className="ms-2 rounded-full bg-[var(--color-teal)]/20 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--color-teal-ink)]">{t("You")}</span>}
         </p>
-        <p className="text-sm text-[var(--color-ink)]/60">{user.email}</p>
+        <p className="text-sm text-[var(--color-ink)]/60" dir="ltr">
+          {user.email}
+        </p>
         {user.title && <p className="text-xs text-[var(--color-ink)]/45">{user.title}</p>}
         <form action={nameArAction} className="mt-2 flex flex-wrap items-center gap-2" data-testid="staff-name-ar-form">
           <input type="hidden" name="userId" value={user.id} />
@@ -45,21 +51,21 @@ export function UserRow({
             dir="rtl"
             defaultValue={user.fullNameAr ?? ""}
             placeholder="الاسم بالعربي"
-            aria-label={`Arabic name for ${user.fullName || user.email}`}
+            aria-label={t("Arabic name for {name}", { name: user.fullName || user.email })}
             maxLength={120}
             className="lunia-input w-48 py-1 text-sm"
           />
           <button type="submit" disabled={nameArPending} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:opacity-60">
-            {nameArPending ? "Saving…" : "Save Arabic name"}
+            {nameArPending ? t("Saving…") : t("Save Arabic name")}
           </button>
-          <InlineStatus size="sm" success={nameArState.success ? "Saved." : undefined} error={nameArState.error} />
+          <InlineStatus size="sm" success={nameArState.success ? t("Saved.") : undefined} error={nameArState.error} />
         </form>
         {canViewHr && (
           <Link
             href={`/admin/hr/${user.id}`}
             className="mt-1 inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-teal-ink)] underline-offset-4 hover:underline"
           >
-            Employee file
+            {t("Employee file")}
           </Link>
         )}
       </div>
@@ -81,15 +87,15 @@ export function UserRow({
                   defaultChecked={user.roleIds.includes(role.id)}
                   className="h-4 w-4 accent-[var(--color-forest)]"
                 />
-                {role.name}
+                {translateIn(role.name, "role", locale)}
               </label>
             ))}
           </div>
           <div className="flex items-center gap-3">
             <button type="submit" disabled={rolePending} aria-busy={rolePending || undefined} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-11 disabled:opacity-60">
-              {rolePending ? "Saving…" : "Save roles"}
+              {rolePending ? t("Saving…") : t("Save roles")}
             </button>
-            <InlineStatus size="sm" success={roleState.success ? "Saved." : undefined} />
+            <InlineStatus size="sm" success={roleState.success ? t("Saved.") : undefined} />
             <InlineStatus size="sm" error={roleState.error} />
           </div>
         </form>
@@ -98,8 +104,13 @@ export function UserRow({
         {!isSelf && (
           <form action={deleteAction}>
             <input type="hidden" name="userId" value={user.id} />
-            <ConfirmButton title={`Delete ${user.fullName || user.email}?`} description="They lose access to the staff system immediately. Their history (bookings, invoices, notes) stays. This cannot be undone." confirmLabel="Delete user" pending={deletePending}>
-              Delete user
+            <ConfirmButton
+              title={t("Delete {name}?", { name: user.fullName || user.email })}
+              description={t("They lose access to the staff system immediately. Their history (bookings, invoices, notes) stays. This cannot be undone.")}
+              confirmLabel={t("Delete user")}
+              pending={deletePending}
+            >
+              {t("Delete user")}
             </ConfirmButton>
             <InlineStatus size="sm" error={deleteState.error} className="ms-2" />
           </form>

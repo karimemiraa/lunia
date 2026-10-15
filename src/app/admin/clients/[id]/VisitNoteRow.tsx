@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import { deleteNoteAction, toggleNotePinAction, type ClientActionState } from "./actions";
 import { ConfirmDeleteButton } from "../../_components/ConfirmDeleteButton";
 import { InlineStatus } from "../../_ui/Form";
+import { useStaffT, useStaffLocale } from "../../_i18n/StaffI18n";
+import { intlLocale, type StaffLocale } from "../../_i18n/t";
 
 export interface VisitNoteRowData {
   id: string;
@@ -27,8 +29,8 @@ const initialState: ClientActionState = {};
 
 const CENTER_TZ = "Asia/Riyadh";
 
-function formatNoteDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" }).format(date);
+function formatNoteDate(date: Date, locale: StaffLocale): string {
+  return new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 // A delete button is shown only when the current admin wrote the comment, or
@@ -36,6 +38,8 @@ function formatNoteDate(date: Date): string {
 // regardless (see actions.ts), so this is a UI convenience, not the security
 // boundary. Pinning is available to anyone who can write comments.
 export function VisitNoteRow({ note, clientProfileId, currentUserId, canManage, canWrite }: VisitNoteRowProps) {
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const [deleteState, deleteAction] = useActionState(deleteNoteAction, initialState);
   const [, pinAction, pinPending] = useActionState(toggleNotePinAction, initialState);
   const canDelete = canManage || note.authorUserId === currentUserId;
@@ -52,13 +56,13 @@ export function VisitNoteRow({ note, clientProfileId, currentUserId, canManage, 
     >
       {note.pinned && (
         <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[var(--color-gold)]/25 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#7c6a2f]">
-          <PinIcon /> Pinned
+          <PinIcon /> {t("Pinned")}
         </span>
       )}
       <p className="whitespace-pre-wrap text-sm text-[var(--color-ink)]">{note.body}</p>
       <div className="flex items-center justify-between gap-3 text-xs text-[var(--color-ink)]/60">
         <span>
-          {note.authorName ?? "Unknown staff"} &middot; {formatNoteDate(note.createdAt)}
+          {note.authorName ?? t("Unknown staff")} &middot; {formatNoteDate(note.createdAt, locale)}
         </span>
         <div className="flex items-center gap-2">
           {canWrite && (
@@ -71,7 +75,7 @@ export function VisitNoteRow({ note, clientProfileId, currentUserId, canManage, 
                 disabled={pinPending}
                 className="lunia-btn lunia-btn-ghost lunia-btn-sm disabled:opacity-60"
               >
-                <PinIcon /> {note.pinned ? "Unpin" : "Pin"}
+                <PinIcon /> {note.pinned ? t("Unpin") : t("Pin")}
               </button>
             </form>
           )}
@@ -79,7 +83,7 @@ export function VisitNoteRow({ note, clientProfileId, currentUserId, canManage, 
             <form>
               <input type="hidden" name="noteId" value={note.id} />
               <input type="hidden" name="clientProfileId" value={clientProfileId} />
-              <ConfirmDeleteButton action={deleteAction} title="Delete this comment?" confirmMessage="This cannot be undone." />
+              <ConfirmDeleteButton action={deleteAction} title={t("Delete this comment?")} confirmMessage={t("This cannot be undone.")} />
             </form>
           )}
         </div>

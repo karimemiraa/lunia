@@ -1,5 +1,8 @@
 // Small shared presentational bits for the assistant and call-back admin pages.
 
+import { intlLocale, type StaffLocale } from "../_i18n/t";
+import { EnumText } from "./EnumText";
+
 const OUTCOME_STYLES: Record<string, string> = {
   BOOKED: "bg-[var(--color-canopy)]/25 text-[var(--color-ink)]",
   CALLBACK: "bg-[var(--color-teal)]/25 text-[var(--color-ink)]",
@@ -20,14 +23,14 @@ export function StatusPill({ value }: { value: string }) {
         OUTCOME_STYLES[value] ?? "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/70"
       }`}
     >
-      {value.replace(/_/g, " ")}
+      <EnumText value={value} />
     </span>
   );
 }
 
-export function formatDateTime(date: Date | string | null | undefined): string {
+export function formatDateTime(date: Date | string | null | undefined, locale: StaffLocale = "en"): string {
   if (!date) return "—";
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(date));
+  return new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(date));
 }
 
 export function FilterChips({
@@ -36,15 +39,18 @@ export function FilterChips({
   values,
   active,
   defaultLabel = "All",
+  filterLabel = "Filter",
 }: {
   base: string;
   param: string;
   values: readonly string[];
   active?: string;
   defaultLabel?: string;
+  /** Accessible name of the chip group (already translated by the caller). */
+  filterLabel?: string;
 }) {
   return (
-    <nav aria-label="Filter" className="mb-6 flex flex-wrap gap-2">
+    <nav aria-label={filterLabel} className="mb-6 flex flex-wrap gap-2">
       {(["", ...values] as const).map((v) => {
         const isActive = v === "" ? !active : active === v;
         return (
@@ -58,7 +64,7 @@ export function FilterChips({
                 : "border border-[var(--color-ink)]/20 text-[var(--color-ink)]/70 hover:bg-[var(--color-ink)]/5"
             }`}
           >
-            {(v || defaultLabel).replace(/_/g, " ")}
+            <EnumText value={v || defaultLabel} />
           </a>
         );
       })}

@@ -9,6 +9,7 @@ import { getTaxSettings, taxSettingsIssues } from "@/modules/billing/settings";
 import { quickPicks } from "@/modules/billing/lookup";
 import { InvoiceEditor } from "../InvoiceEditor";
 import { InlineStatus } from "../../_ui/Form";
+import { getStaffT } from "../../_i18n/display";
 
 interface NewInvoicePageProps {
   searchParams: Promise<{ booking?: string; client?: string }>;
@@ -20,6 +21,7 @@ interface NewInvoicePageProps {
 export default async function NewInvoicePage({ searchParams }: NewInvoicePageProps) {
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
   const { booking, client } = await searchParams;
+  const t = await getStaffT();
 
   if (booking) {
     let id: string | null = null;
@@ -27,14 +29,14 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
     try {
       id = (await createDraftFromBooking(booking, user.id)).id;
     } catch (err) {
-      error = err instanceof Error ? err.message : "Could not start checkout for this booking.";
+      error = t(err instanceof Error ? err.message : "Could not start checkout for this booking.");
     }
     if (id) redirect(`/admin/billing/${id}`);
     return (
       <AdminShell user={user} title="Checkout">
         <InlineStatus error={error} />
         <Link href="/admin/billing/new" className="lunia-btn lunia-btn-forest mt-4">
-          Start a walk-in invoice instead
+          {t("Start a walk-in invoice instead")}
         </Link>
       </AdminShell>
     );

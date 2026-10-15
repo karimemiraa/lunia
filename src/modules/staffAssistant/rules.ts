@@ -7,6 +7,7 @@
 //   5. navigation ("open payroll")               → page link / navigate
 // Anything else gets a friendly fallback with suggestions — never a guess.
 
+import { say } from "./localize";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { matchGuides, guideToView } from "./help";
 import { matchDestinations, toLink } from "./navigation";
@@ -140,9 +141,9 @@ export async function answerWithRules(question: string, viewer: AssistantViewer,
     if (who.length >= 2) {
       const found = await runTool("find_customer", { query: who }, viewer, now);
       const form = found.links.find((l) => l.kind === "form" && l.href.startsWith("/admin/calendar"));
-      if (form) return { text: `Opening a walk-in booking for ${found.links[0]!.label} — pick a time and confirm.`, links: [form], navigateTo: form.href, source: "rules" };
+      if (form) return { text: say(viewer, "Opening a walk-in booking for {name} — pick a time and confirm.", { name: found.links[0]!.label }), links: [form], navigateTo: form.href, source: "rules" };
       const qs = new URLSearchParams({ add: "1", name: who });
-      return { text: `I couldn't find “${who}” as an existing customer, so I've started a walk-in booking with that name — add their phone and pick a time.`, links: [{ label: "New walk-in booking", href: `/admin/calendar?${qs.toString()}`, kind: "form" }], navigateTo: `/admin/calendar?${qs.toString()}`, source: "rules" };
+      return { text: say(viewer, "I couldn't find “{who}” as an existing customer, so I've started a walk-in booking with that name — add their phone and pick a time.", { who }), links: [{ label: "New walk-in booking", href: `/admin/calendar?${qs.toString()}`, kind: "form" }], navigateTo: `/admin/calendar?${qs.toString()}`, source: "rules" };
     }
     return { text: "Opening a new walk-in booking — pick the service, a free time and confirm.", links: [{ label: "New walk-in booking", href: "/admin/calendar?add=1", kind: "form" }], navigateTo: "/admin/calendar?add=1", source: "rules" };
   }
@@ -152,8 +153,8 @@ export async function answerWithRules(question: string, viewer: AssistantViewer,
     if (who.length >= 2) {
       const found = await runTool("find_customer", { query: who }, viewer, now);
       const form = found.links.find((l) => l.kind === "form" && l.href.startsWith("/admin/billing/new"));
-      if (form) return { text: `Opening a new invoice for ${found.links[0]!.label}.`, links: [form], navigateTo: form.href, source: "rules" };
-      return { text: `No single customer matches “${who}”. Pick one, or start a blank walk-in invoice.`, links: [...found.links.filter((l) => l.kind === "page"), { label: "Blank invoice", href: "/admin/billing/new", kind: "form" }], source: "rules" };
+      if (form) return { text: say(viewer, "Opening a new invoice for {name}.", { name: found.links[0]!.label }), links: [form], navigateTo: form.href, source: "rules" };
+      return { text: say(viewer, "No single customer matches “{who}”. Pick one, or start a blank walk-in invoice.", { who }), links: [...found.links.filter((l) => l.kind === "page"), { label: "Blank invoice", href: "/admin/billing/new", kind: "form" }], source: "rules" };
     }
     return { text: "Opening a new invoice — add items, then take the payment.", links: [{ label: "New invoice", href: "/admin/billing/new", kind: "form" }], navigateTo: "/admin/billing/new", source: "rules" };
   }

@@ -7,6 +7,8 @@ import { formatIban } from "@/modules/hr/iban";
 import { dateToISO, todayISO } from "@/modules/hr/dates";
 import { dateLabel, monthLabel, sar } from "../../../_components/format";
 import { PrintButton } from "./PrintButton";
+import { getStaffLocale } from "../../../../_i18n/display";
+import { makeT } from "../../../../_i18n/t";
 
 interface PageProps {
   params: Promise<{ runId: string; userId: string }>;
@@ -14,11 +16,14 @@ interface PageProps {
 
 // A printable, bilingual (English / Arabic) payslip. Rendered without the
 // admin shell so it prints cleanly. HR sees every payslip; a staff member may
-// open their own once the run is approved.
+// open their own once the run is approved. The bilingual body stays the same
+// in both staff languages; only the screen chrome follows the staff locale.
 function Row({ en, ar, value, strong }: { en: string; ar: string; value: string; strong?: boolean }) {
   return (
     <tr className={`border-t border-[var(--line)] ${strong ? "font-semibold" : ""}`}>
-      <td className="py-2 pe-3">{en}</td>
+      <td className="py-2 pe-3" lang="en">
+        {en}
+      </td>
       <td className="py-2 pe-3 text-end tabular-nums">{value}</td>
       <td className="py-2 text-end" dir="rtl" lang="ar">
         {ar}
@@ -29,6 +34,8 @@ function Row({ en, ar, value, strong }: { en: string; ar: string; value: string;
 
 export default async function PayslipPage({ params }: PageProps) {
   const viewer = await requireAdmin();
+  const locale = await getStaffLocale();
+  const t = makeT(locale);
   const { runId, userId } = await params;
   const slip = await getPayslip(runId, userId);
   if (!slip) notFound();
@@ -37,7 +44,7 @@ export default async function PayslipPage({ params }: PageProps) {
   if (!isHr && !(viewer.id === userId && !isEditable(slip.payrollRun.status))) redirect("/admin");
 
   const r = slip.user.employeeRecord;
-  const name = slip.user.staffProfile?.fullName || slip.user.email || "Staff";
+  const name = slip.user.staffProfile?.fullName || slip.user.email || t("Staff");
   const gross = grossMinor(slip);
   const totalDeductions = slip.deductionsMinor + slip.gosiEmployeeMinor;
 
@@ -45,7 +52,7 @@ export default async function PayslipPage({ params }: PageProps) {
     <main className="mx-auto max-w-3xl px-4 py-8 print:max-w-none print:p-0">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href={isHr ? `/admin/hr/payroll/${runId}` : "/admin/me"} className="lunia-btn lunia-btn-ghost min-h-11">
-          Back
+          {t("Back")}
         </Link>
         <PrintButton />
       </div>
@@ -60,8 +67,8 @@ export default async function PayslipPage({ params }: PageProps) {
             <p className="font-medium">
               Payslip <span dir="rtl" lang="ar">· قسيمة الراتب</span>
             </p>
-            <p className="text-sm text-[var(--color-ink)]/60">{monthLabel(slip.payrollRun.periodMonth)}</p>
-            {isEditable(slip.payrollRun.status) && <p className="mt-1 text-xs font-semibold uppercase text-red-700">Draft</p>}
+            <p className="text-sm text-[var(--color-ink)]/60">{monthLabel(slip.payrollRun.periodMonth, locale)}</p>
+            {isEditable(slip.payrollRun.status) && <p className="mt-1 text-xs font-semibold uppercase text-red-700">{t("Draft")}</p>}
           </div>
         </header>
 
@@ -73,14 +80,14 @@ export default async function PayslipPage({ params }: PageProps) {
               ["Job title", "المسمى الوظيفي", r?.jobTitle ?? "—"],
               ["Department", "القسم", r?.department ?? "—"],
               [r?.isSaudi ? "National ID" : "Iqama no.", r?.isSaudi ? "رقم الهوية" : "رقم الإقامة", r?.nationalId ?? "—"],
-              ["Hire date", "تاريخ التعيين", dateLabel(dateToISO(r?.hireDate))],
+              ["Hire date", "تاريخ التعيين", dateLabel(dateToISO(r?.hireDate), locale)],
               ["Bank", "البنك", r?.bankName ?? "—"],
               ["IBAN", "الآيبان", r?.iban ? formatIban(r.iban) : "—"],
             ] as const
           ).map(([en, ar, value]) => (
             <div key={en} className="flex justify-between gap-3 border-b border-dashed border-[var(--line)] pb-1">
               <dt className="text-[var(--color-ink)]/60">
-                {en} <span dir="rtl" lang="ar" className="text-[var(--color-ink)]/45">/ {ar}</span>
+                <span lang="en">{en}</span> <span dir="rtl" lang="ar" className="text-[var(--color-ink)]/45">/ {ar}</span>
               </dt>
               <dd className="text-end font-medium">{value}</dd>
             </div>
@@ -98,14 +105,14 @@ export default async function PayslipPage({ params }: PageProps) {
             </tr>
           </thead>
           <tbody>
-            <Row en="Basic salary" ar="الراتب الأساسي" value={sar(slip.basicMinor)} />
-            <Row en="Housing allowance" ar="بدل السكن" value={sar(slip.housingMinor)} />
-            <Row en="Transport allowance" ar="بدل النقل" value={sar(slip.transportMinor)} />
-            {slip.otherAllowMinor > 0 && <Row en="Other allowances" ar="بدلات أخرى" value={sar(slip.otherAllowMinor)} />}
-            {slip.commissionMinor > 0 && <Row en="Commission" ar="العمولة" value={sar(slip.commissionMinor)} />}
-            {slip.overtimeMinor > 0 && <Row en="Overtime" ar="العمل الإضافي" value={sar(slip.overtimeMinor)} />}
-            {slip.bonusMinor > 0 && <Row en="Bonus" ar="مكافأة" value={sar(slip.bonusMinor)} />}
-            <Row en="Gross pay" ar="إجمالي المستحقات" value={sar(gross)} strong />
+            <Row en="Basic salary" ar="الراتب الأساسي" value={sar(slip.basicMinor, locale)} />
+            <Row en="Housing allowance" ar="بدل السكن" value={sar(slip.housingMinor, locale)} />
+            <Row en="Transport allowance" ar="بدل النقل" value={sar(slip.transportMinor, locale)} />
+            {slip.otherAllowMinor > 0 && <Row en="Other allowances" ar="بدلات أخرى" value={sar(slip.otherAllowMinor, locale)} />}
+            {slip.commissionMinor > 0 && <Row en="Commission" ar="العمولة" value={sar(slip.commissionMinor, locale)} />}
+            {slip.overtimeMinor > 0 && <Row en="Overtime" ar="العمل الإضافي" value={sar(slip.overtimeMinor, locale)} />}
+            {slip.bonusMinor > 0 && <Row en="Bonus" ar="مكافأة" value={sar(slip.bonusMinor, locale)} />}
+            <Row en="Gross pay" ar="إجمالي المستحقات" value={sar(gross, locale)} strong />
           </tbody>
         </table>
 
@@ -120,9 +127,9 @@ export default async function PayslipPage({ params }: PageProps) {
             </tr>
           </thead>
           <tbody>
-            <Row en="GOSI (employee share)" ar="التأمينات الاجتماعية (حصة الموظف)" value={sar(slip.gosiEmployeeMinor)} />
-            {slip.deductionsMinor > 0 && <Row en="Other deductions" ar="استقطاعات أخرى" value={sar(slip.deductionsMinor)} />}
-            <Row en="Total deductions" ar="إجمالي الاستقطاعات" value={sar(totalDeductions)} strong />
+            <Row en="GOSI (employee share)" ar="التأمينات الاجتماعية (حصة الموظف)" value={sar(slip.gosiEmployeeMinor, locale)} />
+            {slip.deductionsMinor > 0 && <Row en="Other deductions" ar="استقطاعات أخرى" value={sar(slip.deductionsMinor, locale)} />}
+            <Row en="Total deductions" ar="إجمالي الاستقطاعات" value={sar(totalDeductions, locale)} strong />
           </tbody>
         </table>
 
@@ -130,13 +137,13 @@ export default async function PayslipPage({ params }: PageProps) {
           <span className="font-medium">
             Net pay <span dir="rtl" lang="ar">/ صافي الراتب</span>
           </span>
-          <span className="font-[family-name:var(--font-display)] text-2xl tabular-nums">{sar(slip.netMinor)}</span>
+          <span className="font-[family-name:var(--font-display)] text-2xl tabular-nums">{sar(slip.netMinor, locale)}</span>
         </div>
 
-        {slip.notes && <p className="mt-4 text-sm text-[var(--color-ink)]/65">Notes: {slip.notes}</p>}
+        {slip.notes && <p className="mt-4 text-sm text-[var(--color-ink)]/65">{t("Notes: {notes}", { notes: slip.notes })}</p>}
         <p className="mt-6 text-xs text-[var(--color-ink)]/50">
-          Employer GOSI contribution (not deducted from pay): {sar(slip.gosiEmployerMinor)}.
-          {slip.payrollRun.paidAt ? ` Paid ${dateLabel(todayISO(slip.payrollRun.paidAt))}.` : ""}
+          {t("Employer GOSI contribution (not deducted from pay): {amount}.", { amount: sar(slip.gosiEmployerMinor, locale) })}
+          {slip.payrollRun.paidAt ? ` ${t("Paid {date}.", { date: dateLabel(todayISO(slip.payrollRun.paidAt), locale) })}` : ""}
         </p>
       </article>
     </main>

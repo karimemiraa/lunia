@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { moveLeadStageAction, quickLogCallAction } from "./actions";
 import type { PipelineCard } from "@/modules/crm/leads";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
+import { intlLocale, type StaffLocale, type T } from "../_i18n/t";
 
 interface StageOpt {
   key: string;
@@ -22,14 +24,14 @@ interface LeadBoardProps {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const dateFmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", day: "numeric", month: "short" });
+const dateFmtFor = (locale: StaffLocale) => new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: "Asia/Riyadh", day: "numeric", month: "short" });
 
-function ageLabel(createdAt: Date, now: Date): string {
+function ageLabel(createdAt: Date, now: Date, t: T): string {
   const days = Math.floor((now.getTime() - createdAt.getTime()) / DAY_MS);
-  if (days <= 0) return "today";
-  if (days < 30) return `${days}d`;
-  if (days < 365) return `${Math.floor(days / 30)}mo`;
-  return `${Math.floor(days / 365)}y`;
+  if (days <= 0) return t("today");
+  if (days < 30) return t("{n}d", { n: days });
+  if (days < 365) return t("{n}mo", { n: Math.floor(days / 30) });
+  return t("{n}y", { n: Math.floor(days / 365) });
 }
 
 function sourceKind(source: string | null): "chat" | "whatsapp" | "web" | "other" {
@@ -80,6 +82,8 @@ const OUTCOMES: { key: string; label: string; followUpDays: number | null }[] = 
 
 function Card({ card, stages, now, canManage, pending, onMove, onLog, onDragStart }: { card: PipelineCard; stages: StageOpt[]; now: Date; canManage: boolean; pending: boolean; onMove: (id: string, stage: string) => void; onLog: (id: string, outcome: string, note: string, days: number | null) => void; onDragStart: (id: string) => void }) {
   const [logOpen, setLogOpen] = useState(false);
+  const t = useStaffT();
+  const dateFmt = dateFmtFor(useStaffLocale());
   const [note, setNote] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const idx = stages.findIndex((s) => s.key === card.stage);
@@ -110,53 +114,53 @@ function Card({ card, stages, now, canManage, pending, onMove, onLog, onDragStar
     >
       <div className="flex items-start justify-between gap-2">
         <Link href={`/admin/clients/${card.id}`} className="min-w-0 truncate text-sm font-medium text-[var(--color-ink)] hover:underline">
-          {card.name || "Unnamed"}
+          {card.name || t("Unnamed")}
         </Link>
-        <span className="shrink-0 text-[0.65rem] text-[var(--color-ink)]/45" title={`Added ${dateFmt.format(new Date(card.createdAt))}`}>
-          {ageLabel(new Date(card.createdAt), now)}
+        <span className="shrink-0 text-[0.65rem] text-[var(--color-ink)]/45" title={t("Added {date}", { date: dateFmt.format(new Date(card.createdAt)) })}>
+          {ageLabel(new Date(card.createdAt), now, t)}
         </span>
       </div>
-      {(card.phone || card.email) && <p className="truncate text-xs text-[var(--color-ink)]/55">{card.phone ?? card.email}</p>}
+      {(card.phone || card.email) && <p className="truncate text-xs text-[var(--color-ink)]/55" dir="ltr">{card.phone ?? card.email}</p>}
       <div className="flex flex-wrap items-center gap-1.5 text-[0.65rem]">
         {card.source && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-cream)]/70 px-2 py-0.5 text-[var(--color-ink)]/65" title={`Source: ${card.source}`}>
+          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-cream)]/70 px-2 py-0.5 text-[var(--color-ink)]/65" title={t("Source: {source}", { source: card.source })}>
             <SourceIcon kind={kind} />
             {card.source}
           </span>
         )}
-        {card.direction && <span className="rounded-full bg-[var(--color-ink)]/[0.06] px-2 py-0.5 uppercase tracking-wide text-[var(--color-ink)]/55">{card.direction === "INBOUND" ? "In" : "Out"}</span>}
+        {card.direction && <span className="rounded-full bg-[var(--color-ink)]/[0.06] px-2 py-0.5 uppercase tracking-wide text-[var(--color-ink)]/55">{card.direction === "INBOUND" ? t("In") : t("Out")}</span>}
         {card.ownerName && <span className="rounded-full bg-[var(--color-teal)]/15 px-2 py-0.5 text-[var(--color-teal-ink)]">{card.ownerName}</span>}
         {followUp && (
           <span className={`rounded-full px-2 py-0.5 font-medium ${overdue ? "bg-[var(--color-gold)]/30 text-[#7c6a2f]" : dueToday ? "bg-[var(--color-teal)]/20 text-[var(--color-teal-ink)]" : "bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]/60"}`}>
-            {overdue ? "Overdue" : dueToday ? "Due today" : "Follow up"} {dateFmt.format(followUp)}
+            {t(overdue ? "Overdue {date}" : dueToday ? "Due today {date}" : "Follow up {date}", { date: dateFmt.format(followUp) })}
           </span>
         )}
       </div>
 
       {canManage && (
         <div className="relative mt-1 flex items-center gap-1">
-          <button type="button" disabled={pending || !prev} onClick={() => prev && onMove(card.id, prev.key)} aria-label={prev ? `Move ${card.name} to ${prev.label}` : "First stage"} title={prev ? `Move to ${prev.label}` : undefined} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] disabled:opacity-35">
+          <button type="button" disabled={pending || !prev} onClick={() => prev && onMove(card.id, prev.key)} aria-label={prev ? t("Move {name} to {stage}", { name: card.name, stage: t(prev.label) }) : t("First stage")} title={prev ? t("Move to {stage}", { stage: t(prev.label) }) : undefined} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] disabled:opacity-35">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 rtl:rotate-180" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m15 6-6 6 6 6" /></svg>
           </button>
-          <button type="button" disabled={pending || !next} onClick={() => next && onMove(card.id, next.key)} aria-label={next ? `Move ${card.name} to ${next.label}` : "Last stage"} title={next ? `Move to ${next.label}` : undefined} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] disabled:opacity-35">
+          <button type="button" disabled={pending || !next} onClick={() => next && onMove(card.id, next.key)} aria-label={next ? t("Move {name} to {stage}", { name: card.name, stage: t(next.label) }) : t("Last stage")} title={next ? t("Move to {stage}", { stage: t(next.label) }) : undefined} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] disabled:opacity-35">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 rtl:rotate-180" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" /></svg>
           </button>
           <label className="sr-only" htmlFor={`stage-${card.id}`}>
-            Move {card.name} to another stage
+            {t("Move {name} to another stage", { name: card.name })}
           </label>
           <select id={`stage-${card.id}`} value={card.stage} disabled={pending} onChange={(e) => onMove(card.id, e.target.value)} className="lunia-input min-h-9 flex-1 py-1 text-xs" data-testid="lead-move-select">
             {stages.map((s) => (
               <option key={s.key} value={s.key}>
-                {s.label}
+                {t(s.label)}
               </option>
             ))}
           </select>
-          <button type="button" onClick={() => setLogOpen((o) => !o)} aria-expanded={logOpen} disabled={pending} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-9 px-2.5" title="Log a call">
-            Log call
+          <button type="button" onClick={() => setLogOpen((o) => !o)} aria-expanded={logOpen} disabled={pending} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm min-h-9 px-2.5" title={t("Log a call")}>
+            {t("Log call")}
           </button>
           {logOpen && (
             <div className="absolute end-0 top-full z-20 mt-1 flex w-64 flex-col gap-2 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[var(--shadow-md)]" data-testid="quick-log">
-              <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Call outcome</p>
+              <p className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">{t("Call outcome")}</p>
               <div className="flex flex-wrap gap-1">
                 {OUTCOMES.map((o) => (
                   <button
@@ -168,14 +172,14 @@ function Card({ card, stages, now, canManage, pending, onMove, onLog, onDragStar
                       setNote("");
                     }}
                     className="min-h-9 rounded-full border border-[var(--line-strong)] px-2.5 text-xs text-[var(--color-ink)] hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)]"
-                    title={o.followUpDays !== null ? `Sets follow-up in ${o.followUpDays} day${o.followUpDays === 1 ? "" : "s"}` : undefined}
+                    title={o.followUpDays === null ? undefined : o.followUpDays === 1 ? t("Sets follow-up in 1 day") : t("Sets follow-up in {n} days", { n: o.followUpDays })}
                   >
-                    {o.label}
+                    {t(o.label)}
                   </button>
                 ))}
               </div>
               <label className="flex flex-col gap-1 text-xs">
-                <span className="text-[var(--color-ink)]/55">Note (optional)</span>
+                <span className="text-[var(--color-ink)]/55">{t("Note (optional)")}</span>
                 <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} className="lunia-input min-h-9 py-1 text-xs" />
               </label>
             </div>
@@ -191,6 +195,7 @@ function Card({ card, stages, now, canManage, pending, onMove, onLog, onDragStar
 // call can be logged from the card without leaving the board.
 export function LeadBoard({ stages, columns, counts, canManage, nowIso }: LeadBoardProps) {
   const router = useRouter();
+  const t = useStaffT();
   const now = new Date(nowIso);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<string | null>(null);
@@ -204,7 +209,7 @@ export function LeadBoard({ stages, columns, counts, canManage, nowIso }: LeadBo
     startTransition(async () => {
       const result = await moveLeadStageAction(id, stage);
       if (result.ok) {
-        setStatus(`Moved to ${stages.find((s) => s.key === stage)?.label ?? stage}.`);
+        setStatus(t("Moved to {stage}.", { stage: t(stages.find((s) => s.key === stage)?.label ?? stage) }));
         router.refresh();
       } else setError(result.error);
     });
@@ -216,7 +221,7 @@ export function LeadBoard({ stages, columns, counts, canManage, nowIso }: LeadBo
     startTransition(async () => {
       const result = await quickLogCallAction(id, outcome, note, days);
       if (result.ok) {
-        setStatus("Call logged.");
+        setStatus(t("Call logged."));
         router.refresh();
       } else setError(result.error);
     });
@@ -229,7 +234,7 @@ export function LeadBoard({ stages, columns, counts, canManage, nowIso }: LeadBo
       <div className="flex flex-wrap items-center gap-3 text-sm" aria-live="polite">
         {overdueTotal > 0 && (
           <span className="rounded-full bg-[var(--color-gold)]/25 px-3 py-1 text-xs font-medium text-[#7c6a2f]" data-testid="overdue-count">
-            {overdueTotal} follow-up{overdueTotal === 1 ? "" : "s"} overdue
+            {overdueTotal === 1 ? t("1 follow-up overdue") : t("{count} follow-ups overdue", { count: overdueTotal })}
           </span>
         )}
         {status && <span className="text-xs text-[var(--color-teal-ink)]">{status}</span>}
@@ -263,17 +268,17 @@ export function LeadBoard({ stages, columns, counts, canManage, nowIso }: LeadBo
               <div className="flex items-center justify-between gap-2 px-1">
                 <span className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink)]">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color || "var(--color-ink)" }} />
-                  {s.label}
+                  {t(s.label)}
                 </span>
                 <span className="rounded-full bg-[var(--color-ink)]/[0.06] px-2 py-0.5 text-xs text-[var(--color-ink)]/55">{counts[s.key] ?? 0}</span>
               </div>
               <div className="flex flex-col gap-2">
                 {cards.length === 0 ? (
-                  <p className="rounded-[var(--radius)] border border-dashed border-[var(--line)] px-3 py-6 text-center text-xs text-[var(--color-ink)]/40">{canManage ? "Drop here" : "No leads"}</p>
+                  <p className="rounded-[var(--radius)] border border-dashed border-[var(--line)] px-3 py-6 text-center text-xs text-[var(--color-ink)]/40">{canManage ? t("Drop here") : t("No leads")}</p>
                 ) : (
                   cards.map((card) => <Card key={card.id} card={card} stages={stages} now={now} canManage={canManage} pending={isPending} onMove={move} onLog={log} onDragStart={setDragId} />)
                 )}
-                {(counts[s.key] ?? 0) > cards.length && <p className="px-1 text-xs text-[var(--color-ink)]/45">+{(counts[s.key] ?? 0) - cards.length} more…</p>}
+                {(counts[s.key] ?? 0) > cards.length && <p className="px-1 text-xs text-[var(--color-ink)]/45">{t("+{count} more…", { count: (counts[s.key] ?? 0) - cards.length })}</p>}
               </div>
             </div>
           );

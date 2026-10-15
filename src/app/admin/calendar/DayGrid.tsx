@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { DayAppointmentRow } from "@/modules/booking/bookings";
 import { AppointmentMenu } from "./AppointmentMenu";
 import { NowLine } from "./NowLine";
+import { getStaffDisplay } from "../_i18n/display";
+import { intlLocale, makeT } from "../_i18n/t";
+import { bookingStatusText } from "./labels";
 
 export interface GridColumn {
   id: string;
@@ -26,7 +29,6 @@ interface DayGridProps {
 }
 
 const CENTER_TZ = "Asia/Riyadh";
-const timeFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, hour: "numeric", minute: "2-digit" });
 const HOUR_PX = 64;
 const CENTER_OFFSET_MS = 3 * 60 * 60 * 1000;
 
@@ -36,7 +38,7 @@ function minutesOfDay(d: Date): number {
 }
 const pad = (n: number) => String(n).padStart(2, "0");
 const hhmm = (min: number) => `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
-const hourLabel = (min: number) => timeFmt.format(new Date(Date.UTC(2000, 0, 1, Math.floor(min / 60), min % 60) - CENTER_OFFSET_MS));
+const hourLabelWith = (timeFmt: Intl.DateTimeFormat, min: number) => timeFmt.format(new Date(Date.UTC(2000, 0, 1, Math.floor(min / 60), min % 60) - CENTER_OFFSET_MS));
 
 const STATUS_CARD: Record<string, string> = {
   REQUESTED: "border-s-[var(--color-ink)]/40 bg-[var(--surface)]",
@@ -58,7 +60,11 @@ export const STATUS_PILL: Record<string, string> = {
 // Time-grid day view: one column per staff member (or room), appointments
 // positioned by time, a "now" line on today, and every empty hour cell a
 // link that opens the walk-in form prefilled with that column + time.
-export function DayGrid({ rows, date, todayISO, columns, mode, hours, canManage, canBill, canClinical, gapHref }: DayGridProps) {
+export async function DayGrid({ rows, date, todayISO, columns, mode, hours, canManage, canBill, canClinical, gapHref }: DayGridProps) {
+  const { locale } = await getStaffDisplay();
+  const t = makeT(locale);
+  const timeFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, hour: "numeric", minute: "2-digit" });
+  const hourLabel = (min: number) => hourLabelWith(timeFmt, min);
   const earliest = rows.reduce((m, r) => Math.min(m, minutesOfDay(r.startAt)), hours?.openMin ?? 9 * 60);
   const latest = rows.reduce((m, r) => Math.max(m, minutesOfDay(r.endAt)), hours?.closeMin ?? 21 * 60);
   const startMin = Math.floor(earliest / 60) * 60;
@@ -78,13 +84,13 @@ export function DayGrid({ rows, date, todayISO, columns, mode, hours, canManage,
   // anyone with appointments but missing from `columns` (e.g. deactivated) is appended.
   const allColumns: GridColumn[] = [
     ...columns,
-    ...[...byColumn.keys()].filter((id) => !columns.some((c) => c.id === id)).map((id) => ({ id, name: rows.find((r) => r[key] === id)?.[mode === "staff" ? "staffName" : "roomName"] ?? "Unknown" })),
+    ...[...byColumn.keys()].filter((id) => !columns.some((c) => c.id === id)).map((id) => ({ id, name: rows.find((r) => r[key] === id)?.[mode === "staff" ? "staffName" : "roomName"] ?? t("Unknown") })),
   ];
 
   if (allColumns.length === 0) {
     return (
       <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-10 text-center text-sm text-[var(--color-ink)]/55">
-        No {mode === "staff" ? "staff" : "rooms"} to show. Set up {mode === "staff" ? "staff schedules" : "rooms"} in Booking settings.
+        {mode === "staff" ? t("No staff to show. Set up staff schedules in Booking settings.") : t("No rooms to show. Set up rooms in Booking settings.")}
       </p>
     );
   }
@@ -98,7 +104,7 @@ export function DayGrid({ rows, date, todayISO, columns, mode, hours, canManage,
           <div key={c.id} className={`sticky top-0 z-20 border-b border-s border-[var(--line)] px-3 py-2 text-sm font-medium ${c.onLeave ? "bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]/55" : "bg-[var(--surface-2)] text-[var(--color-ink)]"}`}>
             <span className="flex items-center justify-between gap-2">
               <span className="truncate">{c.name}</span>
-              {c.onLeave && <span className="rounded-full bg-[var(--color-ink)]/10 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide">On leave</span>}
+              {c.onLeave && <span className="rounded-full bg-[var(--color-ink)]/10 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide">{t("On leave")}</span>}
               {!c.onLeave && <span className="text-xs text-[var(--color-ink)]/45">{byColumn.get(c.id)?.length ?? 0}</span>}
             </span>
           </div>
@@ -128,11 +134,11 @@ export function DayGrid({ rows, date, todayISO, columns, mode, hours, canManage,
                   <Link
                     key={m}
                     href={gapHref(c.id, hhmm(m))}
-                    aria-label={`Book ${c.name} at ${hourLabel(m)}`}
+                    aria-label={t("Book {name} at {time}", { name: c.name, time: hourLabel(m) })}
                     className={`${cell} group flex items-start justify-end p-1 transition-colors duration-150 ease-out hover:bg-[var(--color-teal)]/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-teal)]`}
                     style={{ top: ((m - startMin) / 60) * HOUR_PX, height: HOUR_PX }}
                   >
-                    <span className="rounded-full bg-[var(--color-teal)] px-2 py-0.5 text-[0.62rem] font-semibold text-[var(--color-ink)] opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">+ Book</span>
+                    <span className="rounded-full bg-[var(--color-teal)] px-2 py-0.5 text-[0.62rem] font-semibold text-[var(--color-ink)] opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">{t("+ Book")}</span>
                   </Link>
                 ) : (
                   <div key={m} className={`${cell} ${closed ? "bg-[var(--color-ink)]/[0.03]" : ""}`} style={{ top: ((m - startMin) / 60) * HOUR_PX, height: HOUR_PX }} />
@@ -166,19 +172,19 @@ export function DayGrid({ rows, date, todayISO, columns, mode, hours, canManage,
                         </p>
                       </div>
                       <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[0.58rem] font-semibold uppercase tracking-wide ${STATUS_PILL[r.status]}`}>
-                        {r.startedAt && r.status === "CHECKED_IN" ? "In service" : r.status.replace("_", " ")}
+                        {r.startedAt && r.status === "CHECKED_IN" ? t("In service") : bookingStatusText(r.status, locale, t)}
                       </span>
                     </div>
                     {(r.invoice || r.treatmentRecordId) && !compact && (
                       <div className="flex flex-wrap gap-1">
                         {r.invoice && canBill && (
                           <Link href={`/admin/billing/${r.invoice.id}`} className="rounded-full bg-[var(--color-ink)]/[0.06] px-1.5 py-0.5 text-[0.6rem] text-[var(--color-ink)]/70 hover:underline">
-                            {r.invoice.status === "DRAFT" ? "Draft invoice" : r.invoice.number}
+                            {r.invoice.status === "DRAFT" ? t("Draft invoice") : r.invoice.number}
                           </Link>
                         )}
                         {r.treatmentRecordId && canClinical && (
                           <Link href={`/admin/clients/${r.clientProfileId}/clinical/treatment/${r.treatmentRecordId}`} className="rounded-full bg-[var(--color-ink)]/[0.06] px-1.5 py-0.5 text-[0.6rem] text-[var(--color-ink)]/70 hover:underline">
-                            Treatment record
+                            {t("Treatment record")}
                           </Link>
                         )}
                       </div>

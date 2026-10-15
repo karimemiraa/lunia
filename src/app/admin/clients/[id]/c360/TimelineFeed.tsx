@@ -4,6 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { pageTimeline, TIMELINE_KINDS, TIMELINE_KIND_LABELS, type TimelineEntry, type TimelineKind } from "@/modules/crm/timelineCore";
 import { Icon } from "./icons";
+import { useStaffT, useStaffLocale } from "../../../_i18n/StaffI18n";
+import { intlLocale, type StaffLocale } from "../../../_i18n/t";
+import { timelineDetail, timelineStatusLabel, timelineTitle } from "./timelineText";
 
 /** Serialized entry (dates as ISO) for the client boundary. */
 export interface TimelineEntryDTO extends Omit<TimelineEntry, "at"> {
@@ -12,8 +15,12 @@ export interface TimelineEntryDTO extends Omit<TimelineEntry, "at"> {
 
 const PAGE_SIZE = 25;
 const CENTER_TZ = "Asia/Riyadh";
-const dtFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
-const dayFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const dtFmts: Partial<Record<StaffLocale, Intl.DateTimeFormat>> = {};
+const dayFmts: Partial<Record<StaffLocale, Intl.DateTimeFormat>> = {};
+const dtFmt = (locale: StaffLocale) =>
+  (dtFmts[locale] ??= new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }));
+const dayFmt = (locale: StaffLocale) =>
+  (dayFmts[locale] ??= new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, weekday: "long", day: "numeric", month: "long", year: "numeric" }));
 const dayKeyFmt = new Intl.DateTimeFormat("en-CA", { timeZone: CENTER_TZ, year: "numeric", month: "2-digit", day: "2-digit" });
 
 const KIND_TONE: Record<TimelineKind, string> = {
@@ -66,6 +73,8 @@ interface TimelineFeedProps {
 // as one block. Everything here is presentational; the merge happened on the
 // server.
 export function TimelineFeed({ entries, canSeePhotos = false }: TimelineFeedProps) {
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const all = useMemo<TimelineEntry[]>(() => entries.map((e) => ({ ...e, at: new Date(e.atIso) })), [entries]);
   const availableKinds = useMemo(() => TIMELINE_KINDS.filter((k) => all.some((e) => e.kind === k)), [all]);
   const [kinds, setKinds] = useState<TimelineKind[]>([]);
@@ -81,7 +90,7 @@ export function TimelineFeed({ entries, canSeePhotos = false }: TimelineFeedProp
   if (all.length === 0) {
     return (
       <div className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-10 text-center">
-        <p className="text-sm text-[var(--color-ink)]/60">No activity yet. Book a first appointment to start their story.</p>
+        <p className="text-sm text-[var(--color-ink)]/60">{t("No activity yet. Book a first appointment to start their story.")}</p>
       </div>
     );
   }
@@ -92,12 +101,12 @@ export function TimelineFeed({ entries, canSeePhotos = false }: TimelineFeedProp
     const day = dayKeyFmt.format(e.at);
     const last = groups[groups.length - 1];
     if (last && last.day === day) last.rows.push(e);
-    else groups.push({ day, label: dayFmt.format(e.at), rows: [e] });
+    else groups.push({ day, label: dayFmt(locale).format(e.at), rows: [e] });
   }
 
   return (
     <div className="flex flex-col gap-5" data-testid="customer-timeline">
-      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter timeline by type">
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t("Filter timeline by type")}>
         <button
           type="button"
           onClick={() => {
@@ -109,7 +118,7 @@ export function TimelineFeed({ entries, canSeePhotos = false }: TimelineFeedProp
             kinds.length === 0 ? "bg-[var(--color-ink)] text-[var(--color-on-ink)]" : "border border-[var(--line-strong)] text-[var(--color-ink)]/70 hover:bg-[var(--surface-2)]"
           }`}
         >
-          All ({all.length})
+          {t("All ({count})", { count: all.length })}
         </button>
         {availableKinds.map((k) => {
           const on = kinds.includes(k);
@@ -124,7 +133,7 @@ export function TimelineFeed({ entries, canSeePhotos = false }: TimelineFeedProp
               }`}
             >
               <Icon name={k} className="h-3.5 w-3.5" />
-              {TIMELINE_KIND_LABELS[k]}
+              {t(TIMELINE_KIND_LABELS[k])}
             </button>
           );
         })}
@@ -132,7 +141,7 @@ export function TimelineFeed({ entries, canSeePhotos = false }: TimelineFeedProp
 
       {paged.entries.length === 0 ? (
         <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">
-          Nothing of that type yet.
+          {t("Nothing of that type yet.")}
         </p>
       ) : (
         <ol className="flex flex-col gap-6">
@@ -156,11 +165,11 @@ export function TimelineFeed({ entries, canSeePhotos = false }: TimelineFeedProp
 
       <div className="flex items-center justify-between gap-3 text-xs text-[var(--color-ink)]/50">
         <span>
-          Showing {paged.entries.length} of {paged.total}
+          {t("Showing {shown} of {total}", { shown: paged.entries.length, total: paged.total })}
         </span>
         {paged.hasMore && (
           <button type="button" onClick={() => setPage((p) => p + 1)} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-9">
-            Show more
+            {t("Show more")}
           </button>
         )}
       </div>
@@ -169,6 +178,9 @@ export function TimelineFeed({ entries, canSeePhotos = false }: TimelineFeedProp
 }
 
 function Row({ entry, canSeePhotos }: { entry: TimelineEntry; canSeePhotos: boolean }) {
+  const t = useStaffT();
+  const locale = useStaffLocale();
+  const detail = timelineDetail(entry, t);
   const inner = (
     <>
       {entry.photoId && canSeePhotos && (
@@ -177,17 +189,17 @@ function Row({ entry, canSeePhotos }: { entry: TimelineEntry; canSeePhotos: bool
       )}
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-[var(--color-ink)]">{entry.title}</span>
+          <span className="text-sm font-medium text-[var(--color-ink)]">{timelineTitle(entry, t)}</span>
           {entry.status && (
             <span className={`rounded-full px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide ${STATUS_TONE[entry.status] ?? "bg-[var(--color-ink)]/8 text-[var(--color-ink)]/60"}`}>
-              {entry.status.replace(/_/g, " ")}
+              {timelineStatusLabel(entry.status, t)}
             </span>
           )}
         </span>
-        {entry.detail && <span className="truncate text-xs text-[var(--color-ink)]/60">{entry.detail}</span>}
+        {detail && <span className="truncate text-xs text-[var(--color-ink)]/60">{detail}</span>}
       </span>
       <time dateTime={entry.at.toISOString()} className="shrink-0 text-xs tabular-nums text-[var(--color-ink)]/45">
-        {dtFmt.format(entry.at)}
+        {dtFmt(locale).format(entry.at)}
       </time>
     </>
   );

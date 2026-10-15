@@ -1,8 +1,12 @@
 import { defineConfig } from "vitest/config";
 import tsconfigPaths from "vite-tsconfig-paths";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
+  // Server actions import "server-only" (via the staff-console translator);
+  // outside a Next.js build it throws, so tests get an empty stand-in.
+  resolve: { alias: { "server-only": fileURLToPath(new URL("./tests/stubs/server-only.ts", import.meta.url)) } },
   test: {
     environment: "node",
     setupFiles: ["./tests/setup.ts"],

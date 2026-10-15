@@ -3,11 +3,13 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { EmptyState } from "./_components/EmptyState";
+import { useStaffT } from "./_i18n/StaffI18n";
 
 // Route-level error boundary for the staff system. `retry` re-renders the
 // segment (a transient DB/network blip usually clears); the digest helps
 // support find the server log line.
 export default function AdminError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  const t = useStaffT();
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -25,15 +27,15 @@ export default function AdminError({ error, retry }: { error: Error & { digest?:
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <button type="button" onClick={() => retry()} className="lunia-btn lunia-btn-forest lunia-btn-sm">
-                Try again
+                {t("Try again")}
               </button>
               <Link href="/admin" className="lunia-btn lunia-btn-ghost lunia-btn-sm">
-                Go to dashboard
+                {t("Go to dashboard")}
               </Link>
             </div>
           }
         />
-        {error.digest && <p className="pb-6 text-center text-[0.65rem] text-[var(--color-ink)]/40">Reference: {error.digest}</p>}
+        {error.digest && <p className="pb-6 text-center text-[0.65rem] text-[var(--color-ink)]/40">{t("Reference: {digest}", { digest: error.digest })}</p>}
       </div>
     </div>
   );

@@ -6,6 +6,9 @@ import { centerLocalToUtc } from "@/modules/booking/availability";
 import { runReport, REPORT_TYPES, type ReportType } from "@/modules/reports/reports";
 import { resolveReportDateRange } from "@/modules/reports/dateRange";
 import type { BookingStatus } from "@prisma/client";
+import { getStaffLocale } from "../_i18n/display";
+import { makeT } from "../_i18n/t";
+import { statusLabel } from "../_ui/StatusPill";
 
 interface ReportsPageProps {
   searchParams: Promise<{ type?: string; from?: string; to?: string; status?: string }>;
@@ -35,6 +38,8 @@ const inputClass =
 
 export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const user = await requireAdmin(PERMISSIONS.ANALYTICS_VIEW);
+  const locale = await getStaffLocale();
+  const t = makeT(locale);
   const params = await searchParams;
 
   const type: ReportType = isReportType(params.type) ? params.type : "bookings";
@@ -70,51 +75,51 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           data-testid="export-csv-link"
           className="lunia-btn lunia-btn-primary"
         >
-          Export CSV
+          {t("Export CSV")}
         </a>
       }
     >
       <form method="get" className="mb-6 flex flex-wrap items-end gap-3" data-testid="reports-filter-form">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Report</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Report")}</span>
           <select name="type" defaultValue={type} className={inputClass}>
             {REPORT_TYPES.map((reportType) => (
               <option key={reportType} value={reportType}>
-                {REPORT_LABELS[reportType]}
+                {t(REPORT_LABELS[reportType])}
               </option>
             ))}
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">From</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("From")}</span>
           <input type="date" name="from" defaultValue={fromISO} className={inputClass} />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">To</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("To")}</span>
           <input type="date" name="to" defaultValue={toISO} className={inputClass} />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Status (bookings only)</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Status (bookings only)")}</span>
           <select name="status" defaultValue={status ?? ""} className={inputClass}>
-            <option value="">All statuses</option>
+            <option value="">{t("All statuses")}</option>
             {BOOKING_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {locale === "ar" ? t(statusLabel(s)) : s}
               </option>
             ))}
           </select>
         </label>
 
         <button type="submit" className="lunia-btn lunia-btn-primary">
-          Run report
+          {t("Run report")}
         </button>
       </form>
 
       <p className="mb-2 text-sm text-[var(--color-ink)]/60" data-testid="reports-row-count">
-        {rows.length} row{rows.length === 1 ? "" : "s"} for {fromISO} to {toISO}
+        {rows.length === 1 ? t("1 row for {from} to {to}", { from: fromISO, to: toISO }) : t("{count} rows for {from} to {to}", { count: rows.length, from: fromISO, to: toISO })}
       </p>
 
       <ReportTable columns={columns} rows={rows} />

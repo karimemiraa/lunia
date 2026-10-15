@@ -7,6 +7,7 @@ import { LocalizedField } from "../../_components/LocalizedField";
 import { MediaPicker, type MediaOption } from "../../_components/MediaPicker";
 import { createServiceAction, type ServiceActionState } from "./actions";
 import { InlineStatus } from "../../_ui/Form";
+import { useStaffLocale, useStaffT } from "../../_i18n/StaffI18n";
 
 const initialState: ServiceActionState = {};
 
@@ -22,6 +23,8 @@ interface CreateServiceFormProps {
 
 export function CreateServiceForm({ departments, media }: CreateServiceFormProps) {
   const [state, action, pending] = useActionState(createServiceAction, initialState);
+  const t = useStaffT();
+  const locale = useStaffLocale();
 
   return (
     <form
@@ -29,46 +32,46 @@ export function CreateServiceForm({ departments, media }: CreateServiceFormProps
       data-testid="create-service-form"
       className="flex flex-col gap-4 lunia-card p-5"
     >
-      <h2 className="text-lg font-semibold text-[var(--color-ink)]">Create service</h2>
+      <h2 className="text-lg font-semibold text-[var(--color-ink)]">{t("Create service")}</h2>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Slug" name="slug" placeholder="e.g. led-light-therapy" required />
+        <Field label={t("Slug")} name="slug" dir="ltr" placeholder={t("e.g. {example}", { example: "led-light-therapy" })} required />
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Department</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Department")}</span>
           <select name="departmentId" required className={selectClass} defaultValue="">
             <option value="" disabled>
-              Select a department
+              {t("Select a department")}
             </option>
             {departments.map((department) => (
               <option key={department.id} value={department.id}>
-                {department.nameEn}
+                {locale === "ar" && department.nameAr ? department.nameAr : department.nameEn}
               </option>
             ))}
           </select>
         </label>
       </div>
 
-      <Field label="Order" name="order" type="number" placeholder="0" />
+      <Field label={t("Order")} name="order" type="number" placeholder="0" />
 
-      <LocalizedField label="Name" name="name" defaultValue={emptyLocalized} required />
-      <LocalizedField label="Summary" name="summary" type="textarea" defaultValue={emptyLocalized} />
+      <LocalizedField label={t("Name")} name="name" defaultValue={emptyLocalized} required />
+      <LocalizedField label={t("Summary")} name="summary" type="textarea" defaultValue={emptyLocalized} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/70">
-          Benefits (EN, one per line)
+          {t("Benefits (EN, one per line)")}
           <textarea name="benefitsEn" dir="ltr" rows={4} className={selectClass} />
         </label>
         <label className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/70">
-          Benefits (AR, one per line)
+          {t("Benefits (AR, one per line)")}
           <textarea name="benefitsAr" dir="rtl" rows={4} className={selectClass} />
         </label>
       </div>
 
-      <MediaPicker label="Hero media" name="heroMediaId" media={media} />
+      <MediaPicker label={t("Hero media")} name="heroMediaId" media={media} />
 
       <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
         <input type="checkbox" name="isPublished" defaultChecked className="h-4 w-4" />
-        Published
+        {t("Published")}
       </label>
 
       <div className="flex items-center gap-3">
@@ -77,9 +80,9 @@ export function CreateServiceForm({ departments, media }: CreateServiceFormProps
           disabled={pending}
           className="lunia-btn lunia-btn-primary disabled:opacity-60"
         >
-          {pending ? "Creating…" : "Create service"}
+          {pending ? t("Creating…") : t("Create service")}
         </button>
-        <InlineStatus success={state.success ? "Created." : undefined} />
+        <InlineStatus success={state.success ? t("Created.") : undefined} />
         <InlineStatus error={state.error} />
       </div>
     </form>

@@ -9,6 +9,7 @@ import { saveSegmentAction, deleteSegmentAction } from "./actions";
 import { listTiers } from "@/modules/iam/tiers";
 import { AddLeadForm } from "./AddLeadForm";
 import { listStages } from "@/modules/crm/pipeline";
+import { getStaffT, getStaffLocale } from "../_i18n/display";
 
 interface ClientsPageProps {
   searchParams: Promise<{ search?: string; tierKey?: string; source?: string; status?: string; tag?: string; stage?: string; ownerId?: string; direction?: string; view?: string; add?: string }>;
@@ -31,6 +32,8 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const user = await requireAdmin(PERMISSIONS.CLIENT_VIEW);
 
   const params = await searchParams;
+  const t = await getStaffT();
+  const locale = await getStaffLocale();
   const search = params.search?.trim() ?? "";
   const tierKey = params.tierKey?.trim() ?? "";
   const source = params.source?.trim() ?? "";
@@ -51,6 +54,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     listStages(),
   ]);
   const stageMeta = new Map(stageRows.map((s) => [s.key, s]));
+  const tierNameAr = new Map(tiers.map((tier) => [tier.name, tier.nameAr]));
 
   // KPIs computed over the search/tier/source result (the whole roster when no
   // filters are set); the status dropdown then narrows the table itself.
@@ -87,11 +91,11 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     phone: c.phone,
     email: c.email,
     stage: c.stage,
-    stageLabel: stageMeta.get(c.stage)?.label ?? c.stage,
+    stageLabel: t(stageMeta.get(c.stage)?.label ?? c.stage),
     stageColor: stageMeta.get(c.stage)?.color ?? "",
     ownerName: c.ownerName ?? null,
     source: c.source ?? null,
-    tierName: c.tierName ?? null,
+    tierName: c.tierName ? (locale === "ar" ? tierNameAr.get(c.tierName) || c.tierName : c.tierName) : null,
     tags: c.tags,
     ltvMinor: c.ltvMinor,
     owedMinor: c.owedMinor,
@@ -110,20 +114,20 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
       actions={
         <>
           <a href={exportHref} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11" download>
-            Export CSV
+            {t("Export CSV")}
           </a>
           {canManage && <AddLeadForm staff={owners} autoOpen={params.add === "lead"} />}
         </>
       }
     >
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Total customers" value={stats.total} />
-        <StatCard label="New this month" value={stats.newThisMonth} />
-        <StatCard label="Active" value={stats.active} hint={`visited in last 90 days`} />
-        <StatCard label="Lapsed" value={stats.lapsed} hint="due for re-engagement" />
+        <StatCard label={t("Total customers")} value={stats.total} />
+        <StatCard label={t("New this month")} value={stats.newThisMonth} />
+        <StatCard label={t("Active")} value={stats.active} hint={t("visited in last 90 days")} />
+        <StatCard label={t("Lapsed")} value={stats.lapsed} hint={t("due for re-engagement")} />
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center gap-2" data-testid="roster-views" role="group" aria-label="Saved views">
+      <div className="mb-5 flex flex-wrap items-center gap-2" data-testid="roster-views" role="group" aria-label={t("Saved views")}>
         {ROSTER_VIEWS.map((v) => {
           const active = v === view;
           return (
@@ -135,7 +139,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
                 active ? "bg-[var(--color-ink)] text-[var(--color-on-ink)]" : "border border-[var(--line-strong)] text-[var(--color-ink)]/75 hover:bg-[var(--surface-2)]"
               }`}
             >
-              {ROSTER_VIEW_LABELS[v]}
+              {t(ROSTER_VIEW_LABELS[v])}
               <span className={`rounded-full px-1.5 text-[0.65rem] font-semibold ${active ? "bg-[var(--color-cream)]/20" : "bg-[var(--color-ink)]/8 text-[var(--color-ink)]/55"}`}>{viewCounts[v]}</span>
             </Link>
           );
@@ -144,7 +148,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
 
       {(segments.length > 0 || (canManage && hasFilters)) && (
         <div className="mb-5 flex flex-wrap items-center gap-2" data-testid="segments-bar">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/45">Segments</span>
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/45">{t("Segments")}</span>
           {segments.map((seg) => (
             <span key={seg.id} className="inline-flex items-center gap-1 rounded-full bg-[var(--color-ink)]/[0.06] py-1 pe-1.5 ps-3 text-sm">
               <Link
@@ -158,7 +162,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
                   <input type="hidden" name="segmentId" value={seg.id} />
                   <button
                     type="submit"
-                    aria-label={`Delete segment ${seg.name}`}
+                    aria-label={t("Delete segment {name}", { name: seg.name })}
                     className="flex h-4 w-4 items-center justify-center rounded-full text-xs leading-none text-[var(--color-ink)]/40 hover:bg-red-100 hover:text-red-600"
                   >
                     ×
@@ -180,11 +184,11 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
               <input
                 name="name"
                 required
-                placeholder="Name this view…"
+                placeholder={t("Name this view…")}
                 className="rounded-full border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-1 text-sm focus:border-[var(--color-teal)] focus:outline-none"
               />
               <button type="submit" className="lunia-btn lunia-btn-ghost lunia-btn-sm">
-                Save segment
+                {t("Save segment")}
               </button>
             </form>
           )}
@@ -194,39 +198,39 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
       <form method="get" className="mb-6 flex flex-wrap items-end gap-3" data-testid="clients-filter-form">
         {view !== "all" && <input type="hidden" name="view" value={view} />}
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Search</span>
-          <input type="search" name="search" defaultValue={search} placeholder="Name, phone or email" className={`${inputClass} w-60`} />
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Search")}</span>
+          <input type="search" name="search" defaultValue={search} placeholder={t("Name, phone or email")} className={`${inputClass} w-60`} />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Tier</span>
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Tier")}</span>
           <select name="tierKey" defaultValue={tierKey} className={inputClass}>
-            <option value="">All tiers</option>
+            <option value="">{t("All tiers")}</option>
             {tiers.map((tier) => (
               <option key={tier.id} value={tier.key}>
-                {tier.name}
+                {locale === "ar" ? tier.nameAr || tier.name : tier.name}
               </option>
             ))}
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Stage</span>
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Stage")}</span>
           <select name="stage" defaultValue={stage} className={inputClass}>
-            <option value="">All stages</option>
+            <option value="">{t("All stages")}</option>
             {stageRows.map((s) => (
               <option key={s.key} value={s.key}>
-                {s.label}
+                {t(s.label)}
               </option>
             ))}
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Owner</span>
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Owner")}</span>
           <select name="ownerId" defaultValue={ownerId} className={inputClass}>
-            <option value="">All owners</option>
-            <option value="unassigned">Unassigned</option>
+            <option value="">{t("All owners")}</option>
+            <option value="unassigned">{t("Unassigned")}</option>
             {owners.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.name}
@@ -236,32 +240,32 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Channel</span>
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Channel")}</span>
           <select name="direction" defaultValue={direction} className={inputClass}>
-            <option value="">All</option>
-            <option value="INBOUND">Inbound</option>
-            <option value="OUTBOUND">Outbound</option>
+            <option value="">{t("All")}</option>
+            <option value="INBOUND">{t("Inbound")}</option>
+            <option value="OUTBOUND">{t("Outbound")}</option>
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Status</span>
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Status")}</span>
           <select name="status" defaultValue={status} className={inputClass}>
-            <option value="">All</option>
-            <option value="active">Active</option>
-            <option value="new">New</option>
-            <option value="lapsed">Lapsed</option>
+            <option value="">{t("All")}</option>
+            <option value="active">{t("Active")}</option>
+            <option value="new">{t("New")}</option>
+            <option value="lapsed">{t("Lapsed")}</option>
           </select>
         </label>
 
         {allTags.length > 0 && (
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Tag</span>
+            <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Tag")}</span>
             <select name="tag" defaultValue={tag} className={inputClass}>
-              <option value="">All tags</option>
-              {allTags.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              <option value="">{t("All tags")}</option>
+              {allTags.map((tg) => (
+                <option key={tg} value={tg}>
+                  {tg}
                 </option>
               ))}
             </select>
@@ -269,17 +273,17 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         )}
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Source</span>
-          <input type="text" name="source" defaultValue={source} placeholder="e.g. instagram" className={`${inputClass} w-40`} />
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Source")}</span>
+          <input type="text" name="source" defaultValue={source} placeholder={t("e.g. instagram")} className={`${inputClass} w-40`} />
         </label>
 
         <div className="flex gap-2">
           <button type="submit" className="lunia-btn lunia-btn-primary">
-            Filter
+            {t("Filter")}
           </button>
           {hasFilters && (
             <Link href="/admin/clients" className="lunia-btn lunia-btn-ghost">
-              Clear
+              {t("Clear")}
             </Link>
           )}
         </div>

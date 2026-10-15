@@ -17,6 +17,7 @@ import { InvoiceEditor, type EditorLine } from "../InvoiceEditor";
 import { IssuedActions } from "./IssuedActions";
 import { METHOD_LABELS, StatusBadge, formatDateTime } from "../ui";
 import { KpiCard, SectionCard, DescriptionList } from "../../_ui/Layout";
+import { getStaffLocale, getStaffT } from "../../_i18n/display";
 
 interface InvoicePageProps {
   params: Promise<{ id: string }>;
@@ -24,6 +25,7 @@ interface InvoicePageProps {
 
 export default async function InvoicePage({ params }: InvoicePageProps) {
   const { id } = await params;
+  const [t, locale] = await Promise.all([getStaffT(), getStaffLocale()]);
   const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
   const detail = await getInvoiceDetail(id);
   if (!detail) notFound();
@@ -60,9 +62,9 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
     return (
       <AdminShell
         user={user}
-        title="Draft invoice"
-        description={invoice.bookingId ? "Checkout for a booking — review the lines, then issue." : "Review the lines, then issue."}
-        actions={hubApptId ? <Link href={`/admin/calendar/${hubApptId}`} className="lunia-btn lunia-btn-ghost min-h-11">← Appointment</Link> : undefined}
+        title={t("Draft invoice")}
+        description={invoice.bookingId ? t("Checkout for a booking — review the lines, then issue.") : t("Review the lines, then issue.")}
+        actions={hubApptId ? <Link href={`/admin/calendar/${hubApptId}`} className="lunia-btn lunia-btn-ghost min-h-11">{t("← Appointment")}</Link> : undefined}
       >
         <InvoiceEditor
           invoiceId={invoice.id}
@@ -99,16 +101,16 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
   return (
     <AdminShell
       user={user}
-      title={isCredit ? `Credit note ${invoice.number}` : invoice.status === "VOID" ? "Voided draft" : `Invoice ${invoice.number}`}
-      description={`${invoice.customerName} · ${formatDateTime(invoice.issuedAt ?? invoice.createdAt)}`}
+      title={isCredit ? t("Credit note {number}", { number: invoice.number }) : invoice.status === "VOID" ? t("Voided draft") : t("Invoice {number}", { number: invoice.number })}
+      description={`${invoice.customerName} · ${formatDateTime(invoice.issuedAt ?? invoice.createdAt, locale)}`}
       actions={
         invoice.status !== "VOID" && !showPanel ? (
           <>
             <Link href={`/admin/billing/${invoice.id}/print`} target="_blank" className="lunia-btn lunia-btn-ghost min-h-11">
-              Print A4
+              {t("Print A4")}
             </Link>
             <Link href={`/admin/billing/${invoice.id}/print?format=receipt`} target="_blank" className="lunia-btn lunia-btn-forest-outline min-h-11">
-              Receipt
+              {t("Receipt")}
             </Link>
           </>
         ) : undefined
@@ -116,32 +118,32 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
     >
       <div className="flex flex-col gap-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard label="Status" value={<StatusBadge status={invoice.status} kind={invoice.kind} />} />
-          <KpiCard label={isCredit ? "Credited" : "Total incl. VAT"} value={formatSarMinor(invoice.totalMinor)} />
-          <KpiCard label="VAT" value={formatSarMinor(invoice.vatMinor)} />
+          <KpiCard label={t("Status")} value={<StatusBadge status={invoice.status} kind={invoice.kind} />} />
+          <KpiCard label={isCredit ? t("Credited") : t("Total incl. VAT")} value={formatSarMinor(invoice.totalMinor)} />
+          <KpiCard label={t("VAT")} value={formatSarMinor(invoice.vatMinor)} />
           {balance ? (
             <KpiCard
-              label="Balance due"
+              label={t("Balance due")}
               tone={balance.balanceMinor > 0 ? "warning" : "success"}
               value={formatSarMinor(Math.max(0, balance.balanceMinor))}
-              hint={balance.creditedMinor ? `${formatSarMinor(balance.creditedMinor)} credited` : undefined}
+              hint={balance.creditedMinor ? t("{amount} credited", { amount: formatSarMinor(balance.creditedMinor) }) : undefined}
             />
           ) : (
-            <KpiCard label={isCredit ? "Refunded" : "Paid"} value={formatSarMinor(invoice.paidMinor)} />
+            <KpiCard label={isCredit ? t("Refunded") : t("Paid")} value={formatSarMinor(invoice.paidMinor)} />
           )}
         </div>
 
         <div className={`grid gap-5 lg:items-start ${showPanel ? "lg:grid-cols-[minmax(0,1fr)_24rem]" : "lg:grid-cols-[minmax(0,1fr)_18rem]"}`}>
           <div className="flex flex-col gap-6">
-            <section className="lunia-card overflow-x-auto" aria-label="Invoice lines">
+            <section className="lunia-card overflow-x-auto" aria-label={t("Invoice lines")}>
               <table className="w-full text-start text-sm">
                 <thead className="border-b border-[var(--line)] bg-[var(--surface-2)] text-xs uppercase tracking-[0.08em] text-[var(--color-ink)]/60">
                   <tr>
-                    <th scope="col" className="px-4 py-3 text-start font-semibold">Item</th>
-                    <th scope="col" className="px-4 py-3 text-end font-semibold">Qty</th>
-                    <th scope="col" className="px-4 py-3 text-end font-semibold">Unit (excl. VAT)</th>
-                    <th scope="col" className="px-4 py-3 text-end font-semibold">VAT</th>
-                    <th scope="col" className="px-4 py-3 text-end font-semibold">Total incl. VAT</th>
+                    <th scope="col" className="px-4 py-3 text-start font-semibold">{t("Item")}</th>
+                    <th scope="col" className="px-4 py-3 text-end font-semibold">{t("Qty")}</th>
+                    <th scope="col" className="px-4 py-3 text-end font-semibold">{t("Unit (excl. VAT)")}</th>
+                    <th scope="col" className="px-4 py-3 text-end font-semibold">{t("VAT")}</th>
+                    <th scope="col" className="px-4 py-3 text-end font-semibold">{t("Total incl. VAT")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -149,7 +151,7 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
                     <tr key={l.id} className="border-b border-[var(--line)] last:border-0">
                       <td className="px-4 py-3">
                         {l.description}
-                        {l.discountMinor > 0 && <span className="block text-xs text-[var(--color-ink)]/50">Discount {formatSarMinor(l.discountMinor)}</span>}
+                        {l.discountMinor > 0 && <span className="block text-xs text-[var(--color-ink)]/50">{t("Discount {amount}", { amount: formatSarMinor(l.discountMinor) })}</span>}
                       </td>
                       <td className="px-4 py-3 text-end tabular-nums">{l.qty}</td>
                       <td className="px-4 py-3 text-end tabular-nums">{formatSarMinor(l.unitPriceMinor)}</td>
@@ -162,27 +164,27 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
               <div className="border-t border-[var(--line)] px-4 py-3 sm:ms-auto sm:max-w-sm">
                 <DescriptionList
                   items={[
-                    { label: "Subtotal (excl. VAT)", value: formatSarMinor(invoice.subtotalMinor), numeric: true },
-                    ...(invoice.discountMinor > 0 ? [{ label: "Invoice discount", value: `-${formatSarMinor(invoice.discountMinor)}`, numeric: true }] : []),
-                    { label: "VAT", value: formatSarMinor(invoice.vatMinor), numeric: true },
-                    { label: <span className="font-medium text-[var(--color-ink)]">Total incl. VAT</span>, value: <span className="text-lg font-medium">{formatSarMinor(invoice.totalMinor)}</span>, numeric: true },
+                    { label: t("Subtotal (excl. VAT)"), value: formatSarMinor(invoice.subtotalMinor), numeric: true },
+                    ...(invoice.discountMinor > 0 ? [{ label: t("Invoice discount"), value: `-${formatSarMinor(invoice.discountMinor)}`, numeric: true }] : []),
+                    { label: t("VAT"), value: formatSarMinor(invoice.vatMinor), numeric: true },
+                    { label: <span className="font-medium text-[var(--color-ink)]">{t("Total incl. VAT")}</span>, value: <span className="text-lg font-medium">{formatSarMinor(invoice.totalMinor)}</span>, numeric: true },
                   ]}
                 />
               </div>
             </section>
 
             {(invoice.payments.length > 0 || invoice.paymentLinks.length > 0) && (
-              <SectionCard title={isCredit ? "Refunds" : "Payments"} padded={false}>
+              <SectionCard title={isCredit ? t("Refunds") : t("Payments")} padded={false}>
                 <ul className="flex flex-col divide-y divide-[var(--line)]">
                   {invoice.payments.map((p) => (
                     <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
                       <span>
-                        <span className="font-medium">{METHOD_LABELS[p.method] ?? p.method}</span>
+                        <span className="font-medium">{METHOD_LABELS[p.method] ? t(METHOD_LABELS[p.method]) : p.method}</span>
                         {p.reference && <span className="ms-2 text-[var(--color-ink)]/55">{p.reference}</span>}
-                        {p.cashSessionId && <span className="ms-2 text-xs text-[var(--color-ink)]/45">cash drawer</span>}
+                        {p.cashSessionId && <span className="ms-2 text-xs text-[var(--color-ink)]/45">{t("cash drawer")}</span>}
                       </span>
                       <span className="flex items-center gap-3">
-                        <span className="text-xs text-[var(--color-ink)]/50">{formatDateTime(p.receivedAt)}</span>
+                        <span className="text-xs text-[var(--color-ink)]/50">{formatDateTime(p.receivedAt, locale)}</span>
                         <span className="font-medium tabular-nums">{formatSarMinor(p.amountMinor)}</span>
                       </span>
                     </li>
@@ -190,10 +192,10 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
                   {invoice.paymentLinks.map((l) => (
                     <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-[var(--color-ink)]/70">
                       <span>
-                        Pay link ({l.provider}) · <StatusBadge status={l.status} />
+                        {t("Pay link ({provider})", { provider: l.provider })} · <StatusBadge status={l.status} />
                       </span>
                       <span className="flex items-center gap-3">
-                        <span className="text-xs text-[var(--color-ink)]/50">{formatDateTime(l.createdAt)}</span>
+                        <span className="text-xs text-[var(--color-ink)]/50">{formatDateTime(l.createdAt, locale)}</span>
                         <span className="tabular-nums">{formatSarMinor(l.amountMinor)}</span>
                       </span>
                     </li>
@@ -203,7 +205,7 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
             )}
 
             {creditNotes.length > 0 && (
-              <SectionCard title="Credit notes" padded={false}>
+              <SectionCard title={t("Credit notes")} padded={false}>
                 <ul className="flex flex-col divide-y divide-[var(--line)]">
                   {creditNotes.map((cn) => (
                     <li key={cn.id}>
@@ -246,40 +248,40 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
                 payments={invoice.payments.map((p) => ({ method: p.method, amountMinor: p.amountMinor }))}
               />
             )}
-            <SectionCard title="Customer">
+            <SectionCard title={t("Customer")}>
               <div className="flex flex-col gap-1 text-sm">
                 <p className="font-medium">{invoice.customerName}</p>
-                {invoice.customerPhone && <p className="text-[var(--color-ink)]/65">{invoice.customerPhone}</p>}
-                {invoice.customerVatNumber && <p className="text-[var(--color-ink)]/65">VAT {invoice.customerVatNumber}</p>}
+                {invoice.customerPhone && <p className="text-[var(--color-ink)]/65"><span dir="ltr">{invoice.customerPhone}</span></p>}
+                {invoice.customerVatNumber && <p className="text-[var(--color-ink)]/65">{t("VAT no. {number}", { number: invoice.customerVatNumber })}</p>}
                 {invoice.clientProfileId && (
                   <Link href={`/admin/clients/${invoice.clientProfileId}`} className="mt-1 inline-flex min-h-11 items-center text-[var(--color-teal-ink)] underline-offset-4 hover:underline">
-                    Open customer profile
+                    {t("Open customer profile")}
                   </Link>
                 )}
                 {hubApptId && (
                   <Link href={`/admin/calendar/${hubApptId}`} className="inline-flex min-h-11 items-center text-[var(--color-teal-ink)] underline-offset-4 hover:underline">
-                    Open appointment page
+                    {t("Open appointment page")}
                   </Link>
                 )}
                 {original && (
                   <p className="text-[var(--color-ink)]/65">
-                    Credits invoice{" "}
+                    {t("Credits invoice")}{" "}
                     <Link href={`/admin/billing/${original.id}`} className="text-[var(--color-teal-ink)] underline">
                       {original.number}
                     </Link>
                   </p>
                 )}
-                {isCredit && invoice.notes && <p className="text-[var(--color-ink)]/65">Reason: {invoice.notes}</p>}
+                {isCredit && invoice.notes && <p className="text-[var(--color-ink)]/65">{t("Reason: {reason}", { reason: invoice.notes })}</p>}
               </div>
             </SectionCard>
             {qr && (
               <div className="lunia-card flex flex-col items-center gap-2 p-4 text-center text-xs text-[var(--color-ink)]/60">
                 <div className="w-32" dangerouslySetInnerHTML={{ __html: qr }} />
-                <p>ZATCA Phase 1 QR · ICV {invoice.zatcaCounter}</p>
+                <p>{t("ZATCA Phase 1 QR · ICV {counter}", { counter: invoice.zatcaCounter })}</p>
                 <p className="break-all">UUID {invoice.zatcaUuid}</p>
-                <p>Phase 2: {invoice.zatcaStatus === "NOT_SUBMITTED" ? "not submitted (Fatoora onboarding pending)" : invoice.zatcaStatus}</p>
+                <p>{t("Phase 2: {status}", { status: invoice.zatcaStatus === "NOT_SUBMITTED" ? t("not submitted (Fatoora onboarding pending)") : invoice.zatcaStatus })}</p>
                 <a href={`/admin/billing/${invoice.id}/xml`} className="inline-flex min-h-11 items-center font-medium text-[var(--color-teal-ink)] underline">
-                  Download UBL XML
+                  {t("Download UBL XML")}
                 </a>
               </div>
             )}

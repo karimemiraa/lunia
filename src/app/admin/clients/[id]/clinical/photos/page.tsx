@@ -7,13 +7,13 @@ import { listTreatmentRecords } from "@/modules/clinical/treatments";
 import { loadClient } from "../_components/loadClient";
 import { PhotoUploader } from "../_components/PhotoUploader";
 import { PhotoGallery } from "../_components/PhotoGallery";
+import { getStaffT, getStaffLocale } from "../../../../_i18n/display";
+import { intlLocale } from "../../../../_i18n/t";
 
 interface Props {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ record?: string }>;
 }
-
-const dFmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", dateStyle: "medium" });
 
 // Clinical photos: upload (camera or bulk import of skin-analyzer exports),
 // browse, edit labels, and compare before/after. Photos are private: every
@@ -21,18 +21,20 @@ const dFmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", dateSty
 export default async function ClinicalPhotosPage({ params, searchParams }: Props) {
   const [{ id }, { record }] = await Promise.all([params, searchParams]);
   const user = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  const [t, locale] = await Promise.all([getStaffT(), getStaffLocale()]);
+  const dFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: "Asia/Riyadh", dateStyle: "medium" });
   const client = await loadClient(id);
   const [photos, records] = await Promise.all([listClinicalPhotos(id), listTreatmentRecords(id)]);
-  const recordOptions = records.map((r) => ({ id: r.id, label: `${r.serviceName ?? "Treatment"}, ${dFmt.format(r.performedAt)}` }));
+  const recordOptions = records.map((r) => ({ id: r.id, label: `${r.serviceName ?? t("Treatment")}, ${dFmt.format(r.performedAt)}` }));
 
   return (
     <AdminShell
       user={user}
       title="Clinical photos"
-      description={`${client.displayName}. Private: visible only to staff with patient-file access, never on the public site.`}
+      description={t("{name}. Private: visible only to staff with patient-file access, never on the public site.", { name: client.displayName })}
       actions={
         <Link href={`/admin/clients/${id}`} className="lunia-btn lunia-btn-ghost min-h-11">
-          Back to customer
+          {t("Back to customer")}
         </Link>
       }
     >

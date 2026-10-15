@@ -1,6 +1,6 @@
 # PRD: Native Gulf Arabic across the system
 
-Status: **approved 2026-10-15**. Phase 1 (customer-facing) shipped 2026-10-15; Phase 2 (admin) next
+Status: **approved 2026-10-15**. Phase 1 (customer-facing) and Phase 2 (staff console) shipped 2026-10-15
 
 Decisions:
 - **Tone:** mixed by surface, as in the table below.

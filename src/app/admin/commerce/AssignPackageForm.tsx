@@ -3,6 +3,7 @@
 import { useActionState, useId, useRef } from "react";
 import { assignPackageAction, type CommerceActionState } from "./actions";
 import { InlineStatus } from "../_ui/Form";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
 
 interface ClientOption {
   clientProfileId: string;
@@ -13,6 +14,7 @@ interface ClientOption {
 interface PackageOption {
   id: string;
   nameEn: string;
+  nameAr?: string;
   sessionsTotal: number;
 }
 
@@ -31,9 +33,11 @@ export function AssignPackageForm({ clients, packages }: { clients: ClientOption
   const clientId = useId();
   const packageId = useId();
   const formRef = useRef<HTMLFormElement>(null);
+  const t = useStaffT();
+  const locale = useStaffLocale();
 
   if (packages.length === 0) {
-    return <p className="text-sm text-[var(--color-ink)]/60">Create an active package above before recording a purchase.</p>;
+    return <p className="text-sm text-[var(--color-ink)]/60">{t("Create an active package above before recording a purchase.")}</p>;
   }
 
   return (
@@ -47,10 +51,10 @@ export function AssignPackageForm({ clients, packages }: { clients: ClientOption
       className="flex flex-wrap items-end gap-3"
     >
       <label htmlFor={clientId} className="flex flex-1 min-w-[12rem] flex-col gap-1 text-sm">
-        <span className="font-medium text-[var(--color-ink)]">Customer</span>
+        <span className="font-medium text-[var(--color-ink)]">{t("Customer")}</span>
         <select id={clientId} name="clientProfileId" required defaultValue="" className={inputClass}>
           <option value="" disabled>
-            Select a client
+            {t("Select a client")}
           </option>
           {clients.map((client) => (
             <option key={client.clientProfileId} value={client.clientProfileId}>
@@ -62,14 +66,14 @@ export function AssignPackageForm({ clients, packages }: { clients: ClientOption
       </label>
 
       <label htmlFor={packageId} className="flex flex-1 min-w-[12rem] flex-col gap-1 text-sm">
-        <span className="font-medium text-[var(--color-ink)]">Package</span>
+        <span className="font-medium text-[var(--color-ink)]">{t("Package")}</span>
         <select id={packageId} name="packageId" required defaultValue="" className={inputClass}>
           <option value="" disabled>
-            Select a package
+            {t("Select a package")}
           </option>
           {packages.map((pkg) => (
             <option key={pkg.id} value={pkg.id}>
-              {pkg.nameEn} ({pkg.sessionsTotal} sessions)
+              {t("{name} ({count} sessions)", { name: locale === "ar" && pkg.nameAr ? pkg.nameAr : pkg.nameEn, count: pkg.sessionsTotal })}
             </option>
           ))}
         </select>
@@ -80,10 +84,10 @@ export function AssignPackageForm({ clients, packages }: { clients: ClientOption
         disabled={pending}
         className="lunia-btn lunia-btn-primary disabled:opacity-60"
       >
-        {pending ? "Recording…" : "Record purchase"}
+        {pending ? t("Recording…") : t("Record purchase")}
       </button>
       <InlineStatus error={state.error} className="w-full" />
-      <InlineStatus success={state.success ? "Saved." : undefined} className="w-full" />
+      <InlineStatus success={state.success ? t("Saved.") : undefined} className="w-full" />
     </form>
   );
 }

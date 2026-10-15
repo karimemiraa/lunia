@@ -5,16 +5,18 @@ import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { recordAudit } from "@/modules/iam/audit";
 import { createConsentForm, updateConsentForm, type ConsentFormInput } from "@/modules/clinical/consents";
+import { getStaffT } from "../../_i18n/display";
+import type { T } from "../../_i18n/t";
 
 export type ConsentFormActionResult = { ok: true; id: string; version: number } | { ok: false; error: string };
 
-function errorMessage(err: unknown): string {
+function errorMessage(err: unknown, t: T): string {
   if (err && typeof err === "object" && "issues" in err) {
     const issue = (err as { issues: { message?: string; path?: PropertyKey[] }[] }).issues[0];
-    return issue ? `${issue.path?.join(".") || "Form"}: ${issue.message}` : "Please check the form.";
+    return issue ? `${issue.path?.join(".") || t("Form")}: ${t(issue.message ?? "")}` : t("Please check the form.");
   }
-  if (err && typeof err === "object" && (err as { code?: string }).code === "P2002") return "That key is already used by another form.";
-  return err instanceof Error ? err.message : "Could not save the consent form.";
+  if (err && typeof err === "object" && (err as { code?: string }).code === "P2002") return t("That key is already used by another form.");
+  return err instanceof Error ? t(err.message) : t("Could not save the consent form.");
 }
 
 // id null = create. Editing the wording bumps the version (see
@@ -33,6 +35,6 @@ export async function saveConsentFormAction(id: string | null, input: ConsentFor
     revalidatePath("/admin/clinical/consents");
     return { ok: true, id: form.id, version: form.version };
   } catch (err) {
-    return { ok: false, error: errorMessage(err) };
+    return { ok: false, error: errorMessage(err, await getStaffT()) };
   }
 }

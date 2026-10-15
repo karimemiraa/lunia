@@ -3,6 +3,7 @@
 import { useActionState, useId, useRef } from "react";
 import { addNoteAction, type ClientActionState } from "./actions";
 import { InlineStatus } from "../../_ui/Form";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 interface VisitNoteFormProps {
   clientProfileId: string;
@@ -17,6 +18,7 @@ const textareaClass =
 // [id]/page.tsx) -- addNoteAction re-checks that permission itself
 // regardless, so this component never has to be trusted as the sole gate.
 export function VisitNoteForm({ clientProfileId }: VisitNoteFormProps) {
+  const t = useStaffT();
   const [state, action, pending] = useActionState(addNoteAction, initialState);
   const bodyId = useId();
   const formRef = useRef<HTMLFormElement>(null);
@@ -33,8 +35,8 @@ export function VisitNoteForm({ clientProfileId }: VisitNoteFormProps) {
     >
       <input type="hidden" name="clientProfileId" value={clientProfileId} />
       <label htmlFor={bodyId} className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-[var(--color-ink)]">Add comment</span>
-        <textarea id={bodyId} name="body" required rows={3} className={textareaClass} placeholder="Observations, preferences, follow-up, front-desk notes..." />
+        <span className="font-medium text-[var(--color-ink)]">{t("Add comment")}</span>
+        <textarea id={bodyId} name="body" required rows={3} className={textareaClass} placeholder={t("Observations, preferences, follow-up, front-desk notes...")} />
       </label>
       <div className="flex items-center gap-3">
         <button
@@ -42,9 +44,9 @@ export function VisitNoteForm({ clientProfileId }: VisitNoteFormProps) {
           disabled={pending}
           className="w-fit lunia-btn lunia-btn-primary disabled:opacity-60"
         >
-          {pending ? "Saving…" : "Add comment"}
+          {pending ? t("Saving…") : t("Add comment")}
         </button>
-        <InlineStatus success={state.success ? "Comment added." : undefined} />
+        <InlineStatus success={state.success ? t("Comment added.") : undefined} />
         <InlineStatus error={state.error} />
       </div>
     </form>

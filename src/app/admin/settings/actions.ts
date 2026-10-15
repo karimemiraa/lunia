@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { recordAudit } from "@/modules/iam/audit";
+import { getStaffT } from "../_i18n/display";
 import {
   setSetting,
   SETTINGS_DAYS,
@@ -48,6 +49,7 @@ function otpChannelFromForm(formData: FormData): CommsSettings["otpChannel"] {
 // against that key's Zod schema before writing).
 export async function saveSettings(_prev: SaveSettingsState | null, formData: FormData): Promise<SaveSettingsState> {
   const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
 
   const business: BusinessSettings = {
     nameEn: str(formData, "name.en"),
@@ -97,7 +99,7 @@ export async function saveSettings(_prev: SaveSettingsState | null, formData: Fo
     await setSetting("seo", seo);
     await setSetting("comms", comms);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to save settings." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to save settings.") };
   }
 
   await recordAudit({
@@ -116,6 +118,7 @@ export async function saveSettings(_prev: SaveSettingsState | null, formData: Fo
 // Automations card so they never ride along with the main settings form.
 export async function saveAutomationsAction(_prev: SaveSettingsState | null, formData: FormData): Promise<SaveSettingsState> {
   const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
   const num = (name: string) => Number(str(formData, name));
   const value = {
     packageReminderEnabled: formData.get("packageReminderEnabled") === "on",
@@ -133,7 +136,7 @@ export async function saveAutomationsAction(_prev: SaveSettingsState | null, for
     await setSetting("automations", value);
   } catch (err) {
     const issue = (err as { issues?: { path: (string | number)[]; message: string }[] })?.issues?.[0];
-    return { error: issue ? `${String(issue.path[0] ?? "Value")}: ${issue.message}` : "Couldn't save automations." };
+    return { error: issue ? `${String(issue.path[0] ?? "Value")}: ${issue.message}` : t("Couldn't save automations.") };
   }
   await recordAudit({
     actorUserId: user.id,

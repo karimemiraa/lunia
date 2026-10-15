@@ -4,6 +4,7 @@ import { useActionState, useId } from "react";
 import { updateNotificationPreferenceAction, type ClientActionState } from "./actions";
 import type { CommsChannelPref } from "@prisma/client";
 import { InlineStatus } from "../../_ui/Form";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 interface NotificationPreferenceEditorProps {
   clientProfileId: string;
@@ -31,6 +32,7 @@ const CHANNEL_OPTIONS: { value: CommsChannelPref; label: string }[] = [
 // [id]/page.tsx) -- updateNotificationPreferenceAction re-checks that
 // permission itself regardless, mirroring TierEditor.
 export function NotificationPreferenceEditor({ clientProfileId, preference }: NotificationPreferenceEditorProps) {
+  const t = useStaffT();
   const [state, action, pending] = useActionState(updateNotificationPreferenceAction, initialState);
   const selectId = useId();
 
@@ -40,11 +42,11 @@ export function NotificationPreferenceEditor({ clientProfileId, preference }: No
 
       <div className="flex flex-wrap items-end gap-3">
         <label htmlFor={selectId} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Channel</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Channel")}</span>
           <select id={selectId} name="channel" defaultValue={preference.channel} className={selectClass}>
             {CHANNEL_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t(option.label)}
               </option>
             ))}
           </select>
@@ -54,15 +56,15 @@ export function NotificationPreferenceEditor({ clientProfileId, preference }: No
       <div className="flex flex-col gap-2 text-sm">
         <label className="flex items-center gap-2 text-[var(--color-ink)]">
           <input type="checkbox" name="remindersOptIn" defaultChecked={preference.remindersOptIn} />
-          Appointment reminders
+          {t("Appointment reminders")}
         </label>
         <label className="flex items-center gap-2 text-[var(--color-ink)]">
           <input type="checkbox" name="postVisitOptIn" defaultChecked={preference.postVisitOptIn} />
-          Post-visit messages
+          {t("Post-visit messages")}
         </label>
         <label className="flex items-center gap-2 text-[var(--color-ink)]">
           <input type="checkbox" name="marketingOptIn" defaultChecked={preference.marketingOptIn} />
-          Offers and marketing
+          {t("Offers and marketing")}
         </label>
       </div>
 
@@ -72,9 +74,9 @@ export function NotificationPreferenceEditor({ clientProfileId, preference }: No
           disabled={pending}
           className="w-fit lunia-btn lunia-btn-primary disabled:opacity-60"
         >
-          {pending ? "Saving…" : "Save preferences"}
+          {pending ? t("Saving…") : t("Save preferences")}
         </button>
-        <InlineStatus success={state.success ? "Saved." : undefined} />
+        <InlineStatus success={state.success ? t("Saved.") : undefined} />
         <InlineStatus error={state.error} />
       </div>
     </form>

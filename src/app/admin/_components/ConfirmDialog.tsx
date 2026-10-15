@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "./toast";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 interface ConfirmDialogProps {
   /** The trigger's label (or custom content). */
@@ -40,6 +41,8 @@ export function ConfirmDialog({
   successMessage,
   disabled,
 }: ConfirmDialogProps) {
+  // Callers pass English; t() returns it unchanged when there is no entry.
+  const t = useStaffT();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -93,11 +96,11 @@ export function ConfirmDialog({
     startTransition(async () => {
       try {
         await onConfirm();
-        if (successMessage) toast({ title: successMessage, tone: "success" });
+        if (successMessage) toast({ title: t(successMessage), tone: "success" });
         setOpen(false);
         requestAnimationFrame(() => triggerRef.current?.focus());
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+        setError(err instanceof Error ? t(err.message) : t("Something went wrong. Please try again."));
       }
     });
   }
@@ -142,11 +145,11 @@ export function ConfirmDialog({
                 </span>
                 <div className="min-w-0 flex-1">
                   <h2 id={titleId} className="font-[family-name:var(--font-display)] text-xl leading-snug text-[var(--color-ink)]">
-                    {title}
+                    {t(title)}
                   </h2>
                   {description && (
                     <p id={descId} className="mt-1.5 text-sm leading-relaxed text-[var(--color-ink)]/65">
-                      {description}
+                      {t(description)}
                     </p>
                   )}
                   {error && (
@@ -158,7 +161,7 @@ export function ConfirmDialog({
               </div>
               <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button ref={cancelRef} type="button" onClick={close} disabled={pending} className="lunia-btn lunia-btn-ghost">
-                  Keep
+                  {t("Keep")}
                 </button>
                 <button
                   type="button"
@@ -167,7 +170,7 @@ export function ConfirmDialog({
                   aria-busy={pending}
                   className={`lunia-btn ${tone === "danger" ? "lunia-btn-danger" : "lunia-btn-forest"} disabled:opacity-60`}
                 >
-                  {pending ? "Working…" : verb}
+                  {pending ? t("Working…") : t(verb)}
                 </button>
               </div>
             </div>

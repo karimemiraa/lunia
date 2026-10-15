@@ -5,6 +5,7 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { getInvoiceDocument } from "@/modules/billing/document";
 import { InvoiceDocumentView } from "@/components/billing/InvoiceDocumentView";
 import { PrintButton } from "@/components/billing/PrintButton";
+import { getStaffT } from "../../../_i18n/display";
 
 interface PrintPageProps {
   params: Promise<{ id: string }>;
@@ -16,6 +17,7 @@ interface PrintPageProps {
 export default async function InvoicePrintPage({ params, searchParams }: PrintPageProps) {
   await requireAdmin(PERMISSIONS.BILLING_MANAGE);
   const { id } = await params;
+  const t = await getStaffT();
   const format = (await searchParams).format === "receipt" ? "receipt" : "a4";
   const doc = await getInvoiceDocument(id);
   if (!doc) notFound();
@@ -28,12 +30,12 @@ export default async function InvoicePrintPage({ params, searchParams }: PrintPa
         toolbar={
           <div className="invoice-no-print flex flex-wrap items-center justify-center gap-2">
             <Link href={`/admin/billing/${id}`} className="lunia-btn lunia-btn-ghost min-h-[44px]">
-              Back to invoice
+              {t("Back to invoice")}
             </Link>
             <Link href={`/admin/billing/${id}/print${format === "a4" ? "?format=receipt" : ""}`} className="lunia-btn lunia-btn-ghost min-h-[44px]">
-              {format === "a4" ? "80 mm receipt" : "A4"}
+              {format === "a4" ? t("80 mm receipt") : "A4"}
             </Link>
-            <PrintButton label="Print / Save as PDF" />
+            <PrintButton label={t("Print / Save as PDF")} />
           </div>
         }
       />

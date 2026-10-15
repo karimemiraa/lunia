@@ -2,6 +2,9 @@
 
 import { useTransition } from "react";
 import { notifyWaitlistNowAction } from "./actions";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
+import { intlLocale, type StaffLocale } from "../_i18n/t";
+import { waitlistStatusText } from "../calendar/labels";
 
 export interface WaitlistRowDTO {
   id: string;
@@ -28,16 +31,17 @@ const STATUS_STYLES: Record<string, string> = {
   EXPIRED: "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/60",
 };
 
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(`${iso}T00:00:00Z`));
+function formatDate(iso: string, locale: StaffLocale): string {
+  return new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { dateStyle: "medium" }).format(new Date(`${iso}T00:00:00Z`));
 }
 
-function formatDateTime(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(iso));
+function formatDateTime(iso: string, locale: StaffLocale): string {
+  return new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(iso));
 }
 
 function NotifyNowButton({ serviceId, desiredDateISO }: { serviceId: string; desiredDateISO: string }) {
   const [isPending, startTransition] = useTransition();
+  const t = useStaffT();
 
   return (
     <button
@@ -50,7 +54,7 @@ function NotifyNowButton({ serviceId, desiredDateISO }: { serviceId: string; des
       }
       className="lunia-btn lunia-btn-ghost lunia-btn-sm disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {isPending ? "Notifying…" : "Notify now"}
+      {isPending ? t("Notifying…") : t("Notify now")}
     </button>
   );
 }
@@ -59,26 +63,28 @@ function NotifyNowButton({ serviceId, desiredDateISO }: { serviceId: string; des
 // BOOKING_MANAGE staff) -- the same notify-on-free path cancel()/
 // reschedule() already runs automatically once a slot actually frees up.
 export function WaitlistTable({ rows, canManage }: WaitlistTableProps) {
+  const t = useStaffT();
+  const locale = useStaffLocale();
   if (rows.length === 0) {
     return (
       <p className="rounded border border-dashed border-[var(--color-ink)]/20 px-4 py-8 text-center text-sm text-[var(--color-ink)]/60">
-        No waitlist entries.
+        {t("No waitlist entries.")}
       </p>
     );
   }
 
   return (
     <div className="overflow-x-auto lunia-card">
-      <table className="w-full text-left text-sm">
+      <table className="w-full text-start text-sm">
         <thead className="bg-[var(--color-cream)]/60">
           <tr>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Customer</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Service</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Desired date</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Status</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Added</th>
-            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Notified</th>
-            {canManage && <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">Actions</th>}
+            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">{t("Customer")}</th>
+            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">{t("Service")}</th>
+            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">{t("Desired date")}</th>
+            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">{t("Status")}</th>
+            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">{t("Added")}</th>
+            <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">{t("Notified")}</th>
+            {canManage && <th className="whitespace-nowrap px-4 py-2 font-medium text-[var(--color-ink)]">{t("Actions")}</th>}
           </tr>
         </thead>
         <tbody>
@@ -93,13 +99,13 @@ export function WaitlistTable({ rows, canManage }: WaitlistTableProps) {
               <td className="px-4 py-3 text-[var(--color-ink)]">
                 <div className="flex flex-col">
                   <span>{row.contactName}</span>
-                  {row.contactDetail && <span className="text-xs text-[var(--color-ink)]/60">{row.contactDetail}</span>}
+                  {row.contactDetail && <span className="text-xs text-[var(--color-ink)]/60"><bdi dir="ltr">{row.contactDetail}</bdi></span>}
                 </div>
               </td>
               <td className="px-4 py-3 text-[var(--color-ink)]">{row.serviceName}</td>
               <td className="px-4 py-3 text-[var(--color-ink)]">
                 <div className="flex flex-col">
-                  <span>{formatDate(row.desiredDateISO)}</span>
+                  <span>{formatDate(row.desiredDateISO, locale)}</span>
                   {row.desiredWindow && <span className="text-xs text-[var(--color-ink)]/60">{row.desiredWindow}</span>}
                 </div>
               </td>
@@ -109,14 +115,14 @@ export function WaitlistTable({ rows, canManage }: WaitlistTableProps) {
                     STATUS_STYLES[row.status] ?? "bg-[var(--color-ink)]/10 text-[var(--color-ink)]/70"
                   }`}
                 >
-                  {row.status}
+                  {waitlistStatusText(row.status, locale, t)}
                 </span>
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--color-ink)]/70">
-                {formatDateTime(row.createdAtIso)}
+                {formatDateTime(row.createdAtIso, locale)}
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--color-ink)]/70">
-                {row.notifiedAtIso ? formatDateTime(row.notifiedAtIso) : "None"}
+                {row.notifiedAtIso ? formatDateTime(row.notifiedAtIso, locale) : t("None")}
               </td>
               {canManage && (
                 <td className="px-4 py-3">

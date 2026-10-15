@@ -6,6 +6,7 @@ import { DataTable, type Column } from "../_ui/DataTable";
 import { StatusPill } from "../_ui/StatusPill";
 import { formatDateTime } from "../_ui/dates";
 import { Spinner } from "../_ui/Form";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
 
 export interface ReviewRowDTO {
   id: string;
@@ -27,8 +28,9 @@ interface ReviewsTableProps {
 }
 
 function Stars({ rating }: { rating: number }) {
+  const t = useStaffT();
   return (
-    <span role="img" aria-label={`${rating} out of 5`} className="inline-flex gap-0.5">
+    <span role="img" aria-label={t("{rating} out of 5", { rating })} className="inline-flex gap-0.5">
       {Array.from({ length: 5 }, (_, i) => (
         <svg key={i} viewBox="0 0 24 24" aria-hidden="true" className={`h-4 w-4 ${i < rating ? "text-[var(--color-tiger-lily,#c0ad73)]" : "text-[var(--color-ink)]/15"}`} fill="currentColor">
           <path d="m12 2.5 2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8Z" />
@@ -41,11 +43,12 @@ function Stars({ rating }: { rating: number }) {
 function ModerationButtons({ reviewId }: { reviewId: string }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const t = useStaffT();
 
   async function run(fn: (id: string) => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
     const res = await fn(reviewId);
-    if (!res.ok) setError(res.error ?? "Something went wrong.");
+    if (!res.ok) setError(res.error ?? t("Something went wrong."));
   }
 
   return (
@@ -60,7 +63,7 @@ function ModerationButtons({ reviewId }: { reviewId: string }) {
           className="lunia-btn lunia-btn-forest lunia-btn-sm min-h-11 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending && <Spinner />}
-          Approve
+          {t("Approve")}
         </button>
         <button
           type="button"
@@ -69,7 +72,7 @@ function ModerationButtons({ reviewId }: { reviewId: string }) {
           onClick={() => startTransition(() => run(rejectReviewAction))}
           className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Reject
+          {t("Reject")}
         </button>
       </div>
       {error && (
@@ -85,22 +88,24 @@ function ModerationButtons({ reviewId }: { reviewId: string }) {
 // approve/reject actions shown only for PENDING rows a CMS_MANAGE admin can
 // act on.
 export function ReviewsTable({ rows, canModerate }: ReviewsTableProps) {
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const columns: Column<ReviewRowDTO>[] = [
     {
       key: "clientName",
-      header: "Customer",
+      header: t("Customer"),
       render: (r) => (
         <div className="flex flex-col">
-          <span>{r.clientName ?? "Unknown"}</span>
-          {r.authorDisplayName && <span className="text-xs text-[var(--color-ink)]/60">as “{r.authorDisplayName}”</span>}
+          <span>{r.clientName ?? t("Unknown")}</span>
+          {r.authorDisplayName && <span className="text-xs text-[var(--color-ink)]/60">{t("as “{name}”", { name: r.authorDisplayName })}</span>}
         </div>
       ),
     },
-    { key: "serviceName", header: "Service", render: (r) => r.serviceName ?? "None" },
-    { key: "rating", header: "Rating", render: (r) => <Stars rating={r.rating} /> },
+    { key: "serviceName", header: t("Service"), render: (r) => r.serviceName ?? t("None") },
+    { key: "rating", header: t("Rating"), render: (r) => <Stars rating={r.rating} /> },
     {
       key: "title",
-      header: "Review",
+      header: t("Review"),
       sortable: false,
       className: "max-w-sm",
       render: (r) => (
@@ -110,12 +115,12 @@ export function ReviewsTable({ rows, canModerate }: ReviewsTableProps) {
         </div>
       ),
     },
-    { key: "consentPublic", header: "Public", render: (r) => (r.consentPublic ? "Yes" : "No") },
-    { key: "status", header: "Status", render: (r) => <StatusPill status={r.status} /> },
-    { key: "submittedAtIso", header: "Submitted", value: (r) => r.submittedAtIso, render: (r) => (r.submittedAtIso ? formatDateTime(r.submittedAtIso) : "None") },
+    { key: "consentPublic", header: t("Public"), render: (r) => (r.consentPublic ? t("Yes") : t("No")) },
+    { key: "status", header: t("Status"), render: (r) => <StatusPill status={r.status} /> },
+    { key: "submittedAtIso", header: t("Submitted"), value: (r) => r.submittedAtIso, render: (r) => (r.submittedAtIso ? formatDateTime(r.submittedAtIso, locale) : t("None")) },
   ];
   if (canModerate) {
-    columns.push({ key: "__actions", header: <span className="sr-only">Actions</span>, sortable: false, align: "end", render: (r) => (r.status === "PENDING" ? <ModerationButtons reviewId={r.id} /> : null) });
+    columns.push({ key: "__actions", header: <span className="sr-only">{t("Actions")}</span>, sortable: false, align: "end", render: (r) => (r.status === "PENDING" ? <ModerationButtons reviewId={r.id} /> : null) });
   }
 
   return (
@@ -124,10 +129,10 @@ export function ReviewsTable({ rows, canModerate }: ReviewsTableProps) {
       rows={rows}
       rowKey={(r) => r.id}
       search={(r) => `${r.clientName ?? ""} ${r.serviceName ?? ""} ${r.title ?? ""} ${r.body ?? ""}`}
-      searchPlaceholder="Search reviews…"
+      searchPlaceholder={t("Search reviews…")}
       initialSort={{ key: "submittedAtIso", dir: "desc" }}
-      empty={{ title: "No reviews to show", description: "Reviews arrive after visits, once the customer opens the review link." }}
-      ariaLabel="Reviews"
+      empty={{ title: t("No reviews to show"), description: t("Reviews arrive after visits, once the customer opens the review link.") }}
+      ariaLabel={t("Reviews")}
       cardsBelow="lg"
     />
   );

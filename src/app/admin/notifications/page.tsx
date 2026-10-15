@@ -3,6 +3,7 @@ import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { getNotificationFeed, NOTIFICATION_TYPE_LABELS, NOTIFICATION_TYPE_HREF, type NotificationType } from "@/modules/notifications/feed";
 import { NotificationList } from "./NotificationList";
+import { getStaffT, getStaffLocale } from "../_i18n/display";
 
 interface Props {
   searchParams: Promise<{ type?: string; seen?: string }>;
@@ -23,6 +24,8 @@ function qs(params: { type?: string; seen?: string }): string {
 export default async function NotificationsPage({ searchParams }: Props) {
   const user = await requireAdmin();
   const params = await searchParams;
+  const tr = await getStaffT();
+  const locale = await getStaffLocale();
   const type = TYPES.includes(params.type as NotificationType) ? (params.type as NotificationType) : undefined;
   const showSeen = params.seen === "1";
   const feed = await getNotificationFeed(user.permissions, { limit: 100 });
@@ -33,7 +36,7 @@ export default async function NotificationsPage({ searchParams }: Props) {
     <AdminShell user={user} title="Notifications" description="Everything that still needs attention. Items clear on their own once handled." feed={feed}>
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <Link href={qs({ seen: params.seen })} className={`lunia-btn lunia-btn-sm ${!type ? "lunia-btn-forest" : "lunia-btn-ghost"}`} aria-current={!type ? "page" : undefined}>
-          All <span className="lunia-tabular opacity-70">{feed.total}</span>
+          {tr("All")} <span className="lunia-tabular opacity-70">{feed.total}</span>
         </Link>
         {activeTypes.map((t) => (
           <Link
@@ -42,19 +45,19 @@ export default async function NotificationsPage({ searchParams }: Props) {
             className={`lunia-btn lunia-btn-sm ${type === t ? "lunia-btn-forest" : "lunia-btn-ghost"}`}
             aria-current={type === t ? "page" : undefined}
           >
-            {NOTIFICATION_TYPE_LABELS[t]} <span className="lunia-tabular opacity-70">{feed.counts[t]}</span>
+            {tr(NOTIFICATION_TYPE_LABELS[t])} <span className="lunia-tabular opacity-70">{feed.counts[t]}</span>
           </Link>
         ))}
         <Link href={qs({ type, seen: showSeen ? undefined : "1" })} className="ms-auto text-xs text-[var(--color-ink)]/60 underline-offset-2 hover:underline">
-          {showSeen ? "Hide seen" : "Show seen"}
+          {tr(showSeen ? "Hide seen" : "Show seen")}
         </Link>
       </div>
 
       {type && (feed.counts[type] ?? 0) > items.length && (
         <p className="mb-3 text-xs text-[var(--color-ink)]/55">
-          Showing the newest {items.length} of {feed.counts[type]}.{" "}
+          {tr("Showing the newest {shown} of {total}.", { shown: items.length, total: feed.counts[type] })}{" "}
           <Link href={NOTIFICATION_TYPE_HREF[type]} className="font-medium text-[var(--color-teal-ink)] hover:underline">
-            Open {NOTIFICATION_TYPE_LABELS[type].toLowerCase()}
+            {tr("Open {section}", { section: locale === "ar" ? tr(NOTIFICATION_TYPE_LABELS[type]) : NOTIFICATION_TYPE_LABELS[type].toLowerCase() })}
           </Link>
         </p>
       )}

@@ -3,12 +3,14 @@
 import { useActionState, useRef } from "react";
 import { sendReplyAction, type WhatsappActionState } from "./actions";
 import { InlineStatus } from "../_ui/Form";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 const initial: WhatsappActionState = {};
 
 export function ReplyBox({ conversationId }: { conversationId: string }) {
   const [state, action, pending] = useActionState(sendReplyAction, initial);
   const ref = useRef<HTMLFormElement>(null);
+  const t = useStaffT();
 
   return (
     <form
@@ -24,11 +26,11 @@ export function ReplyBox({ conversationId }: { conversationId: string }) {
         name="body"
         rows={1}
         required
-        placeholder="Type a reply…"
+        placeholder={t("Type a reply…")}
         className="lunia-input min-h-[2.5rem] flex-1 resize-none"
       />
       <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest lunia-btn-sm disabled:opacity-60">
-        {pending ? "Sending…" : "Send"}
+        {pending ? t("Sending…") : t("Send")}
       </button>
       <InlineStatus size="sm" error={state.error} />
     </form>

@@ -2,6 +2,10 @@
 // directly or a known domain status and let the map pick the tone, so every
 // admin page colours "paid", "cancelled", "pending" the same way.
 
+import { makeT, type StaffLocale } from "../_i18n/t";
+import { translateStatus } from "../_ui/labels";
+import { StatusText } from "../_ui/StatusText";
+
 export type StatusTone = "success" | "warning" | "danger" | "info" | "neutral";
 
 const STATUS_TONES: Record<string, StatusTone> = {
@@ -44,10 +48,11 @@ export function toneForStatus(status: string): StatusTone {
   return STATUS_TONES[status.toUpperCase()] ?? "neutral";
 }
 
-export function labelForStatus(status: string): string {
+/** English label for a status; pass the staff locale for the Arabic label. */
+export function labelForStatus(status: string, locale: StaffLocale = "en"): string {
   const key = status.toUpperCase();
-  if (STATUS_LABELS[key]) return STATUS_LABELS[key];
-  return key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, " ");
+  const label = STATUS_LABELS[key] ?? key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, " ");
+  return locale === "en" ? label : translateStatus(label, makeT(locale));
 }
 
 interface StatusPillProps {
@@ -61,7 +66,7 @@ export function StatusPill({ status, tone, children, className = "" }: StatusPil
   const resolvedTone = tone ?? (status ? toneForStatus(status) : "neutral");
   return (
     <span className={`lunia-pill ${className}`} data-tone={resolvedTone}>
-      {children ?? (status ? labelForStatus(status) : null)}
+      {typeof children === "string" ? <StatusText label={children} /> : (children ?? (status ? <StatusText label={labelForStatus(status)} /> : null))}
     </span>
   );
 }

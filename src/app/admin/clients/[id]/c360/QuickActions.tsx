@@ -9,6 +9,7 @@ import { SELECT_TAB_EVENT } from "./ProfileTabs";
 import { Icon } from "./icons";
 import { InlineStatus } from "../../../_ui/Form";
 import { useConfirm } from "../../../_ui/ConfirmDialog";
+import { useStaffT } from "../../../_i18n/StaffI18n";
 
 interface QuickActionsProps {
   clientProfileId: string;
@@ -30,6 +31,7 @@ const label = "text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-
 // module's own form.
 export function QuickActions({ clientProfileId, bookHref, checkoutHref, hasPhone, canManage, canWriteNotes, reviewableVisits }: QuickActionsProps) {
   const [confirm, confirmDialog] = useConfirm();
+  const t = useStaffT();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [pending, setPending] = useState<"whatsapp" | "review" | null>(null);
@@ -39,7 +41,7 @@ export function QuickActions({ clientProfileId, bookHref, checkoutHref, hasPhone
     const result = await addCallbackAction(prev, fd);
     if (result.success) {
       setCallbackOpen(false);
-      setNotice({ tone: "ok", text: "Call-back queued and assigned to you." });
+      setNotice({ tone: "ok", text: t("Call-back queued and assigned to you.") });
       router.refresh();
     }
     return result;
@@ -57,16 +59,16 @@ export function QuickActions({ clientProfileId, bookHref, checkoutHref, hasPhone
   }
 
   async function requestReview() {
-    if (!(await confirm({ title: "Send a review request?", description: "The customer is asked to review their latest visit.", confirmLabel: "Send request", danger: false }))) return;
+    if (!(await confirm({ title: t("Send a review request?"), description: t("The customer is asked to review their latest visit."), confirmLabel: t("Send request"), danger: false }))) return;
     setNotice(null);
     setPending("review");
     startTransition(async () => {
       const result = await requestReviewAction(clientProfileId);
       setPending(null);
       if (result.success) {
-        setNotice({ tone: "ok", text: "Review request scheduled." });
+        setNotice({ tone: "ok", text: t("Review request scheduled.") });
         router.refresh();
-      } else setNotice({ tone: "error", text: result.error ?? "Failed." });
+      } else setNotice({ tone: "error", text: result.error ?? t("Failed.") });
     });
   }
 
@@ -80,31 +82,31 @@ export function QuickActions({ clientProfileId, bookHref, checkoutHref, hasPhone
       {confirmDialog}
       <div className="flex flex-wrap gap-2">
         <Link href={bookHref} className="lunia-btn lunia-btn-forest lunia-btn-sm min-h-11">
-          <Icon name="calendar" /> Book
+          <Icon name="calendar" /> {t("Book")}
         </Link>
         {checkoutHref && (
           <Link href={checkoutHref} className={btn}>
-            <Icon name="receipt" /> Checkout
+            <Icon name="receipt" /> {t("Checkout")}
           </Link>
         )}
         {canManage && (
-          <button type="button" onClick={sendMessage} disabled={isPending || !hasPhone} title={hasPhone ? undefined : "No phone number on file"} className={btn}>
-            <Icon name="whatsapp" /> {pending === "whatsapp" ? "Opening…" : "Send message"}
+          <button type="button" onClick={sendMessage} disabled={isPending || !hasPhone} title={hasPhone ? undefined : t("No phone number on file")} className={btn}>
+            <Icon name="whatsapp" /> {pending === "whatsapp" ? t("Opening…") : t("Send message")}
           </button>
         )}
         {canWriteNotes && (
           <button type="button" onClick={addNote} className={btn}>
-            <Icon name="note" /> Add note
+            <Icon name="note" /> {t("Add note")}
           </button>
         )}
         {canManage && (
-          <button type="button" onClick={() => setCallbackOpen(true)} disabled={!hasPhone} title={hasPhone ? undefined : "No phone number on file"} className={btn}>
-            <Icon name="callback" /> Add call-back
+          <button type="button" onClick={() => setCallbackOpen(true)} disabled={!hasPhone} title={hasPhone ? undefined : t("No phone number on file")} className={btn}>
+            <Icon name="callback" /> {t("Add call-back")}
           </button>
         )}
         {canManage && (
-          <button type="button" onClick={requestReview} disabled={isPending || reviewableVisits === 0} title={reviewableVisits === 0 ? "No completed visit without a review request" : undefined} className={btn}>
-            <Icon name="star" /> {pending === "review" ? "Sending…" : "Request review"}
+          <button type="button" onClick={requestReview} disabled={isPending || reviewableVisits === 0} title={reviewableVisits === 0 ? t("No completed visit without a review request") : undefined} className={btn}>
+            <Icon name="star" /> {pending === "review" ? t("Sending…") : t("Request review")}
           </button>
         )}
       </div>
@@ -115,33 +117,33 @@ export function QuickActions({ clientProfileId, bookHref, checkoutHref, hasPhone
       )}
 
       {callbackOpen && (
-        <Modal title="Add a call-back" onClose={() => setCallbackOpen(false)}>
+        <Modal title={t("Add a call-back")} onClose={() => setCallbackOpen(false)}>
           <form action={cbAction} className="flex flex-col gap-4">
             <input type="hidden" name="clientProfileId" value={clientProfileId} />
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className={label}>Best time</span>
+              <span className={label}>{t("Best time")}</span>
               <select name="preferredWindow" defaultValue="asap" className="lunia-input">
-                <option value="asap">As soon as possible</option>
-                <option value="morning">Morning</option>
-                <option value="afternoon">Afternoon</option>
-                <option value="evening">Evening</option>
+                <option value="asap">{t("As soon as possible")}</option>
+                <option value="morning">{t("Morning")}</option>
+                <option value="afternoon">{t("Afternoon")}</option>
+                <option value="evening">{t("Evening")}</option>
               </select>
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className={label}>Topic</span>
+              <span className={label}>{t("Topic")}</span>
               <input name="topic" maxLength={200} className="lunia-input" autoComplete="off" />
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className={label}>Notes</span>
+              <span className={label}>{t("Notes")}</span>
               <textarea name="notes" rows={3} maxLength={2000} className="lunia-input" />
             </label>
             <InlineStatus error={cbState.error} />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setCallbackOpen(false)} className="lunia-btn lunia-btn-ghost min-h-11">
-                Cancel
+                {t("Cancel")}
               </button>
               <button type="submit" disabled={cbPending} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
-                {cbPending ? "Saving…" : "Queue call-back"}
+                {cbPending ? t("Saving…") : t("Queue call-back")}
               </button>
             </div>
           </form>

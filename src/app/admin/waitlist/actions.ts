@@ -11,12 +11,13 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { joinWaitlist, notifyWaitlistForSlot } from "@/modules/booking/waitlist";
+import { getStaffT } from "../_i18n/display";
+import { errorText } from "../calendar/actionError";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-function messageOf(err: unknown): string {
-  return err instanceof Error ? err.message : "Something went wrong.";
-}
+// Module errors are English; errorText() returns them in the staff locale.
+const messageOf = errorText;
 
 function revalidateWaitlist(): void {
   revalidatePath("/admin/waitlist");
@@ -38,7 +39,7 @@ export async function addWalkupWaitlistAction(input: WalkupWaitlistInput): Promi
   const phone = input.phone?.trim() || undefined;
   const email = input.email?.trim() || undefined;
   if (!input.serviceId || !input.desiredDateISO || !name || (!phone && !email)) {
-    return { ok: false, error: "Service, desired date, name, and a phone or email are required." };
+    return { ok: false, error: (await getStaffT())("Service, desired date, name, and a phone or email are required.") };
   }
 
   try {
@@ -52,7 +53,7 @@ export async function addWalkupWaitlistAction(input: WalkupWaitlistInput): Promi
       locale: "ar",
     });
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
   revalidateWaitlist();
   return { ok: true };
@@ -67,7 +68,7 @@ export async function notifyWaitlistNowAction(serviceId: string, desiredDateISO:
   try {
     await notifyWaitlistForSlot(serviceId, desiredDateISO);
   } catch (err) {
-    return { ok: false, error: messageOf(err) };
+    return { ok: false, error: await messageOf(err) };
   }
   revalidateWaitlist();
   return { ok: true };

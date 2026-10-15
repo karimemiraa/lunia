@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { adjustStockAction } from "../actions";
-import { labelClass, labelText } from "./ui";
+import { labelClass, labelText, qtyUnit } from "./ui";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 const KINDS = [
   { value: "COUNT", label: "Count correction", help: "Enter what is physically on the shelf; the difference is posted." },
@@ -13,6 +14,7 @@ const KINDS = [
 
 export function AdjustmentForm({ productId, unit, stockQty }: { productId: string; unit: string; stockQty: number }) {
   const router = useRouter();
+  const t = useStaffT();
   const [kind, setKind] = useState<(typeof KINDS)[number]["value"]>("COUNT");
   const [qty, setQty] = useState("");
   const [lot, setLot] = useState("");
@@ -28,8 +30,8 @@ export function AdjustmentForm({ productId, unit, stockQty }: { productId: strin
     event.preventDefault();
     setError(null);
     setDone(null);
-    if (qty === "" || !Number.isInteger(n) || (kind !== "COUNT" && n <= 0)) return setError("Enter a whole-number quantity.");
-    if (reason.trim().length < 3) return setError("A reason is required.");
+    if (qty === "" || !Number.isInteger(n) || (kind !== "COUNT" && n <= 0)) return setError(t("Enter a whole-number quantity."));
+    if (reason.trim().length < 3) return setError(t("A reason is required."));
     startTransition(async () => {
       const result = await adjustStockAction(
         kind === "COUNT"
@@ -37,7 +39,7 @@ export function AdjustmentForm({ productId, unit, stockQty }: { productId: strin
           : { kind, productId, qty: n, reason, lotNumber: lot.trim() || undefined },
       );
       if (!result.ok) return setError(result.error);
-      setDone(preview === 0 ? "Count matches the system; nothing to post." : "Adjustment posted.");
+      setDone(preview === 0 ? t("Count matches the system; nothing to post.") : t("Adjustment posted."));
       setQty("");
       setLot("");
       setReason("");
@@ -49,8 +51,8 @@ export function AdjustmentForm({ productId, unit, stockQty }: { productId: strin
 
   return (
     <form onSubmit={submit} className="lunia-card flex flex-col gap-4 p-5">
-      <h3 className="text-base font-semibold">Adjust stock</h3>
-      <div role="radiogroup" aria-label="Adjustment type" className="flex flex-wrap gap-2">
+      <h3 className="text-base font-semibold">{t("Adjust stock")}</h3>
+      <div role="radiogroup" aria-label={t("Adjustment type")} className="flex flex-wrap gap-2">
         {KINDS.map((k) => (
           <button
             key={k.value}
@@ -62,30 +64,29 @@ export function AdjustmentForm({ productId, unit, stockQty }: { productId: strin
               kind === k.value ? "bg-[var(--color-forest)] text-[var(--color-on-ink)]" : "border border-[var(--line-strong)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
             }`}
           >
-            {k.label}
+            {t(k.label)}
           </button>
         ))}
       </div>
-      <p className="text-sm text-[var(--color-ink)]/60">{current.help}</p>
+      <p className="text-sm text-[var(--color-ink)]/60">{t(current.help)}</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={labelClass}>
-          <span className={labelText}>{kind === "COUNT" ? `Counted quantity (${unit})` : `Quantity removed (${unit})`}</span>
+          <span className={labelText}>{kind === "COUNT" ? t("Counted quantity ({unit})", { unit: t(unit) }) : t("Quantity removed ({unit})", { unit: t(unit) })}</span>
           <input type="number" step={1} min={kind === "COUNT" ? undefined : 1} value={qty} onChange={(e) => setQty(e.target.value)} className="lunia-input min-h-11 tabular-nums" />
           {preview !== null && (
             <span className="text-xs text-[var(--color-ink)]/60">
-              Change {preview > 0 ? "+" : ""}
-              {preview} {unit}, new balance {stockQty + preview} {unit}
+              {t("Change {change}, new balance {balance}", { change: qtyUnit(`${preview > 0 ? "+" : ""}${preview}`, unit, t), balance: qtyUnit(stockQty + preview, unit, t) })}
             </span>
           )}
         </label>
         {kind !== "COUNT" && (
           <label className={labelClass}>
-            <span className={labelText}>Lot number (optional)</span>
-            <input value={lot} onChange={(e) => setLot(e.target.value)} className="lunia-input min-h-11 font-mono" />
+            <span className={labelText}>{t("Lot number (optional)")}</span>
+            <input dir="ltr" value={lot} onChange={(e) => setLot(e.target.value)} className="lunia-input min-h-11 font-mono" />
           </label>
         )}
         <label className={`${labelClass} sm:col-span-2`}>
-          <span className={labelText}>Reason (required)</span>
+          <span className={labelText}>{t("Reason (required)")}</span>
           <input required minLength={3} value={reason} onChange={(e) => setReason(e.target.value)} className="lunia-input min-h-11" />
         </label>
       </div>
@@ -97,7 +98,7 @@ export function AdjustmentForm({ productId, unit, stockQty }: { productId: strin
       {done && <p className="text-sm font-medium text-[var(--color-teal-ink)]">{done}</p>}
       <div>
         <button type="submit" disabled={isPending} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
-          {isPending ? "Posting…" : "Post adjustment"}
+          {isPending ? t("Posting…") : t("Post adjustment")}
         </button>
       </div>
     </form>

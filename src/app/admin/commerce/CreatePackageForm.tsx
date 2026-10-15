@@ -3,10 +3,12 @@
 import { useActionState, useId, useRef } from "react";
 import { createPackageAction, type CommerceActionState } from "./actions";
 import { InlineStatus } from "../_ui/Form";
+import { useStaffLocale, useStaffT } from "../_i18n/StaffI18n";
 
 interface ServiceOption {
   id: string;
   nameEn: string;
+  nameAr?: string;
 }
 
 const initialState: CommerceActionState = {};
@@ -24,6 +26,8 @@ export function CreatePackageForm({ services }: { services: ServiceOption[] }) {
   const priceId = useId();
   const activeId = useId();
   const formRef = useRef<HTMLFormElement>(null);
+  const t = useStaffT();
+  const locale = useStaffLocale();
 
   return (
     <form
@@ -37,48 +41,48 @@ export function CreatePackageForm({ services }: { services: ServiceOption[] }) {
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label htmlFor={nameEnId} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Name (English)</span>
-          <input id={nameEnId} name="nameEn" type="text" required className={inputClass} />
+          <span className="font-medium text-[var(--color-ink)]">{t("Name (English)")}</span>
+          <input id={nameEnId} name="nameEn" dir="ltr" type="text" required className={inputClass} />
         </label>
         <label htmlFor={nameArId} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Name (Arabic)</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Name (Arabic)")}</span>
           <input id={nameArId} name="nameAr" type="text" dir="rtl" required className={inputClass} />
         </label>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label htmlFor={serviceId} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Service (optional)</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Service (optional)")}</span>
           <select id={serviceId} name="serviceId" defaultValue="" className={inputClass}>
-            <option value="">Any service</option>
+            <option value="">{t("Any service")}</option>
             {services.map((service) => (
               <option key={service.id} value={service.id}>
-                {service.nameEn}
+                {locale === "ar" && service.nameAr ? service.nameAr : service.nameEn}
               </option>
             ))}
           </select>
         </label>
 
         <label htmlFor={sessionsId} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Sessions</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Sessions")}</span>
           <input id={sessionsId} name="sessionsTotal" type="number" min={1} step={1} required className={inputClass} />
         </label>
 
         <label htmlFor={priceId} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-[var(--color-ink)]">Price (SAR)</span>
+          <span className="font-medium text-[var(--color-ink)]">{t("Price (SAR)")}</span>
           <input id={priceId} name="priceSar" type="number" min={0} step="0.01" required className={inputClass} />
         </label>
       </div>
 
       <label className="flex max-w-xs flex-col gap-1 text-sm">
-        <span className="font-medium text-[var(--color-ink)]">Valid for (days)</span>
-        <input name="validityDays" type="number" min={1} max={3650} step={1} placeholder="Leave blank: never expires" className={inputClass} />
-        <span className="text-xs text-[var(--color-ink)]/55">Counted from the purchase date. Customers get a reminder 14 days before.</span>
+        <span className="font-medium text-[var(--color-ink)]">{t("Valid for (days)")}</span>
+        <input name="validityDays" type="number" min={1} max={3650} step={1} placeholder={t("Leave blank: never expires")} className={inputClass} />
+        <span className="text-xs text-[var(--color-ink)]/55">{t("Counted from the purchase date. Customers get a reminder 14 days before.")}</span>
       </label>
 
       <label htmlFor={activeId} className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
         <input id={activeId} name="isActive" type="checkbox" defaultChecked className="h-4 w-4" />
-        Active (available for purchase)
+        {t("Active (available for purchase)")}
       </label>
 
       <div className="flex items-center gap-4">
@@ -87,10 +91,10 @@ export function CreatePackageForm({ services }: { services: ServiceOption[] }) {
           disabled={pending}
           className="lunia-btn lunia-btn-primary disabled:opacity-60"
         >
-          {pending ? "Creating…" : "Create package"}
+          {pending ? t("Creating…") : t("Create package")}
         </button>
         <InlineStatus error={state.error} />
-        <InlineStatus success={state.success ? "Saved." : undefined} />
+        <InlineStatus success={state.success ? t("Saved.") : undefined} />
       </div>
     </form>
   );

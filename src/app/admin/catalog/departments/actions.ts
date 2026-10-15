@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
+import { catalogErrorMessage } from "../_errors";
 import { createDepartment, updateDepartment, deleteDepartment } from "@/modules/catalog/departments";
 
 export interface DepartmentActionState {
@@ -41,6 +43,7 @@ export async function createDepartmentAction(
   formData: FormData,
 ): Promise<DepartmentActionState> {
   await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
 
   const slug = String(formData.get("slug") ?? "").trim();
   const name = readLocalized(formData, "name");
@@ -48,7 +51,7 @@ export async function createDepartmentAction(
   const desc = readLocalized(formData, "desc");
 
   if (!slug || !name.en || !name.ar) {
-    return { error: "Slug and name (EN/AR) are required." };
+    return { error: t("Slug and name (EN/AR) are required.") };
   }
 
   try {
@@ -65,7 +68,7 @@ export async function createDepartmentAction(
       isPublished: formData.get("isPublished") === "on",
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create department." };
+    return { error: err instanceof Error ? catalogErrorMessage(err.message, t) : t("Failed to create department.") };
   }
 
   revalidatePublic();
@@ -77,10 +80,11 @@ export async function updateDepartmentAction(
   formData: FormData,
 ): Promise<DepartmentActionState> {
   await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await getStaffT();
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
-    return { error: "Missing department." };
+    return { error: t("Missing department.") };
   }
 
   const name = readLocalized(formData, "name");
@@ -100,7 +104,7 @@ export async function updateDepartmentAction(
       isPublished: formData.get("isPublished") === "on",
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update department." };
+    return { error: err instanceof Error ? catalogErrorMessage(err.message, t) : t("Failed to update department.") };
   }
 
   revalidatePublic();

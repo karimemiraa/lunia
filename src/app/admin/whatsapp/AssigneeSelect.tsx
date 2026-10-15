@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { assignConversationAction } from "./actions";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 interface AssigneeSelectProps {
   conversationId: string;
@@ -14,6 +15,7 @@ interface AssigneeSelectProps {
 // (no separate button) and refreshes so the list reflects the new owner.
 export function AssigneeSelect({ conversationId, ownerId, staff }: AssigneeSelectProps) {
   const router = useRouter();
+  const t = useStaffT();
   const [value, setValue] = useState(ownerId ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -30,16 +32,16 @@ export function AssigneeSelect({ conversationId, ownerId, staff }: AssigneeSelec
 
   return (
     <label className="flex items-center gap-2 text-xs text-[var(--color-ink)]/60">
-      <span className="whitespace-nowrap">Assigned to</span>
+      <span className="whitespace-nowrap">{t("Assigned to")}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={isPending}
-        aria-label="Assign conversation to staff"
+        aria-label={t("Assign conversation to staff")}
         className="lunia-input !w-auto py-1.5 text-sm"
         data-testid="whatsapp-assignee"
       >
-        <option value="">Unassigned</option>
+        <option value="">{t("Unassigned")}</option>
         {staff.map((s) => (
           <option key={s.id} value={s.id}>{s.name}</option>
         ))}

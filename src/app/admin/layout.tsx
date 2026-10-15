@@ -5,6 +5,7 @@ import { fontVariables } from "@/app/fonts";
 import { getStaffDisplay } from "./_i18n/display";
 import { SYSTEM_THEME_SCRIPT, ThemeSync } from "./_components/ThemeSync";
 import { AskLunia } from "./_components/AskLunia";
+import { StaffI18nProvider } from "./_i18n/StaffI18n";
 import { cookies, headers } from "next/headers";
 import { getCurrentUser } from "@/modules/iam/rbac";
 import { getAssistantApiKey } from "@/modules/staffAssistant/assistant";
@@ -21,9 +22,9 @@ export const viewport: Viewport = { themeColor: "#2b4d47" };
 // Auth-gated, per-request; never statically prerendered.
 export const dynamic = "force-dynamic";
 
-// The admin document stays English / LTR: page content (and every portaled
-// dialog/toast) is English. Staff who pick Arabic in the Display menu get a
-// mirrored RTL *shell* (sidebar, top bar, breadcrumbs, menus) — see AdminShell.
+// The admin document follows the staff member's language (Display menu):
+// English/LTR by default, Arabic/RTL when chosen, so portaled dialogs and
+// toasts mirror too. Strings are translated with t() (see _i18n/t.ts).
 // The theme (light / dark / match device) is a cookie, so data-theme is right on
 // the first byte. Fonts: Inter (Latin) + IBM Plex Sans Arabic, self-hosted.
 //
@@ -37,8 +38,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
-      lang="en"
-      dir="ltr"
+      lang={locale}
+      dir={locale === "ar" ? "rtl" : "ltr"}
       className={fontVariables}
       data-theme={theme === "dark" ? "midnight" : undefined}
       // "Match device" sets data-theme before hydration (script below).
@@ -46,9 +47,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     >
       <head>{theme === "system" && <script nonce={nonce} dangerouslySetInnerHTML={{ __html: SYSTEM_THEME_SCRIPT }} />}</head>
       <body className="lunia-staff bg-[var(--surface-2)] text-[var(--color-ink)]">
-        {children}
-        {staff && <AskLunia locale={locale} aiEnabled={aiEnabled} />}
-        <ThemeSync theme={theme} />
+        <StaffI18nProvider locale={locale}>
+          {children}
+          {staff && <AskLunia locale={locale} aiEnabled={aiEnabled} />}
+          <ThemeSync theme={theme} />
+        </StaffI18nProvider>
       </body>
     </html>
   );

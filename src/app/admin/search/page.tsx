@@ -13,6 +13,8 @@ import {
   type SearchHit,
   type SearchGroupKey,
 } from "@/modules/search/globalSearch";
+import { getStaffLocale, getStaffT } from "../_i18n/display";
+import type { T } from "../_i18n/t";
 
 interface SearchPageProps {
   searchParams: Promise<{ q?: string; in?: string }>;
@@ -30,7 +32,7 @@ const GROUP_ICON: Record<SearchGroupKey, string> = {
   callbacks: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z",
 };
 
-function ResultGroup({ group, hits }: { group: SearchGroupKey; hits: SearchHit[] }) {
+function ResultGroup({ group, hits, t }: { group: SearchGroupKey; hits: SearchHit[]; t: T }) {
   if (hits.length === 0) return null;
   return (
     <section id={group} className="flex flex-col gap-2" aria-labelledby={`h-${group}`}>
@@ -38,7 +40,7 @@ function ResultGroup({ group, hits }: { group: SearchGroupKey; hits: SearchHit[]
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
           <path d={GROUP_ICON[group]} />
         </svg>
-        {SEARCH_GROUP_LABELS[group]} <span className="lunia-tabular font-normal text-[var(--color-ink)]/40">({hits.length})</span>
+        {t(SEARCH_GROUP_LABELS[group])} <span className="lunia-tabular font-normal text-[var(--color-ink)]/40">({hits.length})</span>
       </h2>
       <ul className="flex flex-col gap-2">
         {hits.map((h) => (
@@ -48,7 +50,7 @@ function ResultGroup({ group, hits }: { group: SearchGroupKey; hits: SearchHit[]
               className="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 transition-colors hover:border-[var(--color-teal)] hover:bg-[var(--color-teal)]/[0.08] focus-visible:outline-none focus-visible:shadow-[var(--ring)]"
             >
               <span className="min-w-0">
-                <span className="block truncate font-medium text-[var(--color-ink)]">{h.title}</span>
+                <span className="block truncate font-medium text-[var(--color-ink)]">{t(h.title)}</span>
                 {h.subtitle && <span className="block truncate text-xs text-[var(--color-ink)]/55">{h.subtitle}</span>}
               </span>
               {h.badge && <StatusPill status={h.badge} className="shrink-0">{h.badge}</StatusPill>}
@@ -62,6 +64,7 @@ function ResultGroup({ group, hits }: { group: SearchGroupKey; hits: SearchHit[]
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const user = await requireAdmin();
+  const [t, locale] = await Promise.all([getStaffT(), getStaffLocale()]);
   const params = await searchParams;
   const query = (params.q ?? "").trim().slice(0, 80);
   const only = SEARCH_GROUPS.includes(params.in as SearchGroupKey) ? (params.in as SearchGroupKey) : undefined;
@@ -70,47 +73,50 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const searchable = SEARCH_GROUPS.filter((g) => user.permissions.has(SEARCH_GROUP_PERMISSION[g]));
   const nonEmpty = SEARCH_GROUPS.filter((g) => results[g].length > 0);
   const shown = only ? nonEmpty.filter((g) => g === only) : nonEmpty;
+  const groupList = locale === "ar" ? searchable.map((g) => t(SEARCH_GROUP_LABELS[g])).join("، ") : searchable.map((g) => SEARCH_GROUP_LABELS[g].toLowerCase()).join(", ");
+  // "{count} results in" with the number in bold.
+  const [countBefore, countAfter] = t(total === 1 ? "{count} result in" : "{count} results in").split("{count}");
 
   return (
-    <AdminShell user={user} title="Search" description={`Across ${searchable.map((g) => SEARCH_GROUP_LABELS[g].toLowerCase()).join(", ")}.`}>
+    <AdminShell user={user} title="Search" description={t("Across {groups}.", { groups: groupList })}>
       <form method="get" role="search" className="mb-6 flex flex-col gap-2 sm:flex-row">
         <label className="flex-1">
-          <span className="sr-only">Search query</span>
+          <span className="sr-only">{t("Search query")}</span>
           <input
             type="search"
             name="q"
             defaultValue={query}
             autoFocus
-            placeholder="Name, phone, invoice number, SKU, barcode…"
+            placeholder={t("Name, phone, invoice number, SKU, barcode…")}
             className="lunia-input"
             minLength={2}
           />
         </label>
-        <button type="submit" className="lunia-btn lunia-btn-forest">Search</button>
+        <button type="submit" className="lunia-btn lunia-btn-forest">{t("Search")}</button>
       </form>
 
       {query.length < 2 ? (
         <div className="lunia-card">
           <EmptyState
-            title="What are you looking for?"
-            body="Type at least 2 characters. Tip: press / anywhere to open the quick search."
+            title={t("What are you looking for?")}
+            body={t("Type at least 2 characters. Tip: press / anywhere to open the quick search.")}
             icon={<><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>}
           />
         </div>
       ) : total === 0 ? (
         <div className="lunia-card">
           <EmptyState
-            title={`No results for “${query}”`}
-            body="Try fewer words, the last digits of a phone number, an invoice number like INV-2026-000123, or a product SKU."
+            title={t("No results for “{query}”", { query })}
+            body={t("Try fewer words, the last digits of a phone number, an invoice number like INV-2026-000123, or a product SKU.")}
             action={
               <div className="flex flex-wrap justify-center gap-2">
                 {user.permissions.has(SEARCH_GROUP_PERMISSION.customers) && (
-                  <Link href={`/admin/clients?search=${encodeURIComponent(query)}`} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">Search customers list</Link>
+                  <Link href={`/admin/clients?search=${encodeURIComponent(query)}`} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">{t("Search customers list")}</Link>
                 )}
                 {user.permissions.has(SEARCH_GROUP_PERMISSION.invoices) && (
-                  <Link href={`/admin/billing?q=${encodeURIComponent(query)}`} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">Search invoices</Link>
+                  <Link href={`/admin/billing?q=${encodeURIComponent(query)}`} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">{t("Search invoices")}</Link>
                 )}
-                <Link href="/admin" className="lunia-btn lunia-btn-ghost lunia-btn-sm">Back to dashboard</Link>
+                <Link href="/admin" className="lunia-btn lunia-btn-ghost lunia-btn-sm">{t("Back to dashboard")}</Link>
               </div>
             }
           />
@@ -119,10 +125,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="text-[var(--color-ink)]/55">
-              <span className="lunia-tabular font-semibold text-[var(--color-ink)]">{total}</span> result{total === 1 ? "" : "s"} in
+              {countBefore}
+              <span className="lunia-tabular font-semibold text-[var(--color-ink)]">{total}</span>
+              {countAfter}
             </span>
             <Link href={`/admin/search?q=${encodeURIComponent(query)}`} className={`lunia-pill ${!only ? "" : "opacity-70"}`} data-tone={!only ? "info" : "neutral"} aria-current={!only ? "page" : undefined}>
-              All
+              {t("All")}
             </Link>
             {nonEmpty.map((g) => (
               <Link
@@ -132,12 +140,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 data-tone={only === g ? "info" : "neutral"}
                 aria-current={only === g ? "page" : undefined}
               >
-                {SEARCH_GROUP_LABELS[g]} {results[g].length}
+                {t(SEARCH_GROUP_LABELS[g])} {results[g].length}
               </Link>
             ))}
           </div>
           {shown.map((g) => (
-            <ResultGroup key={g} group={g} hits={results[g]} />
+            <ResultGroup key={g} group={g} hits={results[g]} t={t} />
           ))}
         </div>
       )}

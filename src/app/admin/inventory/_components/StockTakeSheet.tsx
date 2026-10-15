@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { postStockTakeAction, previewStockTakeAction } from "../actions";
 import { formatSarMinor } from "@/modules/inventory/money";
 import type { StockTakeVariance } from "@/modules/inventory/ledger";
-import { labelClass, labelText } from "./ui";
+import { labelClass, labelText, productName, qtyUnit } from "./ui";
 import { useConfirm } from "../../_ui/ConfirmDialog";
+import { useStaffLocale, useStaffT } from "../../_i18n/StaffI18n";
 
 export interface StockTakeProduct {
   id: string;
   nameEn: string;
+  nameAr?: string | null;
   sku: string | null;
   barcode: string | null;
   category: string | null;
@@ -25,6 +27,8 @@ const DRAFT_KEY = "lunia:inventory:stocktake-draft";
 // in-progress count is kept in localStorage so a reload doesn't lose it.
 export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
   const [confirm, confirmDialog] = useConfirm();
+  const t = useStaffT();
+  const locale = useStaffLocale();
   const router = useRouter();
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [q, setQ] = useState("");
@@ -61,6 +65,7 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
     });
   }
 
+  const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter((c): c is string => !!c))].sort(), [products]);
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -68,7 +73,7 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
       (p) =>
         (!category || p.category === category) &&
         (!onlyCounted || counts[p.id] !== undefined) &&
-        (!needle || [p.nameEn, p.sku, p.barcode].some((s) => s?.toLowerCase().includes(needle))),
+        (!needle || [p.nameEn, p.nameAr, p.sku, p.barcode].some((s) => s?.toLowerCase().includes(needle))),
     );
   }, [products, q, category, onlyCounted, counts]);
 
@@ -97,7 +102,7 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
   function runPreview() {
     setError(null);
     setPosted(null);
-    if (entries.length === 0) return setError("Enter at least one counted quantity.");
+    if (entries.length === 0) return setError(t("Enter at least one counted quantity."));
     startTransition(async () => {
       const result = await previewStockTakeAction({ counts: entries });
       if (!result.ok) return setError(result.error);
@@ -108,13 +113,19 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
   async function post() {
     if (!preview) return;
     const changes = preview.filter((v) => v.variance !== 0).length;
-    if (!(await confirm({ title: `Post ${changes} adjustment(s) from this count?`, description: "This updates stock immediately.", confirmLabel: "Post adjustments", danger: false }))) return;
+    const ok = await confirm({
+      title: t("Post {count} adjustment(s) from this count?", { count: changes }),
+      description: t("This updates stock immediately."),
+      confirmLabel: t("Post adjustments"),
+      danger: false,
+    });
+    if (!ok) return;
     setError(null);
     startTransition(async () => {
       const result = await postStockTakeAction({ counts: entries, note: note.trim() || undefined });
       if (!result.ok) return setError(result.error);
       const d = result.data!;
-      setPosted(`Posted: ${d.counted} counted, ${d.adjusted} adjusted, net ${formatSarMinor(d.netValueMinor)} at cost.`);
+      setPosted(t("Posted: {counted} counted, {adjusted} adjusted, net {net} at cost.", { counted: d.counted, adjusted: d.adjusted, net: formatSarMinor(d.netValueMinor) }));
       setPreview(null);
       setCounts({});
       setNote("");
@@ -135,21 +146,21 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
       {confirmDialog}
       <div className="lunia-card grid gap-3 p-4 sm:grid-cols-[1fr_14rem_auto] sm:items-end">
         <label className={labelClass}>
-          <span className={labelText}>Find or scan</span>
+          <span className={labelText}>{t("Find or scan")}</span>
           <input
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onSearchKey}
-            placeholder="Name, SKU, or scan a barcode"
+            placeholder={t("Name, SKU, or scan a barcode")}
             autoComplete="off"
             className="lunia-input min-h-11"
           />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Category</span>
+          <span className={labelText}>{t("Category")}</span>
           <select value={category} onChange={(e) => setCategory(e.target.value)} className="lunia-input min-h-11">
-            <option value="">All</option>
+            <option value="">{t("All")}</option>
             {categories.map((c) => (
               <option key={c}>{c}</option>
             ))}
@@ -157,12 +168,12 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
         </label>
         <label className="flex min-h-11 items-center gap-2 text-sm">
           <input type="checkbox" checked={onlyCounted} onChange={(e) => setOnlyCounted(e.target.checked)} className="h-5 w-5 accent-[var(--color-teal-ink)]" />
-          Counted only
+          {t("Counted only")}
         </label>
       </div>
 
       <div className="lunia-card divide-y divide-[var(--line)]">
-        {visible.length === 0 && <p className="px-4 py-8 text-center text-sm text-[var(--color-ink)]/60">No products match.</p>}
+        {visible.length === 0 && <p className="px-4 py-8 text-center text-sm text-[var(--color-ink)]/60">{t("No products match.")}</p>}
         {visible.map((p) => {
           const value = counts[p.id] ?? "";
           const n = Number(value);
@@ -170,15 +181,15 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
           return (
             <div key={p.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{p.nameEn}</div>
+                <div className="truncate text-sm font-medium">{productName(p, locale)}</div>
                 <div className="text-xs text-[var(--color-ink)]/55">{[p.sku, p.category].filter(Boolean).join(" · ") || "—"}</div>
               </div>
-              <div className="w-24 text-right text-sm tabular-nums text-[var(--color-ink)]/70">
-                <span className="block text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-ink)]/45">System</span>
-                {p.stockQty} {p.unit}
+              <div className="w-24 text-end text-sm tabular-nums text-[var(--color-ink)]/70">
+                <span className="block text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-ink)]/45">{t("System")}</span>
+                {qtyUnit(p.stockQty, p.unit, t)}
               </div>
               <label className="w-28">
-                <span className="sr-only">Counted quantity for {p.nameEn}</span>
+                <span className="sr-only">{t("Counted quantity for {name}", { name: productName(p, locale) })}</span>
                 <input
                   ref={(el) => {
                     if (el) inputs.current.set(p.id, el);
@@ -189,12 +200,12 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
                   min={0}
                   step={1}
                   value={value}
-                  placeholder="Count"
+                  placeholder={t("Count")}
                   onChange={(e) => updateCount(p.id, e.target.value)}
-                  className="lunia-input min-h-11 text-right tabular-nums"
+                  className="lunia-input min-h-11 text-end tabular-nums"
                 />
               </label>
-              <div className={`w-16 text-right text-sm font-medium tabular-nums ${variance ? (variance < 0 ? "text-red-700" : "text-[var(--color-teal-ink)]") : "text-[var(--color-ink)]/40"}`}>
+              <div className={`w-16 text-end text-sm font-medium tabular-nums ${variance ? (variance < 0 ? "text-red-700" : "text-[var(--color-teal-ink)]") : "text-[var(--color-ink)]/40"}`}>
                 {variance === null ? "" : `${variance > 0 ? "+" : ""}${variance}`}
               </div>
             </div>
@@ -205,14 +216,14 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
       <div className="lunia-card flex flex-col gap-4 p-5">
         <div className="flex flex-wrap items-end gap-3">
           <label className={`${labelClass} min-w-[16rem] flex-1`}>
-            <span className={labelText}>Note (optional)</span>
-            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Monthly count, treatment room 2" className="lunia-input min-h-11" />
+            <span className={labelText}>{t("Note (optional)")}</span>
+            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("e.g. Monthly count, treatment room 2")} className="lunia-input min-h-11" />
           </label>
           <button type="button" onClick={runPreview} disabled={isPending} className="lunia-btn lunia-btn-forest-outline min-h-11 disabled:opacity-60">
-            Preview variances ({entries.length})
+            {t("Preview variances ({count})", { count: entries.length })}
           </button>
           <button type="button" onClick={post} disabled={isPending || !preview} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-50">
-            {isPending ? "Working…" : "Post stock-take"}
+            {isPending ? t("Working…") : t("Post stock-take")}
           </button>
         </div>
         {error && (
@@ -225,39 +236,39 @@ export function StockTakeSheet({ products }: { products: StockTakeProduct[] }) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-[0.1em] text-[var(--color-ink)]/55">
-                  <th className="py-2 pe-3">Product</th>
-                  <th className="py-2 pe-3 text-right">System</th>
-                  <th className="py-2 pe-3 text-right">Counted</th>
-                  <th className="py-2 pe-3 text-right">Variance</th>
-                  <th className="py-2 text-right">Value at cost</th>
+                <tr className="text-start text-xs uppercase tracking-[0.1em] text-[var(--color-ink)]/55">
+                  <th className="py-2 pe-3">{t("Product")}</th>
+                  <th className="py-2 pe-3 text-end">{t("System")}</th>
+                  <th className="py-2 pe-3 text-end">{t("Counted")}</th>
+                  <th className="py-2 pe-3 text-end">{t("Variance")}</th>
+                  <th className="py-2 text-end">{t("Value at cost")}</th>
                 </tr>
               </thead>
               <tbody>
                 {shown.map((v) => (
                   <tr key={v.productId} className="border-t border-[var(--line)]">
-                    <td className="py-2 pe-3">{v.nameEn}</td>
-                    <td className="py-2 pe-3 text-right tabular-nums">{v.systemQty}</td>
-                    <td className="py-2 pe-3 text-right tabular-nums">{v.countedQty}</td>
-                    <td className={`py-2 pe-3 text-right font-medium tabular-nums ${v.variance < 0 ? "text-red-700" : v.variance > 0 ? "text-[var(--color-teal-ink)]" : ""}`}>
+                    <td className="py-2 pe-3">{productName({ nameEn: v.nameEn, nameAr: byId.get(v.productId)?.nameAr }, locale)}</td>
+                    <td className="py-2 pe-3 text-end tabular-nums">{v.systemQty}</td>
+                    <td className="py-2 pe-3 text-end tabular-nums">{v.countedQty}</td>
+                    <td className={`py-2 pe-3 text-end font-medium tabular-nums ${v.variance < 0 ? "text-red-700" : v.variance > 0 ? "text-[var(--color-teal-ink)]" : ""}`}>
                       {v.variance > 0 ? "+" : ""}
-                      {v.variance} {v.unit}
+                      {qtyUnit(v.variance, v.unit, t)}
                     </td>
-                    <td className="py-2 text-right tabular-nums">{formatSarMinor(v.varianceValueMinor)}</td>
+                    <td className="py-2 text-end tabular-nums">{formatSarMinor(v.varianceValueMinor)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="border-t border-[var(--line-strong)] font-semibold">
                   <td className="py-2" colSpan={4}>
-                    Net variance ({shown.filter((v) => v.variance !== 0).length} to adjust)
+                    {t("Net variance ({count} to adjust)", { count: shown.filter((v) => v.variance !== 0).length })}
                   </td>
-                  <td className={`py-2 text-right tabular-nums ${netValue < 0 ? "text-red-700" : ""}`}>{formatSarMinor(netValue)}</td>
+                  <td className={`py-2 text-end tabular-nums ${netValue < 0 ? "text-red-700" : ""}`}>{formatSarMinor(netValue)}</td>
                 </tr>
               </tfoot>
             </table>
             <p className="mt-2 text-xs text-[var(--color-ink)]/55">
-              Variances are recalculated at the moment you post, so anything used or sold in between is accounted for.
+              {t("Variances are recalculated at the moment you post, so anything used or sold in between is accounted for.")}
             </p>
           </div>
         )}

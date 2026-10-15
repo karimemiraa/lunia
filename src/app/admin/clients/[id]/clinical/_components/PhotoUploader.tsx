@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadPhotoAction } from "../actions";
+import { useStaffT } from "../../../../_i18n/StaffI18n";
 
 interface PhotoUploaderProps {
   clientProfileId: string;
@@ -43,6 +44,7 @@ async function prepare(file: File): Promise<Blob> {
 
 export function PhotoUploader({ clientProfileId, records, defaultRecordId }: PhotoUploaderProps) {
   const router = useRouter();
+  const t = useStaffT();
   const fileRef = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState("BEFORE");
   const [area, setArea] = useState("");
@@ -63,7 +65,7 @@ export function PhotoUploader({ clientProfileId, records, defaultRecordId }: Pho
     // One request per file keeps each under the server-action body limit.
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      setProgress(`Uploading ${i + 1} of ${files.length}…`);
+      setProgress(t("Uploading {current} of {total}…", { current: i + 1, total: files.length }));
       const blob = await prepare(file);
       const fd = new FormData();
       fd.set("clientProfileId", clientProfileId);
@@ -74,11 +76,11 @@ export function PhotoUploader({ clientProfileId, records, defaultRecordId }: Pho
       fd.set("note", note);
       fd.set("treatmentRecordId", recordId);
       if (file.lastModified) fd.set("takenAt", new Date(file.lastModified).toISOString());
-      const result = await uploadPhotoAction(fd).catch(() => ({ ok: false as const, error: "Upload failed." }));
+      const result = await uploadPhotoAction(fd).catch(() => ({ ok: false as const, error: t("Upload failed.") }));
       if (!result.ok) failed.push(`${file.name}: ${result.error}`);
     }
     setBusy(false);
-    setProgress(failed.length ? null : `Uploaded ${files.length} photo${files.length === 1 ? "" : "s"}.`);
+    setProgress(failed.length ? null : t(files.length === 1 ? "Uploaded 1 photo." : "Uploaded {count} photos.", { count: files.length }));
     setErrors(failed);
     setFiles([]);
     if (fileRef.current) fileRef.current.value = "";
@@ -87,7 +89,7 @@ export function PhotoUploader({ clientProfileId, records, defaultRecordId }: Pho
 
   return (
     <form onSubmit={upload} className="flex flex-col gap-4" data-testid="photo-uploader">
-      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Photo type">
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("Photo type")}>
         {KINDS.map((k) => (
           <label
             key={k.value}
@@ -96,42 +98,42 @@ export function PhotoUploader({ clientProfileId, records, defaultRecordId }: Pho
             }`}
           >
             <input type="radio" name="kind" value={k.value} checked={kind === k.value} onChange={() => setKind(k.value)} className="sr-only" />
-            {k.label}
+            {t(k.label)}
           </label>
         ))}
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <input value={area} onChange={(e) => setArea(e.target.value)} placeholder="Area (e.g. left cheek, crown)" className="lunia-input min-h-11" maxLength={80} />
+        <input value={area} onChange={(e) => setArea(e.target.value)} placeholder={t("Area (e.g. left cheek, crown)")} className="lunia-input min-h-11" maxLength={80} />
         <input
           value={device}
           onChange={(e) => setDevice(e.target.value)}
-          placeholder={kind === "ANALYSIS" ? "Analyzer (e.g. Observ 520x)" : "Device / camera (optional)"}
+          placeholder={kind === "ANALYSIS" ? t("Analyzer (e.g. Observ 520x)") : t("Device / camera (optional)")}
           className="lunia-input min-h-11"
           maxLength={120}
         />
-        <select value={recordId} onChange={(e) => setRecordId(e.target.value)} className="lunia-input min-h-11" aria-label="Link to treatment record">
-          <option value="">Not linked to a session</option>
+        <select value={recordId} onChange={(e) => setRecordId(e.target.value)} className="lunia-input min-h-11" aria-label={t("Link to treatment record")}>
+          <option value="">{t("Not linked to a session")}</option>
           {records.map((r) => (
             <option key={r.id} value={r.id}>
               {r.label}
             </option>
           ))}
         </select>
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" className="lunia-input min-h-11" maxLength={500} />
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("Note (optional)")} className="lunia-input min-h-11" maxLength={500} />
       </div>
       <div className="flex flex-wrap items-center gap-3">
         {/* capture opens the camera on iPad/iPhone; multiple allows bulk import of analyzer exports from Files. */}
         <label className="lunia-btn lunia-btn-ghost min-h-11 cursor-pointer">
-          Take photo
+          {t("Take photo")}
           <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
         </label>
         <label className="lunia-btn lunia-btn-ghost min-h-11 cursor-pointer">
-          Choose files
+          {t("Choose files")}
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
         </label>
-        <span className="text-sm text-[var(--color-ink)]/60">{files.length ? `${files.length} selected` : "JPG, PNG, WebP or HEIC, up to 20MB each"}</span>
+        <span className="text-sm text-[var(--color-ink)]/60">{files.length ? t("{count} selected", { count: files.length }) : t("JPG, PNG, WebP or HEIC, up to 20MB each")}</span>
         <button type="submit" disabled={busy || files.length === 0} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-50">
-          {busy ? "Uploading…" : "Upload"}
+          {busy ? t("Uploading…") : t("Upload")}
         </button>
       </div>
       {progress && <p role="status" className="text-sm text-[var(--color-ink)]/70">{progress}</p>}

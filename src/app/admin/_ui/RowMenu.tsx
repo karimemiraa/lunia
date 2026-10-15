@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import "./tokens.css";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 export interface MenuItem {
   label: ReactNode;
@@ -27,7 +28,10 @@ interface RowMenuProps {
  * Overflow ("kebab") menu for row actions: keyboard-operable (arrows, Home/
  * End, Escape, Enter), rendered in a portal so table overflow never clips it.
  */
-export function RowMenu({ items, label = "Row actions", triggerLabel, className = "" }: RowMenuProps) {
+export function RowMenu({ items, label: rawLabel = "Row actions", triggerLabel, className = "" }: RowMenuProps) {
+  const t = useStaffT();
+  const label = t(rawLabel);
+  const tr = (node: ReactNode) => (typeof node === "string" ? t(node) : node);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number; alignEnd: boolean }>({ top: 0, left: 0, alignEnd: false });
   const [active, setActive] = useState(0);
@@ -127,7 +131,7 @@ export function RowMenu({ items, label = "Row actions", triggerLabel, className 
             : `inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-teal)] ${className}`
         }
       >
-        {triggerLabel ?? (
+        {tr(triggerLabel) ?? (
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
             <circle cx="5" cy="12" r="1.8" />
             <circle cx="12" cy="12" r="1.8" />
@@ -161,11 +165,11 @@ export function RowMenu({ items, label = "Row actions", triggerLabel, className 
               };
               return item.href ? (
                 <Link key={i} href={item.href} target={item.external ? "_blank" : undefined} className={cls} {...common}>
-                  {item.label}
+                  {tr(item.label)}
                 </Link>
               ) : (
                 <button key={i} type="button" className={cls} {...common}>
-                  {item.label}
+                  {tr(item.label)}
                 </button>
               );
             })}

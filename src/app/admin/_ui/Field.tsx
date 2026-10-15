@@ -2,16 +2,24 @@
 
 import { useId, useState, type InputHTMLAttributes, type ReactNode, type Ref, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import "./tokens.css";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 import { errorTextClass, helpTextClass, inputClass, invalidInputClass, labelTextClass } from "./labels";
 
 export { errorTextClass, helpTextClass, inputClass, invalidInputClass, labelTextClass };
 
+/** Plain-string labels, help and errors go through the staff dictionary (unknown text stays as is). */
+function useTr() {
+  const t = useStaffT();
+  return (node: ReactNode): ReactNode => (typeof node === "string" ? t(node) : node);
+}
+
 export function FieldError({ id, children }: { id?: string; children?: ReactNode }) {
+  const tr = useTr();
   if (!children) return null;
   return (
     <p id={id} role="alert" className={errorTextClass}>
-      {children}
+      {tr(children)}
     </p>
   );
 }
@@ -32,11 +40,12 @@ interface ShellProps {
 
 /** Label + control + help + error, with the aria wiring done for you. */
 export function FieldShell({ label, htmlFor, required, help, error, helpId, errorId, className = "", trailing, children }: ShellProps) {
+  const tr = useTr();
   return (
     <div className={`flex min-w-0 flex-col gap-1.5 text-sm ${className}`}>
       <div className="flex items-center justify-between gap-2">
         <label htmlFor={htmlFor} className={labelTextClass}>
-          {label}
+          {tr(label)}
           {required && (
             <span aria-hidden="true" className="ms-1 text-[var(--status-danger-ink)]">
               *
@@ -48,7 +57,7 @@ export function FieldShell({ label, htmlFor, required, help, error, helpId, erro
       {children}
       {help && !error && (
         <p id={helpId} className={helpTextClass}>
-          {help}
+          {tr(help)}
         </p>
       )}
       <FieldError id={errorId}>{error}</FieldError>
@@ -81,7 +90,8 @@ export interface FieldProps extends Omit<Native, "type" | "className" | "childre
  * wiring. Works uncontrolled in server-action forms or controlled with
  * value/onChange.
  */
-export function Field({ label, name, type = "text", help, error, required, className, inputClassName = "", trailing, suffix, prefix, onBlur, onInvalid, onChange, id, ...rest }: FieldProps) {
+export function Field({ label, name, type = "text", help, error, required, className, inputClassName = "", trailing, suffix, prefix, onBlur, onInvalid, onChange, id, placeholder, dir, ...rest }: FieldProps) {
+  const t = useStaffT();
   const autoId = useId();
   const inputId = id ?? `${name}-${autoId}`;
   const helpId = `${inputId}-help`;
@@ -99,6 +109,9 @@ export function Field({ label, name, type = "text", help, error, required, class
       required={required}
       aria-invalid={shown ? true : undefined}
       aria-describedby={describedBy}
+      placeholder={placeholder && t(placeholder)}
+      // Emails, URLs and phone numbers read left-to-right even in Arabic.
+      dir={dir ?? (type === "email" || type === "url" || type === "tel" ? "ltr" : undefined)}
       className={`${inputClass} ${shown ? invalidInputClass : ""} ${prefix ? "ps-9" : ""} ${suffix ? "pe-12" : ""} ${inputClassName}`}
       onBlur={(e) => {
         onBlur?.(e);
@@ -124,9 +137,9 @@ export function Field({ label, name, type = "text", help, error, required, class
     <FieldShell label={label} htmlFor={inputId} required={required} help={help} error={shown} helpId={helpId} errorId={errorId} className={className} trailing={trailing}>
       {prefix || suffix ? (
         <div className="relative">
-          {prefix && <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-sm text-[var(--color-ink)]/50">{prefix}</span>}
+          {prefix && <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-sm text-[var(--color-ink)]/50">{typeof prefix === "string" ? t(prefix) : prefix}</span>}
           {control}
-          {suffix && <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-sm text-[var(--color-ink)]/50">{suffix}</span>}
+          {suffix && <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-sm text-[var(--color-ink)]/50">{typeof suffix === "string" ? t(suffix) : suffix}</span>}
         </div>
       ) : (
         control
@@ -145,7 +158,8 @@ export interface TextareaFieldProps extends Omit<TextareaHTMLAttributes<HTMLText
   trailing?: ReactNode;
 }
 
-export function TextareaField({ label, name, help, error, required, className, inputClassName = "", trailing, rows = 4, onBlur, onInvalid, id, ...rest }: TextareaFieldProps) {
+export function TextareaField({ label, name, help, error, required, className, inputClassName = "", trailing, rows = 4, onBlur, onInvalid, id, placeholder, ...rest }: TextareaFieldProps) {
+  const t = useStaffT();
   const autoId = useId();
   const inputId = id ?? `${name}-${autoId}`;
   const helpId = `${inputId}-help`;
@@ -159,6 +173,7 @@ export function TextareaField({ label, name, help, error, required, className, i
         id={inputId}
         name={name}
         rows={rows}
+        placeholder={placeholder && t(placeholder)}
         required={required}
         aria-invalid={shown ? true : undefined}
         aria-describedby={describedBy}
@@ -221,13 +236,14 @@ export function SelectField({ label, name, help, error, required, className, inp
 /** A 44px checkbox/switch row with the label as the hit target. */
 export function CheckboxField({ label, name, help, className = "", ...rest }: { label: ReactNode; name: string; help?: ReactNode; className?: string } & Omit<Native, "type" | "className">) {
   const id = useId();
+  const tr = useTr();
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       <label htmlFor={id} className="inline-flex min-h-11 cursor-pointer items-center gap-3 text-sm text-[var(--color-ink)]">
         <input id={id} type="checkbox" name={name} className="h-5 w-5 shrink-0 rounded accent-[var(--color-forest)]" {...rest} />
-        <span>{label}</span>
+        <span>{tr(label)}</span>
       </label>
-      {help && <p className={`${helpTextClass} ps-8`}>{help}</p>}
+      {help && <p className={`${helpTextClass} ps-8`}>{tr(help)}</p>}
     </div>
   );
 }

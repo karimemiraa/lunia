@@ -3,6 +3,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { FieldShell, inputClass, invalidInputClass } from "./Field";
 import { minorToInput, parseSarToMinor } from "./money";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 interface MoneyInputProps {
   label: ReactNode;
@@ -33,6 +34,7 @@ interface MoneyInputProps {
  * the value as a decimal string and reports halalas to the caller.
  */
 export function MoneyInput({ label, name, defaultMinor, value, onChange, required, help, error, disabled, placeholder = "0.00", vat, min, className, inputClassName = "", autoFocus, id }: MoneyInputProps) {
+  const tr = useStaffT();
   const autoId = useId();
   const inputId = id ?? `${name ?? "amount"}-${autoId}`;
   const [inner, setInner] = useState(() => minorToInput(defaultMinor ?? 0));
@@ -44,12 +46,12 @@ export function MoneyInput({ label, name, defaultMinor, value, onChange, require
 
   function validate(t: string) {
     if (!t.trim()) {
-      setLocalError(required ? "Enter an amount." : null);
+      setLocalError(required ? tr("Enter an amount.") : null);
       return;
     }
     const minor = parseSarToMinor(t);
-    if (minor === null) setLocalError("Enter an amount like 250 or 249.50.");
-    else if (min !== undefined && minor < min) setLocalError(`Must be at least ${minorToInput(min) || "0"} SAR.`);
+    if (minor === null) setLocalError(tr("Enter an amount like 250 or 249.50."));
+    else if (min !== undefined && minor < min) setLocalError(tr("Must be at least {min} SAR.", { min: minorToInput(min) || "0" }));
     else setLocalError(null);
   }
 
@@ -67,6 +69,7 @@ export function MoneyInput({ label, name, defaultMinor, value, onChange, require
           required={required}
           placeholder={placeholder}
           value={text}
+          dir="ltr"
           aria-invalid={shown ? true : undefined}
           aria-describedby={[help && !shown ? helpId : null, shown ? errorId : null].filter(Boolean).join(" ") || undefined}
           onChange={(e) => {
@@ -79,7 +82,7 @@ export function MoneyInput({ label, name, defaultMinor, value, onChange, require
           className={`${inputClass} pe-20 text-end tabular-nums ${shown ? invalidInputClass : ""} ${inputClassName}`}
         />
         <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center gap-1 text-xs text-[var(--color-ink)]/50">
-          SAR{vat && <span className="text-[0.6rem] uppercase tracking-wide">{vat === "incl" ? "incl. VAT" : "excl. VAT"}</span>}
+          {tr("SAR")}{vat && <span className="text-[0.6rem] uppercase tracking-wide">{tr(vat === "incl" ? "incl. VAT" : "excl. VAT")}</span>}
         </span>
       </div>
     </FieldShell>

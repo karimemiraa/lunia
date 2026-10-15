@@ -1,5 +1,8 @@
 import Link from "next/link";
 import type { MonthDayCell } from "@/modules/booking/bookings";
+import { getStaffDisplay } from "../_i18n/display";
+import { intlLocale, makeT } from "../_i18n/t";
+import { weekdayNames } from "./labels";
 
 interface MonthViewProps {
   /** Selected month, "YYYY-MM". */
@@ -13,8 +16,6 @@ interface MonthViewProps {
   /** Preserve the staff filter across day/month navigation. */
   staffUserId?: string;
 }
-
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 // Small color accent per booking status (left border of each chip).
 const STATUS_ACCENT: Record<string, string> = {
@@ -40,9 +41,17 @@ function hrefFor(params: { month?: string; day?: string; staffUserId?: string })
   return `?${sp.toString()}`;
 }
 
-export function MonthView({ monthISO, selectedDateISO, todayISO, days, staffUserId }: MonthViewProps) {
+// Month chips carry a pre-formatted English time ("9:30 AM") from the booking
+// module; Arabic shows the same clock time with «ص» / «م».
+const chipTime = (time: string, ar: boolean) => (ar ? time.replace(/\s?AM$/, " ص").replace(/\s?PM$/, " م") : time);
+
+export async function MonthView({ monthISO, selectedDateISO, todayISO, days, staffUserId }: MonthViewProps) {
+  const { locale } = await getStaffDisplay();
+  const t = makeT(locale);
+  const ar = locale === "ar";
+  const WEEKDAYS = weekdayNames(locale, "short");
   const [year, month] = monthISO.split("-").map(Number);
-  const monthLabel = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+  const monthLabel = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { month: "long", year: "numeric", timeZone: "UTC" }).format(
     new Date(Date.UTC(year!, month! - 1, 1)),
   );
 
@@ -64,7 +73,7 @@ export function MonthView({ monthISO, selectedDateISO, todayISO, days, staffUser
           <Link
             href={hrefFor({ month: shiftMonth(monthISO, -1), staffUserId })}
             className="lunia-btn lunia-btn-ghost lunia-btn-sm"
-            aria-label="Previous month"
+            aria-label={t("Previous month")}
           >
             ‹
           </Link>
@@ -72,12 +81,12 @@ export function MonthView({ monthISO, selectedDateISO, todayISO, days, staffUser
             href={hrefFor({ month: todayISO.slice(0, 7), day: todayISO, staffUserId })}
             className="lunia-btn lunia-btn-ghost lunia-btn-sm"
           >
-            Today
+            {t("Today")}
           </Link>
           <Link
             href={hrefFor({ month: shiftMonth(monthISO, 1), staffUserId })}
             className="lunia-btn lunia-btn-ghost lunia-btn-sm"
-            aria-label="Next month"
+            aria-label={t("Next month")}
           >
             ›
           </Link>
@@ -129,13 +138,13 @@ export function MonthView({ monthISO, selectedDateISO, todayISO, days, staffUser
                     className={`truncate border-s-2 ps-1 text-[0.62rem] leading-tight text-[var(--color-ink)]/75 ${
                       STATUS_ACCENT[item.status] ?? "border-s-[var(--color-ink)]/30"
                     }`}
-                    title={`${item.time} ${item.clientName}`}
+                    title={`${chipTime(item.time, ar)} ${t(item.clientName)}`}
                   >
-                    {item.time} {item.clientName}
+                    {chipTime(item.time, ar)} {t(item.clientName)}
                   </span>
                 ))}
                 {cell && cell.count > cell.items.length && (
-                  <span className="ps-1 text-[0.6rem] text-[var(--color-ink)]/45">+{cell.count - cell.items.length} more</span>
+                  <span className="ps-1 text-[0.6rem] text-[var(--color-ink)]/45">{t("+{count} more", { count: cell.count - cell.items.length })}</span>
                 )}
               </div>
             </Link>

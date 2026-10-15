@@ -4,6 +4,7 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { listCallbacks, type CallbackFilter } from "@/modules/assistant/callbacks";
 import { displayPhone } from "@/modules/assistant/phone";
 import { FilterChips } from "../assistant/_ui";
+import { getStaffT } from "../_i18n/display";
 import { CallbackQueue, type CallbackCardDTO } from "./CallbackQueue";
 import { NewCallbackForm } from "./NewCallbackForm";
 
@@ -15,6 +16,7 @@ const VIEWS = ["done", "all"] as const;
 
 export default async function CallbacksPage({ searchParams }: CallbacksPageProps) {
   const user = await requireAdmin(PERMISSIONS.CLIENT_VIEW);
+  const t = await getStaffT();
   const canManage = user.permissions.has(PERMISSIONS.CLIENT_MANAGE);
   const params = await searchParams;
   const view: CallbackFilter = params.view === "done" || params.view === "all" ? params.view : "open";
@@ -51,7 +53,7 @@ export default async function CallbacksPage({ searchParams }: CallbacksPageProps
       description="People who asked us to call them. Open requests come first, most overdue on top."
       actions={canManage ? <NewCallbackForm /> : undefined}
     >
-      <FilterChips base="/admin/callbacks" param="view" values={VIEWS} active={view === "open" ? undefined : view} defaultLabel="Open" />
+      <FilterChips base="/admin/callbacks" param="view" values={VIEWS} active={view === "open" ? undefined : view} defaultLabel="Open" filterLabel={t("Filter")} />
       <CallbackQueue cards={cards} canManage={canManage} />
     </AdminShell>
   );

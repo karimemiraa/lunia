@@ -12,6 +12,8 @@ import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { prisma } from "@/lib/db";
 import { addVisitNote, deleteVisitNote, setNotePinned } from "@/modules/crm/visitNotes";
+import { getStaffT } from "../../_i18n/display";
+import { errorText } from "../actionError";
 import { uploadVisitDocument, deleteVisitDocument, DOCUMENT_CATEGORIES, MAX_DOCUMENT_BYTES, type DocumentCategory } from "@/modules/documents/documents";
 
 export interface HubActionState {
@@ -30,13 +32,13 @@ export async function addHubCommentAction(_prev: HubActionState | null, formData
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
   const bookingId = String(formData.get("bookingId") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
-  if (!appointmentId || !clientProfileId || !bookingId) return { error: "Missing appointment." };
-  if (!body) return { error: "Comment cannot be empty." };
+  if (!appointmentId || !clientProfileId || !bookingId) return { error: (await getStaffT())("Missing appointment.") };
+  if (!body) return { error: (await getStaffT())("Comment cannot be empty.") };
 
   try {
     await addVisitNote({ clientProfileId, bookingId, authorUserId: admin.id, body });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to add comment." };
+    return { error: await errorText(err, "Failed to add comment.") };
   }
 
   revalidateHub(appointmentId);
@@ -50,7 +52,7 @@ export async function deleteHubCommentAction(_prev: HubActionState | null, formD
 
   const appointmentId = String(formData.get("appointmentId") ?? "").trim();
   const noteId = String(formData.get("noteId") ?? "").trim();
-  if (!appointmentId || !noteId) return { error: "Missing comment." };
+  if (!appointmentId || !noteId) return { error: (await getStaffT())("Missing comment.") };
 
   try {
     if (admin.permissions.has(PERMISSIONS.CLIENT_MANAGE)) {
@@ -59,7 +61,7 @@ export async function deleteHubCommentAction(_prev: HubActionState | null, formD
       await deleteVisitNote(noteId, admin.id);
     }
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to delete comment." };
+    return { error: await errorText(err, "Failed to delete comment.") };
   }
 
   revalidateHub(appointmentId);
@@ -72,12 +74,12 @@ export async function toggleHubCommentPinAction(_prev: HubActionState | null, fo
   const appointmentId = String(formData.get("appointmentId") ?? "").trim();
   const noteId = String(formData.get("noteId") ?? "").trim();
   const pinned = formData.get("pinned") === "true";
-  if (!appointmentId || !noteId) return { error: "Missing comment." };
+  if (!appointmentId || !noteId) return { error: (await getStaffT())("Missing comment.") };
 
   try {
     await setNotePinned(noteId, pinned);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update comment." };
+    return { error: await errorText(err, "Failed to update comment.") };
   }
 
   revalidateHub(appointmentId);
@@ -103,9 +105,9 @@ export async function uploadDocumentAction(formData: FormData): Promise<Document
   const note = String(formData.get("note") ?? "").trim();
   const file = formData.get("file");
 
-  if (!appointmentId || !bookingId || !clientProfileId) return { ok: false, error: "Missing appointment." };
-  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose a file to upload." };
-  if (file.size > MAX_DOCUMENT_BYTES) return { ok: false, error: "File is too large (max 25MB)." };
+  if (!appointmentId || !bookingId || !clientProfileId) return { ok: false, error: (await getStaffT())("Missing appointment.") };
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: (await getStaffT())("Choose a file to upload.") };
+  if (file.size > MAX_DOCUMENT_BYTES) return { ok: false, error: (await getStaffT())("File is too large (max 25MB).") };
 
   try {
     const bytes = Buffer.from(await file.arrayBuffer());
@@ -114,7 +116,7 @@ export async function uploadDocumentAction(formData: FormData): Promise<Document
       bytes,
     );
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Failed to upload the document." };
+    return { ok: false, error: await errorText(err, "Failed to upload the document.") };
   }
 
   revalidateHub(appointmentId);
@@ -126,12 +128,12 @@ export async function deleteDocumentAction(_prev: HubActionState | null, formDat
 
   const appointmentId = String(formData.get("appointmentId") ?? "").trim();
   const documentId = String(formData.get("documentId") ?? "").trim();
-  if (!appointmentId || !documentId) return { error: "Missing document." };
+  if (!appointmentId || !documentId) return { error: (await getStaffT())("Missing document.") };
 
   try {
     await deleteVisitDocument(documentId);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to delete the document." };
+    return { error: await errorText(err, "Failed to delete the document.") };
   }
 
   revalidateHub(appointmentId);

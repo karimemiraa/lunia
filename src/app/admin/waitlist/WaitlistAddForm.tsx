@@ -3,6 +3,7 @@
 import { useId, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addWalkupWaitlistAction } from "./actions";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 export interface WaitlistServiceDTO {
   id: string;
@@ -27,6 +28,7 @@ const labelClass = "flex flex-col gap-1 text-sm";
 // addWalkupWaitlistAction).
 export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps) {
   const router = useRouter();
+  const t = useStaffT();
   const [isPending, startTransition] = useTransition();
 
   const [serviceId, setServiceId] = useState<string>(services[0]?.id ?? "");
@@ -60,11 +62,11 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
     setSuccess(false);
 
     if (!serviceId || !desiredDate) {
-      setError("Choose a service and a desired date.");
+      setError(t("Choose a service and a desired date."));
       return;
     }
     if (!name.trim() || (!phone.trim() && !email.trim())) {
-      setError("Customer name and a phone or email are required.");
+      setError(t("Customer name and a phone or email are required."));
       return;
     }
 
@@ -97,19 +99,18 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
       className="flex flex-col gap-4 lunia-card p-5"
     >
       <div className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold text-[var(--color-ink)]">Add a walk-up to the waitlist</h2>
+        <h2 className="text-base font-semibold text-[var(--color-ink)]">{t("Add a walk-up to the waitlist")}</h2>
         <p className="text-sm text-[var(--color-ink)]/60">
-          Record a client&rsquo;s interest in a service on a day with no free slot. They&rsquo;ll be notified automatically
-          the moment a slot on that day opens up.
+          {t("Record a client’s interest in a service on a day with no free slot. They’ll be notified automatically the moment a slot on that day opens up.")}
         </p>
       </div>
 
       {services.length === 0 ? (
-        <p className="text-sm text-[var(--color-ink)]/60">No published services available.</p>
+        <p className="text-sm text-[var(--color-ink)]/60">{t("No published services available.")}</p>
       ) : (
         <>
           <label className={labelClass}>
-            <span className="font-medium text-[var(--color-ink)]">Service</span>
+            <span className="font-medium text-[var(--color-ink)]">{t("Service")}</span>
             <select value={serviceId} onChange={(event) => setServiceId(event.target.value)} className={inputClass}>
               {groupedServices.map(([departmentName, deptServices]) => (
                 <optgroup key={departmentName} label={departmentName}>
@@ -125,7 +126,7 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass} htmlFor={dateId}>
-              <span className="font-medium text-[var(--color-ink)]">Desired date</span>
+              <span className="font-medium text-[var(--color-ink)]">{t("Desired date")}</span>
               <input
                 id={dateId}
                 type="date"
@@ -136,11 +137,11 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
               />
             </label>
             <label className={labelClass} htmlFor={windowId}>
-              <span className="font-medium text-[var(--color-ink)]">Preferred time (optional)</span>
+              <span className="font-medium text-[var(--color-ink)]">{t("Preferred time (optional)")}</span>
               <input
                 id={windowId}
                 type="text"
-                placeholder="e.g. morning, after 5pm"
+                placeholder={t("e.g. morning, after 5pm")}
                 value={desiredWindow}
                 onChange={(event) => setDesiredWindow(event.target.value)}
                 className={inputClass}
@@ -150,7 +151,7 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
 
           <div className="grid gap-4 sm:grid-cols-3">
             <label className={labelClass} htmlFor={nameId}>
-              <span className="font-medium text-[var(--color-ink)]">Customer name</span>
+              <span className="font-medium text-[var(--color-ink)]">{t("Customer name")}</span>
               <input
                 id={nameId}
                 type="text"
@@ -161,20 +162,22 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
               />
             </label>
             <label className={labelClass} htmlFor={phoneId}>
-              <span className="font-medium text-[var(--color-ink)]">Phone</span>
+              <span className="font-medium text-[var(--color-ink)]">{t("Phone")}</span>
               <input
                 id={phoneId}
                 type="tel"
+                dir="ltr"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 className={inputClass}
               />
             </label>
             <label className={labelClass} htmlFor={emailId}>
-              <span className="font-medium text-[var(--color-ink)]">Email</span>
+              <span className="font-medium text-[var(--color-ink)]">{t("Email")}</span>
               <input
                 id={emailId}
                 type="email"
+                dir="ltr"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 className={inputClass}
@@ -187,14 +190,14 @@ export function WaitlistAddForm({ services, defaultDate }: WaitlistAddFormProps)
               {error}
             </p>
           )}
-          {success && <p className="text-sm font-medium text-[var(--color-teal)]">Added to the waitlist.</p>}
+          {success && <p className="text-sm font-medium text-[var(--color-teal)]">{t("Added to the waitlist.")}</p>}
 
           <button
             type="submit"
             disabled={isPending}
             className="w-fit lunia-btn lunia-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isPending ? "Adding…" : "Add to waitlist"}
+            {isPending ? t("Adding…") : t("Add to waitlist")}
           </button>
         </>
       )}

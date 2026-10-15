@@ -5,7 +5,11 @@ import Link from "next/link";
 import { NOTIFICATION_TYPE_LABELS, NOTIFICATION_TYPE_HREF, type NotificationFeed, type NotificationType } from "@/modules/notifications/types";
 import { sendDigestsAction } from "./notifications.actions";
 import { readSeen, writeSeen, pruneSeen } from "./notificationSeen";
-import { st, type StaffLocale } from "../_i18n/staffLocale";
+import { type StaffLocale } from "../_i18n/staffLocale";
+import { makeT } from "../_i18n/t";
+import { timeAgo, localizeFeedTitle } from "./notificationText";
+
+export { timeAgo };
 
 // Line icons (24px viewBox paths) per notification type -- no emoji.
 const TYPE_ICON: Record<NotificationType, string> = {
@@ -31,21 +35,12 @@ export function TypeIcon({ type, muted = false }: { type: NotificationType; mute
   );
 }
 
-export function timeAgo(at: Date): string {
-  const mins = Math.round((Date.now() - new Date(at).getTime()) / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.round(hrs / 24)}d ago`;
-}
-
 // Admin notification center: a bell with an open-item badge and a dropdown
 // grouped by type. The feed is derived server-side (items clear as they're
 // handled); "seen" is client-side and just quiets an item. "View all" opens
 // /admin/notifications with filters.
 export function NotificationBell({ feed, locale = "en" }: { feed: NotificationFeed; locale?: StaffLocale }) {
-  const t = (text: string) => st(text, locale);
+  const t = makeT(locale);
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
   const [digestMsg, setDigestMsg] = useState<string | null>(null);
@@ -116,7 +111,7 @@ export function NotificationBell({ feed, locale = "en" }: { feed: NotificationFe
         ref={buttonRef}
         type="button"
         onClick={() => (open ? setOpen(false) : openPanel())}
-        aria-label={`Notifications${feed.total ? ` (${feed.total} open)` : ""}`}
+        aria-label={feed.total ? t("Notifications ({count} open)", { count: feed.total }) : t("Notifications")}
         aria-expanded={open}
         aria-haspopup="dialog"
         className="relative flex h-10 w-10 items-center justify-center rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] text-[var(--color-ink)]/70 shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--color-ink)]/[0.04] focus-visible:outline-none focus-visible:shadow-[var(--ring)]"
@@ -141,7 +136,7 @@ export function NotificationBell({ feed, locale = "en" }: { feed: NotificationFe
           <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3">
             <span className="text-sm font-semibold text-[var(--color-ink)]">{t("Notifications")}</span>
             <span className="text-xs text-[var(--color-ink)]/50">
-              {feed.total} open{unseen > 0 && unseen !== feed.total ? ` · ${unseen} new` : ""}
+              {t("{count} open", { count: feed.total })}{unseen > 0 && unseen !== feed.total ? ` · ${t("{count} new", { count: unseen })}` : ""}
             </span>
           </div>
           <div className="max-h-[60vh] overflow-y-auto overscroll-contain">
@@ -149,9 +144,9 @@ export function NotificationBell({ feed, locale = "en" }: { feed: NotificationFe
               <p className="px-4 py-8 text-center text-sm text-[var(--color-ink)]/55">{t("You’re all caught up.")}</p>
             ) : (
               groups.map((group) => (
-                <section key={group.type} aria-label={NOTIFICATION_TYPE_LABELS[group.type]} className="border-b border-[var(--line)] last:border-b-0">
+                <section key={group.type} aria-label={t(NOTIFICATION_TYPE_LABELS[group.type])} className="border-b border-[var(--line)] last:border-b-0">
                   <div className="flex items-center justify-between px-4 pb-1 pt-2.5">
-                    <span className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/50">{NOTIFICATION_TYPE_LABELS[group.type]}</span>
+                    <span className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/50">{t(NOTIFICATION_TYPE_LABELS[group.type])}</span>
                     <Link
                       href={NOTIFICATION_TYPE_HREF[group.type]}
                       onClick={() => setOpen(false)}
@@ -167,15 +162,15 @@ export function NotificationBell({ feed, locale = "en" }: { feed: NotificationFe
                         <li key={item.id} className="group/item flex items-start gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--color-ink)]/[0.03]">
                           <TypeIcon type={item.type} muted={isSeen} />
                           <Link href={item.href} onClick={() => { markSeen(item.id); setOpen(false); }} className="min-w-0 flex-1 focus-visible:outline-none focus-visible:shadow-[var(--ring)] rounded">
-                            <span className={`block truncate text-sm ${isSeen ? "text-[var(--color-ink)]/60" : "font-medium text-[var(--color-ink)]"}`} dir="auto">{item.title}</span>
+                            <span className={`block truncate text-sm ${isSeen ? "text-[var(--color-ink)]/60" : "font-medium text-[var(--color-ink)]"}`} dir="auto">{localizeFeedTitle(item.title, t)}</span>
                             {item.subtitle && <span className="block truncate text-xs text-[var(--color-ink)]/55">{item.subtitle}</span>}
-                            <span className="mt-0.5 block text-[0.65rem] text-[var(--color-ink)]/40">{timeAgo(item.at)}</span>
+                            <span className="mt-0.5 block text-[0.65rem] text-[var(--color-ink)]/40">{timeAgo(item.at, t)}</span>
                           </Link>
                           {!isSeen && (
                             <button
                               type="button"
                               onClick={() => markSeen(item.id)}
-                              aria-label={`Mark "${item.title}" as seen`}
+                              aria-label={t("Mark “{title}” as seen", { title: localizeFeedTitle(item.title, t) })}
                               title={t("Mark as seen")}
                               className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--color-ink)]/40 opacity-0 transition-opacity hover:bg-[var(--color-ink)]/[0.06] hover:text-[var(--color-ink)] focus-visible:opacity-100 group-hover/item:opacity-100"
                             >

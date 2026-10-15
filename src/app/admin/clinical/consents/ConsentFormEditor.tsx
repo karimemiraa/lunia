@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveConsentFormAction } from "./actions";
+import { useStaffLocale, useStaffT } from "../../_i18n/StaffI18n";
 
 export interface ConsentFormValues {
   key: string;
@@ -18,13 +19,15 @@ interface Props {
   id: string | null;
   version: number | null;
   initial: ConsentFormValues;
-  services: { id: string; label: string; group: string }[];
+  services: { id: string; label: string; group: string; labelAr?: string; groupAr?: string }[];
 }
 
 const label = "text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60";
 
 export function ConsentFormEditor({ id, version, initial, services }: Props) {
   const router = useRouter();
+  const t = useStaffT();
+  const ar = useStaffLocale() === "ar";
   const [v, setV] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -46,7 +49,7 @@ export function ConsentFormEditor({ id, version, initial, services }: Props) {
         router.push(`/admin/clinical/consents/${result.id}?created=1`);
         return;
       }
-      setNotice(`Saved. Current version: v${result.version}.`);
+      setNotice(t("Saved. Current version: v{version}.", { version: result.version }));
       router.refresh();
     });
   }
@@ -55,24 +58,24 @@ export function ConsentFormEditor({ id, version, initial, services }: Props) {
     <form onSubmit={submit} className="flex flex-col gap-6" data-testid="consent-form-editor">
       <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
         <label className="flex flex-col gap-1.5">
-          <span className={label}>Key</span>
-          <input value={v.key} onChange={(e) => set("key", e.target.value)} placeholder="e.g. laser-consent" className="lunia-input min-h-11 font-mono" required maxLength={60} />
-          <span className="text-xs text-[var(--color-ink)]/45">Stable identifier. &ldquo;general-treatment&rdquo; and &ldquo;photography&rdquo; also record the customer&rsquo;s consent dates.</span>
+          <span className={label}>{t("Key")}</span>
+          <input value={v.key} onChange={(e) => set("key", e.target.value)} placeholder={t("e.g. laser-consent")} dir="ltr" className="lunia-input min-h-11 font-mono" required maxLength={60} />
+          <span className="text-xs text-[var(--color-ink)]/45">{t("Stable identifier. “general-treatment” and “photography” also record the customer’s consent dates.")}</span>
         </label>
         <label className="flex min-h-11 items-center gap-2 text-sm">
           <input type="checkbox" checked={v.isActive} onChange={(e) => set("isActive", e.target.checked)} className="h-5 w-5 accent-[var(--color-teal)]" />
-          Active (offered for signing)
+          {t("Active (offered for signing)")}
         </label>
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className={label}>Title (English)</span>
-            <input value={v.titleEn} onChange={(e) => set("titleEn", e.target.value)} className="lunia-input min-h-11" required maxLength={200} />
+            <span className={label}>{t("Title (English)")}</span>
+            <input value={v.titleEn} onChange={(e) => set("titleEn", e.target.value)} dir="ltr" lang="en" className="lunia-input min-h-11" required maxLength={200} />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className={label}>Text (English)</span>
-            <textarea value={v.bodyEn} onChange={(e) => set("bodyEn", e.target.value)} rows={16} className="lunia-input leading-relaxed" required />
+            <span className={label}>{t("Text (English)")}</span>
+            <textarea value={v.bodyEn} onChange={(e) => set("bodyEn", e.target.value)} rows={16} dir="ltr" lang="en" className="lunia-input leading-relaxed" required />
           </label>
         </div>
         <div className="flex flex-col gap-3" dir="rtl" lang="ar">
@@ -86,16 +89,16 @@ export function ConsentFormEditor({ id, version, initial, services }: Props) {
           </label>
         </div>
       </div>
-      <p className="text-xs text-[var(--color-ink)]/50">Separate paragraphs with a blank line.</p>
+      <p className="text-xs text-[var(--color-ink)]/50">{t("Separate paragraphs with a blank line.")}</p>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className={`${label} mb-1`}>Required for these services</legend>
+        <legend className={`${label} mb-1`}>{t("Required for these services")}</legend>
         <p className="text-xs text-[var(--color-ink)]/50">
-          Customers with an upcoming booking for any selected service are asked to sign it. Leave all unticked for a form that isn&rsquo;t tied to a service (it shows as optional, or always required for the general treatment consent).
+          {t("Customers with an upcoming booking for any selected service are asked to sign it. Leave all unticked for a form that isn’t tied to a service (it shows as optional, or always required for the general treatment consent).")}
         </p>
         {groups.map((g) => (
           <div key={g} className="flex flex-col gap-2">
-            <p className="text-xs font-semibold text-[var(--color-ink)]/60">{g}</p>
+            <p className="text-xs font-semibold text-[var(--color-ink)]/60">{ar ? (services.find((s) => s.group === g)?.groupAr ?? g) : g}</p>
             <div className="flex flex-wrap gap-2">
               {services
                 .filter((s) => s.group === g)
@@ -114,7 +117,7 @@ export function ConsentFormEditor({ id, version, initial, services }: Props) {
                         checked={on}
                         onChange={() => set("serviceIds", on ? v.serviceIds.filter((x) => x !== s.id) : [...v.serviceIds, s.id])}
                       />
-                      {s.label}
+                      {ar ? (s.labelAr ?? s.label) : s.label}
                     </label>
                   );
                 })}
@@ -125,11 +128,11 @@ export function ConsentFormEditor({ id, version, initial, services }: Props) {
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
-          {pending ? "Saving…" : id ? "Save" : "Create form"}
+          {pending ? t("Saving…") : id ? t("Save") : t("Create form")}
         </button>
         {id && version !== null && (
           <span className="text-xs text-[var(--color-ink)]/55">
-            {textChanged ? `Saving will publish v${version + 1}; customers who signed v${version} will be asked to sign again.` : `Current version v${version}.`}
+            {textChanged ? t("Saving will publish v{next}; customers who signed v{version} will be asked to sign again.", { next: version + 1, version }) : t("Current version v{version}.", { version })}
           </span>
         )}
         {notice && <span role="status" className="text-sm text-[var(--color-teal-ink)]">{notice}</span>}

@@ -3,6 +3,8 @@
 import { useActionState, useRef } from "react";
 import { updateLeadAction, logLeadActivityAction, type ClientActionState } from "./actions";
 import { InlineStatus } from "../../_ui/Form";
+import { useStaffT, useStaffLocale } from "../../_i18n/StaffI18n";
+import { intlLocale, type StaffLocale } from "../../_i18n/t";
 
 interface StaffOption {
   id: string;
@@ -35,10 +37,14 @@ interface LeadPanelProps {
 const KINDS = ["CALL", "WHATSAPP", "EMAIL", "SMS", "NOTE"];
 const initial: ClientActionState = {};
 const CENTER_TZ = "Asia/Riyadh";
-const dtFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" });
+const dtFmts: Partial<Record<StaffLocale, Intl.DateTimeFormat>> = {};
+const dtFmt = (locale: StaffLocale) => (dtFmts[locale] ??= new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, dateStyle: "medium", timeStyle: "short" }));
+// Outcome codes the CRM writes itself; anything else is staff-typed text.
+const OUTCOME_CODES = new Set(["NO_ANSWER", "INTERESTED", "NOT_INTERESTED", "BOOKED", "CALLBACK", "LEAD_CREATED"]);
 
 function KindBadge({ kind }: { kind: string }) {
-  const label = kind.replace("_", " ").toLowerCase();
+  const t = useStaffT();
+  const label = t(kind.replace("_", " ").toLowerCase());
   return (
     <span className="rounded-full bg-[var(--color-forest)]/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--color-forest)]">
       {label}
@@ -47,6 +53,16 @@ function KindBadge({ kind }: { kind: string }) {
 }
 
 export function LeadPanel({ clientProfileId, stage, ownerId, direction, source, nextFollowUpIso, staff, stages, activities }: LeadPanelProps) {
+  const t = useStaffT();
+  const locale = useStaffLocale();
+  const ar = locale === "ar";
+  const outcomeText = (a: ActivityRow): string => {
+    const raw = a.outcome!;
+    if (!ar) return raw.replace("_", " ");
+    if (OUTCOME_CODES.has(raw)) return t(raw.replace(/_/g, " ").toLowerCase());
+    if (a.kind === "STAGE_CHANGE") return stages.find((s) => s.value === raw)?.label ?? raw;
+    return raw.replace("_", " ");
+  };
   const [saveState, saveAction, savePending] = useActionState(updateLeadAction, initial);
   const [logState, logAction, logPending] = useActionState(logLeadActivityAction, initial);
   const logFormRef = useRef<HTMLFormElement>(null);
@@ -60,14 +76,14 @@ export function LeadPanel({ clientProfileId, stage, ownerId, direction, source, 
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {direction && (
             <span className="rounded-full bg-[var(--color-ink)]/8 px-2.5 py-0.5 font-medium text-[var(--color-ink)]/70">
-              {direction === "OUTBOUND" ? "Outbound" : "Inbound"}
+              {direction === "OUTBOUND" ? t("Outbound") : t("Inbound")}
             </span>
           )}
-          <span className="text-[var(--color-ink)]/50">Source: {source || "Not set"}</span>
+          <span className="text-[var(--color-ink)]/50">{t("Source:")} {source || t("Not set")}</span>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Stage</span>
+            <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">{t("Stage")}</span>
             <select name="stage" defaultValue={stage} className="lunia-input" data-testid="lead-stage">
               {stages.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
@@ -75,24 +91,24 @@ export function LeadPanel({ clientProfileId, stage, ownerId, direction, source, 
             </select>
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Owner</span>
+            <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">{t("Owner")}</span>
             <select name="ownerId" defaultValue={ownerId ?? ""} className="lunia-input">
-              <option value="">Unassigned</option>
+              <option value="">{t("Unassigned")}</option>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Next follow-up</span>
+            <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">{t("Next follow-up")}</span>
             <input type="date" name="nextFollowUpAt" defaultValue={followUpValue} className="lunia-input" />
           </label>
         </div>
         <div className="flex items-center gap-3">
           <button type="submit" disabled={savePending} className="lunia-btn lunia-btn-forest w-fit disabled:opacity-60">
-            {savePending ? "Saving…" : "Save pipeline"}
+            {savePending ? t("Saving…") : t("Save pipeline")}
           </button>
-          <InlineStatus size="sm" success={saveState.success ? "Saved." : undefined} />
+          <InlineStatus size="sm" success={saveState.success ? t("Saved.") : undefined} />
           <InlineStatus size="sm" error={saveState.error} />
         </div>
       </form>
@@ -109,19 +125,19 @@ export function LeadPanel({ clientProfileId, stage, ownerId, direction, source, 
         className="flex flex-col gap-3"
       >
         <input type="hidden" name="clientProfileId" value={clientProfileId} />
-        <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Log activity</span>
+        <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">{t("Log activity")}</span>
         <div className="grid gap-3 sm:grid-cols-[auto_1fr]">
           <select name="kind" className="lunia-input w-auto" defaultValue="CALL">
             {KINDS.map((k) => (
-              <option key={k} value={k}>{k.charAt(0) + k.slice(1).toLowerCase()}</option>
+              <option key={k} value={k}>{ar ? t(k.toLowerCase()) : k.charAt(0) + k.slice(1).toLowerCase()}</option>
             ))}
           </select>
-          <input name="outcome" type="text" placeholder="Outcome (e.g. No answer, Interested)" className="lunia-input" />
+          <input name="outcome" type="text" placeholder={t("Outcome (e.g. No answer, Interested)")} className="lunia-input" />
         </div>
-        <textarea name="body" rows={2} placeholder="Notes (optional)" className="lunia-input" />
+        <textarea name="body" rows={2} placeholder={t("Notes (optional)")} className="lunia-input" />
         <div className="flex items-center gap-3">
           <button type="submit" disabled={logPending} className="lunia-btn lunia-btn-forest-outline lunia-btn-sm w-fit disabled:opacity-60">
-            {logPending ? "Adding…" : "Add activity"}
+            {logPending ? t("Adding…") : t("Add activity")}
           </button>
           <InlineStatus size="sm" error={logState.error} />
         </div>
@@ -134,11 +150,11 @@ export function LeadPanel({ clientProfileId, stage, ownerId, direction, source, 
             <li key={a.id} className="flex flex-col gap-1 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2">
               <div className="flex items-center gap-2">
                 <KindBadge kind={a.kind} />
-                {a.outcome && <span className="text-xs font-medium text-[var(--color-ink)]/70">{a.outcome.replace("_", " ")}</span>}
-                <span className="ms-auto text-[0.7rem] text-[var(--color-ink)]/45">{dtFmt.format(new Date(a.createdAtIso))}</span>
+                {a.outcome && <span className="text-xs font-medium text-[var(--color-ink)]/70">{outcomeText(a)}</span>}
+                <span className="ms-auto text-[0.7rem] text-[var(--color-ink)]/45">{dtFmt(locale).format(new Date(a.createdAtIso))}</span>
               </div>
               {a.body && <p className="whitespace-pre-wrap text-sm text-[var(--color-ink)]/80">{a.body}</p>}
-              {a.authorName && <span className="text-[0.7rem] text-[var(--color-ink)]/45">by {a.authorName}</span>}
+              {a.authorName && <span className="text-[0.7rem] text-[var(--color-ink)]/45">{t("by {name}", { name: a.authorName })}</span>}
             </li>
           ))}
         </ul>

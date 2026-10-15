@@ -5,6 +5,9 @@ import { revalidatePath } from "next/cache";
 import type { MediaKind } from "@prisma/client";
 import { requireAdmin } from "../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { cookies } from "next/headers";
+import { STAFF_LOCALE_COOKIE, parseStaffLocale } from "../_i18n/staffLocale";
+import { makeT, type T } from "../_i18n/t";
 import { storage } from "@/lib/storage";
 import { getImageDimensions } from "@/lib/imageDimensions";
 import { createMedia, updateMediaAlt, deleteMedia } from "@/modules/cms/media";
@@ -39,6 +42,12 @@ function extensionForMime(mimeType: string): string {
   return safe.length > 0 ? safe.slice(0, 10) : "bin";
 }
 
+// Same as getStaffT() in ../_i18n/display, read inline: display.ts imports
+// "server-only", which vitest can't resolve (tests/admin/mediaActions.test.ts).
+async function staffT(): Promise<T> {
+  return makeT(parseStaffLocale((await cookies()).get(STAFF_LOCALE_COOKIE)?.value));
+}
+
 export interface UploadState {
   error?: string;
 }
@@ -49,10 +58,11 @@ export interface UploadState {
 // traverse or collide with paths in the uploads root.
 export async function uploadMedia(_prev: UploadState | null, formData: FormData): Promise<UploadState> {
   const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const t = await staffT();
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return { error: "Choose a file to upload." };
+    return { error: t("Choose a file to upload.") };
   }
 
   const mimeType = file.type || "application/octet-stream";
@@ -64,11 +74,11 @@ export async function uploadMedia(_prev: UploadState | null, formData: FormData)
         : null;
 
   if (!kind) {
-    return { error: "Only image or video files are allowed." };
+    return { error: t("Only image or video files are allowed.") };
   }
 
   if (file.size > MAX_UPLOAD_BYTES) {
-    return { error: "File is too large (max 25MB)." };
+    return { error: t("File is too large (max 25MB).") };
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

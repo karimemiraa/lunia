@@ -11,6 +11,7 @@ import { recordAudit } from "@/modules/iam/audit";
 import { createExpense, deleteExpense, findOrCreateCategory, updateExpense, type ExpenseInput } from "@/modules/accounting/expenses";
 import { checkReceiptFile, deleteReceipt, storeReceipt } from "@/modules/accounting/receipts";
 import { formatMinor, parseSarToMinor } from "@/modules/accounting/periods";
+import { getStaffT } from "../../_i18n/display";
 
 export interface ExpenseFormState {
   error?: string;
@@ -23,18 +24,19 @@ const str = (formData: FormData, key: string) => {
 
 export async function saveExpenseAction(_prev: ExpenseFormState | null, formData: FormData): Promise<ExpenseFormState> {
   const user = await requireAccounting();
+  const t = await getStaffT();
   const id = str(formData, "id").trim() || null;
 
   const amountMinor = parseSarToMinor(str(formData, "amount"));
-  if (amountMinor === null) return { error: "Enter the amount excluding VAT, e.g. 1250.00." };
+  if (amountMinor === null) return { error: t("Enter the amount excluding VAT, e.g. 1250.00.") };
   const vatRaw = str(formData, "vat").trim();
   const vatMinor = vatRaw === "" ? 0 : parseSarToMinor(vatRaw);
-  if (vatMinor === null) return { error: "Enter the VAT amount, e.g. 187.50, or 0." };
+  if (vatMinor === null) return { error: t("Enter the VAT amount, e.g. 187.50, or 0.") };
 
   let categoryId: string | null = str(formData, "categoryId").trim() || null;
   const newCategory = str(formData, "newCategory").trim();
   if (categoryId === "__new") {
-    if (!newCategory) return { error: "Type a name for the new category." };
+    if (!newCategory) return { error: t("Type a name for the new category.") };
     categoryId = await findOrCreateCategory(newCategory);
   }
 
@@ -55,7 +57,7 @@ export async function saveExpenseAction(_prev: ExpenseFormState | null, formData
   const file = formData.get("receipt");
   if (file instanceof File && file.size > 0) {
     const check = checkReceiptFile(file);
-    if (!check.ok) return { error: check.error };
+    if (!check.ok) return { error: t(check.error) };
     attachmentKey = await storeReceipt(Buffer.from(await file.arrayBuffer()), check.mimeType, check.ext);
   } else if (id && str(formData, "removeReceipt") === "on") {
     attachmentKey = null;
@@ -72,8 +74,8 @@ export async function saveExpenseAction(_prev: ExpenseFormState | null, formData
     }
   } catch (err) {
     if (attachmentKey) await deleteReceipt(attachmentKey);
-    if (err instanceof ZodError) return { error: err.issues[0]?.message ?? "Check the form." };
-    return { error: err instanceof Error ? err.message : "Could not save the expense." };
+    if (err instanceof ZodError) return { error: t(err.issues[0]?.message ?? "Check the form.") };
+    return { error: t(err instanceof Error ? err.message : "Could not save the expense.") };
   }
 
   await recordAudit({

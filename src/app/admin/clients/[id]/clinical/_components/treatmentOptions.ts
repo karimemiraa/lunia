@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/db";
 import { listProductOptions } from "@/modules/clinical/treatments";
 import { utcToCenterLocal } from "@/modules/booking/availability";
+import { getStaffT, getStaffLocale } from "../../../../_i18n/display";
 
 export async function loadTreatmentOptions() {
+  const [t, locale] = await Promise.all([getStaffT(), getStaffLocale()]);
   const [services, staff, products] = await Promise.all([
-    prisma.service.findMany({ orderBy: [{ departmentId: "asc" }, { order: "asc" }], select: { id: true, nameEn: true } }),
+    prisma.service.findMany({ orderBy: [{ departmentId: "asc" }, { order: "asc" }], select: { id: true, nameEn: true, nameAr: true } }),
     prisma.user.findMany({
       where: { type: "STAFF", isActive: true },
       select: { id: true, email: true, staffProfile: { select: { fullName: true } } },
@@ -13,8 +15,8 @@ export async function loadTreatmentOptions() {
     listProductOptions(),
   ]);
   return {
-    services: services.map((s) => ({ id: s.id, label: s.nameEn })),
-    staff: staff.map((s) => ({ id: s.id, label: s.staffProfile?.fullName || s.email || "Staff" })),
+    services: services.map((s) => ({ id: s.id, label: locale === "ar" ? s.nameAr || s.nameEn : s.nameEn })),
+    staff: staff.map((s) => ({ id: s.id, label: s.staffProfile?.fullName || s.email || t("Staff") })),
     products: products.map((p) => ({ id: p.id, label: p.brandName ? `${p.nameEn} (${p.brandName})` : p.nameEn, unit: p.unit })),
   };
 }

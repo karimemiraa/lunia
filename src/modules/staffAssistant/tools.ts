@@ -18,6 +18,7 @@ import { staffPerformanceReport } from "@/modules/reports/teamReports";
 import { membershipStats } from "@/modules/memberships/memberships";
 import { PERIODS, periodRange, formatSar, type Period } from "./periods";
 import type { AssistantLink, AssistantStat, AssistantViewer } from "./types";
+import { say } from "./localize";
 
 export interface ToolResult {
   title: string;
@@ -56,7 +57,7 @@ export const TOOLS = [
       "Money for a period in Riyadh time: cash collected (completed payments, net of refunds), payment count, invoiced total (issued invoices minus credit notes) and realized booking revenue (completed visits).",
     anyOf: [PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.BILLING_MANAGE, PERMISSIONS.ACCOUNTING_MANAGE],
     input: periodInput,
-    async run({ period }, _viewer, now) {
+    async run({ period }, viewer, now) {
       const { from, to, label } = periodRange(period as Period, now);
       const [payments, invoiced, [stats]] = await Promise.all([
         prisma.payment.aggregate({ where: { status: "COMPLETED", receivedAt: { gte: from, lt: to } }, _sum: { amountMinor: true }, _count: true }),
@@ -67,7 +68,7 @@ export const TOOLS = [
       const sum = (kind: string) => invoiced.find((g) => g.kind === kind)?._sum.totalMinor ?? 0;
       const invoicedNet = sum("INVOICE") - sum("CREDIT_NOTE");
       return {
-        title: `Revenue — ${label}`,
+        title: say(viewer, "Revenue — {period}", { period: say(viewer, label) }),
         stats: [
           { label: "Collected (net of refunds)", value: formatSar(collected) },
           { label: "Payments", value: n(payments._count) },
@@ -87,7 +88,7 @@ export const TOOLS = [
     description: "Appointments whose visit time falls in a period (Riyadh time), broken down by status (confirmed, checked in, completed, cancelled, no-show).",
     anyOf: [PERMISSIONS.BOOKING_VIEW, PERMISSIONS.BOOKING_MANAGE],
     input: periodInput,
-    async run({ period }, _viewer, now) {
+    async run({ period }, viewer, now) {
       const { from, to, label } = periodRange(period as Period, now);
       const rows = await prisma.appointment.findMany({
         where: { startAt: { gte: from, lt: to }, booking: { client: NOT_TEST_CLIENT } },
@@ -98,7 +99,7 @@ export const TOOLS = [
       const order = ["REQUESTED", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED", "NO_SHOW"];
       const pretty = (s: string) => s.charAt(0) + s.slice(1).toLowerCase().replace("_", " ");
       return {
-        title: `Appointments — ${label}`,
+        title: say(viewer, "Appointments — {period}", { period: say(viewer, label) }),
         stats: [{ label: "Total", value: n(rows.length) }, ...order.filter((s) => by.has(s)).map((s) => ({ label: pretty(s), value: n(by.get(s)!) }))],
         links: [{ label: "Open the calendar", href: "/admin/calendar", kind: "page" }],
         summary: `${label}: ${n(rows.length)} appointment${rows.length === 1 ? "" : "s"}${by.get("NO_SHOW") ? `, ${n(by.get("NO_SHOW")!)} no-show${by.get("NO_SHOW") === 1 ? "" : "s"}` : ""}${by.get("CANCELLED") ? `, ${n(by.get("CANCELLED")!)} cancelled` : ""}.`,
@@ -110,17 +111,17 @@ export const TOOLS = [
     description: "Bookings CREATED in a period (acquisition, not visit date): total, new-client vs returning bookings, and the top services by revenue.",
     anyOf: [PERMISSIONS.ANALYTICS_VIEW],
     input: periodInput,
-    async run({ period }, _viewer, now) {
+    async run({ period }, viewer, now) {
       const { from, to, label } = periodRange(period as Period, now);
       const [s] = await bookingStatsForRanges([{ from, to }]);
       const top = s!.byService.slice(0, 3);
       return {
-        title: `Bookings made — ${label}`,
+        title: say(viewer, "Bookings made — {period}", { period: say(viewer, label) }),
         stats: [
           { label: "Bookings", value: n(s!.totalBookings) },
           { label: "New-client bookings", value: n(s!.newClients) },
           { label: "Returning", value: n(s!.returningBookings) },
-          ...top.map((t, i) => ({ label: `Top service ${i + 1}`, value: `${t.name} (${n(t.bookings)})` })),
+          ...top.map((t, i) => ({ label: say(viewer, "Top service {n}", { n: i + 1 }), value: `${t.name} (${n(t.bookings)})` })),
         ],
         links: [{ label: "Business dashboard", href: "/admin/dashboard", kind: "page" }],
         summary: `${label}: ${n(s!.totalBookings)} booking${s!.totalBookings === 1 ? "" : "s"} made (${n(s!.newClients)} from new clients).`,
@@ -133,12 +134,12 @@ export const TOOLS = [
       "Per staff member for a period (Riyadh time): completed visits, revenue (completed appointments), no-show rate and utilisation (booked ÷ scheduled hours). Same figures as the Staff performance report.",
     anyOf: [PERMISSIONS.ANALYTICS_VIEW],
     input: z.object({ period: z.enum(PERIODS).default("this_month") }),
-    async run({ period }, _viewer, now) {
+    async run({ period }, viewer, now) {
       const { from, to, label } = periodRange(period as Period, now);
       const { rows } = await staffPerformanceReport({ from, to });
       const top = rows.filter((r) => r.appointments > 0).slice(0, 5);
       return {
-        title: `Staff performance — ${label}`,
+        title: say(viewer, "Staff performance — {period}", { period: say(viewer, label) }),
         stats: top.map((r) => ({ label: r.staff, value: `${r.revenueSAR} SAR · ${r.completed} visits${r.utilisation ? ` · ${r.utilisation} booked` : ""}` })),
         links: [{ label: "Staff performance report", href: `/admin/reports?type=staff`, kind: "page" }],
         summary: top.length ? `${label}: ${top[0]!.staff} leads with ${top[0]!.revenueSAR} SAR from ${top[0]!.completed} completed visit${top[0]!.completed === 1 ? "" : "s"}.` : `${label}: no appointments yet.`,
@@ -171,7 +172,7 @@ export const TOOLS = [
       "Open invoices awaiting payment (issued or partially paid) and the total outstanding balance — net of payments and of credit notes issued against them, same as the Accounting receivables report.",
     anyOf: [PERMISSIONS.BILLING_MANAGE],
     input: z.object({}),
-    async run(_input, _viewer, now) {
+    async run(_input, viewer, now) {
       // The accounting module's own receivables calc, so the numbers always match its report.
       const aging = await receivablesAging(now);
       const count = aging.rows.length;
@@ -215,7 +216,7 @@ export const TOOLS = [
     description: "Customer totals: all customers, and how many new customers were added in a period (Riyadh time). Test customers excluded.",
     anyOf: [PERMISSIONS.CLIENT_VIEW, PERMISSIONS.ANALYTICS_VIEW],
     input: z.object({ period: z.enum(PERIODS).default("this_month") }),
-    async run({ period }, _viewer, now) {
+    async run({ period }, viewer, now) {
       const { from, to, label } = periodRange(period as Period, now);
       const [total, added] = await Promise.all([
         prisma.clientProfile.count({ where: NOT_TEST_CLIENT }),
@@ -225,7 +226,7 @@ export const TOOLS = [
         title: "Customers",
         stats: [
           { label: "All customers", value: n(total) },
-          { label: `New — ${label.toLowerCase()}`, value: n(added) },
+          { label: say(viewer, "New — {period}", { period: say(viewer, label) }), value: n(added) },
         ],
         links: [{ label: "Customer roster", href: "/admin/clients", kind: "page" }],
         summary: `${n(total)} customers in total; ${n(added)} new ${label.toLowerCase()}.`,
@@ -264,7 +265,7 @@ export const TOOLS = [
         links.push({ label: "New invoice for them", href: `/admin/billing/new?client=${one.id}`, kind: "form" });
       }
       return {
-        title: `Customers matching “${query}”`,
+        title: say(viewer, "Customers matching “{query}”", { query }),
         stats: rows.map((r) => ({ label: r.fullName?.trim() || "Unnamed customer", value: r.user.phone ?? "—" })),
         links,
         summary: rows.length ? `Found ${rows.length} customer${rows.length === 1 ? "" : "s"} matching “${query}”.` : `No customer matches “${query}”.`,

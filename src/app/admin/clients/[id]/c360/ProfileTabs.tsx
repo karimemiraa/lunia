@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { useStaffT, useStaffLocale } from "../../../_i18n/StaffI18n";
 
 /** Dispatch on window to switch the profile tab from elsewhere (quick actions). */
 export const SELECT_TAB_EVENT = "lunia:select-profile-tab";
@@ -17,12 +18,14 @@ export interface ProfileTabDef {
 // are rendered up front (like the shared Tabs) so form state survives
 // switching; the active tab is mirrored into the URL without a navigation.
 export function ProfileTabs({ tabs, initialTab }: { tabs: ProfileTabDef[]; initialTab?: string }) {
-  const [active, setActive] = useState(() => (initialTab && tabs.some((t) => t.id === initialTab) ? initialTab : tabs[0]?.id));
+  const t = useStaffT();
+  const rtl = useStaffLocale() === "ar";
+  const [active, setActive] = useState(() => (initialTab && tabs.some((tb) => tb.id === initialTab) ? initialTab : tabs[0]?.id));
 
   useEffect(() => {
     const onSelect = (e: Event) => {
       const id = (e as CustomEvent<string>).detail;
-      if (tabs.some((t) => t.id === id)) select(id);
+      if (tabs.some((tb) => tb.id === id)) select(id);
     };
     window.addEventListener(SELECT_TAB_EVENT, onSelect);
     return () => window.removeEventListener(SELECT_TAB_EVENT, onSelect);
@@ -40,11 +43,12 @@ export function ProfileTabs({ tabs, initialTab }: { tabs: ProfileTabDef[]; initi
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    const idx = tabs.findIndex((t) => t.id === active);
+    const idx = tabs.findIndex((tb) => tb.id === active);
     if (idx < 0) return;
     let next: number | null = null;
-    if (e.key === "ArrowRight") next = (idx + 1) % tabs.length;
-    if (e.key === "ArrowLeft") next = (idx - 1 + tabs.length) % tabs.length;
+    // Arrow keys follow the reading direction (RTL in Arabic).
+    if (e.key === (rtl ? "ArrowLeft" : "ArrowRight")) next = (idx + 1) % tabs.length;
+    if (e.key === (rtl ? "ArrowRight" : "ArrowLeft")) next = (idx - 1 + tabs.length) % tabs.length;
     if (e.key === "Home") next = 0;
     if (e.key === "End") next = tabs.length - 1;
     if (next === null) return;
@@ -55,7 +59,7 @@ export function ProfileTabs({ tabs, initialTab }: { tabs: ProfileTabDef[]; initi
 
   return (
     <div className="flex flex-col gap-6">
-      <div role="tablist" aria-label="Customer sections" onKeyDown={onKeyDown} className="flex gap-1 overflow-x-auto border-b border-[var(--line)]">
+      <div role="tablist" aria-label={t("Customer sections")} onKeyDown={onKeyDown} className="flex gap-1 overflow-x-auto border-b border-[var(--line)]">
         {tabs.map((tab) => {
           const selected = tab.id === active;
           return (

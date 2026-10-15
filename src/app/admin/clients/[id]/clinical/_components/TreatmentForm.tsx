@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { TreatmentProduct, TreatmentSetting } from "@/modules/clinical/treatments";
 import { saveTreatmentAction } from "../actions";
+import { useStaffT } from "../../../../_i18n/StaffI18n";
 
 export interface TreatmentFormValues {
   appointmentId: string | null;
@@ -43,6 +44,7 @@ const SETTING_SUGGESTIONS = ["Device", "Mode / program", "Wavelength", "Fluence 
 
 export function TreatmentForm({ clientProfileId, recordId, initial, services, staff, products, appointmentLabel }: TreatmentFormProps) {
   const router = useRouter();
+  const t = useStaffT();
   const [v, setV] = useState<TreatmentFormValues>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -75,13 +77,13 @@ export function TreatmentForm({ clientProfileId, recordId, initial, services, st
   return (
     <form onSubmit={submit} className="flex flex-col gap-6" data-testid="treatment-form">
       {appointmentLabel && (
-        <p className="rounded-[var(--radius-sm)] bg-[var(--color-teal)]/12 px-4 py-2.5 text-sm text-[var(--color-ink)]">Linked appointment: {appointmentLabel}</p>
+        <p className="rounded-[var(--radius-sm)] bg-[var(--color-teal)]/12 px-4 py-2.5 text-sm text-[var(--color-ink)]">{t("Linked appointment: {appointment}", { appointment: appointmentLabel })}</p>
       )}
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Service</span>
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Service")}</span>
           <select value={v.serviceId} onChange={(e) => set("serviceId", e.target.value)} className="lunia-input min-h-11">
-            <option value="">Not listed / other</option>
+            <option value="">{t("Not listed / other")}</option>
             {services.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.label}
@@ -90,7 +92,7 @@ export function TreatmentForm({ clientProfileId, recordId, initial, services, st
           </select>
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Performed by</span>
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Performed by")}</span>
           <select value={v.performedById} onChange={(e) => set("performedById", e.target.value)} className="lunia-input min-h-11" required>
             {staff.map((s) => (
               <option key={s.id} value={s.id}>
@@ -100,47 +102,47 @@ export function TreatmentForm({ clientProfileId, recordId, initial, services, st
           </select>
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Date and time</span>
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Date and time")}</span>
           <input type="datetime-local" value={v.performedAtLocal} onChange={(e) => set("performedAtLocal", e.target.value)} className="lunia-input min-h-11" required />
         </label>
       </div>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Settings / protocol</legend>
+        <legend className="mb-1 text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Settings / protocol")}</legend>
         <datalist id="setting-keys">
           {SETTING_SUGGESTIONS.map((s) => (
-            <option key={s} value={s} />
+            <option key={s} value={t(s)} />
           ))}
         </datalist>
         {v.settings.map((s, i) => (
           <div key={i} className="flex flex-wrap gap-2">
             <input
               list="setting-keys"
-              placeholder="Setting"
+              placeholder={t("Setting")}
               value={s.key}
               onChange={(e) => set("settings", v.settings.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))}
               className="lunia-input min-h-11 min-w-36 flex-1"
               maxLength={80}
             />
             <input
-              placeholder="Value"
+              placeholder={t("Value")}
               value={s.value}
               onChange={(e) => set("settings", v.settings.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))}
               className="lunia-input min-h-11 min-w-36 flex-[2]"
               maxLength={300}
             />
-            <button type="button" onClick={() => set("settings", v.settings.filter((_, j) => j !== i))} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11" aria-label="Remove setting">
-              Remove
+            <button type="button" onClick={() => set("settings", v.settings.filter((_, j) => j !== i))} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11" aria-label={t("Remove setting")}>
+              {t("Remove")}
             </button>
           </div>
         ))}
         <button type="button" onClick={() => set("settings", [...v.settings, { key: "", value: "" }])} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 self-start">
-          Add setting
+          {t("Add setting")}
         </button>
       </fieldset>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Products used</legend>
+        <legend className="mb-1 text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Products used")}</legend>
         {v.productsUsed.map((p, i) => (
           <div key={i} className="flex flex-wrap gap-2">
             {products.length > 0 && (
@@ -154,9 +156,9 @@ export function TreatmentForm({ clientProfileId, recordId, initial, services, st
                   );
                 }}
                 className="lunia-input min-h-11 min-w-40 flex-1"
-                aria-label="Pick from inventory"
+                aria-label={t("Pick from inventory")}
               >
-                <option value="">Free text</option>
+                <option value="">{t("Free text")}</option>
                 {products.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.label}
@@ -165,28 +167,28 @@ export function TreatmentForm({ clientProfileId, recordId, initial, services, st
               </select>
             )}
             <input
-              placeholder="Product"
+              placeholder={t("Product")}
               value={p.name}
               onChange={(e) => set("productsUsed", v.productsUsed.map((x, j) => (j === i ? { ...x, name: e.target.value, productId: null } : x)))}
               className="lunia-input min-h-11 min-w-40 flex-[2]"
               maxLength={160}
             />
             <input
-              placeholder="Qty"
+              placeholder={t("Qty")}
               value={p.qty}
               onChange={(e) => set("productsUsed", v.productsUsed.map((x, j) => (j === i ? { ...x, qty: e.target.value } : x)))}
               className="lunia-input min-h-11 w-20"
               maxLength={40}
             />
             <input
-              placeholder="Unit"
+              placeholder={t("Unit")}
               value={p.unit}
               onChange={(e) => set("productsUsed", v.productsUsed.map((x, j) => (j === i ? { ...x, unit: e.target.value } : x)))}
               className="lunia-input min-h-11 w-24"
               maxLength={20}
             />
-            <button type="button" onClick={() => set("productsUsed", v.productsUsed.filter((_, j) => j !== i))} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11" aria-label="Remove product">
-              Remove
+            <button type="button" onClick={() => set("productsUsed", v.productsUsed.filter((_, j) => j !== i))} className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11" aria-label={t("Remove product")}>
+              {t("Remove")}
             </button>
           </div>
         ))}
@@ -195,28 +197,28 @@ export function TreatmentForm({ clientProfileId, recordId, initial, services, st
           onClick={() => set("productsUsed", [...v.productsUsed, { productId: null, name: "", qty: "", unit: "" }])}
           className="lunia-btn lunia-btn-ghost lunia-btn-sm min-h-11 self-start"
         >
-          Add product
+          {t("Add product")}
         </button>
       </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Skin reaction</span>
-          <input value={v.skinReaction} onChange={(e) => set("skinReaction", e.target.value)} placeholder="e.g. mild erythema, settled in 20 min" className="lunia-input min-h-11" maxLength={500} />
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Skin reaction")}</span>
+          <input value={v.skinReaction} onChange={(e) => set("skinReaction", e.target.value)} placeholder={t("e.g. mild erythema, settled in 20 min")} className="lunia-input min-h-11" maxLength={500} />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Follow-up date</span>
+          <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Follow-up date")}</span>
           <input type="date" value={v.followUpDate} onChange={(e) => set("followUpDate", e.target.value)} className="lunia-input min-h-11" />
         </label>
       </div>
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">Notes</span>
+        <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/60">{t("Notes")}</span>
         <textarea rows={5} value={v.notes} onChange={(e) => set("notes", e.target.value)} className="lunia-input" maxLength={5000} />
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
-          {pending ? "Saving…" : recordId ? "Save changes" : "Save treatment record"}
+          {pending ? t("Saving…") : recordId ? t("Save changes") : t("Save treatment record")}
         </button>
         {error && (
           <p role="alert" className="text-sm text-red-700">

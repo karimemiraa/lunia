@@ -11,6 +11,7 @@ import { createSegment, deleteSegment, type SegmentFilter } from "@/modules/crm/
 import { createLead, assignOwner } from "@/modules/crm/leads";
 import { prisma } from "@/lib/db";
 import type { LeadDirection } from "@prisma/client";
+import { getStaffT } from "../_i18n/display";
 
 export interface RosterActionState {
   error?: string;
@@ -21,6 +22,7 @@ export interface RosterActionState {
 // out to). Reuses an existing person by phone/email. Guarded by CLIENT_MANAGE.
 export async function createLeadAction(_prev: RosterActionState | null, formData: FormData): Promise<RosterActionState> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
   const fullName = String(formData.get("fullName") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
@@ -32,7 +34,7 @@ export async function createLeadAction(_prev: RosterActionState | null, formData
   try {
     await createLead({ fullName, phone, email, source, direction, ownerId, byUserId: admin.id });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to add lead." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to add lead.") };
   }
 
   await recordAudit({ actorUserId: admin.id, action: "LEAD_CREATE", entityType: "ClientProfile", summary: `Added lead "${fullName}" (${direction.toLowerCase()})` });
@@ -93,10 +95,11 @@ function cleanIds(ids: unknown): string[] {
 // Adds one tag to every selected customer (idempotent per customer).
 export async function bulkAddTagAction(clientProfileIds: string[], tag: string): Promise<BulkResult> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
   const ids = cleanIds(clientProfileIds);
   const clean = String(tag ?? "").trim().slice(0, 40);
-  if (ids.length === 0) return { ok: false, error: "Select at least one customer." };
-  if (!clean) return { ok: false, error: "Enter a tag." };
+  if (ids.length === 0) return { ok: false, error: t("Select at least one customer.") };
+  if (!clean) return { ok: false, error: t("Enter a tag.") };
 
   const rows = await prisma.clientProfile.findMany({ where: { id: { in: ids } }, select: { id: true, tags: true } });
   const toUpdate = rows.filter((r) => !r.tags.includes(clean));
@@ -109,12 +112,13 @@ export async function bulkAddTagAction(clientProfileIds: string[], tag: string):
 // Assigns (or clears, ownerId "") the owner on every selected customer.
 export async function bulkAssignOwnerAction(clientProfileIds: string[], ownerId: string): Promise<BulkResult> {
   const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  const t = await getStaffT();
   const ids = cleanIds(clientProfileIds);
-  if (ids.length === 0) return { ok: false, error: "Select at least one customer." };
+  if (ids.length === 0) return { ok: false, error: t("Select at least one customer.") };
   const owner = String(ownerId ?? "").trim() || null;
   if (owner) {
     const exists = await prisma.user.findFirst({ where: { id: owner, type: "STAFF" }, select: { id: true } });
-    if (!exists) return { ok: false, error: "Unknown staff member." };
+    if (!exists) return { ok: false, error: t("Unknown staff member.") };
   }
   const rows = await prisma.clientProfile.findMany({ where: { id: { in: ids } }, select: { id: true, ownerId: true } });
   let count = 0;

@@ -1,6 +1,8 @@
 import { profitAndLoss, type PnlMonth } from "@/modules/accounting/reports";
 import { formatMinor, type AccountingRange } from "@/modules/accounting/periods";
 import { Section } from "./ui";
+import { getStaffLocale, getStaffT } from "../../_i18n/display";
+import { intlLocale, type StaffLocale, type T } from "../../_i18n/t";
 
 interface Line {
   key: string;
@@ -9,14 +11,15 @@ interface Line {
   kind?: "subtotal" | "total" | "indent" | "heading";
 }
 
-function monthLabel(monthKey: string): string {
-  if (monthKey === "Total") return "Total";
+function monthLabel(monthKey: string, t: T, locale: StaffLocale): string {
+  if (monthKey === "Total") return t("Total");
   const [y, m] = monthKey.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString(intlLocale(locale, "en-US"), { month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 export async function PnlTab({ range }: { range: AccountingRange }) {
   const pnl = await profitAndLoss(range);
+  const [t, locale] = await Promise.all([getStaffT(), getStaffLocale()]);
   const columns = pnl.months.length > 1 ? [...pnl.months, pnl.total] : pnl.months;
 
   const lines: Line[] = [
@@ -38,19 +41,19 @@ export async function PnlTab({ range }: { range: AccountingRange }) {
 
   return (
     <Section
-      title="Profit & loss by month"
-      description="Costs are shown in brackets. Revenue excludes VAT and is net of credit notes. Payroll counts approved and paid runs for each month in full, even when the range covers part of it. Stock tracked in Inventory is costed when sold or used, so record it as an expense only if it is not tracked there."
+      title={t("Profit & loss by month")}
+      description={t("Costs are shown in brackets. Revenue excludes VAT and is net of credit notes. Payroll counts approved and paid runs for each month in full, even when the range covers part of it. Stock tracked in Inventory is costed when sold or used, so record it as an expense only if it is not tracked there.")}
     >
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)] print:shadow-none" data-testid="pnl-table">
         <table className="w-full min-w-max text-sm">
           <thead>
             <tr className="border-b border-[var(--line)] bg-[var(--surface-2)]">
               <th className="sticky start-0 bg-[var(--surface-2)] px-4 py-3 text-start text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
-                Line
+                {t("Line")}
               </th>
               {columns.map((m) => (
                 <th key={m.month} className="px-4 py-3 text-end text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]/55">
-                  {monthLabel(m.month)}
+                  {monthLabel(m.month, t, locale)}
                 </th>
               ))}
             </tr>
@@ -72,7 +75,7 @@ export async function PnlTab({ range }: { range: AccountingRange }) {
                       line.kind === "heading" ? "pt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]/55" : ""
                     }`}
                   >
-                    {line.label}
+                    {t(line.label)}
                   </td>
                   {columns.map((m) => {
                     if (line.kind === "heading") return <td key={m.month} />;

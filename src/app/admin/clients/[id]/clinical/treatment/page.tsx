@@ -7,13 +7,13 @@ import { getAppointmentForTreatment } from "@/modules/clinical/treatments";
 import { loadClient } from "../_components/loadClient";
 import { loadTreatmentOptions, toLocalInput } from "../_components/treatmentOptions";
 import { TreatmentForm } from "../_components/TreatmentForm";
+import { getStaffT, getStaffLocale } from "../../../../_i18n/display";
+import { intlLocale } from "../../../../_i18n/t";
 
 interface Props {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ appointmentId?: string }>;
 }
-
-const dtFmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", dateStyle: "medium", timeStyle: "short" });
 
 // New treatment record: ad hoc, or started from an appointment (calendar /
 // customer page) which pre-fills service, specialist and time. An appointment
@@ -21,6 +21,8 @@ const dtFmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Riyadh", dateSt
 export default async function NewTreatmentPage({ params, searchParams }: Props) {
   const [{ id }, { appointmentId }] = await Promise.all([params, searchParams]);
   const user = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  const [t, locale] = await Promise.all([getStaffT(), getStaffLocale()]);
+  const dtFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: "Asia/Riyadh", dateStyle: "medium", timeStyle: "short" });
   const client = await loadClient(id);
   const options = await loadTreatmentOptions();
 
@@ -36,15 +38,15 @@ export default async function NewTreatmentPage({ params, searchParams }: Props) 
       description={client.displayName}
       actions={
         <Link href={`/admin/clients/${id}`} className="lunia-btn lunia-btn-ghost min-h-11">
-          Back to customer
+          {t("Back to customer")}
         </Link>
       }
     >
       {existing ? (
         <div className="lunia-card flex flex-wrap items-center justify-between gap-3 p-5 text-sm">
-          This appointment already has a treatment record.
+          {t("This appointment already has a treatment record.")}
           <Link href={`/admin/clients/${id}/clinical/treatment/${existing.id}`} className="lunia-btn lunia-btn-forest lunia-btn-sm min-h-11">
-            Open it
+            {t("Open it")}
           </Link>
         </div>
       ) : (
@@ -52,13 +54,13 @@ export default async function NewTreatmentPage({ params, searchParams }: Props) 
           <TreatmentForm
             clientProfileId={id}
             recordId={null}
-            appointmentLabel={linked ? `${serviceName ?? "Appointment"}, ${dtFmt.format(linked.startAt)}` : null}
+            appointmentLabel={linked ? `${serviceName ?? t("Appointment")}, ${dtFmt.format(linked.startAt)}` : null}
             initial={{
               appointmentId: linked?.id ?? null,
               serviceId: linked?.serviceId ?? "",
               performedById: linked?.staffUserId ?? (options.staff.some((s) => s.id === user.id) ? user.id : (options.staff[0]?.id ?? "")),
               performedAtLocal: toLocalInput(linked?.startAt ?? new Date()),
-              settings: [{ key: "Device", value: "" }],
+              settings: [{ key: t("Device"), value: "" }],
               productsUsed: [],
               notes: "",
               skinReaction: "",

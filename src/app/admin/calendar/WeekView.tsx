@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { DayAppointmentRow } from "@/modules/booking/bookings";
 import { STATUS_PILL } from "./DayGrid";
+import { getStaffDisplay } from "../_i18n/display";
+import { intlLocale, makeT } from "../_i18n/t";
+import { bookingStatusText } from "./labels";
 
 interface WeekViewProps {
   /** 7 center-local days (Sunday first) → that day's rows. */
@@ -14,8 +17,6 @@ interface WeekViewProps {
 }
 
 const CENTER_TZ = "Asia/Riyadh";
-const timeFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, hour: "numeric", minute: "2-digit" });
-const headFmt = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short", day: "numeric" });
 
 const STATUS_ACCENT: Record<string, string> = {
   REQUESTED: "border-s-[var(--color-ink)]/40",
@@ -28,7 +29,11 @@ const STATUS_ACCENT: Record<string, string> = {
 
 // Seven compact columns; each card is one line (time · customer · pill) and
 // opens the day view. Leave and waitlist context sit in the column header.
-export function WeekView({ days, todayISO, leaveByDay, waitingByDay, dayHref }: WeekViewProps) {
+export async function WeekView({ days, todayISO, leaveByDay, waitingByDay, dayHref }: WeekViewProps) {
+  const { locale } = await getStaffDisplay();
+  const t = makeT(locale);
+  const timeFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, hour: "numeric", minute: "2-digit" });
+  const headFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: "UTC", weekday: "short", day: "numeric" });
   const dates = Object.keys(days);
   return (
     <div className="overflow-x-auto lunia-card p-2 sm:p-3" data-testid="week-view">
@@ -48,12 +53,12 @@ export function WeekView({ days, todayISO, leaveByDay, waitingByDay, dayHref }: 
                 <div className="flex flex-wrap gap-1 px-1">
                   {off.length > 0 && (
                     <span className="rounded-full bg-[var(--color-ink)]/[0.07] px-1.5 py-0.5 text-[0.6rem] text-[var(--color-ink)]/60" title={off.join(", ")}>
-                      {off.length === 1 ? `${off[0]} off` : `${off.length} off`}
+                      {off.length === 1 ? t("{name} off", { name: off[0] }) : t("{count} off", { count: off.length })}
                     </span>
                   )}
                   {waiting > 0 && (
                     <Link href="/admin/waitlist?status=WAITING" className="rounded-full bg-[var(--color-gold)]/25 px-1.5 py-0.5 text-[0.6rem] font-medium text-[#7c6a2f] hover:underline">
-                      {waiting} waiting
+                      {t("{count} waiting", { count: waiting })}
                     </Link>
                   )}
                 </div>
@@ -64,13 +69,13 @@ export function WeekView({ days, todayISO, leaveByDay, waitingByDay, dayHref }: 
                     <Link
                       href={dayHref(d)}
                       className={`flex items-center justify-between gap-1 rounded-[var(--radius-sm)] border border-[var(--line)] border-s-2 bg-[var(--surface)] px-1.5 py-1 text-[0.68rem] leading-tight transition-colors duration-150 ease-out hover:bg-[var(--surface-2)] ${STATUS_ACCENT[r.status] ?? ""} ${r.status === "CANCELLED" || r.status === "NO_SHOW" ? "opacity-60" : ""}`}
-                      title={`${timeFmt.format(r.startAt)} ${r.clientName} · ${r.serviceName} · ${r.staffName}`}
+                      title={`${timeFmt.format(r.startAt)} ${t(r.clientName)} · ${r.serviceName} · ${r.staffName}`}
                     >
                       <span className="min-w-0 truncate">
                         <span className="font-semibold tabular-nums text-[var(--color-ink)]">{timeFmt.format(r.startAt)}</span>{" "}
-                        <span className="text-[var(--color-ink)]/80">{r.clientName}</span>
+                        <span className="text-[var(--color-ink)]/80">{t(r.clientName)}</span>
                       </span>
-                      <span className={`h-2 w-2 shrink-0 rounded-full ${(STATUS_PILL[r.status] ?? "").split(" ")[0]}`} aria-label={r.status.replace("_", " ")} />
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${(STATUS_PILL[r.status] ?? "").split(" ")[0]}`} aria-label={bookingStatusText(r.status, locale, t)} />
                     </Link>
                   </li>
                 ))}

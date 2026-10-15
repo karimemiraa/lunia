@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
 import { upsertCampaignSpend } from "@/modules/crm/campaigns";
 
 export interface CampaignSpendActionState {
@@ -20,6 +21,7 @@ export async function upsertCampaignSpendAction(
   formData: FormData,
 ): Promise<CampaignSpendActionState> {
   await requireAdmin(PERMISSIONS.MARKETING_MANAGE);
+  const t = await getStaffT();
 
   const channel = String(formData.get("channel") ?? "").trim();
   const periodMonth = String(formData.get("periodMonth") ?? "").trim();
@@ -27,15 +29,15 @@ export async function upsertCampaignSpendAction(
   const note = String(formData.get("note") ?? "").trim();
 
   if (!channel) {
-    return { error: "Channel is required." };
+    return { error: t("Channel is required.") };
   }
   if (!PERIOD_MONTH_PATTERN.test(periodMonth)) {
-    return { error: "Period month must be in YYYY-MM format." };
+    return { error: t("Period month must be in YYYY-MM format.") };
   }
 
   const amountSar = Number(amountSarRaw);
   if (!Number.isFinite(amountSar) || amountSar < 0) {
-    return { error: "Amount must be a non-negative number." };
+    return { error: t("Amount must be a non-negative number.") };
   }
 
   try {
@@ -46,7 +48,7 @@ export async function upsertCampaignSpendAction(
       note: note || undefined,
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to save campaign spend." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to save campaign spend.") };
   }
 
   revalidatePath("/admin/marketing/campaigns");

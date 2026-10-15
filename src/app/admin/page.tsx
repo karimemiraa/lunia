@@ -10,13 +10,18 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 import { prisma } from "@/lib/db";
 import { getNotificationFeed } from "@/modules/notifications/feed";
 import { getTodayDashboard, type AttentionCard } from "@/modules/dashboard/today";
+import { getStaffLocale, getStaffT } from "./_i18n/display";
+import { intlLocale, type T } from "./_i18n/t";
 
 const CENTER_TZ = "Asia/Riyadh";
-const fullDateFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, weekday: "long", day: "numeric", month: "long" });
-const timeFmt = new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, hour: "numeric", minute: "2-digit" });
 
-function formatSar(minor: number): string {
-  return `${(minor / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} SAR`;
+function formatSar(minor: number, t: T): string {
+  return `${(minor / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${t("SAR")}`;
+}
+
+/** Short weekday for a center-local date, in the staff language. */
+function weekdayOf(dateISO: string, fmt: Intl.DateTimeFormat): string {
+  return fmt.format(new Date(`${dateISO}T12:00:00+03:00`));
 }
 
 const ATTENTION_ICON: Record<AttentionCard["type"], string> = {
@@ -48,17 +53,24 @@ export default async function AdminHome() {
   const user = await requireAdmin();
   const p = user.permissions;
   const now = new Date();
+  const [t, locale] = await Promise.all([getStaffT(), getStaffLocale()]);
+  const fullDateFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, weekday: "long", day: "numeric", month: "long" });
+  const timeFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, hour: "numeric", minute: "2-digit" });
+  const weekdayFmt = new Intl.DateTimeFormat(intlLocale(locale, "en-US"), { timeZone: CENTER_TZ, weekday: "short" });
   // The feed, the greeting lookup and the dashboard queries all run in parallel.
   const feedPromise = getNotificationFeed(p);
   const [staff, today, feed] = await Promise.all([
-    prisma.staffProfile.findUnique({ where: { userId: user.id }, select: { fullName: true } }),
+    prisma.staffProfile.findUnique({ where: { userId: user.id }, select: { fullName: true, fullNameAr: true } }),
     getTodayDashboard({ permissions: p }, feedPromise, now),
     feedPromise,
   ]);
 
-  const firstName = staff?.fullName?.trim().split(/\s+/)[0] ?? "";
+  const firstName = ((locale === "ar" && staff?.fullNameAr?.trim()) || staff?.fullName?.trim() || "").split(/\s+/)[0] ?? "";
   const riyadhHour = Number(new Intl.DateTimeFormat("en-US", { timeZone: CENTER_TZ, hour: "numeric", hour12: false }).format(now));
-  const greeting = riyadhHour < 12 ? "Good morning" : riyadhHour < 18 ? "Good afternoon" : "Good evening";
+  const greeting = t(riyadhHour < 12 ? "Good morning" : riyadhHour < 18 ? "Good afternoon" : "Good evening");
+  const description = firstName
+    ? t("{greeting}, {name} — {date}.", { greeting, name: firstName, date: fullDateFmt.format(now) })
+    : t("{greeting} — {date}.", { greeting, date: fullDateFmt.format(now) });
 
   const canManage = p.has(PERMISSIONS.BOOKING_MANAGE);
   const canBill = p.has(PERMISSIONS.BILLING_MANAGE);
@@ -70,15 +82,15 @@ export default async function AdminHome() {
   const iAmClockedIn = today.now.clockedIn.some((s) => s.userId === user.id);
 
   return (
-    <AdminShell user={user} title="Today" description={`${greeting}${firstName ? `, ${firstName}` : ""} — ${fullDateFmt.format(now)}.`} feed={feed}>
+    <AdminShell user={user} title="Today" description={description} feed={feed}>
       {/* Now strip */}
-      <section aria-label="Right now" className="lunia-card relative overflow-hidden p-5 sm:p-6">
+      <section aria-label={t("Right now")} className="lunia-card relative overflow-hidden p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-5">
             <div>
               <p className="mb-1 flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--color-teal-ink)]">
                 <span aria-hidden="true" className="lunia-live-dot h-1.5 w-1.5 rounded-full bg-[var(--color-teal-ink)]" />
-                Riyadh time
+                {t("Riyadh time")}
               </p>
               <LiveClock initialISO={now.toISOString()} />
             </div>
@@ -86,7 +98,7 @@ export default async function AdminHome() {
             <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:flex sm:items-center sm:gap-8">
               {arrivals && (
                 <div>
-                  <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/50">Rooms in use</dt>
+                  <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/50">{t("Rooms in use")}</dt>
                   <dd className="lunia-tabular text-lg font-medium text-[var(--color-ink)]">
                     {today.now.roomsInUse}
                     <span className="text-[var(--color-ink)]/40"> / {today.now.roomsTotal}</span>
@@ -95,31 +107,31 @@ export default async function AdminHome() {
               )}
               {arrivals && (
                 <div>
-                  <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/50">In treatment</dt>
+                  <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/50">{t("In treatment")}</dt>
                   <dd className="lunia-tabular text-lg font-medium text-[var(--color-ink)]">{today.now.inProgress}</dd>
                 </div>
               )}
               <div className="col-span-2">
-                <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/50">Clocked in</dt>
+                <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]/50">{t("Clocked in")}</dt>
                 <dd className="text-sm text-[var(--color-ink)]">
                   {today.now.clockedIn.length === 0 ? (
                     <span className="text-[var(--color-ink)]/50">
-                      No one yet ·{" "}
+                      {t("No one yet")} ·{" "}
                       <Link href="/admin/me" className="font-medium text-[var(--color-teal-ink)] hover:underline">
-                        Clock in
+                        {t("Clock in")}
                       </Link>
                     </span>
                   ) : (
                     <span className="flex flex-wrap items-center gap-1.5">
                       {today.now.clockedIn.slice(0, 6).map((s) => (
-                        <span key={s.userId} className="lunia-pill" data-tone={s.userId === user.id ? "success" : "neutral"} title={`Since ${timeFmt.format(s.since)}`}>
+                        <span key={s.userId} className="lunia-pill" data-tone={s.userId === user.id ? "success" : "neutral"} title={t("Since {time}", { time: timeFmt.format(s.since) })}>
                           {s.name.split(/\s+/)[0]}
                         </span>
                       ))}
                       {today.now.clockedIn.length > 6 && <span className="text-xs text-[var(--color-ink)]/50">+{today.now.clockedIn.length - 6}</span>}
                       {!iAmClockedIn && (
                         <Link href="/admin/me" className="text-xs font-medium text-[var(--color-teal-ink)] hover:underline">
-                          Clock in
+                          {t("Clock in")}
                         </Link>
                       )}
                     </span>
@@ -132,12 +144,12 @@ export default async function AdminHome() {
             {canManage && (
               <Link href="/admin/calendar?add=1" className="lunia-btn lunia-btn-forest lunia-btn-sm">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path strokeLinecap="round" d="M12 5v14M5 12h14" /></svg>
-                Book walk-in
+                {t("Book walk-in")}
               </Link>
             )}
             {canBill && (
               <Link href="/admin/billing/new" className="lunia-btn lunia-btn-forest-outline lunia-btn-sm">
-                New invoice
+                {t("New invoice")}
               </Link>
             )}
           </div>
@@ -147,19 +159,19 @@ export default async function AdminHome() {
       {/* KPI row */}
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {today.kpis.revenueTodayMinor !== null && (
-          <KpiTile label="Collected today" value={formatSar(today.kpis.revenueTodayMinor)} sub="Payments received" />
+          <KpiTile label={t("Collected today")} value={formatSar(today.kpis.revenueTodayMinor, t)} sub={t("Payments received")} />
         )}
         {today.kpis.appointmentsToday !== null && (
-          <KpiTile label="Appointments" value={String(today.kpis.appointmentsToday)} sub={nextUp ? `Next at ${timeFmt.format(nextUp.startAt)}` : "Booked for today"}>
-            {today.spark && <Sparkline title="Appointments, last 7 days" points={today.spark.map((s) => ({ label: s.label, value: s.appointments }))} />}
+          <KpiTile label={t("Appointments")} value={String(today.kpis.appointmentsToday)} sub={nextUp ? t("Next at {time}", { time: timeFmt.format(nextUp.startAt) }) : t("Booked for today")}>
+            {today.spark && <Sparkline title={t("Appointments, last 7 days")} points={today.spark.map((s) => ({ label: weekdayOf(s.dateISO, weekdayFmt), value: s.appointments }))} />}
           </KpiTile>
         )}
-        {today.kpis.newCustomersToday !== null && <KpiTile label="New customers" value={String(today.kpis.newCustomersToday)} sub="Created today" />}
+        {today.kpis.newCustomersToday !== null && <KpiTile label={t("New customers")} value={String(today.kpis.newCustomersToday)} sub={t("Created today")} />}
         {today.kpis.appointmentsToday !== null && (
           <KpiTile
-            label="Occupancy"
+            label={t("Occupancy")}
             value={today.kpis.occupancyPct === null ? "—" : `${today.kpis.occupancyPct}%`}
-            sub={today.kpis.occupancyPct === null ? "Closed today" : `Across ${today.now.roomsTotal} room${today.now.roomsTotal === 1 ? "" : "s"}`}
+            sub={today.kpis.occupancyPct === null ? t("Closed today") : today.now.roomsTotal === 1 ? t("Across 1 room") : t("Across {count} rooms", { count: today.now.roomsTotal })}
           >
             {today.kpis.occupancyPct !== null && (
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-ink)]/[0.07]" aria-hidden="true">
@@ -176,17 +188,17 @@ export default async function AdminHome() {
           <section aria-labelledby="arrivals-h" className="lunia-card overflow-hidden lg:col-span-2">
             <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-4">
               <h2 id="arrivals-h" className="font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)]">
-                Arrivals
+                {t("Arrivals")}
               </h2>
               <Link href={`/admin/calendar?day=${today.todayISO}`} className="text-xs font-medium text-[var(--color-teal-ink)] hover:underline">
-                Open in calendar
+                {t("Open in calendar")}
               </Link>
             </div>
             {arrivals.length === 0 ? (
               <EmptyState
-                title="No arrivals yet"
-                body="Nothing is booked for today. Walk-ins can be added in a few seconds."
-                action={canManage ? { href: "/admin/calendar?add=1", label: "Book a walk-in" } : undefined}
+                title={t("No arrivals yet")}
+                body={t("Nothing is booked for today. Walk-ins can be added in a few seconds.")}
+                action={canManage ? { href: "/admin/calendar?add=1", label: t("Book a walk-in") } : undefined}
                 icon={<><path d="M3.5 9h17M8 3v4M16 3v4" /><rect x="3.5" y="5" width="17" height="16" rx="2" /></>}
               />
             ) : (
@@ -212,7 +224,7 @@ export default async function AdminHome() {
                             <span className="truncate font-medium text-[var(--color-ink)]">{a.clientName}</span>
                           )}
                           <StatusPill status={a.status} />
-                          {live && <span className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--color-teal-ink)]">Now</span>}
+                          {live && <span className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--color-teal-ink)]">{t("Now")}</span>}
                         </div>
                         <p className="mt-0.5 truncate text-xs text-[var(--color-ink)]/60">
                           {a.serviceName} · {a.staffName} · {a.roomName}
@@ -244,14 +256,14 @@ export default async function AdminHome() {
           <section aria-labelledby="attention-h" className="lunia-card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 id="attention-h" className="font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)]">
-                Needs attention
+                {t("Needs attention")}
               </h2>
               <Link href="/admin/notifications" className="text-xs font-medium text-[var(--color-teal-ink)] hover:underline">
-                View all
+                {t("View all")}
               </Link>
             </div>
             {today.attention.length === 0 ? (
-              <EmptyState size="sm" title="All clear" body="Nothing is waiting on you right now." icon={<path d="m5 12.5 4.5 4.5L19 7" />} />
+              <EmptyState size="sm" title={t("All clear")} body={t("Nothing is waiting on you right now.")} icon={<path d="m5 12.5 4.5 4.5L19 7" />} />
             ) : (
               <ul className={`grid gap-2 ${arrivals ? "" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
                 {today.attention.map((card) => (
@@ -269,7 +281,7 @@ export default async function AdminHome() {
                           <path d={ATTENTION_ICON[card.type]} />
                         </svg>
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-sm text-[var(--color-ink)]">{card.label}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm text-[var(--color-ink)]">{t(card.label)}</span>
                       <span className="lunia-tabular text-sm font-semibold" style={{ color: `var(--status-${card.tone})` }}>
                         {card.count}
                       </span>
@@ -285,10 +297,10 @@ export default async function AdminHome() {
             <section aria-labelledby="week-h" className="lunia-card p-5">
               <div className="mb-3 flex items-center justify-between">
                 <h2 id="week-h" className="font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)]">
-                  This week
+                  {t("This week")}
                 </h2>
                 <Link href="/admin/calendar" className="text-xs font-medium text-[var(--color-teal-ink)] hover:underline">
-                  Calendar
+                  {t("Calendar")}
                 </Link>
               </div>
               <ol className="grid grid-cols-7 gap-1">
@@ -296,13 +308,18 @@ export default async function AdminHome() {
                   <li key={d.dateISO}>
                     <Link
                       href={`/admin/calendar?day=${d.dateISO}`}
-                      aria-label={`${d.weekday} ${d.dayOfMonth}: ${d.count} appointment${d.count === 1 ? "" : "s"}${d.closed ? ", closed" : ""}`}
+                      aria-label={t(
+                        d.count === 1
+                          ? d.closed ? "{day} {date}: 1 appointment, closed" : "{day} {date}: 1 appointment"
+                          : d.closed ? "{day} {date}: {count} appointments, closed" : "{day} {date}: {count} appointments",
+                        { day: weekdayOf(d.dateISO, weekdayFmt), date: d.dayOfMonth, count: d.count },
+                      )}
                       aria-current={d.isToday ? "date" : undefined}
                       className={`flex flex-col items-center gap-1 rounded-[var(--radius-sm)] py-2 text-center transition-colors hover:bg-[var(--color-teal)]/[0.15] focus-visible:outline-none focus-visible:shadow-[var(--ring)] ${
                         d.isToday ? "bg-[var(--color-teal)]/30" : ""
                       } ${d.closed ? "opacity-50" : ""}`}
                     >
-                      <span className="text-[0.62rem] font-semibold uppercase tracking-wider text-[var(--color-ink)]/50">{d.weekday}</span>
+                      <span className="text-[0.62rem] font-semibold uppercase tracking-wider text-[var(--color-ink)]/50">{weekdayOf(d.dateISO, weekdayFmt)}</span>
                       <span className={`lunia-tabular text-sm ${d.isToday ? "font-semibold text-[var(--color-ink)]" : "text-[var(--color-ink)]/80"}`}>{d.dayOfMonth}</span>
                       <span className={`lunia-tabular text-xs ${d.count > 0 ? "font-medium text-[var(--color-teal-ink)]" : "text-[var(--color-ink)]/30"}`}>{d.count > 0 ? d.count : "·"}</span>
                     </Link>

@@ -10,6 +10,8 @@ export interface AssistantViewer {
   permissions: Set<PermissionKey>;
   /** Menu hrefs hidden by the superadmin (never suggested). */
   hiddenHrefs?: string[];
+  /** Staff console language; replies are localized for "ar". */
+  locale?: "en" | "ar";
 }
 
 export interface AssistantLink {

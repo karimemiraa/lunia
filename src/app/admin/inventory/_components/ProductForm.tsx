@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createProductAction, updateProductAction } from "../actions";
 import { PRODUCT_KINDS, PRODUCT_UNITS, minorToSarInput, parseSarToMinor, formatSarMinor } from "@/modules/inventory/money";
 import { labelClass, labelText } from "./ui";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 export interface ProductFormValues {
   id?: string;
@@ -34,6 +35,7 @@ const KIND_LABELS: Record<string, string> = { RETAIL: "Retail (sold)", CONSUMABL
 
 export function ProductForm({ initial, suppliers, categories }: Props) {
   const router = useRouter();
+  const t = useStaffT();
   const isNew = !initial.id;
   const [v, setV] = useState({
     ...initial,
@@ -60,10 +62,10 @@ export function ProductForm({ initial, suppliers, categories }: Props) {
     event.preventDefault();
     setError(null);
     const costMinor = parseSarToMinor(v.cost);
-    if (costMinor === null || priceMinor === null) return setError("Enter cost and price as amounts in SAR, e.g. 45.50");
-    if (!Number.isFinite(vatBp) || vatBp < 0 || vatBp > 10_000) return setError("VAT rate must be between 0 and 100%.");
+    if (costMinor === null || priceMinor === null) return setError(t("Enter cost and price as amounts in SAR, e.g. 45.50"));
+    if (!Number.isFinite(vatBp) || vatBp < 0 || vatBp > 10_000) return setError(t("VAT rate must be between 0 and 100%."));
     const reorderLevel = Number(v.reorder);
-    if (!Number.isInteger(reorderLevel) || reorderLevel < 0) return setError("Reorder level must be a whole number.");
+    if (!Number.isInteger(reorderLevel) || reorderLevel < 0) return setError(t("Reorder level must be a whole number."));
     const payload = {
       sku: v.sku,
       barcode: v.barcode,
@@ -83,7 +85,7 @@ export function ProductForm({ initial, suppliers, categories }: Props) {
     startTransition(async () => {
       if (isNew) {
         const openingQty = Number(v.opening || 0);
-        if (!Number.isInteger(openingQty) || openingQty < 0) return setError("Opening stock must be a whole number.");
+        if (!Number.isInteger(openingQty) || openingQty < 0) return setError(t("Opening stock must be a whole number."));
         const result = await createProductAction({ ...payload, openingQty });
         if (!result.ok) return setError(result.error);
         router.push(`/admin/inventory/products/${result.data!.id}`);
@@ -100,37 +102,38 @@ export function ProductForm({ initial, suppliers, categories }: Props) {
     <form onSubmit={submit} className="lunia-card flex flex-col gap-5 p-5 sm:p-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={labelClass}>
-          <span className={labelText}>Name (English)</span>
+          <span className={labelText}>{t("Name (English)")}</span>
           <input required value={v.nameEn} onChange={set("nameEn")} className="lunia-input min-h-11" />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Name (Arabic)</span>
+          <span className={labelText}>{t("Name (Arabic)")}</span>
           <input dir="rtl" lang="ar" value={v.nameAr} onChange={set("nameAr")} className="lunia-input min-h-11" />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Barcode</span>
+          <span className={labelText}>{t("Barcode")}</span>
           <input
+            dir="ltr"
             value={v.barcode}
             onChange={set("barcode")}
             // A scanner ends with Enter; keep that from submitting the form.
             onKeyDown={(e) => {
               if (e.key === "Enter") e.preventDefault();
             }}
-            placeholder="Click here and scan"
+            placeholder={t("Click here and scan")}
             autoComplete="off"
             className="lunia-input min-h-11 font-mono"
           />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>SKU</span>
-          <input value={v.sku} onChange={set("sku")} autoComplete="off" className="lunia-input min-h-11 font-mono" />
+          <span className={labelText}>{t("SKU")}</span>
+          <input dir="ltr" value={v.sku} onChange={set("sku")} autoComplete="off" className="lunia-input min-h-11 font-mono" />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Brand</span>
+          <span className={labelText}>{t("Brand")}</span>
           <input value={v.brandName} onChange={set("brandName")} className="lunia-input min-h-11" />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Category</span>
+          <span className={labelText}>{t("Category")}</span>
           <input value={v.category} onChange={set("category")} list="inventory-categories" className="lunia-input min-h-11" />
           <datalist id="inventory-categories">
             {categories.map((c) => (
@@ -139,9 +142,9 @@ export function ProductForm({ initial, suppliers, categories }: Props) {
           </datalist>
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Supplier</span>
+          <span className={labelText}>{t("Supplier")}</span>
           <select value={v.supplierId} onChange={set("supplierId")} className="lunia-input min-h-11">
-            <option value="">None</option>
+            <option value="">{t("None")}</option>
             {suppliers.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -151,21 +154,21 @@ export function ProductForm({ initial, suppliers, categories }: Props) {
         </label>
         <div className="grid grid-cols-2 gap-4">
           <label className={labelClass}>
-            <span className={labelText}>Type</span>
+            <span className={labelText}>{t("Type")}</span>
             <select value={v.kind} onChange={set("kind")} className="lunia-input min-h-11">
               {PRODUCT_KINDS.map((k) => (
                 <option key={k} value={k}>
-                  {KIND_LABELS[k]}
+                  {t(KIND_LABELS[k])}
                 </option>
               ))}
             </select>
           </label>
           <label className={labelClass}>
-            <span className={labelText}>Unit</span>
+            <span className={labelText}>{t("Unit")}</span>
             <select value={v.unit} onChange={set("unit")} className="lunia-input min-h-11">
               {PRODUCT_UNITS.map((u) => (
                 <option key={u} value={u}>
-                  {u}
+                  {t(u)}
                 </option>
               ))}
             </select>
@@ -175,26 +178,26 @@ export function ProductForm({ initial, suppliers, categories }: Props) {
 
       <div className="grid gap-4 border-t border-[var(--line)] pt-5 sm:grid-cols-2 lg:grid-cols-4">
         <label className={labelClass}>
-          <span className={labelText}>Cost per unit (SAR)</span>
+          <span className={labelText}>{t("Cost per unit (SAR)")}</span>
           <input inputMode="decimal" value={v.cost} onChange={set("cost")} className="lunia-input min-h-11 tabular-nums" />
-          {!isNew && <span className="text-xs text-[var(--color-ink)]/50">Updated automatically as a weighted average when stock is received.</span>}
+          {!isNew && <span className="text-xs text-[var(--color-ink)]/50">{t("Updated automatically as a weighted average when stock is received.")}</span>}
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Retail price excl. VAT (SAR)</span>
+          <span className={labelText}>{t("Retail price excl. VAT (SAR)")}</span>
           <input inputMode="decimal" value={v.price} onChange={set("price")} className="lunia-input min-h-11 tabular-nums" />
-          {priceInclVat !== null && <span className="text-xs text-[var(--color-ink)]/50">{formatSarMinor(priceInclVat)} incl. VAT</span>}
+          {priceInclVat !== null && <span className="text-xs text-[var(--color-ink)]/50">{t("{amount} incl. VAT", { amount: formatSarMinor(priceInclVat) })}</span>}
         </label>
         <label className={labelClass}>
-          <span className={labelText}>VAT rate (%)</span>
+          <span className={labelText}>{t("VAT rate (%)")}</span>
           <input inputMode="decimal" value={v.vat} onChange={set("vat")} className="lunia-input min-h-11 tabular-nums" />
         </label>
         <label className={labelClass}>
-          <span className={labelText}>Reorder level ({v.unit})</span>
+          <span className={labelText}>{t("Reorder level ({unit})", { unit: t(v.unit) })}</span>
           <input type="number" min={0} step={1} value={v.reorder} onChange={set("reorder")} className="lunia-input min-h-11 tabular-nums" />
         </label>
         {isNew && (
           <label className={labelClass}>
-            <span className={labelText}>Opening stock ({v.unit})</span>
+            <span className={labelText}>{t("Opening stock ({unit})", { unit: t(v.unit) })}</span>
             <input type="number" min={0} step={1} value={v.opening} onChange={set("opening")} className="lunia-input min-h-11 tabular-nums" />
           </label>
         )}
@@ -202,7 +205,7 @@ export function ProductForm({ initial, suppliers, categories }: Props) {
 
       <label className="flex min-h-11 items-center gap-3 text-sm">
         <input type="checkbox" checked={v.isActive} onChange={set("isActive")} className="h-5 w-5 accent-[var(--color-teal-ink)]" />
-        Active (inactive products are hidden from pickers and reorder suggestions)
+        {t("Active (inactive products are hidden from pickers and reorder suggestions)")}
       </label>
 
       {error && (
@@ -210,11 +213,11 @@ export function ProductForm({ initial, suppliers, categories }: Props) {
           {error}
         </p>
       )}
-      {saved && <p className="text-sm font-medium text-[var(--color-teal-ink)]">Saved.</p>}
+      {saved && <p className="text-sm font-medium text-[var(--color-teal-ink)]">{t("Saved.")}</p>}
 
       <div>
         <button type="submit" disabled={isPending} className="lunia-btn lunia-btn-forest min-h-11 disabled:opacity-60">
-          {isPending ? "Saving…" : isNew ? "Create product" : "Save changes"}
+          {isPending ? t("Saving…") : isNew ? t("Create product") : t("Save changes")}
         </button>
       </div>
     </form>

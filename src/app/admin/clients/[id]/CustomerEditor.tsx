@@ -11,6 +11,7 @@ import type { MembershipTier, CommsChannelPref } from "@prisma/client";
 import { onActionSuccess } from "../../_components/onActionSuccess";
 import { InlineStatus } from "../../_ui/Form";
 import { ConfirmButton } from "../../_ui/ConfirmDialog";
+import { useStaffT } from "../../_i18n/StaffI18n";
 
 interface CustomerEditorProps {
   clientProfileId: string;
@@ -29,6 +30,7 @@ const initialState: ClientActionState = {};
 // scrolling past a big inline form on the profile.
 export function CustomerEditor({ clientProfileId, fullName, phone, email, source, currentTierId, tiers, preference }: CustomerEditorProps) {
   const router = useRouter();
+  const t = useStaffT();
   const [open, setOpen] = useState(false);
   const [saveState, saveAction, savePending] = useActionState(
     onActionSuccess(updateCustomerAction, () => {
@@ -43,34 +45,34 @@ export function CustomerEditor({ clientProfileId, fullName, phone, email, source
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className="lunia-btn lunia-btn-forest-outline" data-testid="edit-customer-trigger">
-        Edit details
+        {t("Edit details")}
       </button>
 
       {open && (
-        <Modal title="Edit customer" onClose={() => setOpen(false)}>
+        <Modal title={t("Edit customer")} onClose={() => setOpen(false)}>
           <div className="flex flex-col gap-5" data-testid="customer-editor">
             <form action={saveAction} className="flex flex-col gap-4">
               <input type="hidden" name="clientProfileId" value={clientProfileId} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5 text-sm">
-                  <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Name</span>
+                  <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">{t("Name")}</span>
                   <input name="fullName" type="text" required maxLength={120} defaultValue={fullName} className="lunia-input" />
                 </label>
                 <label className="flex flex-col gap-1.5 text-sm">
-                  <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Phone</span>
-                  <input name="phone" type="tel" maxLength={40} defaultValue={phone ?? ""} className="lunia-input" />
+                  <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">{t("Phone")}</span>
+                  <input name="phone" type="tel" dir="ltr" maxLength={40} defaultValue={phone ?? ""} className="lunia-input" />
                 </label>
                 <label className="flex flex-col gap-1.5 text-sm sm:col-span-2">
-                  <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Email</span>
-                  <input name="email" type="email" maxLength={200} defaultValue={email ?? ""} className="lunia-input" />
+                  <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">{t("Email")}</span>
+                  <input name="email" type="email" dir="ltr" maxLength={200} defaultValue={email ?? ""} className="lunia-input" />
                 </label>
               </div>
               <p className="text-xs text-[var(--color-ink)]/45">
-                Source: <span className="font-medium text-[var(--color-ink)]/70">{source || "Not set"}</span> (set automatically)
+                {t("Source:")} <span className="font-medium text-[var(--color-ink)]/70">{source || t("Not set")}</span> {t("(set automatically)")}
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <button type="submit" disabled={savePending} className="lunia-btn lunia-btn-forest w-fit disabled:opacity-60">
-                  {savePending ? "Saving…" : "Save details"}
+                  {savePending ? t("Saving…") : t("Save details")}
                 </button>
                 <InlineStatus size="sm" error={saveState.error} />
               </div>
@@ -79,14 +81,14 @@ export function CustomerEditor({ clientProfileId, fullName, phone, email, source
             <hr className="border-[var(--line)]" />
 
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Membership tier</span>
+              <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">{t("Membership tier")}</span>
               <TierEditor clientProfileId={clientProfileId} currentTierId={currentTierId} tiers={tiers} />
             </div>
 
             <hr className="border-[var(--line)]" />
 
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">Notification preferences</span>
+              <span className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-ink)]/55">{t("Notification preferences")}</span>
               <NotificationPreferenceEditor clientProfileId={clientProfileId} preference={preference} />
             </div>
 
@@ -95,15 +97,15 @@ export function CustomerEditor({ clientProfileId, fullName, phone, email, source
             <form action={deleteAction} className="flex flex-wrap items-center gap-3">
               <input type="hidden" name="clientProfileId" value={clientProfileId} />
               <ConfirmButton
-                title="Delete this customer?"
-                description="Their bookings and entire history are removed permanently. This cannot be undone."
-                confirmLabel="Delete customer"
+                title={t("Delete this customer?")}
+                description={t("Their bookings and entire history are removed permanently. This cannot be undone.")}
+                confirmLabel={t("Delete customer")}
                 pending={deletePending}
                 className="lunia-btn lunia-btn-danger lunia-btn-sm"
               >
-                {deletePending ? "Deleting…" : "Delete customer"}
+                {deletePending ? t("Deleting…") : t("Delete customer")}
               </ConfirmButton>
-              <span className="text-xs text-[var(--color-ink)]/50">Removes the customer and their entire history permanently.</span>
+              <span className="text-xs text-[var(--color-ink)]/50">{t("Removes the customer and their entire history permanently.")}</span>
               <InlineStatus size="sm" error={deleteState.error} />
             </form>
           </div>

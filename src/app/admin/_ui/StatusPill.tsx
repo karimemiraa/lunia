@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import "./tokens.css";
+import { makeT, type StaffLocale } from "../_i18n/t";
+import { translateStatus } from "./labels";
+import { StatusText } from "./StatusText";
 
 export type Tone = "neutral" | "info" | "success" | "warning" | "danger" | "accent";
 
@@ -74,8 +77,10 @@ const LABELS: Record<string, string> = {
   CREDIT_NOTE: "Credit note",
 };
 
-export function statusLabel(status: string): string {
-  return LABELS[status] ?? status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, " ");
+/** English label for a status; pass the staff locale for the Arabic label. */
+export function statusLabel(status: string, locale: StaffLocale = "en"): string {
+  const label = LABELS[status] ?? status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, " ");
+  return locale === "en" ? label : translateStatus(label, makeT(locale));
 }
 
 interface StatusPillProps {
@@ -95,7 +100,7 @@ export function StatusPill({ status, tone, children, className = "", dot }: Stat
       className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-wide ${TONE_CLASS[t]} ${className}`}
     >
       {dot && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />}
-      {children ?? (status ? statusLabel(status) : null)}
+      {typeof children === "string" ? <StatusText label={children} /> : (children ?? (status ? <StatusText label={statusLabel(status)} /> : null))}
     </span>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useStaffT } from "../_i18n/StaffI18n";
 
 export interface TabDef {
   id: string;
@@ -14,6 +15,7 @@ export interface TabDef {
 // `hidden`, so panel state (forms, inputs) is preserved when switching and the
 // server-rendered content inside each panel needs no client refetch.
 export function Tabs({ tabs }: { tabs: TabDef[] }) {
+  const t = useStaffT();
   const [active, setActive] = useState(tabs[0]?.id);
 
   return (
@@ -34,7 +36,7 @@ export function Tabs({ tabs }: { tabs: TabDef[] }) {
                   : "border-transparent text-[var(--color-ink)]/55 hover:text-[var(--color-ink)]"
               }`}
             >
-              {tab.label}
+              {t(tab.label)}
               {typeof tab.badge === "number" && (
                 <span
                   className={`rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold ${

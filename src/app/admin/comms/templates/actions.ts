@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
 import { upsertTemplate } from "@/modules/comms/templates";
 
 export interface TemplateActionState {
@@ -18,6 +19,7 @@ export interface TemplateActionState {
 // the field entirely, which this action never does.
 export async function updateTemplateAction(_prev: TemplateActionState | null, formData: FormData): Promise<TemplateActionState> {
   await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
 
   const kind = String(formData.get("kind") ?? "").trim();
   const locale = String(formData.get("locale") ?? "").trim();
@@ -27,7 +29,7 @@ export async function updateTemplateAction(_prev: TemplateActionState | null, fo
   const isActive = formData.get("isActive") === "on";
 
   if (!kind || !locale || !channel) {
-    return { error: "Missing template identity." };
+    return { error: t("Missing template identity.") };
   }
 
   try {
@@ -40,7 +42,7 @@ export async function updateTemplateAction(_prev: TemplateActionState | null, fo
       isActive,
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to save template." };
+    return { error: err instanceof Error ? t(err.message) : t("Failed to save template.") };
   }
 
   revalidatePath("/admin/comms/templates");

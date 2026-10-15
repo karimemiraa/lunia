@@ -14,13 +14,16 @@ import { submitIntake } from "@/modules/clinical/intake";
 import { consentStatusForClient, signConsent } from "@/modules/clinical/consents";
 import { createTreatmentRecord, updateTreatmentRecord, type TreatmentInput } from "@/modules/clinical/treatments";
 import { deleteClinicalPhoto, getClinicalPhoto, updateClinicalPhotoMeta, uploadClinicalPhoto, type PhotoKind } from "@/modules/clinical/photos";
+import { getStaffT } from "../../../_i18n/display";
 import { createShowcase, deleteShowcase, setPhotoShareConsent, setShowcasePublished, type CreateShowcaseInput } from "@/modules/clinical/showcase";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-function message(err: unknown, fallback: string): string {
-  if (err && typeof err === "object" && "issues" in err) return "Please check the highlighted values and try again.";
-  return err instanceof Error && err.message ? err.message : fallback;
+// Error text for the staff locale (module messages are English; see the clients dictionary).
+async function message(err: unknown, fallback: string): Promise<string> {
+  const t = await getStaffT();
+  if (err && typeof err === "object" && "issues" in err) return t("Please check the highlighted values and try again.");
+  return err instanceof Error && err.message ? t(err.message) : t(fallback);
 }
 
 function revalidateClient(clientProfileId: string) {
@@ -48,7 +51,7 @@ export async function saveIntakeAction(clientProfileId: string, answers: unknown
       summary: `Updated the health questionnaire for ${client.fullName || clientProfileId}`,
     });
   } catch (err) {
-    return { ok: false, error: message(err, "Could not save the questionnaire.") };
+    return { ok: false, error: await message(err, "Could not save the questionnaire.") };
   }
   revalidateClient(clientProfileId);
   return { ok: true };
@@ -88,7 +91,7 @@ export async function signAtDeskAction(
     revalidateClient(clientProfileId);
     return { ok: true, signatureId: signature.id };
   } catch (err) {
-    return { ok: false, error: message(err, "Could not record the signature.") };
+    return { ok: false, error: await message(err, "Could not record the signature.") };
   }
 }
 
@@ -114,7 +117,7 @@ export async function saveTreatmentAction(
     revalidateClient(clientProfileId);
     return { ok: true, id: record.id };
   } catch (err) {
-    return { ok: false, error: message(err, "Could not save the treatment record.") };
+    return { ok: false, error: await message(err, "Could not save the treatment record.") };
   }
 }
 
@@ -126,7 +129,7 @@ export async function uploadPhotoAction(formData: FormData): Promise<{ ok: true;
   const admin = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
   const clientProfileId = String(formData.get("clientProfileId") ?? "");
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose a photo to upload." };
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: (await getStaffT())("Choose a photo to upload.") };
   try {
     const client = await assertClient(clientProfileId);
     const photo = await uploadClinicalPhoto(
@@ -152,7 +155,7 @@ export async function uploadPhotoAction(formData: FormData): Promise<{ ok: true;
     revalidateClient(clientProfileId);
     return { ok: true, id: photo.id };
   } catch (err) {
-    return { ok: false, error: message(err, "Could not upload the photo.") };
+    return { ok: false, error: await message(err, "Could not upload the photo.") };
   }
 }
 
@@ -166,7 +169,7 @@ export async function updatePhotoAction(
     revalidateClient(photo.clientProfileId);
     revalidatePath(`/admin/clients/${photo.clientProfileId}/clinical/photos`);
   } catch (err) {
-    return { ok: false, error: message(err, "Could not update the photo.") };
+    return { ok: false, error: await message(err, "Could not update the photo.") };
   }
   return { ok: true };
 }
@@ -174,7 +177,7 @@ export async function updatePhotoAction(
 export async function deletePhotoAction(photoId: string): Promise<ActionResult> {
   const admin = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
   const photo = await getClinicalPhoto(photoId);
-  if (!photo) return { ok: false, error: "Photo not found." };
+  if (!photo) return { ok: false, error: (await getStaffT())("Photo not found.") };
   try {
     await deleteClinicalPhoto(photoId);
     await recordAudit({
@@ -185,7 +188,7 @@ export async function deletePhotoAction(photoId: string): Promise<ActionResult> 
       summary: `Deleted a clinical photo (${photo.kind.toLowerCase()}) from customer ${photo.clientProfileId}`,
     });
   } catch (err) {
-    return { ok: false, error: message(err, "Could not delete the photo.") };
+    return { ok: false, error: await message(err, "Could not delete the photo.") };
   }
   revalidateClient(photo.clientProfileId);
   revalidatePath(`/admin/clients/${photo.clientProfileId}/clinical/photos`);
@@ -210,7 +213,7 @@ export async function setPhotoShareConsentAction(photoId: string, consent: boole
     revalidatePath(`/admin/clients/${photo.clientProfileId}/clinical/photos`);
     revalidatePath("/admin/content/results");
   } catch (err) {
-    return { ok: false, error: message(err, "Could not update consent.") };
+    return { ok: false, error: await message(err, "Could not update consent.") };
   }
   return { ok: true };
 }
@@ -230,7 +233,7 @@ export async function createShowcaseAction(input: CreateShowcaseInput): Promise<
     revalidatePath("/en/results");
     revalidatePath("/ar/results");
   } catch (err) {
-    return { ok: false, error: message(err, "Could not add the pair.") };
+    return { ok: false, error: await message(err, "Could not add the pair.") };
   }
   return { ok: true };
 }
@@ -244,7 +247,7 @@ export async function setShowcasePublishedAction(id: string, publish: boolean): 
     revalidatePath("/en/results");
     revalidatePath("/ar/results");
   } catch (err) {
-    return { ok: false, error: message(err, "Could not update the pair.") };
+    return { ok: false, error: await message(err, "Could not update the pair.") };
   }
   return { ok: true };
 }
@@ -258,7 +261,7 @@ export async function deleteShowcaseAction(id: string): Promise<ActionResult> {
     revalidatePath("/en/results");
     revalidatePath("/ar/results");
   } catch (err) {
-    return { ok: false, error: message(err, "Could not remove the pair.") };
+    return { ok: false, error: await message(err, "Could not remove the pair.") };
   }
   return { ok: true };
 }
