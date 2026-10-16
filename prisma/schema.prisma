@@ -368,6 +368,10 @@ model Service {
   priceMinor      Int                 @default(0)
   onlineBookable  Boolean             @default(true)
   inCenterOnly    Boolean             @default(false)
+  /// Customer pays at reception before going to the treatment room.
+  payBeforeTreatment Boolean          @default(false)
+  /// Always start with a consultation step (also automatic on a first visit).
+  needsConsultation  Boolean          @default(false)
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @default(now()) @updatedAt
   accessRule      ServiceAccessRule?
@@ -647,6 +651,8 @@ model Room {
   capacity     Int           @default(1)
   isActive     Boolean       @default(true)
   order        Int           @default(0)
+  /// Being prepared after a session (تجهيز الغرفة); null = ready.
+  preparingSince DateTime?
   appointments Appointment[]
 }
 
@@ -822,12 +828,56 @@ model Appointment {
   @@index([startAt])
 }
 
+// Where a checked-in customer is in the clinic right now (docs/PRD-visit-journey.md).
+// Booking.status stays CHECKED_IN for the whole visit; the stage adds detail.
+enum VisitStage {
+  WAITING
+  CONSULTATION
+  TREATMENT
+  CHECKOUT
+  DONE
+}
+
 model CheckIn {
   id        String    @id @default(cuid())
   bookingId String    @unique
   booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   arrivedAt DateTime  @default(now())
+  /// Treatment started (customer in the treatment room).
   seatedAt  DateTime?
+  stage             VisitStage @default(WAITING)
+  /// When the current stage began (drives the live timer).
+  stageAt           DateTime   @default(now())
+  checkedInById     String?
+  /// Specialist took over from front desk ("Receive").
+  receivedAt        DateTime?
+  receivedById      String?
+  consultStartedAt  DateTime?
+  treatmentEndedAt  DateTime?
+  checkedOutAt      DateTime?
+  checkedOutById    String?
+  /// Coffee/water served in the waiting area (ضيافة).
+  hospitalityAt     DateTime?
+  /// Front desk let a "pay before treatment" customer in unpaid.
+  paymentOverrideById String?
+  events            VisitEvent[]
+
+  @@index([stage])
+}
+
+/// Append-only visit timeline: one row per stage change or handoff.
+model VisitEvent {
+  id        String     @id @default(cuid())
+  checkInId String
+  checkIn   CheckIn    @relation(fields: [checkInId], references: [id], onDelete: Cascade)
+  stage     VisitStage
+  /// e.g. "arrived", "received", "reassigned", "payment_override", "room_ready".
+  kind      String
+  at        DateTime   @default(now())
+  byUserId  String?
+  note      String?
+
+  @@index([checkInId, at])
 }
 
 model ScheduledMessage {

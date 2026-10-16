@@ -5,6 +5,7 @@ import { fontVariables } from "@/app/fonts";
 import { getStaffDisplay } from "./_i18n/display";
 import { SYSTEM_THEME_SCRIPT, ThemeSync } from "./_components/ThemeSync";
 import { AskLunia } from "./_components/AskLunia";
+import { ArrivalAlerts } from "./_components/ArrivalAlerts";
 import { StaffI18nProvider } from "./_i18n/StaffI18n";
 import { cookies, headers } from "next/headers";
 import { getCurrentUser } from "@/modules/iam/rbac";
@@ -50,6 +51,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <StaffI18nProvider locale={locale}>
           {children}
           {staff && <AskLunia locale={locale} aiEnabled={aiEnabled} />}
+          {staff && <ArrivalAlerts />}
           <ThemeSync theme={theme} />
         </StaffI18nProvider>
       </body>

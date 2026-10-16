@@ -190,9 +190,14 @@ export default async function AdminHome() {
               <h2 id="arrivals-h" className="font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)]">
                 {t("Arrivals")}
               </h2>
-              <Link href={`/admin/calendar?day=${today.todayISO}`} className="text-xs font-medium text-[var(--color-teal-ink)] hover:underline">
-                {t("Open in calendar")}
-              </Link>
+              <div className="flex items-center gap-4">
+                <Link href="/admin/visits" className="text-xs font-medium text-[var(--color-teal-ink)] hover:underline" data-testid="today-visit-board">
+                  {t("Open the visit board")}
+                </Link>
+                <Link href={`/admin/calendar?day=${today.todayISO}`} className="text-xs font-medium text-[var(--color-teal-ink)] hover:underline">
+                  {t("Open in calendar")}
+                </Link>
+              </div>
             </div>
             {arrivals.length === 0 ? (
               <EmptyState

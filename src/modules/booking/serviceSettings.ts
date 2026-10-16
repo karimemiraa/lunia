@@ -60,6 +60,10 @@ const updateServiceBookingSettingsSchema = z.object({
   priceMinor: z.number().int().min(0),
   onlineBookable: z.boolean(),
   inCenterOnly: z.boolean(),
+  /** Visit journey: customer pays at reception before the treatment room. */
+  payBeforeTreatment: z.boolean().optional(),
+  /** Visit journey: every visit starts with a consultation step. */
+  needsConsultation: z.boolean().optional(),
 });
 export type UpdateServiceBookingSettingsInput = z.infer<typeof updateServiceBookingSettingsSchema>;
 
@@ -85,6 +89,8 @@ export async function updateServiceBookingSettings(
       priceMinor: data.priceMinor,
       onlineBookable: data.onlineBookable,
       inCenterOnly: data.inCenterOnly,
+      ...(data.payBeforeTreatment === undefined ? {} : { payBeforeTreatment: data.payBeforeTreatment }),
+      ...(data.needsConsultation === undefined ? {} : { needsConsultation: data.needsConsultation }),
     },
   });
 }

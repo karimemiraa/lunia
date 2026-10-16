@@ -12,6 +12,7 @@ import { prisma } from "@/lib/db";
 import { getStaffDisplay } from "../../_i18n/display";
 import { intlLocale, makeT } from "../../_i18n/t";
 import { loadArabicNames } from "../arabicNames";
+import { visitDurations, visitTimeline } from "@/modules/booking/journey";
 import { bookingStatusText, channelText, invoiceStatusText, lineKindText, photoKindText } from "../labels";
 
 interface HubPageProps {
@@ -130,6 +131,21 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
     comments = comments.map((c) => ({ ...c, authorName: ar.staff.get(c.authorUserId) ?? c.authorName }));
   }
   const started = Boolean(checkIn?.seatedAt);
+  // Visit journey (docs/PRD-visit-journey.md): each step, who did it, how long each part took.
+  const [timeline, visitRow] = await Promise.all([
+    visitTimeline(booking.id, { arabic: locale === "ar" }),
+    prisma.checkIn.findUnique({ where: { bookingId: booking.id }, select: { arrivedAt: true, receivedAt: true, seatedAt: true, treatmentEndedAt: true, checkedOutAt: true } }),
+  ]);
+  const plannedMin = Math.round((appointment.endAt.getTime() - appointment.startAt.getTime()) / 60_000);
+  const durations = visitRow ? visitDurations(visitRow, plannedMin) : null;
+  const durationChips = durations
+    ? ([
+        ["Waited {n} min", durations.waitMin],
+        ["Treatment {n} min", durations.treatmentMin],
+        ["Checkout {n} min", durations.checkoutMin],
+        ["Total {n} min", durations.totalMin],
+      ] as const).filter(([, n]) => n !== null)
+    : [];
   const clientHref = `/admin/clients/${client.id}`;
 
   return (
@@ -296,6 +312,35 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
                 )}
               </Card>
             )}
+
+            {/* Visit timeline */}
+            <Card title={t("Visit timeline")} action={<Link href="/admin/visits" className="text-xs text-[var(--color-teal-ink)] hover:underline">{t("Open the visit board")}</Link>}>
+              {timeline.length === 0 ? (
+                <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-4 py-6 text-center text-sm text-[var(--color-ink)]/55">{t("The timeline starts when she is checked in.")}</p>
+              ) : (
+                <div className="flex flex-col gap-3" data-testid="visit-timeline">
+                  {durationChips.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {durationChips.map(([label, n]) => (
+                        <span key={label} className={`${chip} bg-[var(--color-ink)]/5 text-[var(--color-ink)]/75 tabular-nums`}>{t(label, { n: Math.round(n ?? 0) })}</span>
+                      ))}
+                    </div>
+                  )}
+                  <ol className="flex flex-col gap-2 border-s border-[var(--line-strong)] ps-4">
+                    {timeline.map((e, i) => (
+                      <li key={i} className="relative text-sm">
+                        <span aria-hidden className="absolute -start-[1.3rem] top-1.5 h-2 w-2 rounded-full bg-[var(--color-teal)]" />
+                        <span className="tabular-nums text-[var(--color-ink)]/55">{tFmt.format(e.at)}</span>{" "}
+                        <span className="font-medium text-[var(--color-ink)]">{t(e.kind)}</span>
+                        {e.kind === "reassigned" && e.note && <span className="text-[var(--color-ink)]/70"> · {t("to {name}", { name: e.note })}</span>}
+                        {e.byName && <span className="text-[var(--color-ink)]/55"> · {t("by {name}", { name: e.byName })}</span>}
+                        {e.kind === "payment_override" && e.note && <span className="block text-xs text-[var(--color-ink)]/60">{e.note}</span>}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </Card>
 
             {/* Documents (files) + clinical photos */}
             <Card title={t("Documents")} action={canClinical ? <Link href={`${clientHref}?tab=patient`} className="text-xs text-[var(--color-teal-ink)] hover:underline">{t("Patient file")}</Link> : undefined}>

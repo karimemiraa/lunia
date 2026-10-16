@@ -15,6 +15,8 @@ import { getCommsConfig } from "@/modules/comms/config";
 import { resolveBookingChannel } from "@/modules/booking/outbox";
 import { SettingsForm } from "./SettingsForm";
 import { AutomationsForm } from "./AutomationsForm";
+import { JourneyForm } from "./JourneyForm";
+import { getJourneySettings } from "@/modules/booking/journey";
 import { JOBS, backupProblem, getAutomationSettings, latestJobRuns } from "@/modules/automation/jobs";
 
 const DEFAULT_HOURS: HoursSettings = Object.fromEntries(
@@ -24,7 +26,7 @@ const DEFAULT_HOURS: HoursSettings = Object.fromEntries(
 export default async function SettingsPage() {
   const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
   const t = await getStaffT();
-  const [settings, automations, runs] = await Promise.all([getAllSettings(), getAutomationSettings(), latestJobRuns()]);
+  const [settings, automations, runs, journey] = await Promise.all([getAllSettings(), getAutomationSettings(), latestJobRuns(), getJourneySettings()]);
 
   const business = settings.business as BusinessSettings | undefined;
   const hours = (settings.hours as HoursSettings | undefined) ?? DEFAULT_HOURS;
@@ -59,6 +61,9 @@ export default async function SettingsPage() {
           </p>
         ) : null;
       })()}
+      <div className="mt-6">
+        <JourneyForm value={journey} />
+      </div>
       <div className="mt-6">
         <AutomationsForm
           value={automations}

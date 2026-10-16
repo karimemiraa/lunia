@@ -123,6 +123,24 @@ export function EditServiceForm({ service, departments, media, tiers, currentMin
           </label>
         </div>
 
+        <fieldset className="flex flex-col gap-3 rounded border border-[var(--line)] p-3" data-testid="service-journey-flags">
+          <legend className="px-1 text-sm font-medium text-[var(--color-ink)]">{t("Visit journey")}</legend>
+          <label className="flex items-start gap-2 text-sm text-[var(--color-ink)]">
+            <input type="checkbox" name="payBeforeTreatment" defaultChecked={service.payBeforeTreatment} className="mt-0.5 h-4 w-4" />
+            <span className="flex flex-col">
+              {t("Paid before treatment")}
+              <span className="text-xs text-[var(--color-ink)]/60">{t("Customers pay at reception before going to the treatment room.")}</span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2 text-sm text-[var(--color-ink)]">
+            <input type="checkbox" name="needsConsultation" defaultChecked={service.needsConsultation} className="mt-0.5 h-4 w-4" />
+            <span className="flex flex-col">
+              {t("Starts with a consultation")}
+              <span className="text-xs text-[var(--color-ink)]/60">{t("Every visit begins with a consultation step (first visits always do).")}</span>
+            </span>
+          </label>
+        </fieldset>
+
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-[var(--color-ink)]">{t("Minimum tier")}</span>
           <select name="minTierId" defaultValue={currentMinTierId ?? ""} className={selectClass}>

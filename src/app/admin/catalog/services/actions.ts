@@ -131,6 +131,8 @@ export async function updateServiceAction(
       priceMinor: Math.round(priceSar * 100),
       onlineBookable: formData.get("onlineBookable") === "on",
       inCenterOnly: formData.get("inCenterOnly") === "on",
+      payBeforeTreatment: formData.get("payBeforeTreatment") === "on",
+      needsConsultation: formData.get("needsConsultation") === "on",
     });
     await setServiceAccessRule(id, minTierId || null);
   } catch (err) {

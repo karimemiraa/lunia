@@ -9,6 +9,8 @@ import type { BookingStatus } from "@prisma/client";
 import { getStaffLocale } from "../_i18n/display";
 import { makeT } from "../_i18n/t";
 import { statusLabel } from "../_ui/StatusPill";
+import { flowMetrics, getJourneySettings } from "@/modules/booking/journey";
+import { loadArabicNames } from "../calendar/arabicNames";
 
 interface ReportsPageProps {
   searchParams: Promise<{ type?: string; from?: string; to?: string; status?: string }>;
@@ -21,6 +23,7 @@ const REPORT_LABELS: Record<ReportType, string> = {
   marketing: "Marketing",
   staff: "Staff performance",
   retention: "Retention & rebooking",
+  flow: "Visit flow",
 };
 
 const BOOKING_STATUSES: BookingStatus[] = ["REQUESTED", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED", "NO_SHOW"];
@@ -59,7 +62,17 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const from = centerLocalToUtc(fromISO, 0);
   const to = centerLocalToUtc(toISO, 1440);
 
-  const { columns, rows } = await runReport({ type, from, to, status });
+  const report = await runReport({ type, from, to, status });
+  const { columns } = report;
+  // Visit flow: headline numbers above the per-specialist table.
+  const [flow, journey] = type === "flow" ? await Promise.all([flowMetrics(from, to), getJourneySettings()]) : [null, null];
+  let rows = report.rows;
+  if (flow && locale === "ar") {
+    const names = await loadArabicNames(locale, { staffUserIds: flow.byStaff.map((s) => s.staffUserId) });
+    const byName = new Map(flow.byStaff.map((s) => [s.name, names.staff.get(s.staffUserId) ?? s.name]));
+    rows = rows.map((r) => ({ ...r, specialist: r.specialist === "Everyone" ? t("Everyone") : byName.get(String(r.specialist)) ?? r.specialist }));
+  }
+  const minutes = (n: number | null) => (n === null ? "—" : t("{n} min", { n }));
 
   const exportParams = new URLSearchParams({ type, from: fromISO, to: toISO });
   if (status) exportParams.set("status", status);
@@ -121,6 +134,25 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       <p className="mb-2 text-sm text-[var(--color-ink)]/60" data-testid="reports-row-count">
         {rows.length === 1 ? t("1 row for {from} to {to}", { from: fromISO, to: toISO }) : t("{count} rows for {from} to {to}", { count: rows.length, from: fromISO, to: toISO })}
       </p>
+
+      {flow && journey && flow.visits > 0 && (
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="flow-metrics">
+          {([
+            ["Visits", String(flow.visits), null],
+            ["Average wait", minutes(flow.avgWaitMin), t("Longest wait") + ": " + minutes(flow.maxWaitMin)],
+            ["Received on time", flow.seenOnTimePct === null ? "—" : `${flow.seenOnTimePct}%`, t("Within {n} min of arriving", { n: journey.waitAmberMin })],
+            ["Average overrun", minutes(flow.avgOverrunMin), t("Beyond the planned treatment time")],
+            ["Average at checkout", minutes(flow.avgCheckoutMin), null],
+            ["Average visit", minutes(flow.avgTotalMin), null],
+          ] as const).map(([label, value, hint]) => (
+            <div key={label} className="lunia-card px-4 py-3">
+              <p className="text-[0.65rem] font-medium uppercase tracking-[0.12em] text-[var(--color-ink)]/50">{t(label)}</p>
+              <p className="mt-1 text-xl tabular-nums text-[var(--color-ink)]">{value}</p>
+              {hint && <p className="mt-0.5 text-xs text-[var(--color-ink)]/50">{hint}</p>}
+            </div>
+          ))}
+        </div>
+      )}
 
       <ReportTable columns={columns} rows={rows} />
     </AdminShell>

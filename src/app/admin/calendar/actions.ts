@@ -48,9 +48,9 @@ export async function saveCenterNoteAction(bookingId: string, note: string): Pro
 }
 
 export async function checkInAction(bookingId: string): Promise<ActionResult> {
-  await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
   try {
-    await checkIn(bookingId);
+    await checkIn(bookingId, admin.id);
   } catch (err) {
     return { ok: false, error: await messageOf(err) };
   }
@@ -59,9 +59,9 @@ export async function checkInAction(bookingId: string): Promise<ActionResult> {
 }
 
 export async function completeAction(bookingId: string): Promise<ActionResult> {
-  await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
   try {
-    await complete(bookingId);
+    await complete(bookingId, admin.id);
   } catch (err) {
     return { ok: false, error: await messageOf(err) };
   }
@@ -95,9 +95,9 @@ export async function cancelAction(bookingId: string): Promise<CancelResult> {
 
 // "Start": the customer is in the room (CheckIn.seatedAt).
 export async function startAction(bookingId: string): Promise<ActionResult> {
-  await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.BOOKING_MANAGE);
   try {
-    await startService(bookingId);
+    await startService(bookingId, admin.id);
   } catch (err) {
     return { ok: false, error: await messageOf(err) };
   }

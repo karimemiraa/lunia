@@ -63,6 +63,7 @@ export const NAV_GROUPS: NavCatalogGroup[] = [
   {
     label: "Front desk",
     items: [
+      { href: "/admin/visits", label: "Visit board", perm: PERMISSIONS.BOOKING_VIEW, icon: "clock", keywords: "journey waiting check in arrivals queue front desk rooms" },
       { href: "/admin/calendar", label: "Calendar", perm: PERMISSIONS.BOOKING_VIEW, icon: "calendar", keywords: "bookings appointments" },
       { href: "/admin/waitlist", label: "Waitlist", perm: PERMISSIONS.BOOKING_VIEW, icon: "inbox", parent: "/admin/calendar" },
       { href: "/admin/booking/rooms", label: "Rooms", perm: PERMISSIONS.STAFF_MANAGE, icon: "book", parent: "/admin/calendar" },

@@ -21,6 +21,7 @@
 // Dates: every `date` column is a center-local (Asia/Riyadh) "YYYY-MM-DD"
 // string, matching the rest of the Stage-5 dashboards.
 
+import { flowMetrics } from "@/modules/booking/journey";
 import { prisma } from "@/lib/db";
 import type { BookingStatus } from "@prisma/client";
 import { listBookings } from "@/modules/booking/bookings";
@@ -243,9 +244,38 @@ export async function marketingReport(filter: MarketingReportFilter): Promise<Re
   return { columns: MARKETING_REPORT_COLUMNS, rows };
 }
 
+// ---- Visit flow report (docs/PRD-visit-journey.md) --------------------------
+
+export interface FlowReportRow {
+  specialist: string;
+  visits: number;
+  avgWaitMin: string;
+  avgOverrunMin: string;
+}
+
+export const FLOW_REPORT_COLUMNS: ReportColumn[] = [
+  { key: "specialist", label: "Specialist" },
+  { key: "visits", label: "Visits" },
+  { key: "avgWaitMin", label: "Average wait (min)" },
+  { key: "avgOverrunMin", label: "Average overrun (min)" },
+];
+
+const minText = (n: number | null) => (n === null ? "" : String(n));
+
+/** Wait and overrun per specialist for arrivals in [from, to), with an "Everyone" total row first. */
+export async function flowReport(filter: { from: Date; to: Date }): Promise<ReportResult<FlowReportRow>> {
+  const m = await flowMetrics(filter.from, filter.to);
+  if (m.visits === 0) return { columns: FLOW_REPORT_COLUMNS, rows: [] };
+  const rows: FlowReportRow[] = [
+    { specialist: "Everyone", visits: m.visits, avgWaitMin: minText(m.avgWaitMin), avgOverrunMin: minText(m.avgOverrunMin) },
+    ...m.byStaff.map((s) => ({ specialist: s.name, visits: s.visits, avgWaitMin: minText(s.avgWaitMin), avgOverrunMin: minText(s.avgOverrunMin) })),
+  ];
+  return { columns: FLOW_REPORT_COLUMNS, rows };
+}
+
 // ---- Shared entry point (admin page + CSV export route) --------------------
 
-export const REPORT_TYPES = ["bookings", "revenue", "clients", "marketing", "staff", "retention"] as const;
+export const REPORT_TYPES = ["bookings", "revenue", "clients", "marketing", "staff", "retention", "flow"] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
 
 export interface RunReportParams {
@@ -283,5 +313,7 @@ export async function runReport({ type, from, to, status }: RunReportParams): Pr
       return asRecordResult(await staffPerformanceReport({ from, to }));
     case "retention":
       return asRecordResult(await retentionReport({ from, to }));
+    case "flow":
+      return asRecordResult(await flowReport({ from, to }));
   }
 }

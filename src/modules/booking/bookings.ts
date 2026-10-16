@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { markDone, recordArrival, startTreatment } from "./journey";
 import { Prisma } from "@prisma/client";
 import type { Booking, BookingStatus } from "@prisma/client";
 import {
@@ -816,15 +817,17 @@ export async function confirmBooking(bookingId: string): Promise<Booking> {
   return prisma.booking.update({ where: { id: bookingId }, data: { status: "CONFIRMED" } });
 }
 
-export async function checkIn(bookingId: string): Promise<Booking> {
+export async function checkIn(bookingId: string, byUserId: string | null = null): Promise<Booking> {
   const booking = await getBookingOrThrow(bookingId);
   assertTransition(booking.status, ["REQUESTED", "CONFIRMED"], "check in");
 
-  const [updated] = await prisma.$transaction([
-    prisma.booking.update({ where: { id: bookingId }, data: { status: "CHECKED_IN" } }),
-    prisma.checkIn.create({ data: { bookingId } }),
-  ]);
-  return updated;
+  // Arrival starts the visit journey: the waiting timer runs from here.
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.booking.update({ where: { id: bookingId }, data: { status: "CHECKED_IN" } });
+    const visit = await tx.checkIn.create({ data: { bookingId, checkedInById: byUserId } });
+    await recordArrival(tx, visit.id, byUserId, visit.arrivedAt);
+    return updated;
+  });
 }
 
 /**
@@ -832,19 +835,30 @@ export async function checkIn(bookingId: string): Promise<Booking> {
  * a second call keeps the original start time. The booking status stays
  * CHECKED_IN -- "started" is a front-desk/room signal, not a lifecycle step.
  */
-export async function startService(bookingId: string): Promise<Booking> {
+export async function startService(bookingId: string, byUserId: string | null = null): Promise<Booking> {
   const booking = await getBookingOrThrow(bookingId);
   assertTransition(booking.status, ["CHECKED_IN"], "start");
   const existing = await prisma.checkIn.findUnique({ where: { bookingId } });
-  if (!existing) await prisma.checkIn.create({ data: { bookingId, seatedAt: new Date() } });
-  else if (!existing.seatedAt) await prisma.checkIn.update({ where: { bookingId }, data: { seatedAt: new Date() } });
+  if (!existing) {
+    const now = new Date();
+    await prisma.checkIn.create({ data: { bookingId, seatedAt: now, receivedAt: now, receivedById: byUserId, stage: "TREATMENT", stageAt: now } });
+  } else {
+    await startTreatment(bookingId, byUserId); // journey: payment gate, handoff, timeline
+  }
   return booking;
 }
 
-export async function complete(bookingId: string): Promise<Booking> {
+export async function complete(bookingId: string, byUserId: string | null = null): Promise<Booking> {
   const booking = await getBookingOrThrow(bookingId);
   assertTransition(booking.status, ["CHECKED_IN", "CONFIRMED"], "complete");
   const updated = await prisma.booking.update({ where: { id: bookingId }, data: { status: "COMPLETED" } });
+
+  // Close the visit journey (checked out, room to prepare). Never blocks completion.
+  try {
+    await markDone(bookingId, byUserId);
+  } catch (err) {
+    console.error(`Failed to close the visit journey for booking "${bookingId}"`, err);
+  }
 
   // Best-effort: refresh the client's cached LTV now that a new COMPLETED
   // booking may have changed it. This must never fail (or block) the

@@ -241,6 +241,29 @@ Each visit is a normal booking linked by `Booking.seriesId`, with a "Series" bad
 - **Adding a screen:** wrap every visible string in `t()` and add its Arabic to that area's dictionary file. Run both tests.
 - **Stays English by design:** audit-log summaries, automation run results, CSV export files, provider names, and anything staff typed (customer names, notes, custom role or stage names).
 
+### 3.9 Visit journey (in-clinic flow)
+
+Full design: `docs/PRD-visit-journey.md`. Code: `src/modules/booking/journey.ts`, the board at `src/app/admin/visits/`.
+
+- **Where staff use it:**
+  - **Front desk → Visit board** (`/admin/visits`) shows today's customers in columns: Expected → Waiting → Consultation → In treatment → Checkout → Left today. Each card has a live timer and one main next action.
+  - Specialists without booking:manage open on **My customers** and can receive, start and finish their own customers.
+- **Booking statuses are unchanged** (CONFIRMED → CHECKED_IN → COMPLETED). The journey stage (`CheckIn.stage`) adds detail inside CHECKED_IN.
+  - The calendar's Check in / Start / Complete buttons move the stage too, so either screen works.
+  - Every step is written to `VisitEvent` with who did it. The appointment page shows this as a **Visit timeline**.
+- **Consultation step:** added automatically for a first visit, or when the service has **Starts with a consultation** ticked (Catalog → Services → service → Visit journey). The migration ticked it for diagnostic services.
+- **Pay before treatment:** tick **Paid before treatment** on the service. Unpaid customers can't go into the room.
+  - Front desk can **Let in without payment**. This needs a reason, and the reason is saved on the visit timeline.
+  - Everything else is paid at checkout, as before.
+- **Arrival alert:** when a customer is checked in, her specialist gets a soft chime and an in-app message.
+  - If they allowed notifications ("Turn on arrival alerts" on the board), they also get a browser/phone notification.
+  - Nothing is sent outside the system.
+- **Thresholds:** Settings → Visit journey. Waiting turns amber at 10 min and red at 20 min. Checkout is flagged at 10 min. Rooms show "being prepared" for 10 min after a session unless marked Ready. You can also turn the prayer-time chip on or off.
+- **Prayer times:** computed offline for Riyadh (Umm al-Qura method, `src/modules/booking/prayer.ts`). Change the coordinates there if the clinic moves city.
+- **Report:** Reports → **Visit flow** shows average/longest wait, % received on time, treatment overrun, time at checkout and visit length, per specialist. It can be exported as CSV.
+- **Two people tapping at once:** the second tap gets "Someone else just updated this visit — refresh and try again." and nothing is applied twice.
+- **Tests:** `tests/booking/journey.test.ts` (rules, gate, races, metrics) and `e2e/admin-visits.spec.ts` (a full visit on the board in English and Arabic).
+
 ## 4. Backup
 
 **Automatic (since 2026-10-14):** the deploy workflow installs

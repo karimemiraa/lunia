@@ -152,6 +152,22 @@ const automationSettingsSchema = z.object({
 export type AutomationSettings = z.infer<typeof automationSettingsSchema>;
 export const DEFAULT_AUTOMATION_SETTINGS: AutomationSettings = automationSettingsSchema.parse({});
 
+// In-clinic visit journey (src/modules/booking/journey.ts): live-board
+// warning thresholds, room turnover and prayer times.
+const journeySettingsSchema = z.object({
+  /** Waiting timer turns amber / red after this many minutes. */
+  waitAmberMin: z.number().int().min(1).max(120).default(10),
+  waitRedMin: z.number().int().min(2).max(240).default(20),
+  /** Customer at the checkout desk longer than this is flagged. */
+  checkoutAmberMin: z.number().int().min(1).max(120).default(10),
+  /** A room stays "being prepared" this long after a session unless marked ready sooner. */
+  roomPrepareMin: z.number().int().min(0).max(60).default(10),
+  /** Show the next prayer time (Riyadh, Umm al-Qura) on the board. */
+  prayerTimes: z.boolean().default(true),
+});
+export type JourneySettings = z.infer<typeof journeySettingsSchema>;
+export const DEFAULT_JOURNEY_SETTINGS: JourneySettings = journeySettingsSchema.parse({});
+
 export const settingsRegistry = {
   business: businessSettingsSchema,
   hours: hoursSettingsSchema,
@@ -164,6 +180,7 @@ export const settingsRegistry = {
   appearance: appearanceSettingsSchema,
   adminNav: adminNavSettingsSchema,
   automations: automationSettingsSchema,
+  journey: journeySettingsSchema,
 } as const;
 
 export type SettingKey = keyof typeof settingsRegistry;

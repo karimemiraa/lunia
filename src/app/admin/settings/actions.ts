@@ -148,3 +148,35 @@ export async function saveAutomationsAction(_prev: SaveSettingsState | null, for
   revalidatePath("/admin/settings");
   return { success: true };
 }
+
+// Visit journey thresholds (docs/PRD-visit-journey.md) — the visit board's
+// amber/red timers, room preparation time and the prayer-time chip.
+export async function saveJourneyAction(_prev: SaveSettingsState | null, formData: FormData): Promise<SaveSettingsState> {
+  const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
+  const num = (name: string) => Number(str(formData, name));
+  const value = {
+    waitAmberMin: num("waitAmberMin"),
+    waitRedMin: num("waitRedMin"),
+    checkoutAmberMin: num("checkoutAmberMin"),
+    roomPrepareMin: num("roomPrepareMin"),
+    prayerTimes: formData.get("prayerTimes") === "on",
+  };
+  if (value.waitRedMin <= value.waitAmberMin) return { error: t("Red must be later than amber.") };
+  try {
+    await setSetting("journey", value);
+  } catch (err) {
+    const issue = (err as { issues?: { path: (string | number)[]; message: string }[] })?.issues?.[0];
+    return { error: issue ? `${String(issue.path[0] ?? "Value")}: ${issue.message}` : t("Couldn't save journey settings.") };
+  }
+  await recordAudit({
+    actorUserId: user.id,
+    action: "SETTINGS_JOURNEY",
+    entityType: "SiteSetting",
+    entityId: "journey",
+    summary: `Visit journey: waiting amber ${value.waitAmberMin}m / red ${value.waitRedMin}m, checkout ${value.checkoutAmberMin}m, room prep ${value.roomPrepareMin}m, prayer times ${value.prayerTimes ? "on" : "off"}`,
+  });
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/visits");
+  return { success: true };
+}
