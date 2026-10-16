@@ -1,23 +1,28 @@
+import { redirect } from "next/navigation";
 import { requireAdmin } from "../_components/requireAdmin";
 import { AdminShell } from "../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { getStaffT } from "../_i18n/display";
 
+// Services and departments (prices, durations) belong to the catalog
+// permission; brands and the blog are website content.
 const CATALOG_SECTIONS = [
-  { href: "/admin/catalog/departments", label: "Departments", description: "Service departments shown on the public site." },
-  { href: "/admin/catalog/services", label: "Services", description: "Individual services, grouped under a department." },
-  { href: "/admin/catalog/brands", label: "Brands", description: "Partner and product brands featured on the site." },
-  { href: "/admin/catalog/journal", label: "Blog", description: "Blog posts." },
+  { href: "/admin/catalog/departments", label: "Departments", description: "Service departments shown on the public site.", perm: PERMISSIONS.CATALOG_MANAGE },
+  { href: "/admin/catalog/services", label: "Services", description: "Individual services, grouped under a department.", perm: PERMISSIONS.CATALOG_MANAGE },
+  { href: "/admin/catalog/brands", label: "Brands", description: "Partner and product brands featured on the site.", perm: PERMISSIONS.CMS_MANAGE },
+  { href: "/admin/catalog/journal", label: "Blog", description: "Blog posts.", perm: PERMISSIONS.CMS_MANAGE },
 ];
 
 export default async function CatalogHubPage() {
-  const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const user = await requireAdmin();
+  const sections = CATALOG_SECTIONS.filter((s) => user.permissions.has(s.perm));
+  if (sections.length === 0) redirect("/admin");
   const t = await getStaffT();
 
   return (
     <AdminShell user={user} title="Catalog" description="Manage departments, services, brands, and journal posts.">
       <ul className="flex flex-col gap-2">
-        {CATALOG_SECTIONS.map((section) => (
+        {sections.map((section) => (
           <li key={section.href}>
             <a
               href={section.href}

@@ -184,11 +184,25 @@ export default async function EmployeeFilePage({ params }: PageProps) {
           <Input label={t("Transport allowance")} name="transportAllowanceMinor" defaultValue={r ? minorToInput(r.transportAllowanceMinor) : ""} inputMode="decimal" />
           <Input label={t("Other allowances")} name="otherAllowanceMinor" defaultValue={r ? minorToInput(r.otherAllowanceMinor) : ""} inputMode="decimal" />
           <Input
-            label={t("Commission (%)")}
+            label={t("Services commission (%)")}
             name="commissionPct"
             defaultValue={r && r.commissionBp ? String(r.commissionBp / 100) : ""}
             inputMode="decimal"
-            hint={t("Of revenue from their completed appointments")}
+            hint={t("Of what customers paid for her services, after discounts, excluding VAT. A service's own rate wins.")}
+          />
+          <Input
+            label={t("Products commission (%)")}
+            name="productCommissionPct"
+            defaultValue={r && r.productCommissionBp ? String(r.productCommissionBp / 100) : ""}
+            inputMode="decimal"
+            hint={t("Of homecare products she sold, after discounts, excluding VAT")}
+          />
+          <Input
+            label={t("Discount limit without approval (%)")}
+            name="discountCapPct"
+            defaultValue={r?.discountCapPct != null ? String(r.discountCapPct) : ""}
+            inputMode="numeric"
+            hint={t("Leave blank to use the default in Settings → Discounts")}
           />
           <Check label={t("GOSI applies")} name="gosiApplicable" defaultChecked={r?.gosiApplicable ?? true} />
           <Input

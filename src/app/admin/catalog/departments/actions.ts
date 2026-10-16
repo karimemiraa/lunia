@@ -42,7 +42,7 @@ export async function createDepartmentAction(
   _prev: DepartmentActionState | null,
   formData: FormData,
 ): Promise<DepartmentActionState> {
-  await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
   const t = await getStaffT();
 
   const slug = String(formData.get("slug") ?? "").trim();
@@ -79,7 +79,7 @@ export async function updateDepartmentAction(
   _prev: DepartmentActionState | null,
   formData: FormData,
 ): Promise<DepartmentActionState> {
-  await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
   const t = await getStaffT();
 
   const id = String(formData.get("id") ?? "").trim();
@@ -113,7 +113,7 @@ export async function updateDepartmentAction(
 }
 
 export async function deleteDepartmentAction(formData: FormData): Promise<void> {
-  await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
 
   const id = String(formData.get("id") ?? "");
   if (!id) return;

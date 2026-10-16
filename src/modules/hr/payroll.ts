@@ -5,11 +5,11 @@
 import { z } from "zod";
 import { Prisma, type EmployeeRecord } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { centerLocalToUtc } from "@/modules/booking/availability";
 import { GOSI_BASE_CAP_MINOR, GOSI_RATES_BP, PAYROLL_DAYS_PER_MONTH, type PayrollStatus } from "./constants";
 import { isMonthISO, isoToDate, monthBounds } from "./dates";
 import { monthlyFixedPayMinor } from "./employees";
 import { approvedLeaveDaysInMonth } from "./leave";
+import { commissionByStaff } from "./commission";
 
 // ---------------------------------------------------------------------------
 // Pure calculations
@@ -75,7 +75,11 @@ export interface ManualParts {
   notes: string | null;
 }
 
-/** Builds a payslip from the employee file, month revenue and manual parts. */
+/**
+ * Builds a payslip from the employee file, the month's commission (worked out
+ * by hr/commission.ts on collected, discounted, VAT-exclusive revenue) and
+ * the manual parts.
+ */
 export function buildPayslip(
   record: Pick<
     EmployeeRecord,
@@ -83,11 +87,10 @@ export function buildPayslip(
     | "housingAllowanceMinor"
     | "transportAllowanceMinor"
     | "otherAllowanceMinor"
-    | "commissionBp"
     | "isSaudi"
     | "gosiApplicable"
   >,
-  revenueMinor: number,
+  commissionMinor: number,
   manual: ManualParts,
 ) {
   const gosi = computeGosi({
@@ -101,7 +104,7 @@ export function buildPayslip(
     housingMinor: record.housingAllowanceMinor,
     transportMinor: record.transportAllowanceMinor,
     otherAllowMinor: record.otherAllowanceMinor,
-    commissionMinor: computeCommission(revenueMinor, record.commissionBp),
+    commissionMinor,
     overtimeMinor: manual.overtimeMinor,
     bonusMinor: manual.bonusMinor,
     deductionsMinor: manual.deductionsMinor,
@@ -129,20 +132,6 @@ export class PayrollError extends Error {}
 // ---------------------------------------------------------------------------
 // Data
 // ---------------------------------------------------------------------------
-
-/** Completed-service revenue per staff member for a center-local month. */
-export async function completedRevenueByStaff(month: string): Promise<Map<string, number>> {
-  const { firstISO, lastISO } = monthBounds(month);
-  const rows = await prisma.appointment.groupBy({
-    by: ["staffUserId"],
-    where: {
-      startAt: { gte: centerLocalToUtc(firstISO, 0), lt: centerLocalToUtc(lastISO, 1440) },
-      booking: { status: "COMPLETED" },
-    },
-    _sum: { priceMinorSnapshot: true },
-  });
-  return new Map(rows.map((r) => [r.staffUserId, r._sum.priceMinorSnapshot ?? 0]));
-}
 
 /** Active staff with an employee file who had started by the end of the month. */
 async function eligibleRecords(month: string) {
@@ -174,13 +163,13 @@ export async function createPayrollRun(month: string, createdById: string): Prom
   const existing = await prisma.payrollRun.findUnique({ where: { periodMonth: month } });
   if (existing) throw new PayrollError(`A payroll run for ${month} already exists.`);
 
-  const [records, revenue] = await Promise.all([eligibleRecords(month), completedRevenueByStaff(month)]);
+  const [records, revenue] = await Promise.all([eligibleRecords(month), commissionByStaff(month)]);
   const slips: ({ userId: string } & ReturnType<typeof buildPayslip>)[] = [];
   for (const record of records) {
     const unpaid = await suggestedUnpaidDeduction(record, month);
     slips.push({
       userId: record.userId,
-      ...buildPayslip(record, revenue.get(record.userId) ?? 0, {
+      ...buildPayslip(record, revenue.get(record.userId)?.commissionMinor ?? 0, {
         overtimeMinor: 0,
         bonusMinor: 0,
         deductionsMinor: unpaid.amountMinor,
@@ -224,7 +213,7 @@ export async function recalculatePayrollRun(runId: string): Promise<void> {
   if (!run) throw new PayrollError("Payroll run not found.");
   if (!isEditable(run.status)) throw new PayrollError(`This run is ${run.status.toLowerCase()} and can no longer be changed.`);
 
-  const [records, revenue] = await Promise.all([eligibleRecords(run.periodMonth), completedRevenueByStaff(run.periodMonth)]);
+  const [records, revenue] = await Promise.all([eligibleRecords(run.periodMonth), commissionByStaff(run.periodMonth)]);
   const existing = new Map(run.payslips.map((p) => [p.userId, p]));
   const planned: ({ userId: string } & ReturnType<typeof buildPayslip>)[] = [];
   for (const record of records) {
@@ -236,7 +225,7 @@ export async function recalculatePayrollRun(runId: string): Promise<void> {
       const unpaid = await suggestedUnpaidDeduction(record, run.periodMonth);
       manual = { overtimeMinor: 0, bonusMinor: 0, deductionsMinor: unpaid.amountMinor, notes: unpaid.days ? `Unpaid leave: ${unpaid.days} day(s)` : null };
     }
-    planned.push({ userId: record.userId, ...buildPayslip(record, revenue.get(record.userId) ?? 0, manual) });
+    planned.push({ userId: record.userId, ...buildPayslip(record, revenue.get(record.userId)?.commissionMinor ?? 0, manual) });
   }
   const keep = new Set(planned.map((p) => p.userId));
 

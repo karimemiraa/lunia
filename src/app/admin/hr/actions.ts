@@ -14,7 +14,7 @@ import { getStaffT } from "../_i18n/display";
 const FIELDS = [
   "employeeNo", "nationality", "isSaudi", "nationalId", "nationalIdExpiry", "passportNo", "passportExpiry",
   "jobTitle", "department", "hireDate", "contractType", "contractEnd", "basicSalaryMinor", "housingAllowanceMinor",
-  "transportAllowanceMinor", "otherAllowanceMinor", "commissionPct", "gosiApplicable", "iban", "bankName",
+  "transportAllowanceMinor", "otherAllowanceMinor", "commissionPct", "productCommissionPct", "discountCapPct", "gosiApplicable", "iban", "bankName",
   "annualLeaveDays", "emergencyContact", "notes",
 ] as const;
 

@@ -13,6 +13,8 @@ import { getStaffDisplay } from "../../_i18n/display";
 import { intlLocale, makeT } from "../../_i18n/t";
 import { loadArabicNames } from "../arabicNames";
 import { visitDurations, visitTimeline } from "@/modules/booking/journey";
+import { DISCOUNT_REASONS } from "@/modules/booking/discounts";
+import { DiscountControl } from "../../visits/DiscountControl";
 import { bookingStatusText, channelText, invoiceStatusText, lineKindText, photoKindText } from "../labels";
 
 interface HubPageProps {
@@ -76,6 +78,22 @@ function Stat({ label, value, hint, href }: { label: string; value: string; hint
   );
 }
 
+// Visit timeline event kinds (VisitEvent.kind) → readable labels.
+const TIMELINE_LABEL: Record<string, string> = {
+  arrived: "Arrived at the clinic",
+  received: "Received by the specialist",
+  treatment_started: "Went into the treatment room",
+  treatment_finished: "Treatment finished",
+  checked_out: "Checked out",
+  reassigned: "Handed over",
+  hospitality: "Coffee served",
+  payment_override: "Let in before paying",
+  discount_given: "Discount given",
+  discount_requested: "Discount asked for approval",
+  discount_approved: "Discount approved",
+  discount_declined: "Discount declined",
+};
+
 const chip = "inline-flex min-h-7 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium";
 
 export default async function AppointmentHubPage({ params }: HubPageProps) {
@@ -132,10 +150,21 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
   }
   const started = Boolean(checkIn?.seatedAt);
   // Visit journey (docs/PRD-visit-journey.md): each step, who did it, how long each part took.
-  const [timeline, visitRow] = await Promise.all([
+  const [timeline, visitRow, apptRow] = await Promise.all([
     visitTimeline(booking.id, { arabic: locale === "ar" }),
     prisma.checkIn.findUnique({ where: { bookingId: booking.id }, select: { arrivedAt: true, receivedAt: true, seatedAt: true, treatmentEndedAt: true, checkedOutAt: true } }),
+    prisma.appointment.findUnique({ where: { id: appointmentId }, select: { staffUserId: true, priceMinorSnapshot: true, discount: { select: { status: true, amountMinor: true, pctBp: true, reason: true } } } }),
   ]);
+  // Specialist discount on this appointment (docs/PRD-commission-discounts-roles.md §3.2).
+  const discountCard = apptRow
+    ? {
+        appointmentId,
+        priceMinor: apptRow.priceMinorSnapshot,
+        discount: apptRow.discount && apptRow.discount.status !== "DECLINED" ? apptRow.discount : null,
+        invoiceIssued: !!invoice && invoice.status !== "DRAFT" && invoice.status !== "VOID",
+      }
+    : null;
+  const discountOpen = booking.status === "CONFIRMED" || booking.status === "CHECKED_IN";
   const plannedMin = Math.round((appointment.endAt.getTime() - appointment.startAt.getTime()) / 60_000);
   const durations = visitRow ? visitDurations(visitRow, plannedMin) : null;
   const durationChips = durations
@@ -204,6 +233,15 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
                 <Field label={t("In room")}>{checkIn?.seatedAt ? dtShort.format(checkIn.seatedAt) : "—"}</Field>
                 <Field label={t("Source")}>{booking.sourceChannel ?? channelText(booking.channel, locale, t)}</Field>
               </dl>
+              {discountCard && (discountOpen || discountCard.discount) && (
+                <DiscountControl
+                  card={discountCard}
+                  mine={apptRow?.staffUserId === user.id}
+                  canGive={discountOpen && user.permissions.has(PERMISSIONS.DISCOUNT_GIVE)}
+                  canApprove={discountOpen && user.permissions.has(PERMISSIONS.DISCOUNT_APPROVE)}
+                  reasons={DISCOUNT_REASONS}
+                />
+              )}
               {(booking.centerNote || booking.customerNote || booking.notes) && (
                 <div className="flex flex-col gap-2 border-t border-[var(--line)] pt-3 text-sm">
                   {booking.customerNote && <p><span className="font-medium text-[var(--color-ink)]/70">{t("From customer:")}</span> <span className="text-[var(--color-ink)]/80">{booking.customerNote}</span></p>}
@@ -331,10 +369,10 @@ export default async function AppointmentHubPage({ params }: HubPageProps) {
                       <li key={i} className="relative text-sm">
                         <span aria-hidden className="absolute -start-[1.3rem] top-1.5 h-2 w-2 rounded-full bg-[var(--color-teal)]" />
                         <span className="tabular-nums text-[var(--color-ink)]/55">{tFmt.format(e.at)}</span>{" "}
-                        <span className="font-medium text-[var(--color-ink)]">{t(e.kind)}</span>
+                        <span className="font-medium text-[var(--color-ink)]">{t(TIMELINE_LABEL[e.kind] ?? e.kind)}</span>
                         {e.kind === "reassigned" && e.note && <span className="text-[var(--color-ink)]/70"> · {t("to {name}", { name: e.note })}</span>}
                         {e.byName && <span className="text-[var(--color-ink)]/55"> · {t("by {name}", { name: e.byName })}</span>}
-                        {e.kind === "payment_override" && e.note && <span className="block text-xs text-[var(--color-ink)]/60">{e.note}</span>}
+                        {(e.kind === "payment_override" || e.kind.startsWith("discount_")) && e.note && <span className="block text-xs text-[var(--color-ink)]/60">{e.note}</span>}
                       </li>
                     ))}
                   </ol>

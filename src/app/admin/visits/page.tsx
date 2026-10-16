@@ -4,6 +4,7 @@ import { AdminShell } from "../_components/AdminShell";
 import { getStaffLocale, getStaffT } from "../_i18n/display";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { getBoard } from "@/modules/booking/journey";
+import { DISCOUNT_REASONS } from "@/modules/booking/discounts";
 import { nextPrayer, prayerTimes } from "@/modules/booking/prayer";
 import { VisitBoard } from "./VisitBoard";
 import { ArrivalAlertsToggle } from "../_components/ArrivalAlerts";
@@ -51,6 +52,9 @@ export default async function VisitBoardPage({ searchParams }: { searchParams: P
         canManage={canManage}
         canBill={user.permissions.has(PERMISSIONS.BILLING_MANAGE)}
         canClinical={user.permissions.has(PERMISSIONS.CLINICAL_MANAGE)}
+        canGiveDiscount={user.permissions.has(PERMISSIONS.DISCOUNT_GIVE)}
+        canApproveDiscount={user.permissions.has(PERMISSIONS.DISCOUNT_APPROVE)}
+        discountReasons={DISCOUNT_REASONS}
         prayer={prayer && { next: { prayer: prayer.next.prayer, at: prayer.next.at.toISOString() }, today: prayer.today.map((p) => ({ prayer: p.prayer, at: p.at.toISOString() })) }}
       />
     </AdminShell>

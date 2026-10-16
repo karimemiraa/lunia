@@ -40,7 +40,7 @@ export async function issueGiftCardAction(
   _prev: CommerceActionState | null,
   formData: FormData,
 ): Promise<CommerceActionState> {
-  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
   const t = await getStaffT();
 
   const parsed = issueGiftCardSchema.safeParse({
@@ -89,7 +89,7 @@ export async function voidGiftCardAction(
   _prev: CommerceActionState | null,
   formData: FormData,
 ): Promise<CommerceActionState> {
-  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
   const t = await getStaffT();
 
   const giftCardId = String(formData.get("giftCardId") ?? "").trim();
@@ -132,7 +132,7 @@ export async function createPackageAction(
   _prev: CommerceActionState | null,
   formData: FormData,
 ): Promise<CommerceActionState> {
-  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
   const t = await getStaffT();
 
   const parsed = createPackageSchema.safeParse({
@@ -181,7 +181,7 @@ export async function updatePackageAction(
   _prev: CommerceActionState | null,
   formData: FormData,
 ): Promise<CommerceActionState> {
-  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
   const t = await getStaffT();
   const packageId = String(formData.get("packageId") ?? "").trim();
   if (!packageId) return { error: t("Missing package.") };
@@ -237,7 +237,7 @@ export async function assignPackageAction(
   _prev: CommerceActionState | null,
   formData: FormData,
 ): Promise<CommerceActionState> {
-  const admin = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
   const t = await getStaffT();
 
   const parsed = assignPackageSchema.safeParse({

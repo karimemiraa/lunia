@@ -247,6 +247,13 @@ export interface BoardCard {
   /** Required consent forms not signed at the current version. */
   consentMissing: number;
   healthProfileMissing: boolean;
+  /** First appointment of the visit (specialist discounts hang off it). */
+  appointmentId: string;
+  /** That appointment's price, same basis as invoice entry (VAT-inclusive when prices include VAT). */
+  priceMinor: number;
+  discount: { status: string; amountMinor: number; pctBp: number; reason: string } | null;
+  /** Invoice issued — discounts can no longer change. */
+  invoiceIssued: boolean;
 }
 
 export interface BoardRoom {
@@ -288,6 +295,7 @@ export async function getBoard(now: Date = new Date(), opts: { staffUserId?: str
           service: { select: { nameEn: true, nameAr: true, durationMin: true, needsConsultation: true, payBeforeTreatment: true } },
           room: { select: { name: true, nameAr: true } },
           staff: { select: { staffProfile: { select: { fullName: true, fullNameAr: true } } } },
+          discount: { select: { status: true, amountMinor: true, pctBp: true, reason: true } },
         },
       },
     },
@@ -355,6 +363,10 @@ export async function getBoard(now: Date = new Date(), opts: { staffUserId?: str
       },
       consentMissing,
       healthProfileMissing: !hasIntake.has(b.clientProfileId),
+      appointmentId: a.id,
+      priceMinor: a.priceMinorSnapshot,
+      discount: a.discount && a.discount.status !== "DECLINED" ? a.discount : null,
+      invoiceIssued: !!inv && inv.status !== "DRAFT",
     };
   });
   cards.sort((x, y) => x.since.localeCompare(y.since));

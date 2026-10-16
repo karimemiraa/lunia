@@ -19,13 +19,24 @@ async function client(name: string) {
 }
 async function visit(clientProfileId: string, dateISO: string, minute: number, status: "COMPLETED" | "CANCELLED" | "NO_SHOW" | "CONFIRMED", priceMinor = 50_000, durationMin = 60) {
   const startAt = centerLocalToUtc(dateISO, minute);
-  return prisma.booking.create({
+  const booking = await prisma.booking.create({
     data: {
       clientProfileId,
       status,
       appointments: { create: { serviceId, staffUserId: staffId, roomId, startAt, endAt: new Date(startAt.getTime() + durationMin * 60_000), priceMinorSnapshot: priceMinor } },
     },
   });
+  // Completed visits are paid at the desk (commission is on what was collected).
+  if (status === "COMPLETED") {
+    await prisma.invoice.create({
+      data: {
+        number: `${TAG}-${uid()}`, status: "PAID", bookingId: booking.id, customerName: TAG, issuedAt: startAt,
+        lines: { create: { kind: "SERVICE", serviceId, description: "Visit", qty: 1, unitPriceMinor: priceMinor, vatRateBp: 1500, staffUserId: staffId } },
+        payments: { create: { method: "CASH", amountMinor: Math.round(priceMinor * 1.15), receivedAt: startAt } },
+      },
+    });
+  }
+  return booking;
 }
 
 beforeAll(async () => {
@@ -47,6 +58,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await prisma.invoice.deleteMany({ where: { number: { startsWith: TAG } } });
   const clients = await prisma.clientProfile.findMany({ where: { fullName: { startsWith: TAG } }, select: { id: true } });
   await prisma.booking.deleteMany({ where: { clientProfileId: { in: clients.map((c) => c.id) } } });
   await prisma.leaveRequest.deleteMany({ where: { userId: staffId } });
@@ -81,7 +93,7 @@ describe("staff performance report", () => {
       bookedHours: "3.5", // 1 + 0.5 + 2 (cancelled / no-show excluded)
       scheduledHours: "8.0", // Sunday only; Monday was leave
       utilisation: "43.8%",
-      commissionSAR: "80.00",
+      commissionSAR: "80.00", // 10% of 800 collected, excl. VAT
     });
   });
 });

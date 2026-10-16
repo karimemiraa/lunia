@@ -99,7 +99,7 @@ function EditPackage({ pkg, services, onClose }: { pkg: PackageRowDTO; services:
   );
 }
 
-export function PackagesTable({ packages, services }: { packages: PackageRowDTO[]; services: ServiceOption[] }) {
+export function PackagesTable({ packages, services, canEdit = true }: { packages: PackageRowDTO[]; services: ServiceOption[]; canEdit?: boolean }) {
   const [editing, setEditing] = useState<PackageRowDTO | null>(null);
   const t = useStaffT();
   const locale = useStaffLocale();
@@ -149,9 +149,9 @@ export function PackagesTable({ packages, services }: { packages: PackageRowDTO[
                 </span>
               </td>
               <td className="px-4 py-2 text-end">
-                <button type="button" onClick={() => setEditing(pkg)} className="lunia-btn lunia-btn-ghost lunia-btn-sm" data-testid="edit-package">
+                {canEdit && (<button type="button" onClick={() => setEditing(pkg)} className="lunia-btn lunia-btn-ghost lunia-btn-sm" data-testid="edit-package">
                   {t("Edit")}
-                </button>
+                </button>)}
               </td>
             </tr>
           ))}

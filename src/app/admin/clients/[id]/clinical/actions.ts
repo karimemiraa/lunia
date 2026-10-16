@@ -65,7 +65,10 @@ export async function signAtDeskAction(
   locale: string,
   input: { signerName: string; signatureData: string },
 ): Promise<{ ok: true; signatureId: string } | { ok: false; error: string }> {
-  const admin = await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  const admin = await requireAdmin();
+  if (!admin.permissions.has(PERMISSIONS.CLINICAL_MANAGE) && !admin.permissions.has(PERMISSIONS.BOOKING_MANAGE)) {
+    return { ok: false, error: await message(new Error("You don't have permission to do that."), "Could not record the signature.") };
+  }
   try {
     const client = await assertClient(clientProfileId);
     const status = (await consentStatusForClient(clientProfileId)).find((r) => r.formId === formId);

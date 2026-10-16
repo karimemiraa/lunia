@@ -16,6 +16,8 @@ import { resolveBookingChannel } from "@/modules/booking/outbox";
 import { SettingsForm } from "./SettingsForm";
 import { AutomationsForm } from "./AutomationsForm";
 import { JourneyForm } from "./JourneyForm";
+import { DiscountsForm } from "./DiscountsForm";
+import { getDiscountSettings } from "@/modules/booking/discounts";
 import { getJourneySettings } from "@/modules/booking/journey";
 import { JOBS, backupProblem, getAutomationSettings, latestJobRuns } from "@/modules/automation/jobs";
 
@@ -27,6 +29,7 @@ export default async function SettingsPage() {
   const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
   const t = await getStaffT();
   const [settings, automations, runs, journey] = await Promise.all([getAllSettings(), getAutomationSettings(), latestJobRuns(), getJourneySettings()]);
+  const discounts = await getDiscountSettings();
 
   const business = settings.business as BusinessSettings | undefined;
   const hours = (settings.hours as HoursSettings | undefined) ?? DEFAULT_HOURS;
@@ -63,6 +66,9 @@ export default async function SettingsPage() {
       })()}
       <div className="mt-6">
         <JourneyForm value={journey} />
+      </div>
+      <div className="mt-6">
+        <DiscountsForm value={discounts} />
       </div>
       <div className="mt-6">
         <AutomationsForm

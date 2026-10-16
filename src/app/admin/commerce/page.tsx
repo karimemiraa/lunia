@@ -16,7 +16,10 @@ import { getStaffLocale, getStaffT } from "../_i18n/display";
 const sectionClass = "flex flex-col gap-4 lunia-card p-5";
 
 export default async function CommercePage() {
-  const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  // Front desk sells gift cards and records package purchases (billing);
+  // defining packages and their prices belongs to the catalog (manager).
+  const user = await requireAdmin(PERMISSIONS.BILLING_MANAGE);
+  const canDefine = user.permissions.has(PERMISSIONS.CATALOG_MANAGE);
   const [t, locale] = await Promise.all([getStaffT(), getStaffLocale()]);
 
   const [giftCards, packages, purchases, clients, services] = await Promise.all([
@@ -92,14 +95,14 @@ export default async function CommercePage() {
           <GiftCardsTable cards={giftCardRows} />
         </section>
 
-        <section className={sectionClass} data-testid="create-package-section">
+        {canDefine && <section className={sectionClass} data-testid="create-package-section">
           <h2 className="text-lg font-semibold text-[var(--color-ink)]">{t("Create a package")}</h2>
           <CreatePackageForm services={services.map((s) => ({ id: s.id, nameEn: s.nameEn, nameAr: s.nameAr }))} />
-        </section>
+        </section>}
 
         <section className="flex flex-col gap-4" data-testid="packages-list-section">
           <h2 className="text-lg font-semibold text-[var(--color-ink)]">{t("Packages")}</h2>
-          <PackagesTable packages={packageRows} services={services.map((s) => ({ id: s.id, nameEn: s.nameEn, nameAr: s.nameAr }))} />
+          <PackagesTable canEdit={canDefine} packages={packageRows} services={services.map((s) => ({ id: s.id, nameEn: s.nameEn, nameAr: s.nameAr }))} />
         </section>
 
         <section className={sectionClass} data-testid="assign-package-section">

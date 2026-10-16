@@ -28,6 +28,8 @@ interface EditServiceFormProps {
   media: MediaOption[];
   tiers: MembershipTier[];
   currentMinTierId: string | null;
+  /** Commission rates are pay data — HR/owner only. */
+  canSetCommission?: boolean;
 }
 
 // priceMinor is stored in halalas (1/100 SAR); the form shows/edits SAR with
@@ -36,7 +38,7 @@ function minorToSar(priceMinor: number): string {
   return (priceMinor / 100).toString();
 }
 
-export function EditServiceForm({ service, departments, media, tiers, currentMinTierId }: EditServiceFormProps) {
+export function EditServiceForm({ service, departments, media, tiers, currentMinTierId, canSetCommission = false }: EditServiceFormProps) {
   const [state, action, pending] = useActionState(updateServiceAction, initialState);
   const t = useStaffT();
   const locale = useStaffLocale();
@@ -139,6 +141,13 @@ export function EditServiceForm({ service, departments, media, tiers, currentMin
               <span className="text-xs text-[var(--color-ink)]/60">{t("Every visit begins with a consultation step (first visits always do).")}</span>
             </span>
           </label>
+          {canSetCommission && (
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-[var(--color-ink)]">{t("Commission for this service (%)")}</span>
+              <input name="commissionPct" type="number" min={0} max={100} step="0.5" defaultValue={service.commissionBp != null ? service.commissionBp / 100 : ""} className="lunia-input !w-32" data-testid="service-commission" />
+              <span className="text-xs text-[var(--color-ink)]/60">{t("Leave blank to use each specialist's services % from her HR file.")}</span>
+            </label>
+          )}
         </fieldset>
 
         <label className="flex flex-col gap-1 text-sm">

@@ -1,5 +1,6 @@
 "use server";
 
+import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
@@ -52,7 +53,7 @@ export async function createServiceAction(
   _prev: ServiceActionState | null,
   formData: FormData,
 ): Promise<ServiceActionState> {
-  await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
   const t = await getStaffT();
 
   const slug = String(formData.get("slug") ?? "").trim();
@@ -90,7 +91,7 @@ export async function updateServiceAction(
   _prev: ServiceActionState | null,
   formData: FormData,
 ): Promise<ServiceActionState> {
-  await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const admin = await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
   const t = await getStaffT();
 
   const id = String(formData.get("id") ?? "").trim();
@@ -134,6 +135,13 @@ export async function updateServiceAction(
       payBeforeTreatment: formData.get("payBeforeTreatment") === "on",
       needsConsultation: formData.get("needsConsultation") === "on",
     });
+    // Commission override is pay data: only HR/owner may change it.
+    if (admin.permissions.has(PERMISSIONS.HR_MANAGE) && formData.has("commissionPct")) {
+      const raw = String(formData.get("commissionPct") ?? "").trim();
+      const pct = raw === "" ? null : Number(raw);
+      if (pct !== null && (!Number.isFinite(pct) || pct < 0 || pct > 100)) return { error: t("Commission must be between 0 and 100%") };
+      await prisma.service.update({ where: { id }, data: { commissionBp: pct === null ? null : Math.round(pct * 100) } });
+    }
     await setServiceAccessRule(id, minTierId || null);
   } catch (err) {
     return { error: err instanceof Error ? catalogErrorMessage(err.message, t) : t("Failed to update service.") };
@@ -145,7 +153,7 @@ export async function updateServiceAction(
 }
 
 export async function deleteServiceAction(formData: FormData): Promise<void> {
-  await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
 
   const id = String(formData.get("id") ?? "");
   if (!id) return;

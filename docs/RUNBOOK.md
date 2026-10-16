@@ -264,6 +264,58 @@ Full design: `docs/PRD-visit-journey.md`. Code: `src/modules/booking/journey.ts`
 - **Two people tapping at once:** the second tap gets "Someone else just updated this visit — refresh and try again." and nothing is applied twice.
 - **Tests:** `tests/booking/journey.test.ts` (rules, gate, races, metrics) and `e2e/admin-visits.spec.ts` (a full visit on the board in English and Arabic).
 
+### 3.10 Commission, specialist discounts and roles
+
+Full design: `docs/PRD-commission-discounts-roles.md`.
+
+**Commission** (code in `src/modules/hr/commission.ts`):
+- **Rates:**
+  - HR file → **Services commission %** and **Products commission %**.
+  - A service can have its own rate (Catalog → Services → service → Visit journey). Only people with HR access see this field.
+- **What counts:**
+  - Service and product lines on invoices **paid in full**, in the month of the last payment.
+  - The amount is **after discounts, excluding VAT**.
+  - The part paid with a package session is skipped. The session itself counts when it's used, at package price ÷ sessions.
+  - Credit notes take commission back.
+  - Gift cards and memberships never earn commission.
+- **Who it counts for:** each invoice line has **Done by / Sold by**.
+  - On a booking's invoice it is filled automatically with the specialist.
+  - On walk-in sales, front desk picks who sold the product.
+  - "No one" means no commission.
+- **Where it shows:**
+  - Payroll drafts.
+  - Reports → Staff performance. The commission column is visible only with HR access.
+  - Each person's **My time & leave → My commission**: this month so far, line by line, plus last month.
+- **Past payslips:** approved and paid ones are never changed. Recalculating a **draft** run uses the new rules.
+
+**Specialist discounts** (code in `src/modules/booking/discounts.ts`):
+- **Where:** on the visit board, or the appointment page, from consultation until the invoice is issued. She picks a % or SAR amount and a reason.
+- **Within her limit** it applies at once:
+  - Default limit **10%** (Settings → Discounts). An optional SAR maximum can be set too.
+  - A person's own limit can be set in her HR file.
+- **Above the limit** it waits for someone with "Approve discounts" (Manager, Admin, Owner).
+  - The request appears in their notifications and on the board, with Approve / Decline.
+- **On the invoice:** an applied discount pre-fills the invoice line when front desk opens checkout. If the draft was already open, the draft is updated.
+- **After issuing:** discounts lock to the invoice. Anything still waiting is declined. After that, use a credit note.
+- **Audit:** every discount (who, how much, why, approved by) is in Reports → **Discounts** and on the visit timeline. Issuing an invoice writes its discounts to the audit log.
+- **Loyalty tier discount** (Loyalty tiers → discount %) now applies automatically to service lines when the customer has no paid membership.
+
+**Roles** (matrix in `src/modules/iam/permissions.ts`; the live roles were updated by migration `20261017100000_role_matrix`, with before → after in the audit log):
+
+| Role | What they can do |
+|---|---|
+| Specialist | Her visits, calendar (view), customers, patient file (including allergies and skin type), notes, consent forms, discounts up to her limit, her own commission. No billing, leads, reports or prices. |
+| Reception | Bookings, check-in/out, customers, notes, billing, gift cards and package sales, consent signing at the desk (form only, no medical history). |
+| Manager | All operations plus **services & prices**, approving discounts, users and roles. Not HR, settings or the website. |
+| Marketing | Website, blog, media, inquiries, reviews, campaigns. **No longer edits services or prices.** |
+| Sales / Telesales | As before, plus notes. |
+
+- **No escalation:** in Users / Roles you can only add or remove permissions you hold yourself. You also can't delete someone with more access than you.
+- **Packages:** gift cards and package sales need Billing. *Creating or pricing* a package needs Catalog (Manager).
+- **Tests:**
+  - `tests/iam/roleMatrix.test.ts`, `tests/hr/commission.test.ts`, `tests/booking/discounts.test.ts`.
+  - `e2e/admin-commission-discounts.spec.ts`: a specialist gives a discount, a manager approves, she sees her commission; the specialist's menu matches the role.
+
 ## 4. Backup
 
 **Automatic (since 2026-10-14):** the deploy workflow installs

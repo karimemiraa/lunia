@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
-import { PERMISSIONS, ALL_PERMISSION_KEYS, type PermissionKey } from "@/modules/iam/permissions";
+import { PERMISSIONS, ALL_PERMISSION_KEYS, ungrantableChanges, type PermissionKey } from "@/modules/iam/permissions";
 import { createRole, setRolePermissions, deleteRole, listRolesWithPermissions } from "@/modules/iam/roles";
 import { recordAudit } from "@/modules/iam/audit";
 import { getStaffT } from "../_i18n/display";
@@ -37,6 +37,10 @@ export async function saveRolePermissions(_prev: RoleActionState | null, formDat
   if (current?.permissionKeys.includes(PERMISSIONS.PLATFORM_MANAGE) && !keys.includes(PERMISSIONS.PLATFORM_MANAGE)) {
     keys.push(PERMISSIONS.PLATFORM_MANAGE);
   }
+  // No escalation: only permissions the editor holds herself can be added or removed.
+  if (current && ungrantableChanges(admin.permissions, current.permissionKeys, keys).length > 0) {
+    return { error: t("You can only add or remove permissions you have yourself.") };
+  }
 
   try {
     await setRolePermissions(roleId, keys);
@@ -49,7 +53,7 @@ export async function saveRolePermissions(_prev: RoleActionState | null, formDat
     action: "ROLE_PERMISSIONS_UPDATE",
     entityType: "Role",
     entityId: roleId,
-    summary: `Set ${keys.length} permission(s) on role ${roleId}`,
+    summary: `Role ${current?.key ?? roleId}: ${(current?.permissionKeys ?? []).join(", ") || "none"} → ${keys.join(", ") || "none"}`,
   });
   revalidatePath("/admin/roles");
   return { success: true };
@@ -93,6 +97,10 @@ export async function deleteRoleAction(_prev: RoleActionState | null, formData: 
     return { error: t("Missing role.") };
   }
 
+  const target = (await listRolesWithPermissions()).find((r) => r.id === roleId);
+  if (target && ungrantableChanges(admin.permissions, target.permissionKeys, []).length > 0) {
+    return { error: t("You can only add or remove permissions you have yourself.") };
+  }
   try {
     await deleteRole(roleId);
   } catch (err) {

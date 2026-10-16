@@ -1,7 +1,9 @@
+import Link from "next/link";
 import type { Department } from "@prisma/client";
 import { requireAdmin } from "../../_components/requireAdmin";
 import { AdminShell } from "../../_components/AdminShell";
 import { PERMISSIONS } from "@/modules/iam/permissions";
+import { getStaffT } from "../../_i18n/display";
 import { listServices } from "@/modules/catalog/services";
 import { listDepartments } from "@/modules/catalog/departments";
 import { listMedia } from "@/modules/cms/media";
@@ -9,7 +11,8 @@ import { CreateServiceForm } from "./CreateServiceForm";
 import { ServicesTable } from "./ServicesTable";
 
 export default async function ServicesPage() {
-  const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const user = await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
+  const t = await getStaffT();
   const [services, departments, media] = await Promise.all([
     listServices(undefined, { publishedOnly: false }),
     listDepartments({ publishedOnly: false }),
@@ -19,7 +22,12 @@ export default async function ServicesPage() {
   const departmentsById = Object.fromEntries(departments.map((d: Department) => [d.id, d]));
 
   return (
-    <AdminShell user={user} title="Services" description="Manage services, grouped under a department.">
+    <AdminShell
+      user={user}
+      title="Services"
+      description="Manage services, grouped under a department."
+      actions={<Link href="/admin/catalog/departments" className="lunia-btn lunia-btn-ghost lunia-btn-sm">{t("Departments")}</Link>}
+    >
       <div className="mb-8 max-w-2xl">
         <CreateServiceForm
           departments={departments}

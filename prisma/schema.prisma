@@ -163,14 +163,14 @@ model UserRole {
 }
 
 model StaffProfile {
-  id       String  @id @default(cuid())
-  userId   String  @unique
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fullName String
+  id         String  @id @default(cuid())
+  userId     String  @unique
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName   String
   /// Name shown to customers on Arabic pages; falls back to `fullName`.
   fullNameAr String?
-  title    String?
-  bio      String?
+  title      String?
+  bio        String?
 }
 
 model MembershipTier {
@@ -351,35 +351,37 @@ model Department {
 }
 
 model Service {
-  id              String              @id @default(cuid())
-  slug            String              @unique
-  departmentId    String
-  department      Department          @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  nameEn          String
-  nameAr          String
-  summaryEn       String
-  summaryAr       String
-  benefitsEn      Json
-  benefitsAr      Json
-  heroMediaId     String?
-  order           Int                 @default(0)
-  isPublished     Boolean             @default(true)
-  durationMin     Int                 @default(60)
-  priceMinor      Int                 @default(0)
-  onlineBookable  Boolean             @default(true)
-  inCenterOnly    Boolean             @default(false)
+  id                 String              @id @default(cuid())
+  slug               String              @unique
+  departmentId       String
+  department         Department          @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  nameEn             String
+  nameAr             String
+  summaryEn          String
+  summaryAr          String
+  benefitsEn         Json
+  benefitsAr         Json
+  heroMediaId        String?
+  order              Int                 @default(0)
+  isPublished        Boolean             @default(true)
+  durationMin        Int                 @default(60)
+  priceMinor         Int                 @default(0)
+  onlineBookable     Boolean             @default(true)
+  inCenterOnly       Boolean             @default(false)
   /// Customer pays at reception before going to the treatment room.
-  payBeforeTreatment Boolean          @default(false)
+  payBeforeTreatment Boolean             @default(false)
   /// Always start with a consultation step (also automatic on a first visit).
-  needsConsultation  Boolean          @default(false)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @default(now()) @updatedAt
-  accessRule      ServiceAccessRule?
-  appointments    Appointment[]
-  packages        ServicePackage[]
-  waitlistEntries WaitlistEntry[]
-  consumables     ServiceConsumable[]
-  reviews         Review[]
+  needsConsultation  Boolean             @default(false)
+  /// Commission rate for this service, overriding the specialist's services % (basis points). Null = use hers.
+  commissionBp       Int?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @default(now()) @updatedAt
+  accessRule         ServiceAccessRule?
+  appointments       Appointment[]
+  packages           ServicePackage[]
+  waitlistEntries    WaitlistEntry[]
+  consumables        ServiceConsumable[]
+  reviews            Review[]
 }
 
 model Brand {
@@ -399,23 +401,23 @@ model Brand {
 }
 
 model BlogPost {
-  id          String    @id @default(cuid())
-  slug        String    @unique
-  titleEn     String
-  titleAr     String
-  excerptEn   String
-  excerptAr   String
-  bodyEn      String    @db.Text
-  bodyAr      String    @db.Text
-  heroMediaId String?
-  authorName  String?
+  id           String    @id @default(cuid())
+  slug         String    @unique
+  titleEn      String
+  titleAr      String
+  excerptEn    String
+  excerptAr    String
+  bodyEn       String    @db.Text
+  bodyAr       String    @db.Text
+  heroMediaId  String?
+  authorName   String?
   /// Arabic byline; falls back to `authorName`.
   authorNameAr String?
-  publishedAt DateTime?
-  isPublished Boolean   @default(false)
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now()) @updatedAt
+  publishedAt  DateTime?
+  isPublished  Boolean   @default(false)
+  order        Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
 }
 
 model ContactInquiry {
@@ -644,16 +646,16 @@ model PackageRedemption {
 }
 
 model Room {
-  id           String        @id @default(cuid())
-  name         String
+  id             String        @id @default(cuid())
+  name           String
   /// Arabic display name for customers; falls back to `name`.
-  nameAr       String?
-  capacity     Int           @default(1)
-  isActive     Boolean       @default(true)
-  order        Int           @default(0)
+  nameAr         String?
+  capacity       Int           @default(1)
+  isActive       Boolean       @default(true)
+  order          Int           @default(0)
   /// Being prepared after a session (تجهيز الغرفة); null = ready.
   preparingSince DateTime?
-  appointments Appointment[]
+  appointments   Appointment[]
 }
 
 // weekday: 0 = Sunday .. 6 = Saturday. startMin/endMin are minutes from
@@ -804,23 +806,24 @@ model Booking {
 
   @@index([createdAt])
   @@index([clientProfileId, createdAt])
-
   @@index([seriesId])
 }
 
 model Appointment {
-  id                 String   @id @default(cuid())
+  id                 String               @id @default(cuid())
   bookingId          String
-  booking            Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking            Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   serviceId          String
-  service            Service  @relation(fields: [serviceId], references: [id])
+  service            Service              @relation(fields: [serviceId], references: [id])
   staffUserId        String
-  staff              User     @relation("StaffAppointments", fields: [staffUserId], references: [id])
+  staff              User                 @relation("StaffAppointments", fields: [staffUserId], references: [id])
   roomId             String
-  room               Room     @relation(fields: [roomId], references: [id])
+  room               Room                 @relation(fields: [roomId], references: [id])
   startAt            DateTime
   endAt              DateTime
-  priceMinorSnapshot Int      @default(0)
+  priceMinorSnapshot Int                  @default(0)
+  /// Specialist discount on this appointment (docs/PRD-commission-discounts-roles.md).
+  discount           AppointmentDiscount?
 
   @@index([staffUserId, startAt])
   @@index([roomId, startAt])
@@ -839,28 +842,28 @@ enum VisitStage {
 }
 
 model CheckIn {
-  id        String    @id @default(cuid())
-  bookingId String    @unique
-  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  arrivedAt DateTime  @default(now())
+  id                  String       @id @default(cuid())
+  bookingId           String       @unique
+  booking             Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  arrivedAt           DateTime     @default(now())
   /// Treatment started (customer in the treatment room).
-  seatedAt  DateTime?
-  stage             VisitStage @default(WAITING)
+  seatedAt            DateTime?
+  stage               VisitStage   @default(WAITING)
   /// When the current stage began (drives the live timer).
-  stageAt           DateTime   @default(now())
-  checkedInById     String?
+  stageAt             DateTime     @default(now())
+  checkedInById       String?
   /// Specialist took over from front desk ("Receive").
-  receivedAt        DateTime?
-  receivedById      String?
-  consultStartedAt  DateTime?
-  treatmentEndedAt  DateTime?
-  checkedOutAt      DateTime?
-  checkedOutById    String?
+  receivedAt          DateTime?
+  receivedById        String?
+  consultStartedAt    DateTime?
+  treatmentEndedAt    DateTime?
+  checkedOutAt        DateTime?
+  checkedOutById      String?
   /// Coffee/water served in the waiting area (ضيافة).
-  hospitalityAt     DateTime?
+  hospitalityAt       DateTime?
   /// Front desk let a "pay before treatment" customer in unpaid.
   paymentOverrideById String?
-  events            VisitEvent[]
+  events              VisitEvent[]
 
   @@index([stage])
 }
@@ -1338,6 +1341,8 @@ model InvoiceLine {
   /// Line total INCLUDING VAT.
   totalMinor     Int     @default(0)
   sortOrder      Int     @default(0)
+  /// Who performed (service) or sold (product) this line — commission goes to her.
+  staffUserId    String?
 
   @@index([invoiceId])
 }
@@ -1552,6 +1557,10 @@ model EmployeeRecord {
   otherAllowanceMinor     Int       @default(0)
   /// Commission on completed-service revenue, in basis points (500 = 5%).
   commissionBp            Int       @default(0)
+  /// Commission on retail products she sold, in basis points.
+  productCommissionBp     Int       @default(0)
+  /// Personal cap on discounts she can give without approval (% of the visit). Null = role default.
+  discountCapPct          Int?
   gosiApplicable          Boolean   @default(true)
   iban                    String?
   bankName                String?
@@ -1757,4 +1766,30 @@ model MembershipCycle {
 
   @@unique([subscriptionId, periodStart])
   @@index([status, periodStart])
+}
+
+/// A discount a specialist gave on one appointment. Within her cap it is
+/// APPLIED at once; above it waits as PENDING until a manager approves
+/// (APPLIED) or declines (DECLINED). An APPLIED discount pre-fills the line
+/// discount when front desk opens the invoice.
+model AppointmentDiscount {
+  id            String      @id @default(cuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  /// Same basis as Appointment.priceMinorSnapshot (VAT-inclusive when prices include VAT).
+  amountMinor   Int
+  /// The amount as a share of the visit, in basis points (1000 = 10%).
+  pctBp         Int
+  reason        String
+  /// APPLIED | PENDING | DECLINED
+  status        String
+  requestedById String
+  decidedById   String?
+  decidedAt     DateTime?
+  /// Set once the invoice carried it, so it can't be changed afterwards.
+  invoiceId     String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([status])
 }

@@ -7,6 +7,7 @@ import type { Board, BoardCard, BoardColumn } from "@/modules/booking/journey";
 import { useStaffT } from "../_i18n/StaffI18n";
 import { intlLocale, type StaffLocale } from "../_i18n/t";
 import { toast } from "../_components/toast";
+import { DiscountControl } from "./DiscountControl";
 import {
   availableSpecialistsAction, checkInVisitAction, checkOutAction, finishTreatmentAction, hospitalityAction,
   overridePaymentAction, reassignAction, receiveAction, roomReadyAction, startTreatmentAction, type JourneyActionResult,
@@ -41,10 +42,16 @@ interface Props {
   canManage: boolean;
   canBill: boolean;
   canClinical: boolean;
+  /** discount:give — her own visits, up to the cap. */
+  canGiveDiscount?: boolean;
+  /** discount:approve — any visit, and decides requests above the cap. */
+  canApproveDiscount?: boolean;
+  /** Reason presets (English source; shown translated). */
+  discountReasons?: readonly string[];
   prayer: { next: { prayer: string; at: string }; today: { prayer: string; at: string }[] } | null;
 }
 
-export function VisitBoard({ board, locale, viewerId, canManage, canBill, canClinical, prayer }: Props) {
+export function VisitBoard({ board, locale, viewerId, canManage, canBill, canClinical, canGiveDiscount = false, canApproveDiscount = false, discountReasons = [], prayer }: Props) {
   const t = useStaffT();
   const router = useRouter();
   const now = useNow();
@@ -94,7 +101,7 @@ export function VisitBoard({ board, locale, viewerId, canManage, canBill, canCli
               <p className="px-1 text-xs text-[var(--color-ink)]/50">{t(col.hint)}</p>
               {cards.length === 0 && <p className="rounded-[var(--radius-sm)] border border-dashed border-[var(--line-strong)] px-3 py-6 text-center text-xs text-[var(--color-ink)]/45">{t("No one here")}</p>}
               {cards.map((c) => (
-                <VisitCard key={c.bookingId} card={c} board={board} now={now} timeFmt={timeFmt} name={name} viewerId={viewerId} canManage={canManage} canBill={canBill} canClinical={canClinical} />
+                <VisitCard key={c.bookingId} card={c} board={board} now={now} timeFmt={timeFmt} name={name} viewerId={viewerId} canManage={canManage} canBill={canBill} canClinical={canClinical} canGiveDiscount={canGiveDiscount} canApproveDiscount={canApproveDiscount} discountReasons={discountReasons} />
               ))}
             </section>
           );
@@ -161,9 +168,10 @@ function PrayerChip({ next, today, timeFmt, now }: { next: { prayer: string; at:
   );
 }
 
-function VisitCard({ card: c, board, now, timeFmt, name, viewerId, canManage, canBill, canClinical }: {
+function VisitCard({ card: c, board, now, timeFmt, name, viewerId, canManage, canBill, canClinical, canGiveDiscount, canApproveDiscount, discountReasons }: {
   card: BoardCard; board: Board; now: number; timeFmt: Intl.DateTimeFormat; name: (en: string, ar: string | null) => string;
   viewerId: string; canManage: boolean; canBill: boolean; canClinical: boolean;
+  canGiveDiscount: boolean; canApproveDiscount: boolean; discountReasons: readonly string[];
 }) {
   const t = useStaffT();
   const router = useRouter();
@@ -317,6 +325,9 @@ function VisitCard({ card: c, board, now, timeFmt, name, viewerId, canManage, ca
           </>
         )}
       </div>
+      {(c.column === "CONSULTATION" || c.column === "TREATMENT" || c.column === "CHECKOUT") && (
+        <DiscountControl card={c} mine={mine} canGive={canGiveDiscount} canApprove={canApproveDiscount} reasons={discountReasons} />
+      )}
     </article>
   );
 }

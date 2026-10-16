@@ -10,6 +10,10 @@ import {
   receive, startTreatment, finishTreatment, overridePayment, markHospitality, reassign,
   availableSpecialists, markRoomReady, waitingForStaff, JourneyError,
 } from "@/modules/booking/journey";
+import { giveDiscount, decideDiscount, removeDiscount, DiscountError } from "@/modules/booking/discounts";
+import { syncDraftDiscount } from "@/modules/billing/invoices";
+import { formatSarMinor } from "@/modules/billing/money";
+import { recordAudit } from "@/modules/iam/audit";
 
 export interface JourneyActionResult {
   ok: boolean;
@@ -18,6 +22,7 @@ export interface JourneyActionResult {
 
 function refresh() {
   revalidatePath("/admin/visits");
+  revalidatePath("/admin/billing");
   revalidatePath("/admin/calendar");
   revalidatePath("/admin");
 }
@@ -100,4 +105,69 @@ export async function roomReadyAction(roomId: string): Promise<JourneyActionResu
 export async function myWaitingCustomersAction(): Promise<{ bookingId: string; clientName: string; arrivedAt: string }[]> {
   const user = await requireAdmin(PERMISSIONS.BOOKING_VIEW);
   return waitingForStaff(user.id);
+}
+
+// --- Specialist discounts (docs/PRD-commission-discounts-roles.md §3.2) -----
+
+async function syncInvoice(appointmentId: string, previousMinor: number) {
+  const appt = await prisma.appointment.findUnique({ where: { id: appointmentId }, select: { bookingId: true, serviceId: true, staffUserId: true, discount: { select: { status: true, amountMinor: true } } } });
+  if (!appt) return;
+  const now = appt.discount?.status === "APPLIED" ? appt.discount.amountMinor : 0;
+  if (now !== previousMinor) await syncDraftDiscount(appt.bookingId, appt, now, previousMinor);
+}
+
+async function appliedAmount(appointmentId: string): Promise<number> {
+  const d = await prisma.appointmentDiscount.findUnique({ where: { appointmentId }, select: { status: true, amountMinor: true } });
+  return d?.status === "APPLIED" ? d.amountMinor : 0;
+}
+
+export async function giveDiscountAction(
+  appointmentId: string,
+  by: { pct?: number; amountMinor?: number },
+  reason: string,
+): Promise<JourneyActionResult & { pending?: boolean }> {
+  try {
+    const user = await requireAdmin(PERMISSIONS.BOOKING_VIEW);
+    const before = await appliedAmount(appointmentId);
+    const res = await giveDiscount({ appointmentId, byUserId: user.id, permissions: user.permissions, ...by, reason });
+    await syncInvoice(appointmentId, before);
+    await recordAudit({ actorUserId: user.id, action: "discount.give", entityType: "Appointment", entityId: appointmentId, summary: `${res.status === "PENDING" ? "Asked for" : "Gave"} a ${res.pctBp / 100}% discount (${formatSarMinor(res.amountMinor)}): ${reason.trim()}` });
+    refresh();
+    return { ok: true, pending: res.status === "PENDING" };
+  } catch (err) {
+    return discountFail(err);
+  }
+}
+
+export async function decideDiscountAction(appointmentId: string, approve: boolean): Promise<JourneyActionResult> {
+  try {
+    const user = await requireAdmin(PERMISSIONS.BOOKING_VIEW);
+    await decideDiscount(appointmentId, user.id, user.permissions, approve);
+    await syncInvoice(appointmentId, 0);
+    await recordAudit({ actorUserId: user.id, action: approve ? "discount.approve" : "discount.decline", entityType: "Appointment", entityId: appointmentId, summary: `${approve ? "Approved" : "Declined"} a specialist discount` });
+    refresh();
+    return { ok: true };
+  } catch (err) {
+    return discountFail(err);
+  }
+}
+
+export async function removeDiscountAction(appointmentId: string): Promise<JourneyActionResult> {
+  try {
+    const user = await requireAdmin(PERMISSIONS.BOOKING_VIEW);
+    const before = await appliedAmount(appointmentId);
+    await removeDiscount(appointmentId, user.id, user.permissions);
+    await syncInvoice(appointmentId, before);
+    await recordAudit({ actorUserId: user.id, action: "discount.remove", entityType: "Appointment", entityId: appointmentId, summary: "Removed a specialist discount" });
+    refresh();
+    return { ok: true };
+  } catch (err) {
+    return discountFail(err);
+  }
+}
+
+async function discountFail(err: unknown): Promise<JourneyActionResult> {
+  const t = await getStaffT();
+  if (!(err instanceof DiscountError) && !(err instanceof JourneyError)) console.error("[visits] discount action failed", err);
+  return { ok: false, error: err instanceof DiscountError || err instanceof JourneyError ? t(err.message) : t("Something went wrong. Please try again.") };
 }

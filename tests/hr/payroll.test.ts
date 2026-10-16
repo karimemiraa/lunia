@@ -65,11 +65,10 @@ describe("commission and net", () => {
         housingAllowanceMinor: 2_500_00,
         transportAllowanceMinor: 1_000_00,
         otherAllowanceMinor: 0,
-        commissionBp: 1000,
         isSaudi: true,
         gosiApplicable: true,
       },
-      5_000_00,
+      500_00, // commission, worked out by hr/commission.ts
       { overtimeMinor: 300_00, bonusMinor: 200_00, deductionsMinor: 100_00, notes: null },
     );
     expect(slip.commissionMinor).toBe(500_00);
@@ -119,7 +118,8 @@ describe("payroll run (DB)", () => {
     ).toBe(true);
     expect((await saveEmployeeRecord(otherId, { basicSalaryMinor: "5000", gosiApplicable: "on" })).ok).toBe(true);
 
-    // Completed + cancelled appointments for staffId in MONTH; only COMPLETED counts.
+    // Completed + cancelled visits for staffId in MONTH. Commission is on what
+    // was collected (hr/commission.ts): the completed visits have paid invoices.
     const service = await prisma.service.findFirstOrThrow();
     const room = await prisma.room.findFirstOrThrow();
     const client = await prisma.user.create({
@@ -136,7 +136,7 @@ describe("payroll run (DB)", () => {
       ["COMPLETED", 2_500_00, "06"],
       ["CANCELLED", 9_000_00, "07"],
     ] as const) {
-      await prisma.booking.create({
+      const b = await prisma.booking.create({
         data: {
           clientProfileId: client.clientProfile!.id,
           status,
@@ -152,6 +152,19 @@ describe("payroll run (DB)", () => {
           },
         },
       });
+      if (status === "COMPLETED") {
+        await prisma.invoice.create({
+          data: {
+            number: `HRTEST-${Math.random().toString(36).slice(2, 10)}`,
+            status: "PAID",
+            bookingId: b.id,
+            customerName: "HR Test Client",
+            issuedAt: at(day, 700),
+            lines: { create: { kind: "SERVICE", serviceId: service.id, description: "Visit", qty: 1, unitPriceMinor: price, vatRateBp: 1500 } },
+            payments: { create: { method: "CASH", amountMinor: Math.round(price * 1.15), receivedAt: at(day, 700) } },
+          },
+        });
+      }
     }
 
     // Two approved unpaid days in the month.
@@ -162,6 +175,7 @@ describe("payroll run (DB)", () => {
 
   afterAll(async () => {
     await prisma.payrollRun.deleteMany({ where: { periodMonth: MONTH } });
+    await prisma.invoice.deleteMany({ where: { number: { startsWith: "HRTEST-" } } });
     await cleanupHrTestData();
   });
 
@@ -171,7 +185,7 @@ describe("payroll run (DB)", () => {
 
     const run = await getPayrollRun(id);
     const slip = run!.payslips.find((p) => p.userId === staffId)!;
-    expect(slip.commissionMinor).toBe(400_00); // 10% of 4,000 completed
+    expect(slip.commissionMinor).toBe(400_00); // 10% of 4,000 collected (excl. VAT)
     expect(slip.gosiEmployeeMinor).toBe(1_170_00); // 9.75% of 12,000
     expect(slip.gosiEmployerMinor).toBe(1_410_00); // 11.75% of 12,000
     expect(slip.deductionsMinor).toBe(2 * 420_00); // 12,600 / 30 = 420 per day

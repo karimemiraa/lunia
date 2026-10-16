@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../_components/requireAdmin";
-import { PERMISSIONS } from "@/modules/iam/permissions";
+import { PERMISSIONS, ungrantableChanges } from "@/modules/iam/permissions";
+import { listRolesWithPermissions } from "@/modules/iam/roles";
+import { prisma } from "@/lib/db";
 import { createStaffUser, setUserRoles, deleteStaffUser, setStaffArabicName } from "@/modules/iam/users";
 import { recordAudit } from "@/modules/iam/audit";
 import { getStaffT } from "../_i18n/display";
@@ -11,6 +13,13 @@ import { translateError } from "../hr/_components/errors";
 export interface UserActionState {
   error?: string;
   success?: boolean;
+}
+
+/** Permission keys held through the given roles (or the target user's current roles). */
+async function rolePermissionKeys(opts: { roleIds?: string[]; userId?: string }): Promise<string[]> {
+  const roles = await listRolesWithPermissions();
+  const ids = opts.userId ? (await prisma.userRole.findMany({ where: { userId: opts.userId }, select: { roleId: true } })).map((r) => r.roleId) : opts.roleIds ?? [];
+  return [...new Set(roles.filter((r) => ids.includes(r.id)).flatMap((r) => r.permissionKeys))];
 }
 
 export async function createUserAction(_prev: UserActionState | null, formData: FormData): Promise<UserActionState> {
@@ -23,6 +32,9 @@ export async function createUserAction(_prev: UserActionState | null, formData: 
   const title = String(formData.get("title") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const roleIds = formData.getAll("roleIds").map(String);
+  if (ungrantableChanges(admin.permissions, [], await rolePermissionKeys({ roleIds })).length > 0) {
+    return { error: t("You can only give or take away roles within your own permissions.") };
+  }
 
   try {
     const { id } = await createStaffUser({ email, fullName, fullNameAr, title, password, roleIds });
@@ -64,6 +76,17 @@ export async function setUserRolesAction(_prev: UserActionState | null, formData
   if (!userId) return { error: t("Missing user.") };
   const roleIds = formData.getAll("roleIds").map(String);
 
+  // No escalation: every role added or removed must be within the editor's own permissions.
+  const [roles, currentRoles] = await Promise.all([
+    listRolesWithPermissions(),
+    prisma.userRole.findMany({ where: { userId }, select: { roleId: true } }),
+  ]);
+  const before = new Set(currentRoles.map((r) => r.roleId));
+  const changedRoles = roles.filter((r) => before.has(r.id) !== roleIds.includes(r.id));
+  if (changedRoles.some((r) => ungrantableChanges(admin.permissions, r.permissionKeys, []).length > 0)) {
+    return { error: t("You can only give or take away roles within your own permissions.") };
+  }
+
   try {
     await setUserRoles(userId, roleIds);
   } catch (err) {
@@ -75,7 +98,7 @@ export async function setUserRolesAction(_prev: UserActionState | null, formData
     action: "USER_ROLES_UPDATE",
     entityType: "User",
     entityId: userId,
-    summary: `Set ${roleIds.length} role(s) on user ${userId}`,
+    summary: `Roles: ${roles.filter((r) => before.has(r.id)).map((r) => r.key).join(", ") || "none"} → ${roles.filter((r) => roleIds.includes(r.id)).map((r) => r.key).join(", ") || "none"}`,
   });
   revalidatePath("/admin/users");
   return { success: true };
@@ -89,6 +112,10 @@ export async function deleteUserAction(_prev: UserActionState | null, formData: 
   if (!userId) return { error: t("Missing user.") };
   // Guard against locking yourself out.
   if (userId === admin.id) return { error: t("You cannot delete your own account.") };
+  // No removing someone with more access than you (e.g. a manager deleting the owner).
+  if (ungrantableChanges(admin.permissions, await rolePermissionKeys({ userId }), []).length > 0) {
+    return { error: t("You can't delete someone with more access than you.") };
+  }
 
   try {
     await deleteStaffUser(userId);

@@ -24,6 +24,7 @@ const REPORT_LABELS: Record<ReportType, string> = {
   staff: "Staff performance",
   retention: "Retention & rebooking",
   flow: "Visit flow",
+  discounts: "Discounts",
 };
 
 const BOOKING_STATUSES: BookingStatus[] = ["REQUESTED", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED", "NO_SHOW"];
@@ -62,7 +63,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const from = centerLocalToUtc(fromISO, 0);
   const to = centerLocalToUtc(toISO, 1440);
 
-  const report = await runReport({ type, from, to, status });
+  const report = await runReport({ type, from, to, status, showPay: user.permissions.has(PERMISSIONS.HR_MANAGE) });
   const { columns } = report;
   // Visit flow: headline numbers above the per-specialist table.
   const [flow, journey] = type === "flow" ? await Promise.all([flowMetrics(from, to), getJourneySettings()]) : [null, null];
@@ -71,6 +72,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     const names = await loadArabicNames(locale, { staffUserIds: flow.byStaff.map((s) => s.staffUserId) });
     const byName = new Map(flow.byStaff.map((s) => [s.name, names.staff.get(s.staffUserId) ?? s.name]));
     rows = rows.map((r) => ({ ...r, specialist: r.specialist === "Everyone" ? t("Everyone") : byName.get(String(r.specialist)) ?? r.specialist }));
+  }
+  // Discounts: statuses, preset reasons and fixed labels read in Arabic too.
+  if (type === "discounts" && locale === "ar") {
+    rows = rows.map((r) => ({ ...r, status: t(String(r.status)), reason: t(String(r.reason)), item: r.item === "Whole invoice" ? t("Whole invoice") : r.item, givenBy: r.givenBy === "Front desk" ? t("Front desk") : r.givenBy }));
   }
   const minutes = (n: number | null) => (n === null ? "—" : t("{n} min", { n }));
 

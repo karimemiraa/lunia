@@ -3,6 +3,7 @@
 // Riyadh time, test customers excluded. Revenue = price snapshot of
 // COMPLETED appointments (the same definition payroll uses for commission).
 
+import { commissionLines, summarize } from "@/modules/hr/commission";
 import { prisma } from "@/lib/db";
 import { centerLocalToUtc, utcToCenterLocal, weekdayForDateISO } from "@/modules/booking/availability";
 import { NOT_TEST_CLIENT } from "@/modules/crm/testCustomers";
@@ -109,15 +110,16 @@ export async function staffPerformanceReport(filter: { from: Date; to: Date }): 
   const staffIds = [...new Set([...acc.keys(), ...[...scheduled.entries()].filter(([, m]) => m > 0).map(([id]) => id)])];
   const users = await prisma.user.findMany({
     where: { id: { in: staffIds } },
-    select: { id: true, email: true, staffProfile: { select: { fullName: true } }, employeeRecord: { select: { commissionBp: true } } },
+    select: { id: true, email: true, staffProfile: { select: { fullName: true } } },
   });
+  // Same commission as payroll: collected, after discounts, excl. VAT (hr/commission.ts).
+  const commission = summarize(await commissionLines(filter.from, filter.to));
   const userById = new Map(users.map((u) => [u.id, u]));
 
   const rows: StaffReportRow[] = staffIds.map((id) => {
     const a = acc.get(id) ?? { appointments: 0, completed: 0, cancelled: 0, noShows: 0, revenue: 0, bookedMin: 0 };
     const sched = scheduled.get(id) ?? 0;
     const u = userById.get(id);
-    const commissionBp = u?.employeeRecord?.commissionBp ?? 0;
     return {
       staff: u?.staffProfile?.fullName || u?.email || "Unknown staff",
       appointments: a.appointments,
@@ -130,7 +132,7 @@ export async function staffPerformanceReport(filter: { from: Date; to: Date }): 
       bookedHours: (a.bookedMin / 60).toFixed(1),
       scheduledHours: (sched / 60).toFixed(1),
       utilisation: pct(a.bookedMin, sched),
-      commissionSAR: sar(Math.round((a.revenue * commissionBp) / 10_000)),
+      commissionSAR: sar(commission.get(id)?.commissionMinor ?? 0),
     };
   });
   rows.sort((x, y) => Number(y.revenueSAR) - Number(x.revenueSAR) || x.staff.localeCompare(y.staff));

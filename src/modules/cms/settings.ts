@@ -168,6 +168,16 @@ const journeySettingsSchema = z.object({
 export type JourneySettings = z.infer<typeof journeySettingsSchema>;
 export const DEFAULT_JOURNEY_SETTINGS: JourneySettings = journeySettingsSchema.parse({});
 
+// Specialist discounts (docs/PRD-commission-discounts-roles.md §3.2).
+const discountSettingsSchema = z.object({
+  /** Specialists can give up to this % of the visit without approval. */
+  specialistCapPct: z.number().int().min(0).max(100).default(10),
+  /** Optional SAR ceiling (minor units) on top of the % cap; null = none. */
+  maxMinor: z.number().int().min(0).nullable().default(null),
+});
+export type DiscountSettings = z.infer<typeof discountSettingsSchema>;
+export const DEFAULT_DISCOUNT_SETTINGS: DiscountSettings = discountSettingsSchema.parse({});
+
 export const settingsRegistry = {
   business: businessSettingsSchema,
   hours: hoursSettingsSchema,
@@ -181,6 +191,7 @@ export const settingsRegistry = {
   adminNav: adminNavSettingsSchema,
   automations: automationSettingsSchema,
   journey: journeySettingsSchema,
+  discounts: discountSettingsSchema,
 } as const;
 
 export type SettingKey = keyof typeof settingsRegistry;

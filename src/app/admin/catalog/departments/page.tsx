@@ -7,7 +7,7 @@ import { CreateDepartmentForm } from "./CreateDepartmentForm";
 import { DepartmentsTable } from "./DepartmentsTable";
 
 export default async function DepartmentsPage() {
-  const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const user = await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
   const [departments, media] = await Promise.all([
     listDepartments({ publishedOnly: false }),
     listMedia(),

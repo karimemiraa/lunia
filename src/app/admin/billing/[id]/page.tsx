@@ -13,6 +13,7 @@ import { invoicePublicUrl } from "@/modules/billing/token";
 import { formatSarMinor, inclusiveEditorValues } from "@/modules/billing/money";
 import { encodeQr, qrToSvg } from "@/modules/billing/zatca/qrcode";
 import { prisma } from "@/lib/db";
+import { staffOptions, bookingSpecialist } from "../staffOptions";
 import { InvoiceEditor, type EditorLine } from "../InvoiceEditor";
 import { IssuedActions } from "./IssuedActions";
 import { METHOD_LABELS, StatusBadge, formatDateTime } from "../ui";
@@ -47,6 +48,7 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
         unitPriceMinor: incl.unitInclMinor,
         discountMinor: incl.discountInclMinor,
         vatRateBp: l.vatRateBp,
+        staffUserId: l.staffUserId,
       };
     });
     const lineTotal = invoice.lines.reduce((s, l) => s + l.totalMinor, 0);
@@ -57,6 +59,7 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
       }),
       quickPicks(8),
     ]);
+    const [staff, defaultStaffUserId] = await Promise.all([staffOptions(locale), invoice.bookingId ? bookingSpecialist(invoice.bookingId) : null]);
     for (const l of lines) if (l.productId) l.stockQty = products.find((p) => p.id === l.productId)?.stockQty;
 
     return (
@@ -69,6 +72,8 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
         <InvoiceEditor
           invoiceId={invoice.id}
           quickPicks={picks}
+          staff={staff}
+          defaultStaffUserId={defaultStaffUserId}
           pricesIncludeVat={settings.pricesIncludeVat}
           defaultVatRateBp={settings.defaultVatRateBp}
           settingsIssues={taxSettingsIssues(settings)}

@@ -264,6 +264,34 @@ export const employeeRecordSchema = z.object({
       }
       return Math.round(n * 100);
     }),
+  // Retail products she sells (homecare), same format.
+  productCommissionPct: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v, ctx) => {
+      if (!v) return 0;
+      const n = Number(v);
+      if (!Number.isFinite(n) || n < 0 || n > 100) {
+        ctx.addIssue({ code: "custom", message: "Commission must be between 0 and 100%" });
+        return z.NEVER;
+      }
+      return Math.round(n * 100);
+    }),
+  // Personal discount cap (% of the visit) without approval; blank = role default.
+  discountCapPct: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v, ctx) => {
+      if (!v) return null;
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < 0 || n > 100) {
+        ctx.addIssue({ code: "custom", message: "Discount limit must be a whole number between 0 and 100%" });
+        return z.NEVER;
+      }
+      return n;
+    }),
   gosiApplicable: checkbox,
   iban: z
     .string()
@@ -286,8 +314,8 @@ export async function saveEmployeeRecord(userId: string, input: EmployeeRecordIn
 
   const parsed = employeeRecordSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
-  const { commissionPct, ...rest } = parsed.data;
-  const data = { ...rest, commissionBp: commissionPct };
+  const { commissionPct, productCommissionPct, ...rest } = parsed.data;
+  const data = { ...rest, commissionBp: commissionPct, productCommissionBp: productCommissionPct };
 
   try {
     await prisma.employeeRecord.upsert({ where: { userId }, create: { userId, ...data }, update: data });

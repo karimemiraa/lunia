@@ -29,7 +29,7 @@ function isBookingStatus(value: string): value is BookingStatus {
 // thing it means everywhere else in the admin: no body ever ships to a
 // caller requireAdmin would turn away.
 export async function GET(request: Request) {
-  await requireAdmin(PERMISSIONS.ANALYTICS_VIEW);
+  const user = await requireAdmin(PERMISSIONS.ANALYTICS_VIEW);
 
   const url = new URL(request.url);
   const typeParam = url.searchParams.get("type");
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
   const from = centerLocalToUtc(fromISO, 0);
   const to = centerLocalToUtc(toISO, 1440);
 
-  const { columns, rows } = await runReport({ type, from, to, status });
+  const { columns, rows } = await runReport({ type, from, to, status, showPay: user.permissions.has(PERMISSIONS.HR_MANAGE) });
   const csv = toCsv(columns, rows);
   const filename = `lunia-${type}-${fromISO}_${toISO}.csv`;
 

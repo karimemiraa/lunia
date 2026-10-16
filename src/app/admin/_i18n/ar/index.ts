@@ -12,10 +12,12 @@
 //   people      hr, users, roles, tiers
 //   content     catalog, content, media, marketing, reviews, comms, whatsapp
 //   journey     visit board, arrival alerts, visit timeline, flow report
+//   pay         commission, specialist discounts, role clean-up
 //   assistant   Ask Lunia replies (src/modules/staffAssistant)
 //   operations  settings, leads, callbacks, inquiries, clinical, assistant, reports
 import assistant from "./assistant";
 import journey from "./journey";
+import pay from "./pay";
 import chrome from "./chrome";
 import common from "./common";
 import clients from "./clients";
@@ -32,6 +34,7 @@ export const SECTIONS: Record<string, Record<string, string>> = {
   chrome,
   assistant,
   journey,
+  pay,
   clients, shared, inventory, scheduling, finance, people, content, operations,
 };
 

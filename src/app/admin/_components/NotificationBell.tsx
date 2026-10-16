@@ -23,6 +23,7 @@ const TYPE_ICON: Record<NotificationType, string> = {
   document: "M6 3h8l4 4v14H6z M14 3v4h4 M12 11v4 M12 17.5v.5",
   invoice: "M6 3h12v18l-3-2-3 2-3-2-3 2z M9 8h6 M9 12h6 M9 16h3",
   request: "M4 5h16v11H8l-4 4z M8 9h8 M8 12h5",
+  discount: "M7 17 17 7 M7 7h.01 M17 17h.01",
 };
 
 export function TypeIcon({ type, muted = false }: { type: NotificationType; muted?: boolean }) {

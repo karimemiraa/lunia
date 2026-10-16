@@ -180,3 +180,30 @@ export async function saveJourneyAction(_prev: SaveSettingsState | null, formDat
   revalidatePath("/admin/visits");
   return { success: true };
 }
+
+// Specialist discount limits (docs/PRD-commission-discounts-roles.md §3.2).
+export async function saveDiscountsAction(_prev: SaveSettingsState | null, formData: FormData): Promise<SaveSettingsState> {
+  const user = await requireAdmin(PERMISSIONS.SETTINGS_MANAGE);
+  const t = await getStaffT();
+  const maxRaw = str(formData, "maxSar").trim();
+  const value = {
+    specialistCapPct: Number(str(formData, "specialistCapPct")),
+    maxMinor: maxRaw === "" ? null : Math.round(Number(maxRaw) * 100),
+  };
+  if (value.maxMinor !== null && !Number.isFinite(value.maxMinor)) return { error: t("Enter an amount like 100 or leave it empty.") };
+  try {
+    await setSetting("discounts", value);
+  } catch (err) {
+    const issue = (err as { issues?: { path: (string | number)[]; message: string }[] })?.issues?.[0];
+    return { error: issue ? `${String(issue.path[0] ?? "Value")}: ${issue.message}` : t("Couldn't save discount settings.") };
+  }
+  await recordAudit({
+    actorUserId: user.id,
+    action: "SETTINGS_DISCOUNTS",
+    entityType: "SiteSetting",
+    entityId: "discounts",
+    summary: `Specialist discounts: up to ${value.specialistCapPct}% without approval${value.maxMinor !== null ? `, max SAR ${(value.maxMinor / 100).toFixed(2)}` : ""}`,
+  });
+  revalidatePath("/admin/settings");
+  return { success: true };
+}

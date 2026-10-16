@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { requireAdmin } from "../../../../../_components/requireAdmin";
 import { PERMISSIONS } from "@/modules/iam/permissions";
@@ -21,7 +21,10 @@ interface Props {
 // customer reads the form in Arabic or English. Staff are recorded as witness.
 export default async function DeskSignPage({ params, searchParams }: Props) {
   const [{ id, formId }, { lang: rawLang }] = await Promise.all([params, searchParams]);
-  await requireAdmin(PERMISSIONS.CLINICAL_MANAGE);
+  // The front desk hands the tablet over too: the form only, no medical history.
+  const user = await requireAdmin();
+  if (!user.permissions.has(PERMISSIONS.CLINICAL_MANAGE) && !user.permissions.has(PERMISSIONS.BOOKING_MANAGE)) redirect("/admin");
+  const canClinical = user.permissions.has(PERMISSIONS.CLINICAL_MANAGE);
   const t = await getStaffT();
   const client = await loadClient(id);
   const form = await getConsentForm(formId);
@@ -74,7 +77,7 @@ export default async function DeskSignPage({ params, searchParams }: Props) {
               key={lang}
               defaultName={client.fullName}
               submit={signAtDeskAction.bind(null, id, formId, lang)}
-              signedHrefPrefix={`/admin/clients/${id}/clinical/consent/`}
+              signedHrefPrefix={canClinical ? `/admin/clients/${id}/clinical/consent/` : `/admin/clients/${id}?signed=`}
               backHref={`/admin/clients/${id}`}
               padHeight={340}
               large

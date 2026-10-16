@@ -7,6 +7,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "../_components/requireAdmin";
+import { prisma } from "@/lib/db";
+import { lockDiscountsToInvoice } from "@/modules/booking/discounts";
 import { PERMISSIONS } from "@/modules/iam/permissions";
 import { recordAudit } from "@/modules/iam/audit";
 import {
@@ -77,13 +79,20 @@ export async function issueInvoiceAction(invoiceId: string, allowNegativeStock =
   const t = await getStaffT();
   try {
     const inv = await issueInvoice(invoiceId, { actorId: user.id, allowNegativeStock });
+    // Discounts on the issued invoice: who gave what (line + invoice level).
+    const lines = await prisma.invoiceLine.findMany({ where: { invoiceId: inv.id }, select: { description: true, discountMinor: true } });
+    const lineDiscounts = lines.filter((l) => l.discountMinor > 0);
+    const discountNote = lineDiscounts.length || inv.discountMinor > 0
+      ? ` — discounts: ${[...lineDiscounts.map((l) => `${l.description} ${formatSarMinor(l.discountMinor)}`), ...(inv.discountMinor > 0 ? [`invoice ${formatSarMinor(inv.discountMinor)}`] : [])].join(", ")} (excl. VAT)`
+      : "";
     await recordAudit({
       actorUserId: user.id,
       action: "billing.invoice.issue",
       entityType: "Invoice",
       entityId: inv.id,
-      summary: `Issued ${inv.number} (${formatSarMinor(inv.totalMinor)})${allowNegativeStock ? " with stock override" : ""}`,
+      summary: `Issued ${inv.number} (${formatSarMinor(inv.totalMinor)})${allowNegativeStock ? " with stock override" : ""}${discountNote}`,
     });
+    if (inv.bookingId) await lockDiscountsToInvoice(inv.bookingId, inv.id);
     revalidate(inv.id);
     return { ok: true, number: inv.number };
   } catch (err) {

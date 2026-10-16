@@ -195,7 +195,8 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
       listStages(),
       canBill ? listInvoices({ clientProfileId: cid, take: 50 }) : Promise.resolve(null),
       loadCustomerTimeline(cid, { includeBilling: canBill, includeClinical: canClinical }),
-      canClinical ? consentStatusForClient(cid) : Promise.resolve([]),
+      // Missing consents: the specialist, or the front desk handing over the tablet.
+      canClinical || canBook ? consentStatusForClient(cid) : Promise.resolve([]),
       canClinical ? getIntakeOverview(cid) : Promise.resolve(null),
       prisma.callbackRequest.count({ where: { clientProfileId: cid, status: { in: ["OPEN", "NO_ANSWER"] } } }),
       prisma.whatsappConversation.findFirst({ where: { clientProfileId: cid }, select: { id: true } }),
@@ -479,7 +480,7 @@ export default async function ClientDetailPage({ params, searchParams }: ClientD
   );
 
   // --- Tab: Clinical (skin profile, tags, consent) -----------------------------
-  const clinicalTab = canManage ? (
+  const clinicalTab = canManage || canClinical ? (
     <ClinicalForm
       clientProfileId={cid}
       tags={detail.profile.tags}

@@ -13,7 +13,7 @@ interface EditDepartmentPageProps {
 
 export default async function EditDepartmentPage({ params }: EditDepartmentPageProps) {
   const { id } = await params;
-  const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const user = await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
   const t = await getStaffT();
   const locale = await getStaffLocale();
 

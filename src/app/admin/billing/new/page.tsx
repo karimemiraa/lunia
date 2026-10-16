@@ -7,9 +7,10 @@ import { prisma } from "@/lib/db";
 import { createDraftFromBooking } from "@/modules/billing/invoices";
 import { getTaxSettings, taxSettingsIssues } from "@/modules/billing/settings";
 import { quickPicks } from "@/modules/billing/lookup";
+import { staffOptions } from "../staffOptions";
 import { InvoiceEditor } from "../InvoiceEditor";
 import { InlineStatus } from "../../_ui/Form";
-import { getStaffT } from "../../_i18n/display";
+import { getStaffLocale, getStaffT } from "../../_i18n/display";
 
 interface NewInvoicePageProps {
   searchParams: Promise<{ booking?: string; client?: string }>;
@@ -55,6 +56,7 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
       <InvoiceEditor
         invoiceId={null}
         quickPicks={picks}
+        staff={await staffOptions(await getStaffLocale())}
         pricesIncludeVat={settings.pricesIncludeVat}
         defaultVatRateBp={settings.defaultVatRateBp}
         settingsIssues={taxSettingsIssues(settings)}

@@ -28,6 +28,8 @@ export interface EditorLine {
   discountMinor: number;
   vatRateBp: number;
   stockQty?: number;
+  /** Who performed (service) / sold (product) it — commission goes to her. */
+  staffUserId?: string | null;
 }
 
 export interface EditorInitial {
@@ -50,6 +52,10 @@ interface Props {
   settingsIssues: string[];
   /** Most-sold items for the quick tiles. */
   quickPicks?: CatalogHit[];
+  /** Specialists for "By" on service/product lines (commission). */
+  staff?: { id: string; name: string }[];
+  /** New service/product lines default to this specialist (the booking's). */
+  defaultStaffUserId?: string | null;
 }
 
 interface RowState extends Omit<EditorLine, "qty" | "unitPriceMinor" | "discountMinor"> {
@@ -76,7 +82,7 @@ const inputCls = "lunia-input min-h-11 text-base md:text-sm";
  * primary action (Issue). Keyboard-first: Enter adds the top hit, "+"/"-"
  * in the scan box bump the last line's quantity.
  */
-export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVatRateBp, settingsIssues, quickPicks = [] }: Props) {
+export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVatRateBp, settingsIssues, quickPicks = [], staff = [], defaultStaffUserId = null }: Props) {
   const router = useRouter();
   const t = useStaffT();
   const locale = useStaffLocale();
@@ -162,6 +168,7 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
         discountMinor: 0,
         vatRateBp: hit.vatRateBp,
         stockQty: hit.stockQty,
+        staffUserId: defaultStaffUserId,
       });
       lastAdded.current = row.key;
       return [...rs, row];
@@ -209,6 +216,7 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
         unitPriceMinor: parsed.lines[i]!.unitPriceMinor,
         discountMinor: parsed.lines[i]!.discountMinor,
         vatRateBp: r.vatRateBp,
+        staffUserId: r.kind === "SERVICE" || r.kind === "PRODUCT" ? (r.staffUserId ?? null) : null,
       })),
     };
   }
@@ -347,6 +355,20 @@ export function InvoiceEditor({ invoiceId, initial, pricesIncludeVat, defaultVat
                           onChange={(e) => update(r.key, { description: e.target.value })}
                           className={inputCls}
                         />
+                        {(r.kind === "SERVICE" || r.kind === "PRODUCT") && staff.length > 0 && (
+                          <label className="flex items-center gap-2 text-xs text-[var(--color-ink)]/55">
+                            {r.kind === "SERVICE" ? t("Done by") : t("Sold by")}
+                            <select
+                              value={r.staffUserId ?? ""}
+                              onChange={(e) => update(r.key, { staffUserId: e.target.value || null })}
+                              className="lunia-input min-h-9 py-1 text-xs"
+                              data-testid="line-staff"
+                            >
+                              <option value="">{t("No one (no commission)")}</option>
+                              {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                          </label>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:contents">
                         <div className="flex flex-col gap-1 text-xs text-[var(--color-ink)]/55">

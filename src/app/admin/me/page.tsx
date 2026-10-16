@@ -4,12 +4,15 @@ import { AdminShell } from "../_components/AdminShell";
 import { getMyAttendance } from "@/modules/hr/attendance";
 import { getLeaveBalance, listLeaveRequests, splitReason } from "@/modules/hr/leave";
 import { listOwnPayslips } from "@/modules/hr/payroll";
+import { commissionLines, monthRange, summarize, type CommissionSource } from "@/modules/hr/commission";
+import { prisma } from "@/lib/db";
 import { LEAVE_TYPES, LEAVE_TYPE_LABELS, type LeaveType } from "@/modules/hr/constants";
 import { todayISO } from "@/modules/hr/dates";
 import { ActionForm } from "../hr/_components/ActionForm";
 import { badge, badgeBase, dateLabel, hoursLabel, monthLabel, sar, timeLabel } from "../hr/_components/format";
 import { cancelLeaveAction, clockAction, requestLeaveAction } from "./actions";
 import { getStaffLocale, getStaffT } from "../_i18n/display";
+import { intlLocale } from "../_i18n/t";
 import { translateStatus } from "../_ui/labels";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -23,12 +26,29 @@ export default async function MyTimePage() {
   const user = await requireAdmin();
   const [t, locale] = await Promise.all([getStaffT(), getStaffLocale()]);
   const today = todayISO();
-  const [me, balance, requests, payslips] = await Promise.all([
+  // My commission: this month so far and last month (hr/commission.ts — the
+  // same figures payroll uses), only for staff on commission.
+  const month = today.slice(0, 7);
+  const [y, m] = month.split("-").map(Number) as [number, number];
+  const prevMonth = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
+  const [me, balance, requests, payslips, rates] = await Promise.all([
     getMyAttendance(user.id),
     getLeaveBalance(user.id),
     listLeaveRequests({ userId: user.id }),
     listOwnPayslips(user.id),
+    prisma.employeeRecord.findUnique({ where: { userId: user.id }, select: { commissionBp: true, productCommissionBp: true } }),
   ]);
+  const onCommission = !!rates && (rates.commissionBp > 0 || rates.productCommissionBp > 0);
+  const [thisMonth, lastMonth] = onCommission
+    ? await Promise.all(
+        [month, prevMonth].map(async (mm) => {
+          const { from, to } = monthRange(mm);
+          return summarize(await commissionLines(from, to, { staffUserId: user.id })).get(user.id) ?? null;
+        }),
+      )
+    : [null, null];
+  const SOURCE_LABEL: Record<CommissionSource, string> = { service: "Service", product: "Product", package: "Package session", refund: "Refund" };
+  const dayFmt = new Intl.DateTimeFormat(intlLocale(locale), { timeZone: "Asia/Riyadh", day: "numeric", month: "short" });
 
   return (
     <AdminShell user={user} title="My time & leave" description="Clock in and out, see your hours and request time off.">
@@ -157,6 +177,63 @@ export default async function MyTimePage() {
           )}
         </section>
       </div>
+
+      {onCommission && (
+        <section className="lunia-card mt-6 flex flex-col gap-4 p-5" data-testid="my-commission">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="font-[family-name:var(--font-display)] text-xl">{t("My commission")}</h2>
+            <p className="text-xs text-[var(--color-ink)]/55">{t("On what customers paid, after discounts, excluding VAT. Final figures are on your payslip.")}</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-[var(--radius-sm)] bg-[var(--surface-2)] px-4 py-3">
+              <p className="text-xs text-[var(--color-ink)]/55">{t("{month} so far", { month: monthLabel(month, locale) })}</p>
+              <p className="mt-1 text-2xl tabular-nums" data-testid="my-commission-total">{sar(thisMonth?.commissionMinor ?? 0, locale)}</p>
+            </div>
+            <div className="rounded-[var(--radius-sm)] bg-[var(--surface-2)] px-4 py-3">
+              <p className="text-xs text-[var(--color-ink)]/55">{t("Services and package sessions")}</p>
+              <p className="mt-1 text-lg tabular-nums">{sar(thisMonth?.servicesBaseMinor ?? 0, locale)}</p>
+              <p className="text-xs text-[var(--color-ink)]/50">{t("at {pct}%", { pct: rates!.commissionBp / 100 })}</p>
+            </div>
+            <div className="rounded-[var(--radius-sm)] bg-[var(--surface-2)] px-4 py-3">
+              <p className="text-xs text-[var(--color-ink)]/55">{t("Products sold")}</p>
+              <p className="mt-1 text-lg tabular-nums">{sar(thisMonth?.productsBaseMinor ?? 0, locale)}</p>
+              <p className="text-xs text-[var(--color-ink)]/50">{t("at {pct}%", { pct: rates!.productCommissionBp / 100 })}</p>
+            </div>
+          </div>
+          {thisMonth && thisMonth.lines.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-start text-sm">
+                <thead>
+                  <tr className="text-xs text-[var(--color-ink)]/55">
+                    <th className="py-1.5 pe-3 text-start font-medium">{t("Date")}</th>
+                    <th className="py-1.5 pe-3 text-start font-medium">{t("Customer")}</th>
+                    <th className="py-1.5 pe-3 text-start font-medium">{t("Item")}</th>
+                    <th className="py-1.5 pe-3 text-end font-medium">{t("Amount")}</th>
+                    <th className="py-1.5 text-end font-medium">{t("Commission")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...thisMonth.lines].reverse().slice(0, 50).map((l, i) => (
+                    <tr key={i} className="border-t border-[var(--line)]">
+                      <td className="py-2 pe-3 tabular-nums">{dayFmt.format(l.at)}</td>
+                      <td className="py-2 pe-3">{l.clientName ?? "—"}</td>
+                      <td className="py-2 pe-3">
+                        <span className="text-[var(--color-ink)]/55">{t(SOURCE_LABEL[l.source])} · </span>
+                        {l.description}
+                      </td>
+                      <td className="py-2 pe-3 text-end tabular-nums">{sar(l.baseMinor, locale)}</td>
+                      <td className="py-2 text-end tabular-nums">{sar(l.commissionMinor, locale)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--color-ink)]/55">{t("Nothing yet this month — commission appears once a customer's invoice is fully paid.")}</p>
+          )}
+          <p className="text-xs text-[var(--color-ink)]/55">{t("Last month ({month}): {amount}", { month: monthLabel(prevMonth, locale), amount: sar(lastMonth?.commissionMinor ?? 0, locale) })}</p>
+        </section>
+      )}
 
       {payslips.length > 0 && (
         <section className="lunia-card mt-6 p-5">

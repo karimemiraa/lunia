@@ -52,7 +52,7 @@ async function signIn(page: Page, arabic: boolean) {
 }
 
 const LABELS = {
-  en: { checkIn: "Check in", receive: "Receive for consultation", toRoom: "To the treatment room", finish: "Finish treatment", checkOut: "Check out", waiting: /Waiting \d+ min/, timeline: "Visit timeline", arrived: "arrived" },
+  en: { checkIn: "Check in", receive: "Receive for consultation", toRoom: "To the treatment room", finish: "Finish treatment", checkOut: "Check out", waiting: /Waiting \d+ min/, timeline: "Visit timeline", arrived: "Arrived at the clinic" },
   ar: { checkIn: "تسجيل الحضور", receive: "استلام للاستشارة", toRoom: "إلى غرفة العلاج", finish: "إنهاء العلاج", checkOut: "تسجيل المغادرة", waiting: /تنتظر منذ \d+ د/, timeline: "مسار الزيارة", arrived: "وصلت" },
 };
 

@@ -26,6 +26,7 @@ import {
   toDecimal,
   type InvoiceTotals,
   type LineAmounts,
+  inclusiveEditorValues,
 } from "./money";
 import { getTaxSettings, sellerLegalName, taxSettingsIssues, type TaxSettings } from "./settings";
 import { zatcaQrBase64, zatcaTimestamp } from "./zatca/tlv";
@@ -33,6 +34,7 @@ import { INITIAL_PIH, buildUblXml, invoiceHash, withXmlDeclaration, type UblGrou
 import { lockInvoice, openCashSessionId, settleInvoice } from "./settlement";
 import { BillingError, InsufficientStockError } from "./errors";
 import { activeMemberBenefits, memberLineDiscount } from "@/modules/memberships/benefits";
+import { appliedDiscounts } from "@/modules/booking/discounts";
 
 type Tx = Prisma.TransactionClient;
 
@@ -62,6 +64,8 @@ const draftLineSchema = z.object({
   unitPriceMinor: z.number().int().nonnegative().max(1_000_000_000),
   discountMinor: z.number().int().nonnegative().default(0),
   vatRateBp: z.number().int().min(0).max(10_000),
+  /** Who performed (service) / sold (product) it — commission goes to her. */
+  staffUserId: z.string().min(1).optional().nullable(),
 });
 export type DraftLineInput = z.input<typeof draftLineSchema>;
 
@@ -102,6 +106,7 @@ export function normalizeDraft(input: z.output<typeof draftSchema>): NormalizedD
       serviceId: l.kind === "SERVICE" ? (l.serviceId ?? null) : null,
       productId: l.kind === "PRODUCT" ? (l.productId ?? null) : null,
       description: l.description,
+      staffUserId: l.kind === "SERVICE" || l.kind === "PRODUCT" ? (l.staffUserId ?? null) : null,
       vatMinor: c.vatMinor,
       totalMinor: c.totalMinor,
       sortOrder: i,
@@ -116,6 +121,7 @@ function lineRows(n: NormalizedDraft) {
     serviceId: l.serviceId,
     productId: l.productId,
     description: l.description,
+    staffUserId: l.staffUserId,
     qty: l.qty,
     unitPriceMinor: l.unitPriceMinor,
     discountMinor: l.discountMinor,
@@ -140,7 +146,7 @@ function draftNumber(): string {
 async function withMemberDiscount(input: z.output<typeof draftSchema>): Promise<z.output<typeof draftSchema>> {
   if (!input.clientProfileId) return input;
   const benefits = await activeMemberBenefits(input.clientProfileId);
-  if (!benefits) return input;
+  if (!benefits) return withTierDiscount(input);
   let applied = false;
   const lines = input.lines.map((l) => {
     if (l.discountMinor > 0) return l;
@@ -150,6 +156,24 @@ async function withMemberDiscount(input: z.output<typeof draftSchema>): Promise<
   });
   if (!applied) return input;
   const note = `Member discount: ${benefits.planName}`;
+  return { ...input, lines, notes: input.notes ? `${input.notes}\n${note}` : note };
+}
+
+// Loyalty tier (e.g. VIP 10%): on service lines without a discount, when the
+// customer has no paid membership (whose discount wins). Applied once at draft.
+async function withTierDiscount(input: z.output<typeof draftSchema>): Promise<z.output<typeof draftSchema>> {
+  const m = await prisma.clientMembership.findUnique({ where: { clientId: input.clientProfileId! }, select: { tier: { select: { name: true, discountPct: true } } } });
+  const pct = m?.tier.discountPct ?? 0;
+  if (pct <= 0) return input;
+  let applied = false;
+  const lines = input.lines.map((l) => {
+    if (l.kind !== "SERVICE" || l.discountMinor > 0) return l;
+    const d = Math.round((l.unitPriceMinor * l.qty * pct) / 100);
+    if (d > 0) applied = true;
+    return d > 0 ? { ...l, discountMinor: d } : l;
+  });
+  if (!applied) return input;
+  const note = `Tier discount: ${m!.tier.name} ${pct}%`;
   return { ...input, lines, notes: input.notes ? `${input.notes}\n${note}` : note };
 }
 
@@ -217,7 +241,8 @@ export async function createDraftFromBooking(bookingId: string, actorId?: string
     },
   });
   if (!booking) throw new BillingError("Booking not found");
-  const settings = await getTaxSettings();
+  const [settings, discounts] = await Promise.all([getTaxSettings(), appliedDiscounts(booking.id)]);
+  const discountNotes = [...discounts.values()].map((d) => `Discount by ${d.byName || "specialist"}: ${d.reason}`);
 
   return createDraft(
     {
@@ -230,11 +255,14 @@ export async function createDraftFromBooking(bookingId: string, actorId?: string
         kind: "SERVICE" as const,
         serviceId: a.serviceId,
         description: a.service.nameEn,
+        staffUserId: a.staffUserId,
         qty: 1,
         unitPriceMinor: a.priceMinorSnapshot,
-        discountMinor: 0,
+        // The specialist's approved discount (same basis as the price snapshot).
+        discountMinor: Math.min(discounts.get(a.id)?.amountMinor ?? 0, a.priceMinorSnapshot),
         vatRateBp: settings.defaultVatRateBp,
       })),
+      notes: discountNotes.length ? discountNotes.join("\n") : null,
       invoiceDiscountMinor: Math.min(
         booking.discountMinor,
         booking.appointments.reduce((s, a) => s + a.priceMinorSnapshot, 0),
@@ -778,4 +806,32 @@ export async function listOverdueUnpaid(days = 3, take = 5) {
     prisma.invoice.findMany({ where, orderBy: { issuedAt: "asc" }, take }),
   ]);
   return { count, items };
+}
+
+
+/**
+ * A specialist's discount changed after front desk already opened the
+ * invoice: rewrite the draft's matching service line through updateDraft so
+ * every total is recomputed by the same code. No-op without a DRAFT.
+ */
+export async function syncDraftDiscount(bookingId: string, appointment: { serviceId: string; staffUserId: string }, amountMinor: number, previousMinor = 0): Promise<void> {
+  const draft = await prisma.invoice.findFirst({ where: { bookingId, kind: "INVOICE", status: "DRAFT" }, include: { lines: { orderBy: { sortOrder: "asc" } } }, orderBy: { createdAt: "desc" } });
+  if (!draft) return;
+  const settings = await getTaxSettings();
+  const totalLines = draft.lines.reduce((s, l) => s + l.totalMinor, 0);
+  let touched = false;
+  const lines = draft.lines.map((l) => {
+    const entered = settings.pricesIncludeVat ? inclusiveEditorValues(l) : { unitInclMinor: l.unitPriceMinor, discountInclMinor: l.discountMinor };
+    const base = { kind: l.kind as (typeof LINE_KINDS)[number], serviceId: l.serviceId, productId: l.productId, description: l.description, qty: l.qty, unitPriceMinor: entered.unitInclMinor, discountMinor: entered.discountInclMinor, vatRateBp: l.vatRateBp, staffUserId: l.staffUserId };
+    const match = !touched && l.kind === "SERVICE" && l.serviceId === appointment.serviceId && (l.staffUserId === appointment.staffUserId || !l.staffUserId) && entered.discountInclMinor === previousMinor;
+    if (!match) return base;
+    touched = true;
+    return { ...base, discountMinor: Math.min(amountMinor, entered.unitInclMinor * l.qty) };
+  });
+  if (!touched) return;
+  await updateDraft(draft.id, {
+    clientProfileId: draft.clientProfileId, bookingId: draft.bookingId, customerName: draft.customerName, customerPhone: draft.customerPhone,
+    customerVatNumber: draft.customerVatNumber, notes: draft.notes, pricesIncludeVat: settings.pricesIncludeVat, lines,
+    invoiceDiscountMinor: settings.pricesIncludeVat ? Math.max(0, totalLines - draft.totalMinor) : draft.discountMinor,
+  });
 }

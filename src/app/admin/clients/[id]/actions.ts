@@ -355,8 +355,13 @@ function csvToList(raw: FormDataEntryValue | null): string[] {
 // Consent timestamps are set when the box is ticked and cleared when unticked,
 // so the stored time is when consent was (last) granted.
 export async function saveClinicalAction(_prev: ClientActionState | null, formData: FormData): Promise<ClientActionState> {
-  const admin = await requireAdmin(PERMISSIONS.CLIENT_MANAGE);
+  // Front desk (client:manage) or the specialist (patient file) — specialists
+  // must be able to record an allergy or skin type themselves.
+  const admin = await requireAdmin(PERMISSIONS.CLIENT_VIEW);
   const t = await getStaffT();
+  if (!admin.permissions.has(PERMISSIONS.CLIENT_MANAGE) && !admin.permissions.has(PERMISSIONS.CLINICAL_MANAGE)) {
+    return { error: t("You don't have permission to do that.") };
+  }
 
   const clientProfileId = String(formData.get("clientProfileId") ?? "").trim();
   if (!clientProfileId) return { error: t("Missing client.") };

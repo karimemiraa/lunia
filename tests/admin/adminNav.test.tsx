@@ -10,7 +10,7 @@ import { PERMISSIONS } from "@/modules/iam/permissions";
 const expand = (href: string) => fireEvent.click(screen.getByTestId(`nav-expand-${href}`));
 
 describe("AdminNav", () => {
-  it("shows Dashboard always, and Media/Content/Catalog/Inquiries for a user with CMS_MANAGE only", () => {
+  it("shows Dashboard always, and Media/Content/Brands & blog/Inquiries for a user with CMS_MANAGE only", () => {
     render(<AdminNav permissions={new Set([PERMISSIONS.CMS_MANAGE])} />);
 
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
@@ -20,7 +20,9 @@ describe("AdminNav", () => {
     expect(screen.queryByRole("link", { name: "Media" })).not.toBeInTheDocument();
     expand("/admin/content");
     expect(screen.getByRole("link", { name: "Media" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Catalog" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Brands & blog" })).toBeInTheDocument();
+    // Services & prices belong to the catalog permission (manager), not content.
+    expect(screen.queryByRole("link", { name: "Services & prices" })).not.toBeInTheDocument();
 
     expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Loyalty tiers" })).not.toBeInTheDocument();
@@ -33,7 +35,9 @@ describe("AdminNav", () => {
     render(<AdminNav permissions={new Set([PERMISSIONS.SETTINGS_MANAGE])} />);
 
     expect(screen.getByRole("link", { name: "Settings" })).toBeInTheDocument();
-    expand("/admin/commerce");
+    // Gift cards & packages is a front-desk (billing) page now, so its child
+    // Loyalty tiers shows at the top level for a settings-only user.
+    expect(screen.queryByRole("link", { name: "Gift cards & packages" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Loyalty tiers" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Media" })).not.toBeInTheDocument();
   });

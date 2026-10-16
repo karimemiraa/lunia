@@ -17,7 +17,7 @@ interface EditServicePageProps {
 
 export default async function EditServicePage({ params }: EditServicePageProps) {
   const { id } = await params;
-  const user = await requireAdmin(PERMISSIONS.CMS_MANAGE);
+  const user = await requireAdmin(PERMISSIONS.CATALOG_MANAGE);
   const t = await getStaffT();
   const locale = await getStaffLocale();
 
@@ -38,6 +38,7 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
         media={media.map((item) => ({ id: item.id, filename: item.filename, storageKey: item.storageKey, kind: item.kind }))}
         tiers={tiers}
         currentMinTierId={minTier?.minTierId ?? null}
+        canSetCommission={user.permissions.has(PERMISSIONS.HR_MANAGE)}
       />
       {user.permissions.has(PERMISSIONS.INVENTORY_MANAGE) && <ServiceConsumablesSection serviceId={service.id} />}
     </AdminShell>

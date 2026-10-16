@@ -68,6 +68,17 @@ export interface BookingsReportFilter {
   status?: BookingStatus;
 }
 
+// Columns that reveal a colleague's pay. Stripped unless the viewer has HR.
+const PAY_COLUMNS = new Set(["commissionSAR"]);
+
+function withoutPay(result: ReportResult<Record<string, unknown>>): ReportResult<Record<string, unknown>> {
+  if (!result.columns.some((c) => PAY_COLUMNS.has(c.key))) return result;
+  return {
+    columns: result.columns.filter((c) => !PAY_COLUMNS.has(c.key)),
+    rows: result.rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !PAY_COLUMNS.has(k)))),
+  };
+}
+
 export interface ReportResult<T> {
   columns: ReportColumn[];
   rows: T[];
@@ -273,9 +284,84 @@ export async function flowReport(filter: { from: Date; to: Date }): Promise<Repo
   return { columns: FLOW_REPORT_COLUMNS, rows };
 }
 
+// ---- Discounts report (docs/PRD-commission-discounts-roles.md §3.2) -------
+
+export interface DiscountReportRow {
+  date: string;
+  customer: string;
+  item: string;
+  givenBy: string;
+  amountSAR: string;
+  percent: string;
+  reason: string;
+  status: string;
+  decidedBy: string;
+  invoice: string;
+}
+
+export const DISCOUNT_REPORT_COLUMNS: ReportColumn[] = [
+  { key: "date", label: "Date" },
+  { key: "customer", label: "Customer" },
+  { key: "item", label: "Service" },
+  { key: "givenBy", label: "Given by" },
+  { key: "amountSAR", label: "Amount (SAR)" },
+  { key: "percent", label: "%" },
+  { key: "reason", label: "Reason" },
+  { key: "status", label: "Status" },
+  { key: "decidedBy", label: "Approved by" },
+  { key: "invoice", label: "Invoice" },
+];
+
+/**
+ * Every discount in [from, to): specialist discounts (with who asked, who
+ * approved and why) and front-desk discounts on issued invoices.
+ */
+export async function discountsReport(filter: { from: Date; to: Date }): Promise<ReportResult<DiscountReportRow>> {
+  const day = (d: Date) => utcToCenterLocal(d).dateISO;
+  const [specialist, invoices] = await Promise.all([
+    prisma.appointmentDiscount.findMany({
+      where: { createdAt: { gte: filter.from, lt: filter.to } },
+      orderBy: { createdAt: "asc" },
+      include: { appointment: { select: { service: { select: { nameEn: true } }, booking: { select: { client: { select: { fullName: true } } } } } } },
+    }),
+    prisma.invoice.findMany({
+      where: { kind: "INVOICE", status: { notIn: ["DRAFT", "VOID"] }, issuedAt: { gte: filter.from, lt: filter.to } },
+      select: { number: true, issuedAt: true, customerName: true, discountMinor: true, createdById: true, lines: { where: { discountMinor: { gt: 0 } }, select: { description: true, discountMinor: true } } },
+    }),
+  ]);
+  const people = [...new Set([...specialist.flatMap((d) => [d.requestedById, d.decidedById]), ...invoices.map((i) => i.createdById)].filter((x): x is string => !!x))];
+  const names = new Map((await prisma.staffProfile.findMany({ where: { userId: { in: people } }, select: { userId: true, fullName: true } })).map((p) => [p.userId, p.fullName]));
+  const numberById = new Map((await prisma.invoice.findMany({ where: { id: { in: specialist.map((d) => d.invoiceId).filter((x): x is string => !!x) } }, select: { id: true, number: true } })).map((i) => [i.id, i.number]));
+  const specialistInvoices = new Set(numberById.values());
+  const rows: DiscountReportRow[] = specialist.map((d) => ({
+    date: day(d.createdAt),
+    customer: d.appointment.booking.client.fullName,
+    item: d.appointment.service.nameEn,
+    givenBy: names.get(d.requestedById) ?? "",
+    amountSAR: toSarString(d.amountMinor),
+    percent: (d.pctBp / 100).toFixed(1),
+    reason: d.reason,
+    status: d.status === "APPLIED" ? (d.decidedById && d.decidedById !== d.requestedById ? "Approved" : "Applied") : d.status === "PENDING" ? "Waiting for approval" : "Declined",
+    decidedBy: d.decidedById && d.decidedById !== d.requestedById ? names.get(d.decidedById) ?? "" : "",
+    invoice: d.invoiceId ? numberById.get(d.invoiceId) ?? "" : "",
+  }));
+  for (const inv of invoices) {
+    if (specialistInvoices.has(inv.number)) continue; // already listed through the specialist's discount
+    const parts = [...inv.lines.map((l) => ({ item: l.description, minor: l.discountMinor })), ...(inv.discountMinor > 0 ? [{ item: "Whole invoice", minor: inv.discountMinor }] : [])];
+    for (const p of parts) {
+      rows.push({
+        date: day(inv.issuedAt!), customer: inv.customerName, item: p.item, givenBy: (inv.createdById && names.get(inv.createdById)) || "Front desk",
+        amountSAR: toSarString(p.minor), percent: "", reason: "", status: "Front desk", decidedBy: "", invoice: inv.number,
+      });
+    }
+  }
+  rows.sort((a, b) => a.date.localeCompare(b.date));
+  return { columns: DISCOUNT_REPORT_COLUMNS, rows };
+}
+
 // ---- Shared entry point (admin page + CSV export route) --------------------
 
-export const REPORT_TYPES = ["bookings", "revenue", "clients", "marketing", "staff", "retention", "flow"] as const;
+export const REPORT_TYPES = ["bookings", "revenue", "clients", "marketing", "staff", "retention", "flow", "discounts"] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
 
 export interface RunReportParams {
@@ -283,6 +369,8 @@ export interface RunReportParams {
   from: Date;
   to: Date;
   status?: BookingStatus;
+  /** Team pay figures (commission) — only for HR/owner. Hidden unless true. */
+  showPay?: boolean;
 }
 
 // Each report row type has only ever-present, plain (string/number/enum)
@@ -299,7 +387,12 @@ function asRecordResult<T extends object>(result: ReportResult<T>): ReportResult
  * different data for "the same" report. Returns rows as plain
  * `Record<string, unknown>` so callers don't need a type switch per report.
  */
-export async function runReport({ type, from, to, status }: RunReportParams): Promise<ReportResult<Record<string, unknown>>> {
+export async function runReport(params: RunReportParams): Promise<ReportResult<Record<string, unknown>>> {
+  const result = await runReportUnfiltered(params);
+  return params.showPay ? result : withoutPay(result);
+}
+
+async function runReportUnfiltered({ type, from, to, status }: RunReportParams): Promise<ReportResult<Record<string, unknown>>> {
   switch (type) {
     case "bookings":
       return asRecordResult(await bookingsReport({ from, to, status }));
@@ -315,5 +408,7 @@ export async function runReport({ type, from, to, status }: RunReportParams): Pr
       return asRecordResult(await retentionReport({ from, to }));
     case "flow":
       return asRecordResult(await flowReport({ from, to }));
+    case "discounts":
+      return asRecordResult(await discountsReport({ from, to }));
   }
 }
